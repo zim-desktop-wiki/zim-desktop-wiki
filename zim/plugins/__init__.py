@@ -36,7 +36,12 @@ import os
 import sys
 import logging
 import inspect
-import collections
+
+try:
+	import collections.abc as abc
+except ImportError:
+	# python < version 3.3
+	import collections as abc
 
 from zim.newfs import LocalFolder, LocalFile
 
@@ -321,7 +326,7 @@ class InsertedObjectTypeMap(SignalEmitter):
 			self.emit('changed')
 
 
-class PluginManagerClass(ConnectorMixin, collections.Mapping):
+class PluginManagerClass(ConnectorMixin, abc.Mapping):
 	'''Manager that maintains a set of active plugins
 
 	This class is the interface towards the rest of the application to

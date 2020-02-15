@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2018-12-05 10:37+0000\n"
+"PO-Revision-Date: 2019-11-28 04:34+0000\n"
 "Last-Translator: Jonatan Nyberg <Unknown>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -273,6 +273,18 @@ msgid ""
 "<b>%T</b> the selected text including wiki formatting\n"
 "</tt>\n"
 msgstr ""
+"Följande parametrar kommer att ersättas\n"
+"i kommandot när det körs:\n"
+"<tt>\n"
+"<b>%f</b> sidkällan som en tillfällig fil\n"
+"<b>%d</b> bifogarkatalogen på den aktuella sidan\n"
+"<b>%s</b> den verkliga sidan källfilen (om någon)\n"
+"<b>%p</b> sidnamnet\n"
+"<b>%n</b> plats för bärbara datorer (fil eller mapp)\n"
+"<b>%D</b> dokumentroten (om någon)\n"
+"<b>%t</b> markerad text eller ord under markör\n"
+"<b>%T</b > den markerade texten inklusive wikiformatering\n"
+"</tt>\n"
 
 #. dialog title
 #: zim/gui/exportdialog.py:32
@@ -417,7 +429,7 @@ msgstr "Exportfil"
 #: zim/gui/exportdialog.py:416
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
-msgstr ""
+msgstr "%(n_error)i fel och %(n_warning)i varningar inträffade, se loggen"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:419
@@ -446,28 +458,28 @@ msgstr "Visa _logg"
 #: zim/gui/insertedobjects.py:265
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "Inget insticksmoduler tillgängligt för att visa objekt av typ: %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:273
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "Insticksmodulen \"%s\" krävs för att visa detta objekt"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:277
 msgid "Enable plugin"
-msgstr ""
+msgstr "Aktivera insticksmodul"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:310
 msgid "Unkown Object"
-msgstr ""
+msgstr "Okänt objekt"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:349
 msgid "Unkown Image type"
-msgstr ""
+msgstr "Okänd bildtyp"
 
 #. Menu title
 #: zim/gui/mainwindow.py:49
@@ -535,7 +547,7 @@ msgstr "_Kryssruta"
 #: zim/gui/mainwindow.py:65
 #, python-format
 msgid "Use %s to switch to the side pane"
-msgstr ""
+msgstr "Använd %s för att växla till sidopanelen"
 
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:69
@@ -561,7 +573,7 @@ msgstr "Ej skrivbar"
 #. label for View->Menubar menu item
 #: zim/gui/mainwindow.py:412
 msgid "Menubar"
-msgstr ""
+msgstr "Menyrad"
 
 #. Menu item
 #: zim/gui/mainwindow.py:442
@@ -675,10 +687,10 @@ msgstr "_Läs om"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i _bakåtlänk"
-msgstr[1] "%i _bakåtlänkar"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i _bakåtlänk..."
+msgstr[1] "%i _bakåtlänkar..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -688,7 +700,7 @@ msgstr "Hoppa till"
 #. Button label
 #: zim/gui/mainwindow.py:977
 msgid "_Jump"
-msgstr ""
+msgstr "_Hoppa"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:982
@@ -711,12 +723,12 @@ msgstr "Öppna anteckningsbok"
 #. Button label
 #: zim/gui/notebookdialog.py:327
 msgid "_Add"
-msgstr ""
+msgstr "_Lägg till"
 
 #. Button label
 #: zim/gui/notebookdialog.py:331 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "_Ta bort"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:347
@@ -744,6 +756,8 @@ msgid ""
 "To create a new notebook you need to select an empty folder.\n"
 "Of course you can also select an existing zim notebook folder.\n"
 msgstr ""
+"För att skapa en ny anteckningsbok måste du välja en tom mapp.\n"
+"Naturligtvis kan du också välja en befintlig zim anteckningsboksmapp.\n"
 
 #. Menu title
 #: zim/gui/pageview.py:150
@@ -901,7 +915,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "Upprepade klick på en kryssruta cykler genom kryssrutans lägen"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -949,7 +963,7 @@ msgstr ""
 #: zim/gui/pageview.py:4896 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:858
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
-msgstr ""
+msgstr "_Avbryt"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:4901
@@ -1119,7 +1133,7 @@ msgstr "_Datum och tid..."
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:6205
 msgid "Horizontal _Line"
-msgstr ""
+msgstr "Horisontell _rad"
 
 #. Menu item
 #: zim/gui/pageview.py:6217
@@ -1494,7 +1508,7 @@ msgstr "K_onfigurera"
 #. button label
 #: zim/gui/preferencesdialog.py:244
 msgid "Open plugins folder"
-msgstr ""
+msgstr "Öppna insticksmodulsmappen"
 
 #. label for button with URL
 #: zim/gui/preferencesdialog.py:253
@@ -1559,6 +1573,8 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
+"Den här insticksmodulen har också egenskaper,\n"
+"se dialogrutan egenskaper för anteckningsbok"
 
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:440
@@ -1608,7 +1624,7 @@ msgstr "Senast ändrad"
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
-msgstr ""
+msgstr "_Hitta"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -1689,7 +1705,7 @@ msgstr "Ny _undersida"
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "Ny sida här..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1770,7 +1786,7 @@ msgstr "_Sök..."
 #. Menu item for search a sub-set of the notebook
 #: zim/gui/uiactions.py:300
 msgid "Search this section"
-msgstr ""
+msgstr "Sök i det här avsnittet"
 
 #. Menu item
 #: zim/gui/uiactions.py:305
@@ -1810,7 +1826,7 @@ msgstr "Öppna dokument_rot"
 #. Error message
 #: zim/gui/uiactions.py:350
 msgid "No document root defined for this notebook"
-msgstr ""
+msgstr "Ingen dokumentrot definierad för den här anteckningsboken"
 
 #. Menu item
 #: zim/gui/uiactions.py:356
@@ -1861,7 +1877,7 @@ msgstr "_Om"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "Ny sida i %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2010,7 +2026,7 @@ msgstr "Skriv över"
 #. Button label
 #: zim/gui/uiactions.py:859 zim/gui/widgets.py:85
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:903
@@ -2115,7 +2131,7 @@ msgstr "Bilder"
 #: zim/gui/widgets.py:3676
 #, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{count} av {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3698
@@ -2176,25 +2192,26 @@ msgstr "Uppdaterar biblioteksstruktur"
 #: zim/notebook/notebook.py:120
 #, python-format
 msgid "No such page: %s"
-msgstr ""
+msgstr "Ingen sådan sida: %s"
 
 #. message for PageNotAllowedError
 #: zim/notebook/notebook.py:124
 #, python-format
 msgid "Page not allowed: %s"
-msgstr ""
+msgstr "Sidan är inte tillåten: %s"
 
 #. description for PageNotAllowedError
 #: zim/notebook/notebook.py:125
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr ""
+"Detta sidnamn kan inte användas på grund av tekniska begränsningar av lagring"
 
 #. message for PageExistsError
 #: zim/notebook/notebook.py:130
 #, python-format
 msgid "Page already exists: %s"
-msgstr ""
+msgstr "Sidan finns redan: %s"
 
 #. error message for read-only pages
 #: zim/notebook/notebook.py:134
@@ -2280,6 +2297,8 @@ msgid ""
 "This plugin shows the attachments folder of the current page as an\n"
 "icon view at bottom pane.\n"
 msgstr ""
+"Denna plugin visar mappen bilagor på den aktuella sidan som en\n"
+"ikonvy i nedre rutan.\n"
 
 #. option for plugin preferences |
 #. preferences option
@@ -2300,8 +2319,8 @@ msgstr "Bilagor"
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i bilaga"
+msgstr[1] "%i bilagor"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2329,13 +2348,13 @@ msgstr "Bakåtlänkar"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:261
 msgid "_Edit..."
-msgstr ""
+msgstr "_Redigera..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:289
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "Redigera %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:314
@@ -2366,82 +2385,82 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:45
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "Högsta antalet bokmärken"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:46
 msgid "Save bookmarks"
-msgstr ""
+msgstr "Spara bokmärken"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:47
 msgid "Add new bookmarks to the beginning of the bar"
-msgstr ""
+msgstr "Lägg till nya bokmärken i början av fältet"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:99 zim/plugins/bookmarksbar.py:160
 msgid "Add Bookmark"
-msgstr ""
+msgstr "Lägg till bokmärke"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:149
 msgid "Bookmarks"
-msgstr ""
+msgstr "Bokmärken"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:184
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "Lägg till bokmärke/Visa inställningar"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:294
 msgid "Do you want to delete all bookmarks?"
-msgstr ""
+msgstr "Vill du ta bort alla bokmärken?"
 
 #. menu item for context menu
 #: zim/plugins/bookmarksbar.py:375
 msgid "Show full Page Name"
-msgstr ""
+msgstr "Visa hela sidans namn"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:397
 msgid "Set New Name"
-msgstr ""
+msgstr "Ange nytt namn"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:399
 msgid "Back to Original Name"
-msgstr ""
+msgstr "Tillbaka till originalnamnet"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:404
 msgid "Remove"
-msgstr ""
+msgstr "Ta bort"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:405
 msgid "Remove All"
-msgstr ""
+msgstr "Ta bort alla"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Kopiera"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Klistra in"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
 msgid "Open in New Window"
-msgstr ""
+msgstr "Öppna i nytt fönster"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:413
 msgid "Set to Current Page"
-msgstr ""
+msgstr "Ställ in till nuvarande sida"
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
@@ -2463,7 +2482,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/diagrameditor.py:39
 msgid "Diagram"
-msgstr ""
+msgstr "Diagram"
 
 #. plugin name
 #: zim/plugins/distractionfree.py:25
@@ -2502,7 +2521,7 @@ msgstr "Maximal sidbredd"
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Border width"
-msgstr ""
+msgstr "Kantbredd"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:41
@@ -2533,7 +2552,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
 msgid "Ascii graph (Ditaa)"
-msgstr ""
+msgstr "Ascii-diagram (Ditaa)"
 
 #. plugin name
 #: zim/plugins/equationeditor.py:23
@@ -2555,7 +2574,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/equationeditor.py:44
 msgid "Equation"
-msgstr ""
+msgstr "Ekvation"
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
@@ -2691,7 +2710,7 @@ msgstr "År"
 #. preferences option
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
-msgstr ""
+msgstr "Dölj journalpanel om den är tom"
 
 #. preferences option, values will be "Day", "Month", ...
 #: zim/plugins/journal.py:122
@@ -2727,7 +2746,7 @@ msgstr ""
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:40
 msgid "Please select more than one line of text"
-msgstr ""
+msgstr "Vänligen välj mer än en textrad"
 
 #. menu item
 #: zim/plugins/linesorter.py:70
@@ -2737,22 +2756,22 @@ msgstr "_Sortera rader"
 #. Menu item
 #: zim/plugins/linesorter.py:156
 msgid "_Move Line Up"
-msgstr ""
+msgstr "_Flytta raden upp"
 
 #. Menu item
 #: zim/plugins/linesorter.py:162
 msgid "_Move Line Down"
-msgstr ""
+msgstr "_Flytta raden ner"
 
 #. Menu item
 #: zim/plugins/linesorter.py:168
 msgid "_Duplicate Line"
-msgstr ""
+msgstr "_Duplicera rad"
 
 #. Menu item
 #: zim/plugins/linesorter.py:178
 msgid "_Remove Line"
-msgstr ""
+msgstr "_Ta bort rad"
 
 #. plugin name |
 #. menu item
@@ -2780,12 +2799,12 @@ msgstr ""
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:49
 msgid "Page Index"
-msgstr ""
+msgstr "Sidindex"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:50
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr ""
+msgstr "Denna insticksmodul lägger sidindexrutan till huvudfönstret.\n"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:111 data/templates/html/Default.html:52
@@ -2807,6 +2826,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"Denna insticksmodul lägger till ett \"sökfält\" längst upp i fönstret.\n"
+"Detta \"sökfält\" kan visa anteckningssökväg för den aktuella sidan,\n"
+"nyligen besökta sidor eller nyligen redigerade sidor.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -2870,7 +2892,7 @@ msgstr "_Skriv till webläsare"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "_Skriv ut"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
@@ -2898,7 +2920,7 @@ msgstr "Snabb anteckning..."
 #. text entry field
 #: zim/plugins/quicknote.py:248
 msgid "Page section"
-msgstr ""
+msgstr "Sidaavsnitt"
 
 #. checkbox in Quick Note dialog
 #: zim/plugins/quicknote.py:249
@@ -3062,7 +3084,7 @@ msgstr "Högermarginalens position"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:72
 msgid "Tab width"
-msgstr ""
+msgstr "Tabbredd"
 
 #. menu item
 #: zim/plugins/sourceview.py:86
@@ -3121,27 +3143,27 @@ msgstr ""
 #. alignment option
 #: zim/plugins/tableeditor.py:52 zim/plugins/tableeditor.py:862
 msgid "Left"
-msgstr ""
+msgstr "Vänster"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:53
 msgid "Center"
-msgstr ""
+msgstr "Centrera"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:54
 msgid "Right"
-msgstr ""
+msgstr "Höger"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:55
 msgid "Unspecified"
-msgstr ""
+msgstr "Ospecificerat"
 
 #. plugin name
 #: zim/plugins/tableeditor.py:82
 msgid "Table Editor"
-msgstr ""
+msgstr "Tabellredigerare"
 
 #. plugin description
 #: zim/plugins/tableeditor.py:83
@@ -3155,87 +3177,87 @@ msgstr ""
 #. option value
 #: zim/plugins/tableeditor.py:92
 msgid "with lines"
-msgstr ""
+msgstr "med rader"
 
 #. option value
 #: zim/plugins/tableeditor.py:93
 msgid "no grid lines"
-msgstr ""
+msgstr "inga rutnät"
 
 #. option value
 #: zim/plugins/tableeditor.py:94
 msgid "horizontal lines"
-msgstr ""
+msgstr "horisontella rader"
 
 #. option value
 #: zim/plugins/tableeditor.py:95
 msgid "vertical lines"
-msgstr ""
+msgstr "vertikala rader"
 
 #. preference description
 #: zim/plugins/tableeditor.py:101
 msgid "Show helper toolbar"
-msgstr ""
+msgstr "Visa verktygsfält för hjälpare"
 
 #. preference description
 #: zim/plugins/tableeditor.py:104
 msgid "Grid lines"
-msgstr ""
+msgstr "Rutnät"
 
 #. menu item
 #: zim/plugins/tableeditor.py:154
 msgid "Table"
-msgstr ""
+msgstr "Tabell"
 
 #. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:457 zim/plugins/tableeditor.py:613
 msgid "Add row"
-msgstr ""
+msgstr "Lägg till rad"
 
 #. tooltip on mouse hover
 #: zim/plugins/tableeditor.py:458
 msgid "Remove row"
-msgstr ""
+msgstr "Ta bort rad"
 
 #. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:459 zim/plugins/tableeditor.py:615
 msgid "Clone row"
-msgstr ""
+msgstr "Klona rad"
 
 #. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:461 zim/plugins/tableeditor.py:619
 msgid "Row up"
-msgstr ""
+msgstr "Rad upp"
 
 #. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:462 zim/plugins/tableeditor.py:620
 msgid "Row down"
-msgstr ""
+msgstr "Rad ner"
 
 #. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:464 zim/plugins/tableeditor.py:622
 msgid "Change columns"
-msgstr ""
+msgstr "Ändra kolumner"
 
 #. tooltip on mouse hover
 #: zim/plugins/tableeditor.py:466
 msgid "Open help"
-msgstr ""
+msgstr "Öppna hjälp"
 
 #. menu item
 #: zim/plugins/tableeditor.py:614
 msgid "Delete row"
-msgstr ""
+msgstr "Ta bort rad"
 
 #. menu item
 #: zim/plugins/tableeditor.py:617
 msgid "Open cell content link"
-msgstr ""
+msgstr "Öppna cellens innehållande länk"
 
 #. Popup dialog
 #: zim/plugins/tableeditor.py:680
@@ -3243,31 +3265,33 @@ msgid ""
 "The table must consist of at least on row!\n"
 " No deletion done."
 msgstr ""
+"Tabellen måste bestå av åtminstone på rad!\n"
+" Ingen borttagning klar."
 
 #. Popup dialog
 #: zim/plugins/tableeditor.py:771 zim/plugins/tableeditor.py:1080
 msgid "Please select a row, before you push the button."
-msgstr ""
+msgstr "Vänligen välj en rad innan du trycker på knappen."
 
 #. Dialog title
 #: zim/plugins/tableeditor.py:858
 msgid "Insert Table"
-msgstr ""
+msgstr "Infoga tabell"
 
 #. Dialog title
 #: zim/plugins/tableeditor.py:858
 msgid "Edit Table"
-msgstr ""
+msgstr "Redigera tabell"
 
 #. Description of "Table-Insert" Dialog
 #: zim/plugins/tableeditor.py:867
 msgid "Managing table columns"
-msgstr ""
+msgstr "Hantera tabellkolumner"
 
 #. Initial data for column title in table
 #: zim/plugins/tableeditor.py:897
 msgid "Column 1"
-msgstr ""
+msgstr "Kolumn 1"
 
 #. table header
 #: zim/plugins/tableeditor.py:930
@@ -3279,32 +3303,32 @@ msgstr ""
 #. table header
 #: zim/plugins/tableeditor.py:940
 msgid "Align"
-msgstr ""
+msgstr "Justera"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:967
 msgid "Add column"
-msgstr ""
+msgstr "Lägg till kolumn"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:968
 msgid "Remove column"
-msgstr ""
+msgstr "Ta bort kolumn"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:969
 msgid "Move column ahead"
-msgstr ""
+msgstr "Flytta kolumnen framåt"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:970
 msgid "Move column backward"
-msgstr ""
+msgstr "Flytta kolumnen bakåt"
 
 #. popup dialog
 #: zim/plugins/tableeditor.py:1054
 msgid "A table needs to have at least one column."
-msgstr ""
+msgstr "En tabell måste ha minst en kolumn."
 
 #. plugin name
 #: zim/plugins/tableofcontents.py:71
@@ -3364,11 +3388,13 @@ msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
 msgstr ""
+"Denna insticksmodul tillhandahåller ett sidindex som filtreras med hjälp av "
+"att välja taggar i ett moln.\n"
 
 #. menu option
 #: zim/plugins/tags.py:132
 msgid "Show full page name"
-msgstr ""
+msgstr "Visa hela sidans namn"
 
 #. menu option
 #: zim/plugins/tags.py:137
@@ -3383,17 +3409,17 @@ msgstr "Sortera alfabetiskt"
 #. Checkbox in task list - hides parent items
 #: zim/plugins/tasklist/gui.py:36
 msgid "Show Tasks as Flat List"
-msgstr ""
+msgstr "Visa uppgifter som platt lista"
 
 #. Checkbox in task list - this options hides tasks that are not yet started
 #: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:170
 msgid "Only Show Active Tasks"
-msgstr ""
+msgstr "Visa endast aktiva uppgifter"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tasks"
-msgstr ""
+msgstr "Uppgifter"
 
 #. label for filtering/searching tasks |
 #. Input label
@@ -3441,12 +3467,12 @@ msgstr "Datum"
 #. start date for task
 #: zim/plugins/tasklist/gui.py:795
 msgid "Start"
-msgstr ""
+msgstr "Start"
 
 #. due date for task
 #: zim/plugins/tasklist/gui.py:797
 msgid "Due"
-msgstr ""
+msgstr "Förfallodatum"
 
 #. plugin description
 #: zim/plugins/tasklist/__init__.py:39
@@ -3467,7 +3493,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
 msgid "Show tasklist in sidepane"
-msgstr ""
+msgstr "Visa uppgiftslista i sidopanel"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:60
@@ -3482,32 +3508,32 @@ msgstr "Etiketter som markerar aktiviteter"
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:64
 msgid "Use date from journal pages"
-msgstr ""
+msgstr "Använd datum från journalsidor"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:65
 msgid "do not use"
-msgstr ""
+msgstr "använd inte"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:66
 msgid "as start date for tasks"
-msgstr ""
+msgstr "som startdatum för uppgifter"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:67
 msgid "as due date for tasks"
-msgstr ""
+msgstr "som förfallodatum för uppgifter"
 
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:69
 msgid "Section(s) to index"
-msgstr ""
+msgstr "Avsnitt till index"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:71
 msgid "Section(s) to ignore"
-msgstr ""
+msgstr "Avsnitt att ignorera"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:76
@@ -3614,7 +3640,7 @@ msgstr "Spara automatiskt med jämna tidsintervaller"
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:70
 msgid "Autosave interval in minutes"
-msgstr ""
+msgstr "Spara automatiskt intervall i minuter"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:205
@@ -3661,7 +3687,7 @@ msgstr "Git"
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:264
 msgid "Fossil"
-msgstr ""
+msgstr "Fossil"
 
 #. Question dialog
 #: zim/plugins/versioncontrol/__init__.py:724
@@ -3811,17 +3837,17 @@ msgstr ""
 #: data/templates/html/Default_with_index.html:67
 #: data/templates/html/Default_with_index.html:69
 msgid "Next"
-msgstr ""
+msgstr "Nästa"
 
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
 msgid "Backlinks:"
-msgstr ""
+msgstr "Tillbakalänkar:"
 
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
-msgstr ""
+msgstr "Bilagor:"
 
 #~ msgid "Output"
 #~ msgstr "Utdata"

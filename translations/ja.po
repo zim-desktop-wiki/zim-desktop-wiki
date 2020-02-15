@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-01-20 14:52+0000\n"
+"PO-Revision-Date: 2019-07-27 14:09+0000\n"
 "Last-Translator: Shinichirou Yamada "
 "<yamada_strong_yamada_nice_64bit@yahoo.co.jp>\n"
 "Language-Team: Japanese <ja@li.org>\n"
@@ -16,8 +16,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -681,9 +681,9 @@ msgstr "再読み込み(_R)"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "逆リンク: %i (_B)"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "逆リンク: %i (_B)..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -755,7 +755,7 @@ msgstr ""
 #. Menu title
 #: zim/gui/pageview.py:150
 msgid "New _Attachment"
-msgstr "添付ファイルを新規作成(_A)"
+msgstr "新しい添付ファイル(_A)"
 
 #. Menu item
 #: zim/gui/pageview.py:155
@@ -1686,17 +1686,17 @@ msgstr "テンプレートをコピー"
 #. Menu item
 #: zim/gui/uiactions.py:91
 msgid "_New Page..."
-msgstr "新規ページ(_N)..."
+msgstr "新しいページ(_N)..."
 
 #. Menu item
 #: zim/gui/uiactions.py:102
 msgid "New S_ub Page..."
-msgstr "新規サブページ(_U)..."
+msgstr "新しいサブページ(_U)..."
 
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "ここに新しいページ(_N)..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1868,12 +1868,12 @@ msgstr "情報(_A)"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "%s の新しいページ"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
 msgid "New Page"
-msgstr "新規ページ"
+msgstr "新しいページ"
 
 #. Dialog text in 'new page' dialog
 #: zim/gui/uiactions.py:474
@@ -2430,12 +2430,12 @@ msgstr "全て削除"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "コピー"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "貼り付け"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2797,6 +2797,8 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"このプラグインはウィンドウの上部に「パスバー」を追加します。この「パスバー」は、現在のページ、最近表示したページ、最近編集したページのノートブックパスを表"
+"示できます。\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -3015,6 +3017,7 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"このプラグインはページに「コードブロック」を挿入できるようにします。行番号やシンタックスハイライトなどを備えた埋め込みウィジェットとして表示されます。\n"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:62

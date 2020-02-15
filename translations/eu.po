@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-04-04 21:07+0000\n"
+"PO-Revision-Date: 2019-07-31 21:47+0000\n"
 "Last-Translator: Alexander Gabilondo <alexgabi@irakasle.net>\n"
 "Language-Team: Basque <eu@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -690,10 +690,10 @@ msgstr "_Birkargatu"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i_Bueltako esteka"
-msgstr[1] "%i_Bueltako estekak"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i_Bueltako esteka..."
+msgstr[1] "%i_Bueltako estekak..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -919,6 +919,8 @@ msgstr ""
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
+"Kontrol laukian behin eta berriz klik egiteak dituen egoera desberdinak "
+"aldatzen ditu"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -1709,7 +1711,7 @@ msgstr "_Azpiorri berria..."
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "Orri berria hemen..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1881,7 +1883,7 @@ msgstr "Honi _buruz"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "Orri berrian %s-n"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2445,12 +2447,12 @@ msgstr "Kendu denak"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Kopiatu"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Itsatsi"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2815,6 +2817,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"Plugin honek \"bidea barra\" gehitzen du leihoaren goiko aldean.\n"
+"\"Bidea barra\"-k erakutsi dezake uneko orriak koadernoan duen kokalekua,\n"
+"duela gutxi bisitatutako orriak edo duela gutxi editatutako orriak.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -3031,6 +3036,9 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"Plugin honek aukera ematen du orrian \"Kode blokeak\" txertatzeko.  Bloke\n"
+"hauek bistaratuko dira kapsulatutako trepetak bezala sintaxia nabarmendua, "
+"lerro zenbakiak, eta abar.\n"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:62

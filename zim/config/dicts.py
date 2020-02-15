@@ -27,9 +27,14 @@ import sys
 import re
 import logging
 import types
-import collections
 import ast
 import json
+
+try:
+	import collections.abc as abc
+except ImportError:
+	# python < version 3.3
+	import collections as abc
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
 from zim.utils import OrderedDict
@@ -575,7 +580,7 @@ class ConfigDict(ControlledDict):
 		'''
 		assert not (E and F)
 		update = E or F
-		if isinstance(update, collections.Mapping):
+		if isinstance(update, abc.Mapping):
 			items = list(update.items())
 		else:
 			items = update

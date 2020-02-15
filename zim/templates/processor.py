@@ -10,7 +10,11 @@ expressions in the template.
 '''
 
 
-import collections
+try:
+	import collections.abc as abc
+except ImportError:
+	# python < version 3.3
+	import collections as abc
 
 from zim.utils import MovingWindowIter
 from zim.parser import SimpleTreeElement
@@ -146,9 +150,9 @@ class TemplateProcessor(object):
 		var = element.attrib['var']
 		expr = element.attrib['expr']
 		items = expr(context)
-		if not isinstance(items, collections.Iterable):
+		if not isinstance(items, abc.Iterable):
 			raise TypeError('Can not iterate over: %s' % items)
-		elif not isinstance(items, collections.Sized):
+		elif not isinstance(items, abc.Sized):
 			# cast to list to ensure we have a len()
 			items = list(items)
 

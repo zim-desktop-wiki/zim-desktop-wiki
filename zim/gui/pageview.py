@@ -6601,12 +6601,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Toggle the format for the current (auto-)selection or new
 		insertions at the current cursor position
 
-		When the cursor is in the middle of a word it can be selected
-		automatically to format it. But we only autoselect words that
-		were not formatted - otherwise the behavior is not consistent
-		when trying to break a formatted region by toggling off the
-		formatting. For headings and other line based formats
-		auto-selects the whole line.
+		When the cursor is at the begin or in the middle of a word and there is
+		not selection, the word is selected automatically to toggle the format.
+		For headings and other line based formats auto-selects the whole line.
 
 		This is the handler for all the format menu- and toolbar-items.
 
@@ -6619,10 +6616,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
 			selected = self.autoselect(selectline=True)
 		else:
-			# Check for format not being present either left or right
+			# Check formatting is consistent left and right
 			iter = buffer.get_insert_iter()
-			applied = [t.zim_tag for t in iter.get_tags() + buffer.iter_get_zim_tags(iter)]
-			if not format in applied:
+			format_left = format in [t.zim_tag for t in buffer.iter_get_zim_tags(iter)]
+			format_right = format in [t.zim_tag for t in iter.get_tags()]
+			if format_left is format_right:
 				selected = self.autoselect(selectline=False)
 
 		buffer.toggle_textstyle(format)

@@ -5,6 +5,9 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.72.1 - Wed 01 Jan 2020
+* Update translations & documentation
+
 ##  0.72.0 - Thu 29 Aug 2019
 * Improve pathbar with "linked" visual design
 * Improve statusbar visual style

@@ -35,8 +35,13 @@ These restrictions hsould help to minimize risk of arbitrary code
 execution in expressions.
 '''
 
+try:
+	import collections.abc as abc
+except ImportError:
+	# python < version 3.3
+	import collections as abc
 
-import collections
+
 import inspect
 import logging
 
@@ -292,7 +297,7 @@ class ExpressionFunctionCall(Expression):
 		'''
 		if isinstance(obj, str):
 			return ExpressionStringObject(obj)
-		elif isinstance(obj, (dict, collections.Mapping)):
+		elif isinstance(obj, (dict, abc.Mapping)):
 			return ExpressionDictObject(obj)
 		elif isinstance(obj, list):
 			return ExpressionListObject(obj)

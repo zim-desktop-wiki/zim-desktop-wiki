@@ -16,8 +16,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n % 100 >= "
 "3 && n % 100 <= 10 ? 3 : n % 100 >= 11 && n % 100 <= 99 ? 4 : 5;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 "Language: ar\n"
 
 #. Error message when external application failed, %s is the command
@@ -676,14 +676,14 @@ msgstr "أعد التحميل"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i _إشارة خلفية"
-msgstr[1] "%i _Backlinks"
-msgstr[2] "%i _Backlinks"
-msgstr[3] "%i _Backlinks"
-msgstr[4] "%i _Backlinks"
-msgstr[5] "%i _Backlinks"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i _إشارة خلفية..."
+msgstr[1] "%i _Backlinks..."
+msgstr[2] "%i _Backlinks..."
+msgstr[3] "%i _Backlinks..."
+msgstr[4] "%i _Backlinks..."
+msgstr[5] "%i _Backlinks..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -1782,7 +1782,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:305
 msgid "Search _Backlinks..."
-msgstr "إبحث الوصلات الخلفية..."
+msgstr "إبحث الوصلات الخلفية"
 
 #. Menu item
 #: zim/gui/uiactions.py:313
