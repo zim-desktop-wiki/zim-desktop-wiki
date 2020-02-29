@@ -15,6 +15,10 @@ Alternatively if the option **Show ToC as floating widget instead of in sidepane
 
 By default the page title is not show in the table of contents (unless there are multiple title headings in the page). If the option **Show the page title heading in the ToC** is enabled the page title will always been shown in the table of contents.
 
+The table of contents also shows horizontal lines as these are considered breaks between sections.
+The option **Inlcude horizontal lines in the ToC** can be used to change this behavior.
+
+
 ===== Style =====
 
 This plugin uses two widget names to allow CSS styling for the floating widget:
