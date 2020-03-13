@@ -78,7 +78,7 @@ class LineSeparator(InsertedObjectWidget):
 def is_line(line):
 	'''Function used for line autoformatting.'''
 	length = len(line)
-	return (line == '-' * length) and (length > 4)
+	return (line == '-' * length) and (length >= 3)
 
 
 STOCK_CHECKED_BOX = 'zim-checked-box'
