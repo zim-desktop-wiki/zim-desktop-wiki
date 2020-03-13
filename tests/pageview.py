@@ -1,5 +1,5 @@
 
-# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 
@@ -2247,6 +2247,19 @@ class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
 
 	def testAutoFormatBullet(self):
 		self.assertTyping('* Test', '<li bullet="*" indent="0"> Test</li>')
+
+	def testAutoFormatCheckbox(self):
+		self.assertTyping('[] Test', '<li bullet="unchecked-box" indent="0"> Test</li>')
+
+	def testAutoFormatNumbered(self):
+		self.assertTyping('3. Test', '<li bullet="3." indent="0"> Test</li>')
+
+	def testAutoFormatBulletWithinList(self):
+		self.set_buffer(self.buffer, '<li bullet="unchecked-box" indent="0"> Test</li>')
+		iter = self.buffer.get_start_iter()
+		iter.forward_chars(2) # put it behind the checkbox
+		self.buffer.place_cursor(iter)
+		self.assertTyping('* ', '<li bullet="*" indent="0"> Test</li>')
 
 	def testNoAutoFormatBulletInHeading(self):
 		self.set_buffer(self.buffer, '<h level="1">test</h>\n')

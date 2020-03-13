@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -4348,7 +4348,16 @@ class TextView(Gtk.TextView):
 				buffer.apply_tag(tag, start, end)
 				return True
 
-		if (char == ' ' or char == '\t') and start.starts_line() \
+		def allow_bullet(iter):
+			if iter.starts_line():
+				return True
+			elif iter.get_line_offset() < 10:
+				home = buffer.get_iter_at_line(iter.get_line())
+				return buffer.iter_forward_past_bullet(home) and start.equal(iter)
+			else:
+				return False
+
+		if (char == ' ' or char == '\t') and allow_bullet(start) \
 		and (word in autoformat_bullets or is_numbered_bullet_re.match(word)):
 			if buffer.range_has_tags(_is_heading_tag, start, end):
 				handled = False # No bullets in headings
@@ -4358,7 +4367,7 @@ class TextView(Gtk.TextView):
 				end.forward_char() # also overwrite the space triggering the action
 				buffer.delete(start, end)
 				bullet = autoformat_bullets.get(word) or word
-				buffer.set_bullet(line, bullet)
+				buffer.set_bullet(line, bullet) # takes care of replacing bullets as well
 				handled = True
 		elif tag_re.match(word):
 			handled = apply_tag(tag_re[0])
