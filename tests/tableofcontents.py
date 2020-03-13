@@ -119,9 +119,9 @@ sdfsdf
 		widget.on_store_page(notebook, page)
 		self.assertEqual(get_tree(), without_h1)
 
-		widget.set_preferences(show_h1=True, include_hr=True)
+		widget.set_preferences(show_h1=True, include_hr=True, fontsize=10)
 		self.assertEqual(get_tree(), with_h1)
-		widget.set_preferences(show_h1=False, include_hr=True)
+		widget.set_preferences(show_h1=False, include_hr=True, fontsize=10)
 		self.assertEqual(get_tree(), without_h1)
 
 		column = widget.treeview.get_column(0)
