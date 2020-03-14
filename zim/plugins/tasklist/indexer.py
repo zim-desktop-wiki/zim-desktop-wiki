@@ -44,11 +44,8 @@ def _parse_task_labels(string):
 	if string is None:
 		return []
 	else:
-		return [
-			s.strip()
-				for s in string.split(',')
-					if s and not s.isspace()
-		]
+		labels = [s.strip(',').strip() for s in string.split()]
+		return [l for l in labels if l]
 
 
 def _task_labels_re(labels):
