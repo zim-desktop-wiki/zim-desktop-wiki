@@ -6854,6 +6854,22 @@ class InsertDateDialog(Dialog):
 		self.uistate.setdefault('linkdate', False)
 		self.uistate.setdefault('calendar_expanded', False)
 
+		## Add Calendar widget
+		from zim.plugins.journal import Calendar # FIXME put this in zim.gui.widgets
+
+		self.calendar_expander = Gtk.Expander.new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
+			# T: expander label in "insert date" dialog
+		self.calendar_expander.set_use_markup(True)
+		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
+		self.calendar = Calendar()
+		self.calendar.set_display_options(
+			Gtk.CalendarDisplayOptions.SHOW_HEADING |
+			Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES |
+			Gtk.CalendarDisplayOptions.SHOW_WEEK_NUMBERS)
+		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
+		self.calendar_expander.add(self.calendar)
+		self.vbox.pack_start(self.calendar_expander, False, True, 0)
+
 		## Add format list box
 		label = Gtk.Label()
 		label.set_markup('<b>' + _("Format") + '</b>') # T: label in "insert date" dialog
@@ -6870,22 +6886,6 @@ class InsertDateDialog(Dialog):
 		self.view.set_headers_visible(False)
 		self.view.connect('row-activated',
 			lambda *a: self.response(Gtk.ResponseType.OK))
-
-		## Add Calendar widget
-		from zim.plugins.journal import Calendar # FIXME put this in zim.gui.widgets
-
-		self.calendar_expander = Gtk.Expander.new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
-			# T: expander label in "insert date" dialog
-		self.calendar_expander.set_use_markup(True)
-		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
-		self.calendar = Calendar()
-		self.calendar.set_display_options(
-			Gtk.CalendarDisplayOptions.SHOW_HEADING |
-			Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES |
-			Gtk.CalendarDisplayOptions.SHOW_WEEK_NUMBERS)
-		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
-		self.calendar_expander.add(self.calendar)
-		self.vbox.pack_start(self.calendar_expander, False, True, 0)
 
 		## Add Link checkbox and Edit button
 		self.linkbutton = Gtk.CheckButton.new_with_mnemonic(_('_Link to date'))
