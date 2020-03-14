@@ -1,7 +1,18 @@
 language: python
-python:
-  - "3.6"
-dist: xenial
+jobs:
+  include:
+    # - name: "Python 3.2 on Trusty linux"
+    #  python: "3.2"
+    #  dist: trusty
+    - name: "Python 3.6 on Xenial linux"
+      python: "3.6"
+      dist: xenial
+    - name: "Python 3.8 on Bionic linux"
+      python: "3.8"
+      dist: bionic
+    - name: "Python 3.9 on Bionix linux"
+      python: "3.9-dev"
+      dist: bionic
 addons:
   apt:
     packages:
