@@ -77,6 +77,7 @@ GUI Options:
 Server Options:
   --port           port to use (defaults to 8080)
   --template       name of the template to use
+  --private        serve only to localhost
   --gui            run the gui wrapper for the server
 
 Export Options:
@@ -362,6 +363,7 @@ class ServerCommand(NotebookCommand):
 		('port=', 'p', 'port number to use (defaults to 8080)'),
 		('template=', 't', 'name or path of the template to use'),
 		('standalone', '', 'start a single instance, no background process'),
+		('private', '', 'serve only to localhost')
 	)
 
 	def run(self):
@@ -369,8 +371,9 @@ class ServerCommand(NotebookCommand):
 		self.opts['port'] = int(self.opts.get('port', 8080))
 		self.opts.setdefault('template', 'Default')
 		notebook, page = self.build_notebook()
+		is_public = not self.opts.get('private', False)
 
-		self.server = httpd = zim.www.make_server(notebook, public=True, **self.get_options('template', 'port'))
+		self.server = httpd = zim.www.make_server(notebook, public=is_public, **self.get_options('template', 'port'))
 			# server attribute used in testing to stop sever in thread
 		logger.info("Serving HTTP on %s port %i...", httpd.server_name, httpd.server_port)
 		httpd.serve_forever()
