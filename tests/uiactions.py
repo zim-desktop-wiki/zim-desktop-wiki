@@ -206,7 +206,7 @@ class TestUIActions(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page()
+			self.uiactions.move_page()
 
 		page = self.notebook.get_page(Path('Test'))
 		self.assertFalse(page.exists())
@@ -221,7 +221,7 @@ class TestUIActions(tests.TestCase):
 			self.assertFalse(dialog.do_response_ok())
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page()
+			self.uiactions.move_page()
 
 	def testRenamePageFailsForExistingPage(self):
 		from zim.notebook import PageExistsError
@@ -231,7 +231,7 @@ class TestUIActions(tests.TestCase):
 			self.assertRaises(PageExistsError, dialog.do_response_ok)
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page()
+			self.uiactions.move_page()
 
 	def testRenamePageNonExistingPageFails(self):
 		from zim.notebook import PageNotFoundError
@@ -242,7 +242,7 @@ class TestUIActions(tests.TestCase):
 			self.assertRaises(PageNotFoundError, dialog.do_response_ok)
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page(page)
+			self.uiactions.move_page(page)
 
 	def testRenamePageWithPageUpdateHeading(self):
 		page = self.notebook.get_page(Path('MyPage'))
@@ -258,7 +258,7 @@ class TestUIActions(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page(page)
+			self.uiactions.move_page(page)
 
 		page = self.notebook.get_page(Path('NewName'))
 		tree = page.get_parsetree()
@@ -278,7 +278,7 @@ class TestUIActions(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page(page)
+			self.uiactions.move_page(page)
 
 		page = self.notebook.get_page(Path('NewName'))
 		tree = page.get_parsetree()
@@ -294,7 +294,7 @@ class TestUIActions(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page()
+			self.uiactions.move_page()
 
 		page = self.notebook.get_page(Path('NewName'))
 		tree = page.get_parsetree()
@@ -312,7 +312,7 @@ class TestUIActions(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page()
+			self.uiactions.move_page()
 
 		self.assertEqual(referrer.dump('wiki'), ['Test [[NewName]]\n'])
 
@@ -328,7 +328,7 @@ class TestUIActions(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(renamepage):
-			self.uiactions.rename_page()
+			self.uiactions.move_page()
 
 		self.assertEqual(referrer.dump('wiki'), ['Test [[Test]]\n'])
 

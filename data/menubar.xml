@@ -17,7 +17,6 @@
 			<menuitem action='email_page'/>
 			<placeholder name='page_plugin_items'/>
 			<separator/>
-			<menuitem action='rename_page'/>
 			<menuitem action='move_page'/>
 			<menuitem action='delete_page'/>
 			<separator/>
@@ -210,7 +209,6 @@
 		<separator/>
 		<menuitem action='open_new_window'/>
 		<separator/>
-		<menuitem action='rename_page'/>
 		<menuitem action='move_page'/>
 		<menuitem action='delete_page'/>
 		<placeholder name='page_modification_actions'/>

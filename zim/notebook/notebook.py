@@ -537,35 +537,32 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if isinstance(op, SimpleAsyncOperation):
 			op()
 
-	def move_page(self, path, newpath, update_links=True):
-		'''Move a page in the notebook
+	def move_page(self, path, newpath, update_links=True, update_heading=False):
+		'''Move and/or rename a page in the notebook
 
 		@param path: a L{Path} object for the old/current page name
 		@param newpath: a L{Path} object for the new page name
 		@param update_links: if C{True} all links B{from} and B{to} this
 		page and any of it's children will be updated to reflect the
 		new page name
+		@param update_heading: if C{True} the heading of the page will be
+		changed to the basename of the new path
 
 		The original page C{path} does not have to exist, in this case
 		only the link update will done. This is useful to update links
 		for a placeholder.
-
-		Where:
-		  - C{page} is the L{Page} object for the page being updated
-		  - C{total} is an optional parameter for the number of pages
-		    still to go - if known
 
 		@raises PageExistsError: if C{newpath} already exists
 
 		@emits: move-page before the move
 		@emits: moved-page after successfull move
 		'''
-		for p in self.move_page_iter(path, newpath, update_links):
+		for p in self.move_page_iter(path, newpath, update_links, update_heading):
 			pass
 
 	@assert_index_uptodate
 	@notebook_state
-	def move_page_iter(self, path, newpath, update_links=True):
+	def move_page_iter(self, path, newpath, update_links=True, update_heading=False):
 		'''Like L{move_page()} but yields pages that are being updated
 		if C{update_links} is C{True}
 		'''
@@ -592,6 +589,14 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				logger.warn('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
 			else:
 				logger.debug('Number of links after move does match number before move (%i)', new_n_links)
+
+		if update_heading:
+			page = self.get_page(newpath)
+			tree = page.get_parsetree()
+			if not tree is None:
+				tree.set_heading_text(newpath.basename)
+				page.set_parsetree(tree)
+				self.store_page(page)
 
 	def _move_file_and_folder(self, path, newpath):
 		file, folder = self.layout.map_page(path)
@@ -792,56 +797,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			elt[:] = [text]
 		elt.set('href', text)
 		return elt
-
-	def rename_page(self, path, newbasename, update_heading=True, update_links=True):
-		'''Rename page to a page in the same namespace but with a new
-		basename.
-
-		This is similar to moving within the same namespace, but
-		conceptually different in the user interface. Internally
-		L{move_page()} is used here as well.
-
-		@param path: a L{Path} object for the old/current page name
-		@param newbasename: new name as string
-		@param update_heading: if C{True} the first heading in the
-		page will be updated to the new name
-		@param update_links: if C{True} all links B{from} and B{to} this
-		page and any of it's children will be updated to reflect the
-		new page name
-
-		@emits: move-page before the move
-		@emits: moved-page after successfull move
-		'''
-		newbasename = Path.makeValidPageName(newbasename)
-		newpath = Path(path.namespace + ':' + newbasename)
-
-		for p in self.rename_page_iter(path, newbasename, update_heading, update_links):
-			pass
-
-		return newpath
-
-	@assert_index_uptodate
-	@notebook_state
-	def rename_page_iter(self, path, newbasename, update_heading=True, update_links=True):
-		'''Like L{rename_page()} but yields pages that are being updated
-		if C{update_links} is C{True}
-		'''
-		logger.debug('Rename %s to "%s" (%s, %s)',
-			path, newbasename, update_heading, update_links)
-
-		newbasename = Path.makeValidPageName(newbasename)
-		newpath = Path(path.namespace + ':' + newbasename)
-
-		for p in self.move_page_iter(path, newpath, update_links):
-			yield p
-
-		if update_heading:
-			page = self.get_page(newpath)
-			tree = page.get_parsetree()
-			if not tree is None:
-				tree.set_heading_text(newbasename)
-				page.set_parsetree(tree)
-				self.store_page(page)
 
 	@assert_index_uptodate
 	@notebook_state

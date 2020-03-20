@@ -19,7 +19,7 @@ from zim.parsing import url_encode, URL_ENCODE_DATA
 from zim.templates import list_templates, get_template
 
 from zim.config import data_file, ConfigManager
-from zim.notebook import PageExistsError, NotebookOperation
+from zim.notebook import Path, PageExistsError, NotebookOperation
 from zim.notebook.index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 from zim.actions import get_gtk_actiongroup
@@ -178,16 +178,7 @@ class UIActions(object):
 		)
 		_callback(self.widget, url)
 
-	@action(_('_Rename Page...'), accelerator='F2', menuhints='notebook:edit') # T: Menu item
-	def rename_page(self, path=None):
-		'''Menu action to show the L{RenamePageDialog}
-		@param path: a L{Path} object, or C{None} for the current
-		selected page
-		'''
-		if self.ensure_index_uptodate():
-			RenamePageDialog(self.widget, self.notebook, path or self.page).run()
-
-	@action(_('_Move Page...'), menuhints='notebook:edit') # T: Menu item
+	@action(_('_Rename or move Page...'), accelerator='F2', menuhints='notebook:edit') # T: Menu item
 	def move_page(self, path=None):
 		'''Menu action to show the L{MovePageDialog}
 		@param path: a L{Path} object, or C{None} to move to current
@@ -575,79 +566,15 @@ class SaveCopyDialog(FileDialog):
 		return True
 
 
-class RenamePageDialog(Dialog):
+class MovePageDialog(Dialog):
 
 	def __init__(self, widget, notebook, path):
-		Dialog.__init__(self, widget, _('Rename Page')) # T: Dialog title
+		Dialog.__init__(self, widget, _('Rename or Move Page')) # T: Dialog title
 		self.notebook = notebook
 		self.path = path
 		page = self.notebook.get_page(self.path)
 
 		label = Gtk.Label(label=_('Rename page "%s"') % self.path.name)
-			# T: label in 'rename page' dialog - %s is the page name
-		label.set_ellipsize(Pango.EllipsizeMode.END)
-		self.vbox.add(label)
-
-		try:
-			i = self.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD)
-		except IndexNotFoundError:
-			i = 0
-
-		label = ngettext(
-			'Update %i page linking to this page',
-			'Update %i pages linking to this page', i) % i
-			# T: label in MovePage dialog - %i is number of backlinks
-			# TODO update label to reflect that links can also be to child pages
-
-		self.add_form([
-			('name', 'string', _('Name')),
-				# T: Input label in the 'rename page' dialog for the new name
-			('head', 'bool', _('Update the heading of this page')),
-				# T: Option in the 'rename page' dialog
-			('update', 'bool', label),
-				# T: Option in the 'rename page' dialog
-		], {
-			'name': self.path.basename,
-			'head': page.heading_matches_pagename(),
-			'update': True,
-		})
-
-		if not page.exists():
-			self.form['head'] = False
-			self.form.widgets['head'].set_sensitive(False)
-
-		if i == 0:
-			self.form['update'] = False
-			self.form.widgets['update'].set_sensitive(False)
-
-	def do_response_ok(self):
-		name = self.form['name']
-		head = self.form['head']
-		update = self.form['update']
-
-		if name == self.path.basename:
-			return False
-
-		self.hide() # hide this dialog before showing the progressbar
-		op = NotebookOperation(
-			self.notebook,
-			_('Updating Links'), # T: label for progress dialog
-			self.notebook.rename_page_iter(self.path, name, head, update)
-		)
-		dialog = ProgressDialog(self, op)
-		dialog.run()
-
-		return True
-
-
-class MovePageDialog(Dialog):
-
-	def __init__(self, widget, notebook, path):
-		Dialog.__init__(self, widget, _('Move Page')) # T: Dialog title
-		self.notebook = notebook
-		self.path = path
-
-		label = Gtk.Label(label=_('Move page "%s"') % self.path.name)
 			# T: Heading in 'move page' dialog - %s is the page name
 		label.set_ellipsize(Pango.EllipsizeMode.END)
 		self.vbox.add(label)
@@ -663,11 +590,24 @@ class MovePageDialog(Dialog):
 			# T: label in MovePage dialog - %i is number of backlinks
 			# TODO update label to reflect that links can also be to child pages
 		self.add_form([
-			('parent', 'namespace', _('Section'), self.path.parent),
+			('name', 'string', _('Name')),
+				# T: Input label in the 'rename page' dialog for the new name
+			('parent', 'namespace', _('Location')),
 				# T: Input label for the section to move a page to
+			('head', 'bool', _('Update the heading of this page')),
+				# T: option in 'move page' dialog
 			('update', 'bool', label),
 				# T: option in 'move page' dialog
-		])
+		], {
+			'name': self.path.basename,
+			'parent': self.path.parent,
+			'head': page.heading_matches_pagename(),
+			'update': True,
+		})
+
+		if not page.exists():
+			self.form['head'] = False
+			self.form.widgets['head'].set_sensitive(False)
 
 		if i == 0:
 			self.form['update'] = False
@@ -676,17 +616,26 @@ class MovePageDialog(Dialog):
 			self.form['update'] = True
 
 	def do_response_ok(self):
+		name = self.form['name']
 		parent = self.form['parent']
+		head = self.form['head']
 		update = self.form['update']
-		newpath = parent + self.path.basename
-		if parent == self.path.parent:
+
+		newbasename = Path.makeValidPageName(name)
+		newpath = parent + newbasename
+		if newpath == self.path:
 			return False
 
 		self.hide() # hide this dialog before showing the progressbar
 		op = NotebookOperation(
 			self.notebook,
 			_('Updating Links'), # T: label for progress dialog
-			self.notebook.move_page_iter(self.path, newpath, update)
+			self.notebook.move_page_iter(
+				self.path,
+				newpath,
+				update_links=update,
+				update_heading=head
+			)
 		)
 		dialog = ProgressDialog(self, op)
 		dialog.run()

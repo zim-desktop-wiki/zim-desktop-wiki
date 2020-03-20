@@ -426,7 +426,7 @@ class TestNotebook(tests.TestCase):
 			# part of the test - see if caching of page objects doesn't bite
 
 		with tests.LoggingFilter('zim.notebook', message='Number of links'):
-			self.notebook.rename_page(Path('Test:wiki'), 'foo')
+			self.notebook.move_page(Path('Test:wiki'), Path('Test:foo'))
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertFalse(page.hascontent)
 		page = self.notebook.get_page(Path('Test:foo'))
@@ -438,7 +438,7 @@ class TestNotebook(tests.TestCase):
 
 	def testCaseSensitiveMove(self):
 		from zim.notebook.index import LINK_DIR_BACKWARD
-		self.notebook.rename_page(Path('Test:foo'), 'Foo')
+		self.notebook.move_page(Path('Test:foo'), Path('Test:Foo'))
 
 		pages = list(self.notebook.pages.list_pages(Path('Test')))
 		self.assertNotIn(Path('Test:foo'), pages)
