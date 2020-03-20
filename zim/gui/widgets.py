@@ -749,8 +749,8 @@ def button_set_statusbar_style(button):
 	# Set up a style for the statusbar variant to decrease spacing of the button
 	widget_set_css(button, 'zim-statusbar-button',	'''
 													border: none;
-													border-radius: 0px; 
-													padding: 0px 8px 0px 8px; 
+													border-radius: 0px;
+													padding: 0px 8px 0px 8px;
 													''')
 	button.set_relief(Gtk.ReliefStyle.NONE)
 
@@ -832,7 +832,7 @@ class MenuButton(Gtk.HBox):
 		self.button.handler_unblock(self._clicked_signal)
 		self.menu.connect('deactivate', self._deactivate_menu)
 		self.menu.show_all()
-		self.menu.set_property('rect_anchor_dx', -1) # This is needed to line up menu with borderless button 
+		self.menu.set_property('rect_anchor_dx', -1) # This is needed to line up menu with borderless button
 		self.menu.popup_at_widget(self, Gdk.Gravity.NORTH_WEST, Gdk.Gravity.SOUTH_WEST, event)
 
 	def _deactivate_menu(self, menu):
@@ -2780,6 +2780,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 
 	def __init__(self, parent, title,
 			buttons=Gtk.ButtonsType.OK_CANCEL, button=None,
+			use_default_button=False,
 			help_text=None, help=None,
 			defaultwindowsize=(-1, -1)
 		):
@@ -2844,14 +2845,17 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 			if button:
 				self.add_action_widget(button, Gtk.ResponseType.OK)
 			else:
-				self.add_button(OK_STR, Gtk.ResponseType.OK) # T: Button label
+				button = self.add_button(OK_STR, Gtk.ResponseType.OK) # T: Button label
 		elif buttons == Gtk.ButtonsType.CLOSE:
-			self.add_button(_('_Close'), Gtk.ResponseType.OK) # T: Button label
+			button = self.add_button(_('_Close'), Gtk.ResponseType.OK) # T: Button label
+			button.set_can_default(True)
 			self._no_ok_action = True
 		else:
 			assert False, 'BUG: unknown button type'
-		# TODO set Ok button as default widget
-		# see Gtk.Window.set_default()
+
+		if button and use_default_button:
+			button.set_can_default(True)
+			self.set_default_response(Gtk.ResponseType.OK)
 
 		if help_text:
 			self.add_help_text(help_text)

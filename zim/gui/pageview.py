@@ -6854,7 +6854,8 @@ class InsertDateDialog(Dialog):
 			self,
 			parent,
 			_('Insert Date and Time'), # T: Dialog title
-			button=_('_Insert') # T: Button label
+			button=_('_Insert'), # T: Button label
+			use_default_button=True
 		)
 		self.buffer = buffer
 		self.notebook = notebook
@@ -6863,23 +6864,22 @@ class InsertDateDialog(Dialog):
 
 		self.uistate.setdefault('lastusedformat', '')
 		self.uistate.setdefault('linkdate', False)
-		self.uistate.setdefault('calendar_expanded', False)
 
 		## Add Calendar widget
 		from zim.plugins.journal import Calendar # FIXME put this in zim.gui.widgets
 
-		self.calendar_expander = Gtk.Expander.new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
-			# T: expander label in "insert date" dialog
-		self.calendar_expander.set_use_markup(True)
-		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
+		label = Gtk.Label()
+		label.set_markup('<b>' + _("Date") + '</b>') # T: label in "insert date" dialog
+		label.set_alignment(0.0, 0.5)
+		self.vbox.pack_start(label, False, False, 0)
+
 		self.calendar = Calendar()
 		self.calendar.set_display_options(
 			Gtk.CalendarDisplayOptions.SHOW_HEADING |
 			Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES |
 			Gtk.CalendarDisplayOptions.SHOW_WEEK_NUMBERS)
 		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
-		self.calendar_expander.add(self.calendar)
-		self.vbox.pack_start(self.calendar_expander, False, True, 0)
+		self.vbox.pack_start(self.calendar, False, True, 0)
 
 		## Add format list box
 		label = Gtk.Label()
@@ -6966,7 +6966,6 @@ class InsertDateDialog(Dialog):
 			format = model[iter][self.FORMAT_COL]
 			self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
-		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
 		file = ConfigManager.get_config_file('dates.list') # XXX
