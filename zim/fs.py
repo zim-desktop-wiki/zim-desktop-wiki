@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import shutil
+import tempfile
 import errno
 import logging
 
@@ -120,26 +121,12 @@ def get_tmpdir():
 	Used as base folder by L{TmpFile}.
 	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
-	# We encode the user name using urlencoding to remove any non-ascii
-	# characters. This is because sockets are not always unicode safe.
 
-	import tempfile
-	root = tempfile.gettempdir()
-	user = url_encode(os.environ['USER'], URL_ENCODE_READABLE)
-	dir = Dir((root, 'zim-%s' % user))
+	if get_tmpdir.dir is None:
+		get_tmpdir.dir = Dir(tempfile.mkdtemp(prefix='zim-'))
 
-	try:
-		dir.touch(mode=0o700) # Limit to single user
-		os.chmod(dir.path, 0o700) # Limit to single user when dir already existed
-			# Raises OSError if not allowed to chmod
-		os.listdir(dir.path)
-			# Raises OSError if we do not have access anymore
-	except OSError:
-		raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n'
-			'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
-	else:
-		# All OK, so we must be owner of a safe folder now ...
-		return dir
+	return get_tmpdir.dir
+get_tmpdir.dir = None
 
 
 def normalize_file_uris(path):
