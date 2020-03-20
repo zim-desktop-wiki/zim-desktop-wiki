@@ -2307,7 +2307,7 @@ class WindowSidePaneWidget(ConnectorMixin):
 		return False
 
 
-from zim.config import ConfigDefinition, ConfigDefinitionByClass, String
+from zim.config import ConfigDefinition, ConfigDefinitionByClass, StringAllowEmpty
 
 class ConfigDefinitionPaneToggle(ConfigDefinition):
 
@@ -2547,7 +2547,7 @@ class Window(Gtk.Window):
 			default = self.get_pane_state(key)
 			self.uistate.define((
 				(key, ConfigDefinitionPaneState(default)),
-				(key + '_order', String(self._get_pane_ordering(key)))
+				(key + '_order', StringAllowEmpty(self._get_pane_ordering(key)))
 			))
 			self.set_pane_state(key, *self.uistate[key])
 			self._set_pane_ordering(key, self.uistate[key + '_order'])
