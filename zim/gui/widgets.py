@@ -2159,6 +2159,7 @@ class WindowSidePane(Gtk.VBox):
 		assert widget.title is not None
 		widget.tab_key = key
 		self.notebook.append_page(widget, widget.get_title_label())
+		self.notebook.set_tab_reorderable(widget, True)
 		self._update_topbar()
 
 	def remove(self, widget):
@@ -2190,6 +2191,21 @@ class WindowSidePane(Gtk.VBox):
 			return True
 		else:
 			return Gtk.VBox.do_key_press_event(self, event)
+
+	def get_ordering(self):
+		return tuple(w.tab_key for w in self.notebook.get_children())
+
+	def set_ordering(self, ordering):
+		widgets = {w.tab_key: w for w in self.notebook.get_children()}
+		i = 0
+		for key in ordering:
+			if key in widgets:
+				widget = widgets.pop(key)
+				self.notebook.reorder_child(widget, i)
+				i += 1
+		# keys not mapped to a widget are skipped
+		# widgets not in the ordering will move towards the end but maintain
+		# their relative ordering
 
 
 class MinimizedTabs(object):
@@ -2291,7 +2307,7 @@ class WindowSidePaneWidget(ConnectorMixin):
 		return False
 
 
-from zim.config import ConfigDefinition, ConfigDefinitionByClass
+from zim.config import ConfigDefinition, ConfigDefinitionByClass, String
 
 class ConfigDefinitionPaneToggle(ConfigDefinition):
 
@@ -2531,15 +2547,27 @@ class Window(Gtk.Window):
 			default = self.get_pane_state(key)
 			self.uistate.define((
 				(key, ConfigDefinitionPaneState(default)),
+				(key + '_order', String(self._get_pane_ordering(key)))
 			))
 			self.set_pane_state(key, *self.uistate[key])
+			self._set_pane_ordering(key, self.uistate[key + '_order'])
 
 	def save_uistate(self):
 		assert self.uistate is not None
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			if key in self.uistate:
 				self.uistate[key] = self.get_pane_state(key)
+				self.uistate[key + '_order'] = self._get_pane_ordering(key)
 			# else pass - init_uistate() not yet called (!?)
+
+	def _get_pane_ordering(self, key):
+		paned, pane, mini = self._zim_window_sidepanes[key]
+		return ','.join(pane.get_ordering())
+
+	def _set_pane_ordering(self, key, order):
+		if order: # could be None
+			paned, pane, mini = self._zim_window_sidepanes[key]
+			pane.set_ordering(order.split(','))
 
 	def get_pane_state(self, pane):
 		'''Returns the state of a side pane.
