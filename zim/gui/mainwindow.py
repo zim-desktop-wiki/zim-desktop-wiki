@@ -398,7 +398,7 @@ class MainWindow(Window):
 			# Hidden param, disabled because it causes problems with
 			# several international layouts (space mistaken for alt-space,
 			# see bug lp:620315)
-			group.connect_group( # <Alt><Space>
+			group.connect( # <Alt><Space>
 				space, Gdk.ModifierType.MOD1_MASK, Gtk.AccelFlags.VISIBLE,
 				self.toggle_sidepane_focus)
 
