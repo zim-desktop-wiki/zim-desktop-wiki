@@ -239,7 +239,7 @@ PIXBUF_CHR = '\uFFFC'
 SCROLL_TO_MARK_MARGIN = 0.2
 
 # Regexes used for autoformatting
-heading_re = Re(r'^(={2,7})\s*(.*)\s*(\1)?$')
+heading_re = Re(r'^(={2,7})\s*(.*?)(\s=+)?$')
 page_re = Re(r'''(
 	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
 	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )*:?

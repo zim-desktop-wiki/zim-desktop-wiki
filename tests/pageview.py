@@ -2042,6 +2042,7 @@ class TestDoEndOfLine(tests.TestCase, TestCaseMixin):
 	def testFormatHeading(self):
 		self.assertInsertNewLine('== Foo', '<h level="1">Foo</h>\n')
 		self.assertInsertNewLine('=== Foo', '<h level="2">Foo</h>\n')
+		self.assertInsertNewLine('=== Foo ===', '<h level="2">Foo</h>\n')
 
 	def testFormatLine(self):
 		self.assertInsertNewLine('aaa\n-----', 'aaa\n<line>--------------------</line>\n')
