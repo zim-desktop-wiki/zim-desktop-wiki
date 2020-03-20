@@ -30,6 +30,16 @@ if os.name == "nt" and (
 	sys.stdout = err_stream
 	sys.stderr = err_stream
 
+# MacOS: Set the bundle name so that the application menu shows 'Zim'
+# instead of 'Python' (this requires the pyobjc package)
+try:
+	from Foundation import NSBundle
+	bundle = NSBundle.mainBundle()
+	info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+	info['CFBundleName'] = 'Zim'
+except ImportError:
+	pass
+
 # Preliminary initialization of logging because modules can throw warnings at import
 logging.basicConfig(level=logging.WARN, format='%(levelname)s: %(message)s')
 logging.captureWarnings(True)
