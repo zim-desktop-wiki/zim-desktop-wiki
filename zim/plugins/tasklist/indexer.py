@@ -31,6 +31,7 @@ from .dates import parse_date
 
 
 _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
+_day_re = re.compile('(\d{1,2})')
 _date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
@@ -158,8 +159,10 @@ class TasksIndexer(IndexerBase):
 			date = daterange_from_path(Path(row['name']))
 			if date and self.integrate_with_journal == 'start':
 				opts['default_start_date'] = date[1]
+				opts['daterange'] = (date[1], date[2])
 			elif date and self.integrate_with_journal == 'due':
 				opts['default_due_date'] = date[2]
+				opts['daterange'] = (date[1], date[2])
 
 		tasks = self.parser.parse(doc.iter_tokens(), **opts)
 		c = self.db.cursor()
@@ -303,10 +306,14 @@ class TaskParser(object):
 		self.task_label_re = task_label_re
 		self.all_checkboxes = all_checkboxes
 
-	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE):
+	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE, daterange=None):
 
 		defaults = [True, 0, default_start_date, default_due_date]
 					# [isopen, prio, start, due]
+
+		if daterange:
+			first_date = daterange[0] # first date
+			last_date = daterange[1] # last date
 
 		def _is_list_heading(task):
 			isopen, prio, start, due, tags, text = task[0]
@@ -321,9 +328,23 @@ class TaskParser(object):
 		check_list_heading = False
 		for t in token_iter:
 			if t[0] == HEADING:
-				task = self._parse_heading(token_iter)
+				# Parse task and day from heading.
+				task, day = self._parse_heading(token_iter)
 				if task:
 					tasks.append(task)
+				# Assign heading day to start or due date.
+				if day and daterange:
+					current_date = first_date
+					while current_date <= last_date:
+						if current_date.day == day:
+							# Respect start or due date properties.
+							if defaults[2] != 0:
+								defaults[2] = current_date
+							elif defaults[3] != _MAX_DUE_DATE:
+								defaults[3] = current_date
+							break
+						else:
+							current_date += datetime.timedelta(days=1)
 			elif t[0] == PARAGRAPH:
 				paratasks = self._parse_paragraph(token_iter, defaults)
 				check_list_heading = (len(paratasks) == 1) # Para should be single line -- ### TODO that is not strictly tested here!
@@ -354,11 +375,23 @@ class TaskParser(object):
 			else:
 				head.append(t)
 
+		# Parse day from heading.
+		day = self._parse_heading_day(head[0][1])
+
 		if self._starts_with_label(head):
 			fields = self._task_from_tokens(head)
-			return (fields, [])
+			return (fields, []), day
 		else:
-			return None
+			return None, day
+
+	def _parse_heading_day(self, date_string):
+		day_re = _day_re.search(date_string)
+		if day_re:
+			day = int(day_re.group(1)) # Needs integer
+		else:
+			day = None
+
+		return day
 
 	def _starts_with_label(self, tokens):
 		text = []
@@ -490,7 +523,7 @@ class TaskParser(object):
 				elif string.startswith('<'):
 					due = parse_date(string[1:]).last_day.isoformat()
 				else:
-					logger.warn('False postive matching date: %s', string)
+					logger.warn('False positive matching date: %s', string)
 			except ValueError:
 				logger.warn('Invalid date format in task: %s', string)
 
