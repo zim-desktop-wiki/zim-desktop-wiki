@@ -21,20 +21,21 @@ class EndOfTokenListError(AssertionError):
 	pass
 
 
-def collect_untill_end_token(token_iter, end_token):
+def collect_untill_end_token(token_iter, tag):
 	nesting = 0
 	tokens = []
+	end_token = (END, tag)
 	for t in token_iter:
-		if t[0] == end_token:
+		if t[0] == tag:
 			nesting += 1
-		elif t == (END, end_token):
+		elif t == end_token:
 			nesting -= 1
 			if nesting < 0:
 				break
 
 		tokens.append(t)
 	else:
-		raise EndOfTokenListError('Did not find "%s" closing tag' % end_token)
+		raise EndOfTokenListError('Did not find "%s" closing tag' % tag)
 
 	return tokens
 

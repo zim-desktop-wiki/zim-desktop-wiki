@@ -20,7 +20,7 @@ If the option "**Consider all checkboxes as tasks**" is enabled any checkboxes f
 
 The option **Labels marking tasks** gives a comma-separated list of labels that are used to flag tasks. By default, these are "TODO" and "FIXME" but this can be customized.
 
-If **Use date from journal pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as starting date and/or due date. If the page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date while for the start day the first day will be used.
+If **Use date from journal pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as starting date and/or due date. If the page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date while for the start day the first day will be used. If the page covers a week or a month and the task appears under a heading which gives the specific day, the task will be assigned to that day. For this to work, the heading must contain an explicit anchor id which gives the date in the standard date format (see the default Journal template for an example how to generate those).
 
 The options **Section(s) to index** and **Section(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default, the whole notebook is used, but if either or both of these options are used, only the specified set of sections is indexed. Multiple namespaces can be given separated by a "'',''".
 

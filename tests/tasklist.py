@@ -143,6 +143,20 @@ def t(desc, status=TASK_STATUS_OPEN, waiting=False, start=0, due=NO_DATE, prio=0
 
 class TestTaskParser(tests.TestCase):
 
+	def assertWikiTextToTasks(self, wikitext, wanted, parser_args={}, parse_args={}):
+		tree = WikiParser().parse(wikitext)
+		tb = TokenBuilder()
+		tree.visit(tb)
+		tokens = tb.tokens
+		testTokenStream(tokens)
+
+		parser = TaskParser(**parser_args)
+		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
+			tasks = parser.parse(tokens, **parse_args)
+
+		#~ import pprint; pprint.pprint(tasks)
+		self.assertEqual(tasks, wanted)
+
 	def testAllCheckboxes(self):
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
@@ -218,19 +232,7 @@ class TestTaskParser(tests.TestCase):
 			]),
 		]
 
-
-		tree = WikiParser().parse(WIKI_TEXT)
-		tb = TokenBuilder()
-		tree.visit(tb)
-		tokens = tb.tokens
-		testTokenStream(tokens)
-
-		parser = TaskParser()
-		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
-			tasks = parser.parse(tokens)
-
-		#~ import pprint; pprint.pprint(tasks)
-		self.assertEqual(tasks, wanted)
+		self.assertWikiTextToTasks(WIKI_TEXT, wanted)
 
 	def testLabelledCheckboxes(self):
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
@@ -265,19 +267,7 @@ class TestTaskParser(tests.TestCase):
 			]),
 		]
 
-
-		tree = WikiParser().parse(WIKI_TEXT)
-		tb = TokenBuilder()
-		tree.visit(tb)
-		tokens = tb.tokens
-		testTokenStream(tokens)
-
-		parser = TaskParser(all_checkboxes=False)
-		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
-			tasks = parser.parse(tokens)
-
-		#~ import pprint; pprint.pprint(tasks)
-		self.assertEqual(tasks, wanted)
+		self.assertWikiTextToTasks(WIKI_TEXT, wanted, parser_args={'all_checkboxes': False})
 
 	def testDate(self):
 		text = '''\
@@ -289,18 +279,109 @@ class TestTaskParser(tests.TestCase):
 			(t('Task >2018-12', start='2018-12-01'), [])
 		]
 
-		tree = WikiParser().parse(text)
-		tb = TokenBuilder()
-		tree.visit(tb)
-		tokens = tb.tokens
-		testTokenStream(tokens)
+		self.assertWikiTextToTasks(text, wanted)
 
-		parser = TaskParser()
-		tasks = parser.parse(tokens)
+	def testDueDateInHeading(self):
+		text = '''
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 1
 
-		#import pprint; pprint.pprint(tasks)
-		self.assertEqual(tasks, wanted)
+TODO: Task 2
+'''
+		wanted = [
+			(t('Task 1', due='2021-10-30'), []),
+			(t('TODO: Task 2', due='2021-10-30'), []),
+		]
 
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_due_date': daterange[1].isoformat(),
+			'daterange': daterange
+		})
+
+	def testStartDateInHeading(self):
+		text = '''
+=== Head {{id: 20211030}} ===
+[ ] Task 1
+
+TODO: Task 2
+'''
+		wanted = [
+			(t('Task 1', start='2021-10-30'), []),
+			(t('TODO: Task 2', start='2021-10-30'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
+
+	def testDateInHeadingEnforceRange(self):
+		text = '''
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 1
+=== Head {{id: 2022-10-30}} ===
+[ ] Task 2
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 3
+'''
+
+		wanted = [
+			(t('Task 1', start='2021-10-30'), []),
+			(t('Task 2', start='2021-10-25'), []),
+			(t('Task 3', start='2021-10-30'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
+
+	def testDateInHeadingMultipleIDs(self):
+		text = '''
+=== Head {{id: foo}} {{id: 2021-10-30}} {{id bar}} ===
+[ ] Task
+'''
+		wanted = [
+			(t('Task', start='2021-10-30'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
+
+	def testDateInHeadingResetNextHeading(self):
+		text = '''
+== Top Head ==
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 1
+==== Subhead ====
+[ ] Task 2
+=== New Head ===
+[ ] Task 3
+=== New Head {{id: 2021-10-31}} ===
+[ ] Task 4
+== Top Head ==
+[ ] Task 5
+'''
+
+		wanted = [
+			(t('Task 1', start='2021-10-30'), []),
+			(t('Task 2', start='2021-10-30'), []),
+			(t('Task 3', start='2021-10-25'), []),
+			(t('Task 4', start='2021-10-31'), []),
+			(t('Task 5', start='2021-10-25'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
 
 
 class TestTaskList(tests.TestCase):

@@ -13,10 +13,11 @@ from zim.notebook import Path
 from zim.notebook.index.base import IndexerBase, IndexView
 from zim.notebook.index.pages import PagesViewInternal
 from zim.formats import get_format, \
-	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, BULLET, TAG, \
+	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, BULLET, TAG, ANCHOR, \
 	HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
 	Visitor, VisitorSkip
-from zim.tokenparser import skip_to_end_token, TEXT, END
+from zim.tokenparser import TEXT, END, \
+	skip_to_end_token, tokens_to_text, collect_untill_end_token
 
 from zim.plugins.journal import daterange_from_path
 	# TODO instead of just importing this function we should define
@@ -31,6 +32,7 @@ from .dates import parse_date
 
 
 _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
+_day_re = re.compile('(\d{1,2})')
 _date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
@@ -180,9 +182,11 @@ class TasksIndexer(IndexerBase):
 		if self.integrate_with_journal:
 			date = daterange_from_path(Path(row['name']))
 			if date and self.integrate_with_journal == 'start':
-				opts['default_start_date'] = date[1]
+				opts['default_start_date'] = date[1].isoformat()
+				opts['daterange'] = (date[1], date[2])
 			elif date and self.integrate_with_journal == 'due':
-				opts['default_due_date'] = date[2]
+				opts['default_due_date'] = date[2].isoformat()
+				opts['daterange'] = (date[1], date[2])
 
 		tasks = self.parser.parse(doc.iter_tokens(), **opts)
 		c = self.db.cursor()
@@ -502,10 +506,12 @@ class TaskParser(object):
 		self.waiting_label_re = waiting_label_re
 		self.all_checkboxes = all_checkboxes
 
-	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE):
+	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE, daterange=None):
 
 		defaults = [0, 0, False, default_start_date, default_due_date]
-					# [status, prio, waiting, start, due]
+					# [0:status, 1:prio, 2:waiting, 3:start, 4:due]
+		default_defaults = defaults[:]
+		heading_level_set_date = None
 
 		def _is_list_heading(task):
 			words = task[0][_t_desc].strip().split()
@@ -519,9 +525,25 @@ class TaskParser(object):
 		check_list_heading = False
 		for t in token_iter:
 			if t[0] == HEADING:
-				task = self._parse_heading(token_iter)
+				# Parse task and day from heading.
+				task, day = self._parse_heading(token_iter, daterange)
 				if task:
 					tasks.append(task)
+					# TODO: shouldn't we recurs and consider tasks in next para as sub-tasks ? Reset at next heading
+
+				if day:
+					# Respect start or due date properties.
+					if defaults[3] != 0:
+						defaults[3] = day
+					elif defaults[4] != _MAX_DUE_DATE:
+						defaults[4] = day
+					heading_level_set_date = t[1]['level']
+				elif heading_level_set_date and heading_level_set_date <= t[1]['level']:
+					# reset state - in theory this should be a stack, but reset is good enough for now
+					defaults = default_defaults[:]
+					heading_level_set_date = None
+				else:
+					pass # keep defaults as is
 			elif t[0] == PARAGRAPH:
 				paratasks = self._parse_paragraph(token_iter, defaults)
 				check_list_heading = (len(paratasks) == 1) # Para should be single line -- ### TODO that is not strictly tested here!
@@ -544,17 +566,35 @@ class TaskParser(object):
 
 		return tasks
 
-	def _parse_heading(self, token_iter):
-		head = []
-		for t in token_iter:
-			if t == (END, HEADING):
-				break
-			else:
-				head.append(t)
+	def _parse_heading(self, token_iter, daterange):
+		head = collect_untill_end_token(token_iter, HEADING)
+
+		if daterange:
+			day = self._parse_heading_day(head, daterange)
+		else:
+			day = None
 
 		if self._starts_with_label(head):
 			fields = self._task_from_tokens(head)
-			return (fields, [])
+			return (fields, []), day
+		else:
+			return None, day
+
+	def _parse_heading_day(self, tokens, daterange):
+		# Check for date string in heading anchor ids. Only use it if it is a
+		# date within daterange to avoid false positives. First match in left
+		# to right parsing is used.
+		for t in tokens:
+			if t[0] == ANCHOR:
+				try:
+					date = parse_date(t[1]['name'])
+				except ValueError:
+					continue
+				else:
+					if date >= daterange[0] and date <= daterange[1]:
+						return date.isoformat()
+					else:
+						continue
 		else:
 			return None
 
@@ -690,7 +730,7 @@ class TaskParser(object):
 				elif string.startswith('<'):
 					due = parse_date(string[1:]).last_day.isoformat()
 				else:
-					logger.warn('False postive matching date: %s', string)
+					logger.warn('False positive matching date: %s', string)
 			except ValueError:
 				logger.warn('Invalid date format in task: %s', string)
 
