@@ -169,8 +169,9 @@ class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 		without need to close the app first.
 		'''
 		assert self.uistate['treeview'] in ('tagged', 'tags')
-		tags = [t.name for t in self.tagcloud.get_tag_filter()]
+		self.treeview.disconnect_index()
 
+		tags = [t.name for t in self.tagcloud.get_tag_filter()]
 		if tags:
 			model = TaggedPageTreeStore(self.index, tags, self.uistate['show_full_page_name'])
 		elif self.uistate['treeview'] == 'tags':
@@ -179,6 +180,12 @@ class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 			model = PageTreeStore(self.index)
 
 		self.treeview.set_model(model)
+
+		def handler(o, *a):
+			signal = a[-1]
+			path = a[0].to_string()
+		for signal in ('row-inserted', 'row-changed', 'row-deleted', 'row-has-child-toggled'):
+			model.connect(signal, handler, signal)
 
 
 class DuplicatePageTreeStore(PageTreeStoreBase):

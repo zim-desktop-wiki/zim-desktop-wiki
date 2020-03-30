@@ -93,6 +93,7 @@ class TagsIndexer(IndexerBase):
 			if sortkey in seen:
 				continue
 			elif sortkey in oldtags:
+				seen.add(sortkey)
 				oldtags.pop(sortkey)
 			else:
 				seen.add(sortkey)
@@ -382,8 +383,8 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 			self._update_ids()
 
 	def on_tag_removed_from_page(self, o, row, pagerow):
+		self.flush_cache()
 		if self._deleted_tag_path:
-			self.flush_cache()
 			self.emit('row-deleted', Gtk.TreePath(self._deleted_tag_path))
 			self._deleted_tag_path = None
 
@@ -423,6 +424,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 						self._emit_children_inserted(pagerow['id'], treepath)
 
 	def on_tag_remove_from_page(self, o, row, pagerow):
+		self.flush_cache()
 		if row['name'] in self.tags \
 		and self._matches_all(pagerow['id']):
 			# Still matches, but no longer after tag is removed
@@ -536,49 +538,78 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 		...
 
 	If any tags are given on construction, the top level will be limitted
-	to that set.
+	to that set. But the model also supports showing all tags.
 	'''
 
 	def _get_offset_n_children(self, row):
-		offset = self._tagids.index(row['id'])
+		# Do *not* use the cache here
+		if self.tags:
+			offset = self._tagids.index(row['id']) # raises ValueError if not present
+		else:
+			offset, = self.db.execute('''
+					SELECT COUNT(*) FROM tags
+					WHERE (sortkey < ? or (sortkey < ? and name < ?))
+				''',
+				(row['sortkey'], row['sortkey'], row['name'])
+			).fetchone()
+
 		n_children, = self.db.execute(
 			'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
 		).fetchone()
 		return offset, n_children
 
-	def on_tag_added_to_page(self, o, row, pagerow):
-		if row['name'] in self.tags:
+	def on_tag_row_inserted(self, o, row):
+		if self.tags:
+			self._update_ids()
+
+		try:
 			offset, n_children = self._get_offset_n_children(row)
+		except ValueError:
+			return
 
-			# emit row-insert for toplevel tag if needed
-			if n_children == 1:
-				treepath = (offset,)
+		self.flush_cache()
+		treepath = (offset,)
+		treeiter = self.get_iter(treepath) # not mytreeiter !
+		self.emit('row-inserted', Gtk.TreePath(treepath), treeiter)
+
+	def on_tag_added_to_page(self, o, row, pagerow):
+		try:
+			offset, n_children = self._get_offset_n_children(row)
+		except ValueError:
+			return
+
+		self.flush_cache()
+		tagtreepath = (offset,)
+		tagtreeiter = self.get_iter(tagtreepath) # not mytreeiter !
+
+		for treepath in self._find_all_pages(pagerow['name']):
+			if len(treepath) == 2 and treepath[0] == offset:
+				# insert page as child of tag
 				treeiter = self.get_iter(treepath) # not mytreeiter !
-				self.emit('row-inserted', Gtk.TreePath(treepath), treeiter)
+				self.emit('row-inserted', treepath, treeiter)
 
-			# emit row-inserted 2nd level - recurs for children
-			for treepath in self._find_all_pages(pagerow['name']):
-				if len(treepath) == 2 and treepath[0] == offset:
-					treeiter = self.get_iter(treepath) # not mytreeiter !
-					self.emit('row-inserted', treepath, treeiter)
-					if pagerow['n_children'] > 0:
-						self._emit_children_inserted(pagerow['id'], treepath)
-					break
+				# emit parent changes
+				if n_children == 1:
+					self.emit('row-has-child-toggled', Gtk.TreePath(tagtreepath), tagtreeiter)
+				self.emit('row-changed', Gtk.TreePath(tagtreepath), tagtreeiter)
 
-			# emit parent changes
-			treepath = (offset,)
-			treeiter = self.get_iter(treepath) # not mytreeiter !
-			if n_children == 1:
-				self.emit('row-has-child-toggled', Gtk.TreePath(treepath), treeiter)
-			self.emit('row-changed', Gtk.TreePath(treepath), treeiter)
+				# insert children
+				if pagerow['n_children'] > 0:
+					self._emit_children_inserted(pagerow['id'], treepath)
+
+				break
 
 	def on_tag_remove_from_page(self, o, row, pagerow):
-		if row['name'] in self.tags:
-			offset = self._tagids.index(row['id'])
-			for treepath in self._find_all_pages(pagerow['name']):
-				if treepath[0] == offset and len(treepath) == 2:
-					self._deleted_tag_path = treepath
-					break
+		try:
+			offset, n_children = self._get_offset_n_children(row)
+		except ValueError:
+			return
+
+		self.flush_cache()
+		for treepath in self._find_all_pages(pagerow['name']):
+			if treepath[0] == offset and len(treepath) == 2:
+				self._deleted_tag_path = treepath
+				break
 
 	def on_tag_removed_from_page(self, o, row, pagerow):
 		if self._deleted_tag_path:
@@ -588,10 +619,15 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 				self.emit('row-changed', Gtk.TreePath(parent), self.get_iter(parent))
 
 	def on_tag_row_deleted(self, o, row):
-		if row['name'] in self.tags:
-			offset = self._tagids.index(row['id'])
+		try:
+			offset, n_children = self._get_offset_n_children(row)
+		except ValueError:
+			return
+
+		self.flush_cache()
+		if self.tags:
 			self._update_ids()
-			self.emit('row-deleted', Gtk.TreePath((offset,)))
+		self.emit('row-deleted', Gtk.TreePath((offset,)))
 
 	def get_mytreeiter(self, treepath):
 		# Since we derive from PagesTreeModelMixin, we only need to manage the
@@ -687,17 +723,13 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 		if row is None:
 			raise IndexNotFoundError
 
-		offset, = self.db.execute('''
-				SELECT COUNT(*) FROM tags
-				WHERE (sortkey < ? or (sortkey < ? and name < ?))
-			''',
-			(row['sortkey'], row['sortkey'], row['name'])
-		).fetchone()
+		try:
+			offset, n_children = self._get_offset_n_children(row)
+		except ValueError:
+			return
+
 		mytreepath = (offset,)
 		if mytreepath not in self.cache:
-			n_children, = self.db.execute(
-				'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
-			).fetchone()
 			myiter = MyTreeIter(Gtk.TreePath(mytreepath), row, n_children, IS_TAG)
 			self.cache[mytreepath] = myiter
 		return Gtk.TreePath(mytreepath)

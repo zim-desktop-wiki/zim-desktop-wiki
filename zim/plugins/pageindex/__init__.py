@@ -13,6 +13,7 @@ import logging
 from functools import partial
 
 from zim.notebook import Path
+from zim.notebook.index.base import TreeModelMixinBase
 from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError, IS_PAGE
 
 from zim.plugins import PluginClass
@@ -102,6 +103,7 @@ class PageIndexPageViewExtension(PageViewExtension):
 		reloading the index to get rid of out-of-sync model errors
 		without need to close the app first.
 		'''
+		self.treeview.disconnect_index()
 		model = PageTreeStore(self.pageview.notebook.index)
 		self.treeview.set_model(model)
 
@@ -406,7 +408,9 @@ class PageTreeView(BrowserTreeView):
 		model = self.get_model()
 		if isinstance(model, Gtk.TreeModelFilter):
 			model = model.get_model() # get childmodel
-		model.teardown()
+
+		if isinstance(model, TreeModelMixinBase):
+			model.teardown()
 
 	def do_row_activated(self, treepath, column):
 		model = self.get_model()
