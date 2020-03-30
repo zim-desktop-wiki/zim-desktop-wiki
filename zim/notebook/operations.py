@@ -243,6 +243,10 @@ class NotebookOperation(SignalEmitter):
 		GObject.idle_add(lambda: next(my_iter, False), priority=GObject.PRIORITY_LOW)
 		return False # run once
 
+	def wait(self):
+		for i in iter(self):
+			pass
+
 	def cancel(self):
 		logger.debug('Operation cancelled')
 		self.notebook._operation_check = NOOP # stop blocking
@@ -311,15 +315,15 @@ class SimpleAsyncOperation(NotebookOperation):
 
 	def __call__(self):
 		if self._block and self._thread != threading.current_thread():
-			self._join()
+			self.wait()
 
 	def cancel(self):
 		if self._thread == threading.current_thread():
 			raise AssertionError('Can not cancel from thread')
-		self._join()
+		self.wait()
 		NotebookOperation.cancel(self)
 
-	def _join(self):
+	def wait(self):
 		self._thread.join()
 		for i in self:
 			pass # exhaust iter to call the post-handler

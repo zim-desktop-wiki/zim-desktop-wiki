@@ -15,6 +15,7 @@ from zim.signals import DelayedCallback
 
 from zim.notebook import Path, Page, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
+from zim.notebook.operations import ongoing_operation
 from zim.history import History, HistoryPath
 
 from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
@@ -341,11 +342,14 @@ class MainWindow(Window):
 		closing if there are no other toplevel windows.
 		'''
 		if self.hideonclose: # XXX
-			self.save_uistate()
-			self.hide()
-			self.emit('close')
+			self._do_close()
 		else:
 			self.destroy()
+
+	def _do_close(self):
+		self.save_uistate()
+		self.hide()
+		self.emit('close')
 
 	def destroy(self):
 		self.pageview.save_changes()
@@ -353,12 +357,15 @@ class MainWindow(Window):
 			return # Do not quit if page not saved
 		self.pageview.page.set_ui_object(None) # XXX
 
-		self.save_uistate()
+		self._do_close()
 
-		self.hide() # look more responsive
-		self.notebook.index.stop_background_check()
 		while Gtk.events_pending():
 			Gtk.main_iteration_do(False)
+
+		self.notebook.index.stop_background_check()
+		op = ongoing_operation(self.notebook)
+		if op:
+			op.wait()
 
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
