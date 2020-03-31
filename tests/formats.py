@@ -762,6 +762,26 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 			).dump(tree)
 			self.assertIn(head1, ''.join(lines))
 
+	def testImagesWhitelist(self):
+		builder = ParseTreeBuilder()
+		builder.start(FORMATTEDTEXT)
+		builder.append(IMAGE, {'src': 'test.png'})
+		builder.text('\n')
+		builder.append(IMAGE, {'src': 'test.tiff'})
+		builder.text('\n')
+		builder.append(IMAGE, {'src': 'test.tiff', 'href': 'foo'})
+		builder.text('\n')
+		builder.end(FORMATTEDTEXT)
+		tree = builder.get_parsetree()
+
+		wanted = [
+			'\\includegraphics[]{test.png}\n', '\n',
+			'\\href{test.tiff}{test.tiff}\n', '\n',
+			'\\href{foo}{foo}\n', '\n'
+		]
+		lines = self.format.Dumper(linker=StubLinker()).dump(tree)
+		self.assertEqual(lines, wanted)
+
 
 class StubFile(object):
 

@@ -621,7 +621,7 @@ class File(FSObjectBase):
 		# we have no proper mimetype support
 		if '.' in self.basename:
 			_, ext = self.basename.rsplit('.', 1)
-			if ext in IMAGE_EXTENSIONS:
+			if ext.lower() in IMAGE_EXTENSIONS:
 				return True
 
 		return self.mimetype().startswith('image/')

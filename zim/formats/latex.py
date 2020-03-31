@@ -1,6 +1,6 @@
 
 # Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
-# Copyright 2012-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This modules handles export of LaTeX Code'''
 
@@ -170,8 +170,21 @@ class Dumper(TextDumper):
 
 		return (bullet, ' ') + tuple(strings) + ('\n',)
 
+	def is_supported_image(self, path):
+		# Latex only supports limited image formats by default
+		# Whitelist pdf, png, jpg & eps -- all else should become a link
+		if '.' in path:
+			_, ext = path.rsplit('.', 1)
+			return ext.lower() in ('png', 'jpg', 'jpeg', 'eps', 'pdf')
+		else:
+			return False
 
 	def dump_img(self, tag, attrib, strings=None):
+		imagepath = self.linker.img(attrib['src'])
+		if not self.is_supported_image(imagepath):
+			attrib.setdefault('href', attrib['src'])
+			return self.dump_link(tag, attrib, strings)
+
 		# We try to get images about the same visual size,
 		# therefore need to specify dot density 96 dpi seems to be
 		# common for computer monitors
@@ -189,7 +202,6 @@ class Dumper(TextDumper):
 		else:
 			options = ''
 
-		imagepath = self.linker.img(attrib['src'])
 		if imagepath.startswith('file://'):
 			imagepath = File(imagepath).path # avoid URIs here
 		image = '\\includegraphics[%s]{%s}' % (options, imagepath)
