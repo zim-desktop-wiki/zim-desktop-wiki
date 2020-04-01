@@ -2217,8 +2217,41 @@ class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
 	def testAutoFormatFileLink(self):
 		self.assertTyping('./test.pdf ', '<link href="">./test.pdf</link> ')
 
-	def testAutoFormatStyle(self):
+	#def testAutoFormatNotFileLink(self):
+	#	self.assertTyping("Type ''$ ./test.py'' ", 'Type <code>$ ./test.py</code> ')
+
+	def testAutoFormatWikiStrong(self):
 		self.assertTyping('Foo**Bar** ', 'Foo<strong>Bar</strong> ')
+
+	def testAutoFormatWikiEmphasis(self):
+		self.assertTyping('Foo //Bar // ', 'Foo <emphasis>Bar </emphasis> ')
+
+	def testAutoFormatWikiMark(self):
+		self.assertTyping('__Foo Bar__ ', '<mark>Foo Bar</mark> ')
+
+	def testAutoFormatWikiCode(self):
+		self.assertTyping("Type ''$ test.py'' ", 'Type <code>$ test.py</code> ')
+
+	def testAutoFormatWikiStrike(self):
+		self.assertTyping('~~Foo Bar~~ ', '<strike>Foo Bar</strike> ')
+
+	def testAutoFormatWikiSup1(self):
+		self.assertTyping('x^2 ', 'x<sup>2</sup> ')
+
+	def testAutoFormatWikiNotSup1(self):
+		self.assertTyping('^2 ^2 ', '^2 ^2 ')
+
+	def testAutoFormatWikiSup2(self):
+		self.assertTyping('x^{2} ', 'x<sup>2</sup> ')
+
+	def testAutoFormatWikiNotSup2(self):
+		self.assertTyping('^{2} ^{2} ', '^{2} ^{2} ')
+
+	def testAutoFormatWikiSub(self):
+		self.assertTyping('x_{2} ', 'x<sub>2</sub> ')
+
+	def testAutoFormatWikiNotSub(self):
+		self.assertTyping('_{2} _{2} ', '_{2} _{2} ')
 
 	def testNoAutoFormatStyleInLink(self):
 		self.set_buffer(self.buffer, '<link href="">Foo</link>')

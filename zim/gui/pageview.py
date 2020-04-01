@@ -251,13 +251,18 @@ file_re = Re(r'''(
 	| /[^/\s]
 )\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
 
-markup_re = {
-	'style-strong': Re(r'(\*{2})(.*)\1'),
-	'style-emphasis': Re(r'(\/{2})(.*)\1'),
-	'style-mark': Re(r'(_{2})(.*)\1'),
-	'style-code': Re(r'(\'{2})(.*)\1'),
-	'style-strike': Re(r'(~{2})(.*)\1')
-}
+markup_re = [
+	# All ending in "$" to match last sequence on end-of-word
+	# the group captures the content to keep
+	('style-strong', re.compile(r'\*\*(.*)\*\*$')),
+	('style-emphasis', re.compile(r'\/\/(.*)\/\/$')),
+	('style-mark', re.compile(r'__(.*)__$')),
+	('style-code', re.compile(r'\'\'(.*)\'\'$')),
+	('style-strike', re.compile(r'~~(.*)~~$')),
+	('style-sup', re.compile(r'(?<=\w)\^\{(\S*)}$')),
+	('style-sup', re.compile(r'(?<=\w)\^(\S*)$')),
+	('style-sub', re.compile(r'(?<=\w)_\{(\S*)}$')),
+]
 
 tag_re = Re(r'^(@\w+)$', re.U)
 
@@ -4388,19 +4393,20 @@ class TextView(Gtk.TextView):
 		elif self.preferences['auto_reformat']:
 			linestart = buffer.get_iter_at_line(end.get_line())
 			partial_line = linestart.get_slice(end)
-			for style, re in list(markup_re.items()):
-				if not re.search(partial_line) is None:
+			for style, style_re in markup_re:
+				m = style_re.search(partial_line)
+				if m:
 					matchstart = linestart.copy()
-					matchstart.forward_chars(re.start())
+					matchstart.forward_chars(m.start())
 					matchend = linestart.copy()
-					matchend.forward_chars(re.end())
+					matchend.forward_chars(m.end())
 					if buffer.range_has_tags(_is_non_nesting_tag, matchstart, matchend) \
 						or buffer.range_has_tags(_is_link_tag_without_href, matchstart, matchend):
 							break
 					else:
 						with buffer.tmp_cursor(matchstart):
 							buffer.delete(matchstart, matchend)
-							buffer.insert_with_tags_by_name(matchstart, re[2], style)
+							buffer.insert_with_tags_by_name(matchstart, m.group(1), style)
 							handled = True
 							break
 
