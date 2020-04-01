@@ -189,6 +189,7 @@ class TestBuildNotebook(tests.TestCase):
 
 		script = folder.file('mount.py')
 		script.write('''\
+### NOTE: The script fails when called twice - this is intentional ###
 import os
 import sys
 notebook = sys.argv[1]
@@ -220,12 +221,11 @@ mount=%s %s
 
 		nbid = None
 		for uri, path in (
-			(self.notebookdir.uri, None),
-			(self.notebookdir.uri, None), # repeat to check uniqueness
+			(self.notebookdir.uri, None), # first run triggers automount
+			(self.notebookdir.uri, None), # repeat to check automount & check uniqueness
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
 		):
-			#~ print(">>", uri)
 			info = NotebookInfo(uri)
 			nb, p = build_notebook(info)
 			self.assertEqual(nb.folder.path, self.notebookdir.path)

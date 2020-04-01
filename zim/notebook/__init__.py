@@ -31,6 +31,11 @@ see L{zim.notebook.operations}
 
 '''
 
+import logging
+
+logger = logging.getLogger('zim.notebook')
+
+
 from zim.fs import FilePath, File, Dir, FileNotFoundError
 from zim.parsing import url_decode
 
@@ -74,7 +79,8 @@ def build_notebook(location):
 
 	# Automount if needed
 	filepath = FilePath(uri)
-	if not filepath.exists():
+	if not (filepath.exists() or filepath.__add__('zim.notebook').exists()):
+		# The folder of a mount point can exist, so check for specific content
 		mount_notebook(filepath)
 		if not filepath.exists():
 			raise FileNotFoundError(filepath)
@@ -119,11 +125,35 @@ def mount_notebook(filepath):
 	for group in groups:
 		path = group[4:].strip() # len('Path') = 4
 		dir = Dir(path)
-		if filepath.path == dir.path or filepath.ischild(dir):
+		if is_relevant_mount_point(dir, filepath):
 			configdict[group].define(mount=String(None))
 			handler = ApplicationMountPointHandler(dir, **configdict[group])
 			if handler(filepath):
 				break
+
+
+def is_relevant_mount_point(root, path):
+	# path can be notebook folder, or file path below notebook folder
+	# root can be parent folder of notebook folder or notebook folder itself
+	if path.path == root.path:
+		return True
+	elif path.ischild(root):
+		# Check none of the intermediate folders exist
+		parent = path.dir
+		if parent.path == root.path:
+			return not (parent.exists() or parent.__add__('zim.notebook').exists())
+				# Folder can exists, but also needs to be valid notebook
+		else:
+			while parent.path != root.path:
+				if parent.exists():
+					return False
+				parent = parent.dir
+			else:
+				# Do not check "zim.notebook", mount point can be parent
+				# of notebook folder, missing folder tree says enough
+				return True
+	else:
+		return False
 
 
 class ApplicationMountPointHandler(object):
@@ -134,14 +164,13 @@ class ApplicationMountPointHandler(object):
 		self.mount = mount
 
 	def __call__(self, path):
-		if path.path == self.dir.path or path.ischild(self.dir) \
-		and not self.dir.exists() \
-		and self.mount:
-			from zim.applications import Application
+		from zim.applications import Application
+		logger.info('Mount: %s', self.dir)
+		try:
 			Application(self.mount).run()
-			return path.exists()
-		else:
-			return False
+		except:
+			logger.exception('Failed to run: %s', self.mount)
+		return path.exists()
 
 
 def init_notebook(dir, name=None):
