@@ -50,7 +50,6 @@ from zim.gui.widgets import \
 from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
-from zim.gui.uiactions import attach_file
 from zim.gui.insertedobjects import \
 	InsertedObjectWidget, UnknownInsertedObject, UnknownInsertedImageObject, \
 	POSITION_BEGIN, POSITION_END
@@ -6382,6 +6381,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		InsertImageDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
 
+	@action(_('_Attachment...'), verb_icon='zim-attachment', menuhints='insert') # T: Menu item
+	def attach_file(self, file=None):
+		'''Menu action to show the L{AttachFileDialog}
+		@param file: optional file to suggest in the dialog
+		'''
+		AttachFileDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
+
 	def insert_image(self, file):
 		'''Insert a image
 		@param file: the image file to insert. If C{file} does not exist or
@@ -7044,15 +7050,12 @@ class InsertImageDialog(FileDialog):
 
 class AttachFileDialog(FileDialog):
 
-	def __init__(self, parent, notebook, path, pageview=None):
+	def __init__(self, parent, buffer, notebook, path, file=None):
 		assert path, 'Need a page here'
 		FileDialog.__init__(self, parent, _('Attach File'), multiple=True) # T: Dialog title
+		self.buffer = buffer
 		self.notebook = notebook
 		self.path = path
-		self.pageview = pageview
-
-		self.add_shortcut(notebook, path)
-		self.load_last_folder()
 
 		dir = notebook.get_attachments_dir(path)
 		if dir is None:
@@ -7060,11 +7063,11 @@ class AttachFileDialog(FileDialog):
 				# T: Error dialog - %s is the full page name
 			raise Exception('Page "%s" does not have a folder for attachments' % self.path)
 
-		self.uistate.setdefault('insert_attached_images', True)
-		checkbox = Gtk.CheckButton.new_with_mnemonic(_('Insert images as link'))
-			# T: checkbox in the "Attach File" dialog
-		checkbox.set_active(not self.uistate['insert_attached_images'])
-		self.filechooser.set_extra_widget(checkbox)
+		self.add_shortcut(notebook, path)
+		if file:
+			self.set_file(file)
+		else:
+			self.load_last_folder()
 
 	def do_response_ok(self):
 		files = self.get_files()
@@ -7073,9 +7076,110 @@ class AttachFileDialog(FileDialog):
 
 		self.save_last_folder()
 
-		# Similar code in zim.gui.pageview.InsertImageDialog
-		checkbox = self.filechooser.get_extra_widget()
-		self.uistate['insert_attached_images'] = not checkbox.get_active()
+		inserted = False
+		last = len(files) - 1
+		for i, file in enumerate(files):
+			file = attach_file(self, self.notebook, self.path, file)
+			if file is not None:
+				inserted = True
+				text = self.notebook.relative_filepath(file, path=self.path)
+				self.buffer.insert_link_at_cursor(text, href=text)
+				if i != last:
+					self.buffer.insert_at_cursor(' ')
+
+		return inserted # If nothing is inserted, return False and do not close dialog
+
+
+def attach_file(widget, notebook, path, file, force_overwrite=False):
+	folder = notebook.get_attachments_dir(path)
+	if folder is None:
+		raise Error('%s does not have an attachments dir' % path)
+
+	dest = folder.file(file.basename)
+	if dest.exists() and not force_overwrite:
+		dialog = PromptExistingFileDialog(widget, dest)
+		dest = dialog.run()
+		if dest is None:
+			return None	# dialog was cancelled
+		elif dest.exists():
+			dest.remove()
+
+	file.copyto(dest)
+	return dest
+
+
+class PromptExistingFileDialog(Dialog):
+	'''Dialog that is used e.g. when a file should be attached to zim,
+	but a file with the same name already exists in the attachment
+	directory. This Dialog allows to suggest a new name or overwrite
+	the existing one.
+
+	For this dialog C{run()} will return either the original file
+	(for overwrite), a new file, or None when the dialog was canceled.
+	'''
+
+	def __init__(self, widget, file):
+		Dialog.__init__(self, widget, _('File Exists'), buttons=None) # T: Dialog title
+		self.add_help_text( _('''\
+A file with the name <b>"%s"</b> already exists.
+You can use another name or overwrite the existing file.''' % file.basename),
+		) # T: Dialog text in 'new filename' dialog
+		self.folder = file.parent()
+		self.old_file = file
+
+		suggested_filename = self.folder.new_file(file.basename).basename
+		self.add_form((
+				('name', 'string', _('Filename')), # T: Input label
+			), {
+				'name': suggested_filename
+			}
+		)
+		self.form.widgets['name'].set_check_func(self._check_valid)
+
+		# all buttons are defined in this class, to get the ordering right
+		# [show folder]      [overwrite] [cancel] [ok]
+		button = Gtk.Button.new_with_mnemonic(_('_Browse')) # T: Button label
+		button.connect('clicked', self.do_show_folder)
+		self.action_area.add(button)
+		self.action_area.set_child_secondary(button, True)
+
+		button = Gtk.Button.new_with_mnemonic(_('Overwrite')) # T: Button label
+		button.connect('clicked', self.do_response_overwrite)
+		self.add_action_widget(button, Gtk.ResponseType.NONE)
+
+		self.add_button(_('_Cancel'), Gtk.ResponseType.CANCEL) # T: Button label
+		self.add_button(_('_OK'), Gtk.ResponseType.OK) # T: Button label
+		self._no_ok_action = False
+
+		self.form.widgets['name'].connect('focus-in-event', self._on_focus)
+
+	def _on_focus(self, widget, event):
+		# filename length without suffix
+		length = len(os.path.splitext(widget.get_text())[0])
+		widget.select_region(0, length)
+
+	def _check_valid(self, filename):
+		# Only valid when same dir and does not yet exist
+		file = self.folder.file(filename)
+		return file.ischild(self.folder) and not file.exists()
+
+	def do_show_folder(self, *a):
+		open_folder(self, self.folder)
+
+	def do_response_overwrite(self, *a):
+		logger.info('Overwriting %s', self.old_file.path)
+		self.result = self.old_file
+
+	def do_response_ok(self):
+		if not self.form.widgets['name'].get_input_valid():
+			return False
+
+		newfile = self.folder.file(self.form['name'])
+		logger.info('Selected %s', newfile.path)
+		assert newfile.ischild(self.folder) # just to be real sure
+		assert not newfile.exists() # just to be real sure
+		self.result = newfile
+		return True
 
 
 class EditImageDialog(Dialog):

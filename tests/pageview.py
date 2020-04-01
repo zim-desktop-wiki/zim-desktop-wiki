@@ -2820,6 +2820,82 @@ class TestPageViewActions(tests.TestCase):
 		self.assertTrue(text.startswith('{{') and text.endswith('}}'), '%r does not match \{\{...\}\}' % text)
 		self.assertEqual(File(text[2:-2]), file)
 
+	def testAttachFile(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		notebook = pageview.notebook
+		page = pageview.page
+
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('Attachment.abc')
+		file.write('Test ABC\n')
+
+		def attach_file(dialog):
+			dialog.set_file(file)
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(attach_file):
+			pageview.attach_file()
+
+		attach_folder = notebook.get_attachments_dir(page)
+		attach_file = attach_folder.file('Attachment.abc')
+		self.assertTrue(attach_file.exists())
+		self.assertEqual(attach_file.read(), file.read())
+
+	def testAttachFileResolveExistingFile(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		notebook = pageview.notebook
+		page = pageview.page
+
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('Attachment.abc')
+		file.write('Test ABC\n')
+
+		attach_folder = notebook.get_attachments_dir(page)
+		conflict_file = attach_folder.file('Attachment.abc')
+		conflict_file.write('Conflict\n')
+
+		def attach_file(dialog):
+			dialog.set_file(file)
+			dialog.assert_response_ok()
+
+		def resolve_conflict(dialog):
+			dialog.set_input(name='NewName.abc')
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(attach_file, resolve_conflict):
+			pageview.attach_file()
+
+		attach_file = attach_folder.file('NewName.abc')
+		self.assertTrue(attach_file.exists())
+		self.assertEqual(attach_file.read(), file.read())
+
+		self.assertEqual(conflict_file.read(), 'Conflict\n')
+
+	def testAttachFileOverwriteExistingFile(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		notebook = pageview.notebook
+		page = pageview.page
+
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('Attachment.abc')
+		file.write('Test ABC\n')
+
+		attach_folder = notebook.get_attachments_dir(page)
+		conflict_file = attach_folder.file('Attachment.abc')
+		conflict_file.write('Conflict\n')
+
+		def attach_file(dialog):
+			dialog.set_file(file)
+			dialog.assert_response_ok()
+
+		def resolve_conflict(dialog):
+			dialog.do_response_overwrite()
+
+		with tests.DialogContext(attach_file, resolve_conflict):
+			pageview.attach_file()
+
+		self.assertEqual(conflict_file.read(), file.read())
+
 	def testInsertBulletList(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		pageview.insert_bullet_list()

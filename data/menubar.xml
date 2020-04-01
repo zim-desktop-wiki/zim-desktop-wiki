@@ -84,6 +84,7 @@
 			<menuitem action='insert_line'/>
 			<separator/>
 			<menuitem action='show_insert_image'/>
+			<menuitem action='attach_file'/>
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>
@@ -128,7 +129,6 @@
 			<menuitem action='show_word_count'/>
 			<placeholder name='page_tools'/>
 			<separator/>
-			<menuitem action='attach_file'/>
 			<menuitem action='open_attachments_folder'/>
 			<menuitem action='open_notebook_folder'/>
 <!-- TEMP: hide feature
