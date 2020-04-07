@@ -37,10 +37,11 @@ from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean, Choice, ConfigManager
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
-from zim.parsing import link_type, Re, url_re
+from zim.parsing import link_type, Re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT
+from zim.formats.wiki import url_re, match_url
 from zim.actions import get_gtk_actiongroup, action, toggle_action
 from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -4339,17 +4340,19 @@ class TextView(Gtk.TextView):
 				buffer.apply_tag(tag, start, end)
 				return True
 
-		def apply_link(match):
+		def apply_link(match, offset_end=0):
 			#~ print("LINK >>%s<<" % word)
-			start = end.copy()
+			myend = end.copy()
+			myend.backward_chars(offset_end)
+			start = myend.copy()
 			if not start.backward_chars(len(match)):
 				return False
-			elif buffer.range_has_tags(_is_non_nesting_tag, start, end) \
-				or buffer.range_has_tags(_is_link_tag, start, end):
+			elif buffer.range_has_tags(_is_non_nesting_tag, start, myend) \
+				or buffer.range_has_tags(_is_link_tag, start, myend):
 					return False # No link inside a link
 			else:
 				tag = buffer._create_link_tag(match, match)
-				buffer.apply_tag(tag, start, end)
+				buffer.apply_tag(tag, start, myend)
 				return True
 
 		def allow_bullet(iter):
@@ -4375,8 +4378,14 @@ class TextView(Gtk.TextView):
 				handled = True
 		elif tag_re.match(word):
 			handled = apply_tag(tag_re[0])
-		elif url_re.match(word):
-			handled = apply_link(url_re[0])
+		elif url_re.search(word):
+			if char == ')':
+				handled = False # to early to call
+			else:
+				m = url_re.search(word)
+				url = match_url(m.group(0))
+				tail = word[m.start()+len(url):]
+				handled = apply_link(url, offset_end=len(tail))
 		elif page_re.match(word):
 			# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
 			w = word.strip(':').split(':')

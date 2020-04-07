@@ -2193,6 +2193,15 @@ class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
 	def testAutoFormatURL(self):
 		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
 
+	def testAutoFormatURLTrailingPunctuation(self):
+		self.assertTyping('www.commonmark.org/a.b. ', '<link href="">www.commonmark.org/a.b</link>. ')
+
+	def testAutoFormatURLMatchingBracket(self):
+		self.assertTyping('(www.google.com/search?q=Markup+(business)) ', '(<link href="">www.google.com/search?q=Markup+(business)</link>) ')
+
+	def testAutoFormatEmail(self):
+		self.assertTyping('hello+xyz@mail.example ', '<link href="">hello+xyz@mail.example</link> ')
+
 	def testAutoFormatPageLink(self):
 		self.assertTyping('Foo:Bar ', '<link href="">Foo:Bar</link> ')
 
