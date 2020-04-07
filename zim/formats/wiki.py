@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger('zim.formats.wiki')
 
 from zim.parser import *
-from zim.parsing import url_re, url_encode, URL_ENCODE_DATA, \
+from zim.parsing import url_encode, URL_ENCODE_DATA, \
 	escape_string, unescape_string, split_escaped_string
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
@@ -66,6 +66,94 @@ def _remove_indent(text, indent):
 		# supported in python 2.6
 
 
+# NOTE: we follow rules of GFM spec, except:
+#  - we allow any URL scheme
+#  - we add a file URI match
+# For GFM Markdown parser, remove these exceptions
+#
+# File paths cannot contain '\', '/', ':', '*', '?', '"', '<', '>', '|'
+# These are valid URL / path seperators: / \ : ? |
+# So restrict matching " < > and also '
+url_re = re.compile(
+	'\\b(?P<url>'
+
+	'(www\.|https?://|\w+://)'			# autolink & autourl prefix
+	'(?P<domain>([\w\-]+\.)+[\w\-]+)' 	# 2 or more domain sections
+	'[^\s<]*'					# any non-space char except "<"
+
+	')|(?P<email>'
+
+	'(mailto:)?'
+	'[\w\.\-_+]+@'				# email prefix
+	'([\w\-_]+\.)+[\w\-_]+'	# email domain
+
+	')|(?P<fileuri>'
+
+	'file:/+'
+	'[^\s"<>\']+'
+
+	')', re.U
+)
+
+url_trailing_punctuation = ('?', '!', '.', ',', ':', '*', '_', '~')
+
+
+def is_url(text):
+	'''Matches url_re and number of closing brackets matches
+	See L{https://github.github.com/gfm/#autolinks-extension-}
+	@param text: text to match as url
+	@returns: C{True} if C{text} is a valid url according to GFM rules
+	'''
+	url = match_url(text)
+	return url == text # No trailing puntuation or ")" excluded
+
+
+def match_url(text):
+	'''Match regex and count number of closing brackets
+	See L{https://github.github.com/gfm/#autolinks-extension-}
+	@param text: text to match as url
+	@returns: the url or None
+	'''
+	m = url_re.match(text)
+	if m:
+		url = m.group(0)
+		if m.lastgroup == 'email':
+			# Do not allow end in "-" or "_", use trailing "."
+			while url:
+				if url[-1] == '.':
+					url = url[:-1]
+				elif url[-1] in ('-', '_'):
+					return None
+				else:
+					break
+			return url or None
+
+		# continue processing regular URL or file URI
+		if m.lastgroup == 'url':
+			domain = m.group('domain').split('.')
+			if '_' in domain[-1] or '_' in domain[-2]:
+				# Last two domain sections cannot contain "_"
+				return None
+	else:
+		return None
+
+	while url:
+		if url[-1] in url_trailing_punctuation \
+			or (url[-1] == ')' and url.count(')') > url.count('(')):
+				url = url[:-1]
+		elif url[-1] == ';':
+			m = re.search('&\w+;$', url)
+			if m:
+				ref = m.group(0)
+				url = url[:-len(ref)]
+			else:
+				url = url[:-1]
+		else:
+			return url
+	else:
+		return None
+
+
 class WikiParser(object):
 	# This parser uses 3 levels of rules. The top level splits up
 	# paragraphs, verbatim paragraphs, images and objects.
@@ -95,7 +183,7 @@ class WikiParser(object):
 		# Rules for inline formatting, links and tags
 		descent = lambda *a: self.inline_parser(*a)
 		return (
-			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
+			Rule(LINK, url_re, process=self.parse_url)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
@@ -459,9 +547,14 @@ class WikiParser(object):
 		else:
 			builder.append(IMAGE, attrib)
 
-	@staticmethod
-	def parse_url(builder, text):
-		builder.append(LINK, {'href': text}, text)
+	def parse_url(self, builder, *a):
+		text = a[0]
+		url = match_url(text)
+		if url is None:
+			self.inline_parser.backup_parser_offset(len(text) - 1)
+		elif url != text:
+			self.inline_parser.backup_parser_offset(len(text) - len(url))
+		builder.append(LINK, {'href': url}, url)
 
 	@staticmethod
 	def parse_tag(builder, text):
@@ -572,7 +665,7 @@ class Dumper(TextDumper):
 		href = attrib['href']
 
 		if not strings or href == ''.join(strings):
-			if url_re.match(href):
+			if is_url(href):
 				return (href,) # no markup needed
 			else:
 				return ('[[', href, ']]')
