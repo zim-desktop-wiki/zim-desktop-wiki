@@ -10,8 +10,6 @@ logger = logging.getLogger('zim.notebook')
 
 
 from zim.parsing import link_type
-from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference for wiki format
-
 
 import zim.formats
 import zim.fs

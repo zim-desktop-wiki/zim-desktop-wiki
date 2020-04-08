@@ -393,7 +393,7 @@ A list
 			found += 1
 		self.assertEqual(found, 3)
 
-	def testBackward(self):
+	def testBackwardVerbatim(self):
 		'''Test backward compatibility for wiki format'''
 		input = '''\
 test 1 2 3
@@ -423,6 +423,19 @@ test 4 5 6
 <p>test 4 5 6
 </p></zim-tree>'''
 		t = self.format.Parser(version='Unknown').parse(input)
+		self.assertEqual(t.tostring(), xml)
+		output = self.format.Dumper().dump(t)
+		self.assertEqual(output, wanted.splitlines(True))
+
+	def testBackwardURLParsing(self):
+		input = 'Old link: http://///foo.com\n'
+		wanted = 'Old link: [[http://///foo.com]]\n'
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>Old link: <link href="http://///foo.com">http://///foo.com</link>
+</p></zim-tree>'''
+
+		t = self.format.Parser(version='zim 0.4').parse(input)
 		self.assertEqual(t.tostring(), xml)
 		output = self.format.Dumper().dump(t)
 		self.assertEqual(output, wanted.splitlines(True))

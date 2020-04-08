@@ -8,14 +8,24 @@ import logging
 
 logger = logging.getLogger('zim.formats.wiki')
 
-from zim.parser import *
+from zim.parser import Rule, fix_line_end, convert_space_to_tab
+from zim.parser import Parser as RuleParser
 from zim.parsing import url_encode, URL_ENCODE_DATA, \
 	escape_string, unescape_string, split_escaped_string
+from zim.parsing import url_re as old_url_re
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
+old_url_re = old_url_re.p
 
-WIKI_FORMAT_VERSION = 'zim 0.5'
+
+WIKI_FORMAT_VERSION = 'zim 0.6'
+assert WIKI_FORMAT_VERSION != 'zim 0.26' # skip number for historic reasons
+# History:
+# - 0.6  new url parsing logic
+# - 0.5  support nested formatting
+# - 0.4  parser rewrite, specifically changed parsing indented blocks
+# - 0.26 oldest format supported in python branch
 
 
 info = {
@@ -169,7 +179,9 @@ class WikiParser(object):
 		'*': BULLET,
 	}
 
-	def __init__(self):
+	def __init__(self, backward_indented_blocks=False, backward_url_parsing=False):
+		self.backward_indented_blocks = backward_indented_blocks
+		self.backward_url_parsing = backward_url_parsing
 		self.inline_parser = self._init_inline_parse()
 		self.list_and_indent_parser = self._init_intermediate_parser()
 		self.block_parser = self._init_block_parser()
@@ -181,9 +193,10 @@ class WikiParser(object):
 
 	def _init_inline_parse(self):
 		# Rules for inline formatting, links and tags
+		my_url_re = old_url_re if self.backward_url_parsing else url_re
 		descent = lambda *a: self.inline_parser(*a)
 		return (
-			Rule(LINK, url_re, process=self.parse_url)
+			Rule(LINK, my_url_re, process=self.parse_url)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
@@ -200,7 +213,7 @@ class WikiParser(object):
 		# Intermediate level, breaks up lists and indented blocks
 		# TODO: deprecate this by taking lists out of the para
 		#       and make a new para for each indented block
-		p = Parser(
+		p = RuleParser(
 			Rule(
 				'X-Bullet-List',
 				r'''(
@@ -237,7 +250,7 @@ class WikiParser(object):
 
 	def _init_block_parser(self):
 		# Top level parser, to break up block level items
-		p = Parser(
+		p = RuleParser(
 			Rule(VERBATIM_BLOCK, r'''
 				^(?P<pre_indent>\t*) \'\'\' \s*?				# 3 "'"
 				( (?:^.*\n)*? )									# multi-line text
@@ -433,7 +446,7 @@ class WikiParser(object):
 					pass
 				elif block.isspace():
 					builder.text(block)
-				elif self.backward \
+				elif self.backward_indented_blocks \
 				and not unindented_line_re.search(block):
 					# Before zim 0.29 all indented paragraphs were
 					# verbatim.
@@ -549,12 +562,15 @@ class WikiParser(object):
 
 	def parse_url(self, builder, *a):
 		text = a[0]
-		url = match_url(text)
-		if url is None:
-			self.inline_parser.backup_parser_offset(len(text) - 1)
-		elif url != text:
-			self.inline_parser.backup_parser_offset(len(text) - len(url))
-		builder.append(LINK, {'href': url}, url)
+		if self.backward_url_parsing:
+			builder.append(LINK, {'href': text}, text)
+		else:
+			url = match_url(text)
+			if url is None:
+				self.inline_parser.backup_parser_offset(len(text) - 1)
+			elif url != text:
+				self.inline_parser.backup_parser_offset(len(text) - len(url))
+			builder.append(LINK, {'href': url}, url)
 
 	@staticmethod
 	def parse_tag(builder, text):
@@ -573,7 +589,7 @@ wikiparser = WikiParser() #: singleton instance
 class Parser(ParserClass):
 
 	def __init__(self, version=WIKI_FORMAT_VERSION):
-		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
+		self.version = version
 
 	def parse(self, input, partial=False, file_input=False):
 		if not isinstance(input, str):
@@ -582,16 +598,22 @@ class Parser(ParserClass):
 		if not partial:
 			input = fix_line_end(input)
 
-		meta, backward = None, False
+		meta, version = None, False
 		if file_input:
 			input, meta = parse_header_lines(input)
 			version = meta.get('Wiki-Format')
-			if version and version not in ('zim 0.26', WIKI_FORMAT_VERSION):
-				backward = True
+
+		# Support backward compatibility - see history notes WIKI_FORMAT_VERSION
+		version = version or self.version
+		if version == 'zim 0.6':
+			mywikiparser = wikiparser
+		elif version in ('zim 0.4', 'zim 0.5'):
+			mywikiparser = WikiParser(backward_url_parsing=True)
+		else:
+			mywikiparser = WikiParser(backward_indented_blocks=True, backward_url_parsing=True)
 
 		builder = ParseTreeBuilder(partial=partial)
-		wikiparser.backward = backward or self.backward # HACK
-		wikiparser(builder, input)
+		mywikiparser(builder, input)
 
 		parsetree = builder.get_parsetree()
 		if meta is not None:
