@@ -393,7 +393,7 @@ A list
 			found += 1
 		self.assertEqual(found, 3)
 
-	def testBackward(self):
+	def testBackwardVerbatim(self):
 		'''Test backward compatibility for wiki format'''
 		input = '''\
 test 1 2 3
@@ -423,6 +423,19 @@ test 4 5 6
 <p>test 4 5 6
 </p></zim-tree>'''
 		t = self.format.Parser(version='Unknown').parse(input)
+		self.assertEqual(t.tostring(), xml)
+		output = self.format.Dumper().dump(t)
+		self.assertEqual(output, wanted.splitlines(True))
+
+	def testBackwardURLParsing(self):
+		input = 'Old link: http://///foo.com\n'
+		wanted = 'Old link: [[http://///foo.com]]\n'
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>Old link: <link href="http://///foo.com">http://///foo.com</link>
+</p></zim-tree>'''
+
+		t = self.format.Parser(version='zim 0.4').parse(input)
 		self.assertEqual(t.tostring(), xml)
 		output = self.format.Dumper().dump(t)
 		self.assertEqual(output, wanted.splitlines(True))
@@ -623,6 +636,87 @@ hmmm
 		#~ print tree.tostring()
 		output = self.format.Dumper().dump(tree)
 		self.assertEqual(''.join(output), text)
+
+	def testGFMAutolinks(self):
+		text = 'Test 123 www.google.com/search?q=Markup+(business))) 456'
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>Test 123 <link href="www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</link>)) 456
+</p></zim-tree>'''
+		t = self.format.Parser().parse([text])
+		self.assertEqual(t.tostring(), xml)
+
+
+
+class TestGFMAutolinks(tests.TestCase):
+	# See https://github.github.com/gfm/#autolinks-extension-
+
+	examples = (
+		# Basic match
+		('www.commonmark.org', True, None),
+		('www.commonmark.org/help', True, None),
+		('http://commonmark.org', True, None),
+		('http://commonmark.org/help', True, None),
+		('commonmark.org', False, None),
+		('commonmark.org/help', False, None),
+
+
+		# No "_" in last two parts domain
+		('www.common_mark.org', False, None),
+		('www.commonmark.org_help', False, None),
+		('www.test_123.commonmark.org', True, None),
+
+		# Trailing punctuation
+		('www.commonmark.org/a.b.', True, '.'),
+		('www.commonmark.org.', True, '.'),
+		('www.commonmark.org?', True, '?'),
+
+		# Trailing ")"
+		('www.google.com/search?q=Markup+(business)', True, None),
+		('www.google.com/search?q=Markup+(business))', True, ')'),
+		('www.google.com/search?q=Markup+(business)))', True, '))'),
+		('www.google.com/search?q=(business))+ok', True, None),
+
+		# Trailing entity reference
+		('www.google.com/search?q=commonmark&hl=en', True, None),
+		('www.google.com/search?q=commonmark&hl;', True, '&hl;'),
+
+		# A "<" always breaks the link
+		('www.commonmark.org/he<lp', True, '<lp'),
+
+		# Email
+		('foo@bar.baz', True, None),
+		('hello@mail+xyz.example', False, None),
+		('hello+xyz@mail.example', True, None),
+		('a.b-c_d@a.b', True, None),
+		('a.b-c_d@a.b.', True, '.'),
+		('a.b-c_d@a.b-', False, None),
+		('a.b-c_d@a.b_', False, None),
+		('@tag', False, None),
+
+		# Examples from bug tracker
+		('https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#container-core-v1-', True, None),
+		('https://da.sharelatex.com/templates/books/springer\'s-monograph-type-svm', True, None),
+		('https://en.wikipedia.org/wiki/80/20_(framing_system)', True, None),
+		('https://bugs.kde.org/buglist.cgi?resolution=---', True, None),
+		('https://vimhelp.org/options.txt.html#\'iskeyword\'', True, None),
+		('https://example.com/foo]', True, None),
+	)
+
+	def testFunctions(self):
+		from zim.formats.wiki import match_url, is_url
+
+		for input, input_is_url, tail in self.examples:
+			if input_is_url:
+				if tail:
+					self.assertEqual(match_url(input), input[:-len(tail)])
+					self.assertFalse(is_url(input))
+				else:
+					self.assertEqual(match_url(input), input)
+					self.assertTrue(is_url(input))
+			else:
+				self.assertEqual(match_url(input), None)
+				self.assertFalse(is_url(input))
 
 
 class TestHtmlFormat(tests.TestCase, TestFormatMixin):

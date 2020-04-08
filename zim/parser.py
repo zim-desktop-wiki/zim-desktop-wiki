@@ -316,7 +316,10 @@ class Rule(object):
 		assert tag is not None or process is not None, 'Need at least a tag or a process method'
 		self._re = None
 		self.tag = tag
-		self.pattern = pattern
+		if isinstance(pattern, str):
+			self.pattern = pattern
+		else:
+			self.pattern = pattern.pattern # Assume compiled regular expression
 		self.descent = descent
 		self.process = process or self._process
 
@@ -403,12 +406,13 @@ class Parser(object):
 				r"(?P<rule%i>%s)" % (i, r.pattern)
 					for i, r in enumerate(self.rules)
 			])
-			#~ print('PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...')
+			#print('PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...')
 			self._re = re.compile(pattern, re.U | re.M | re.X)
 
 		iter = 0
 		end = len(text)
-		for match in self._re.finditer(text):
+		match = self._re.search(text, iter)
+		while match:
 			mstart, mend = match.span()
 			if mstart > iter:
 				try:
@@ -422,13 +426,14 @@ class Parser(object):
 			if len(groups) > 1:
 				groups.pop(0) # get rid of named outer group if inner groups are defined
 
+			self._backup_iter = 0
 			try:
 				self.rules[i].process(builder, *groups)
 			except Exception as error:
 				self._raise_exception(error, text, mstart, mend, builder, self.rules[i])
 
-			iter = mend
-
+			iter = mend - self._backup_iter
+			match = self._re.search(text, iter)
 		else:
 			# no more matches
 			if iter < end:
@@ -438,6 +443,9 @@ class Parser(object):
 					self._raise_exception(error, text, iter, end, builder)
 
 	parse = __call__
+
+	def backup_parser_offset(self, i):
+		self._backup_iter += i
 
 	@staticmethod
 	def _raise_exception(error, text, start, end, builder, rule=None):
