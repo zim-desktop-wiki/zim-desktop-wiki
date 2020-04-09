@@ -646,6 +646,14 @@ hmmm
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
+	def testMatchingLinkBrackets(self):
+		text = '[[[foo]]] [[[bar[baz]]]'
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>[<link href="foo">foo</link>] [<link href="bar[baz]">bar[baz]</link>
+</p></zim-tree>'''
+		t = self.format.Parser().parse([text])
+		self.assertEqual(t.tostring(), xml)
 
 
 class TestGFMAutolinks(tests.TestCase):

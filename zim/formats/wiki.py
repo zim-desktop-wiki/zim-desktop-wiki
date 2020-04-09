@@ -198,7 +198,7 @@ class WikiParser(object):
 		return (
 			Rule(LINK, my_url_re, process=self.parse_url)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
-			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
+			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
 			| Rule(EMPHASIS, r'//(?!/)(.*?)(?<!:)//', descent=descent) # no ':' at the end (ex: 'http://')
 			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*', descent=descent)
@@ -531,16 +531,25 @@ class WikiParser(object):
 	def parse_link(self, builder, text):
 		text = text.strip('|') # old bug producing "[[|link]]", or "[[link|]]" or "[[||]]"
 		if not text or text.isspace():
-			pass
-		elif '|' in text:
+			return
+
+		href = None
+		if '|' in text:
 			href, text = text.split('|', 1)
 			text = text.strip('|') # stuff like "[[foo||bar]]"
+
+		if text.endswith(']'):
+			delta = text.count(']') - text.count('[')
+			if delta > 0:
+				self.inline_parser.backup_parser_offset(delta)
+				text = text[:-delta]
+
+		if href is None:
+			builder.append(LINK, {'href': text}, text)
+		else:
 			builder.start(LINK, {'href': href})
 			self.inline_parser(builder, text)
 			builder.end(LINK)
-		else:
-			href = text
-			builder.append(LINK, {'href': href}, href)
 
 	@staticmethod
 	def parse_image(builder, text):
