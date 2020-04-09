@@ -59,6 +59,10 @@ This plugin adds the page index pane to the main window.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
 			# T: preferences option
+		('autoexpand', 'bool', _('Automatically expand sections on open page'), True),
+			# T: preferences option
+		('autocollapse', 'bool', _('Automatically collapse sections on close page'), True),
+			# T: preferences option
 	)
 
 
@@ -71,6 +75,7 @@ class PageIndexPageViewExtension(PageViewExtension):
 		self.treeview = PageTreeView(pageview.notebook, self.navigation)
 		self.treeview.set_model(model)
 		self.widget = PageIndexWidget(self.treeview)
+		self._autoexpanded = None
 
 		# Connect to ui signals
 		#window.connect('start-index-update', lambda o: self.disconnect_model())
@@ -86,7 +91,20 @@ class PageIndexPageViewExtension(PageViewExtension):
 
 	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
-		if treepath:
+
+		if self._autoexpanded and self.plugin.preferences['autocollapse']:
+			ref1, ref2 = self._autoexpanded
+			if ref1.valid() and (ref2 is None or ref2.valid()):
+				prev_treepath = ref1.get_path()
+				prev_expanded_path = ref2.get_path() if ref2 else None
+				self.treeview.restore_expanded_path(prev_treepath, prev_expanded_path)
+
+		if treepath and self.plugin.preferences['autoexpand']:
+			expanded_path = self.treeview.get_expanded_path(treepath)
+			model = self.treeview.get_model()
+			ref1 = Gtk.TreeRowReference(model, treepath)
+			ref2 = Gtk.TreeRowReference(model, expanded_path) if expanded_path else None
+			self._autoexpanded = (ref1, ref2)
 			self.treeview.select_treepath(treepath)
 
 	def disconnect_model(self):
@@ -565,3 +583,31 @@ class PageTreeView(BrowserTreeView):
 			return None
 		else:
 			return model.get_indexpath(iter)
+
+	def get_expanded_path(self, path):
+		'''Return the lowest expanded path towards C{path}'''
+		path = path.copy()
+		while path and not self.row_expanded(path):
+			if path.get_depth() == 1:
+				path = None
+			else:
+				path.up()
+		return path
+
+	def restore_expanded_path(self, path, expanded_path):
+		'''Collaps path between C{path} and C{expanded_path}'''
+		path = path.copy()
+		if expanded_path is None:
+			while path:
+				self.collapse_row(path)
+				if path.get_depth() == 1:
+					path = None
+				else:
+					path.up()
+		else:
+			while path.compare(expanded_path) == 1: # else equal or deeper
+				self.collapse_row(path)
+				if path.get_depth() == 1:
+					path = None
+				else:
+					path.up()

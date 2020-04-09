@@ -10,6 +10,13 @@ This plugin provides the page index side pane for the main window.
 ===== Options =====
 The option **Position in the window** determines in which side pane the browser is shown.
 
+The option **Automatically expand sections on open page** determines whether
+the section for the current page is automatically expanded.
+
+The option **Automatically collapse sections on close page** determines whether
+sections that are automatically expanded are also collapsed again on moving
+away from the page. It does not affect sections that where expanded manually
+by clicking on the expand arrow.
 
 ===== Style =====
 
