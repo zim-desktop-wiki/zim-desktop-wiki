@@ -576,14 +576,18 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
 		except IndexNotFoundError:
 			raise PageNotFoundError(path)
-		self._move_file_and_folder(path, newpath)
-		self.flush_page_cache(path)
-		self.emit('moved-page', path, newpath)
+
+		file, folder = self.layout.map_page(path)
+		if (file.exists() or folder.exists()):
+			self._move_file_and_folder(path, newpath)
+			self.flush_page_cache(path)
+			self.emit('moved-page', path, newpath)
+
+			if update_links:
+				for p in self._update_links_in_moved_page(path, newpath):
+					yield p
 
 		if update_links:
-			for p in self._update_links_in_moved_page(path, newpath):
-				yield p
-
 			for p in self._update_links_to_moved_page(path, newpath):
 				yield p
 
