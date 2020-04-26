@@ -33,6 +33,16 @@ There is also a PPA with updates for zim [[https://launchpad.net/~jaap.karssenbe
 
 A windows installer can be found [[https://zim.glump.net/windows/|here]].
 
+{{/images/os-apple.png?width=24}}  ** Mac OS X**
+
+On Mac OS X, zim can be installed from Homebrew using,
+
+'''
+brew install zim
+'''
+
+Optionally, you can [[https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OSX-App-%28wrapper%29|create a .app wrapper]] for convenience.
+
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**
 
 Numerous Linux distributions and BSD flavors are known to include zim: 
