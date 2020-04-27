@@ -42,14 +42,14 @@ When there is no %''HOME%'' environment parameter defined on Windows either the 
 These config files determine various aspects of how zim behaves. They are global in the sense that they are not specific for one notebook.
 
 ==== Main config file ====
-The default config file is $''XDG_CONFIG_HOME/zim/preferences.conf''.
+The default config file is ''$XDG_CONFIG_HOME/zim/preferences.conf''.
 
 The config file is written automatically when you close zim. So if you want to change it manually you need to close all instances of zim first.
 
 There is a hidden option here called "''autosave_timeout''" which gives the interval for autosaving in seconds, default is 10.
 
 ==== Interwiki URL list ====
-The file $''XDG_DATA/zim/urls.list'' gives a list of urls which are used for the [[Links|interwiki]] function. All files in the ''$XDG_DATA'' path are read when looking for a URL, so you can use $XDG_DATA_HOME to override the installation defaults.
+The file ''$XDG_DATA/zim/urls.list'' gives a list of urls which are used for the [[Links|interwiki]] function. All files in the ''$XDG_DATA'' path are read when looking for a URL, so you can use $XDG_DATA_HOME to override the installation defaults.
 
 ''urls.list'' is a tab/space delimited file, with the first column being the interwiki prefix, and the second column being a [[https://docs.python.org/3.8/library/stdtypes.html#str.format|str.format]]-compatible string with either ''{NAME}'' or ''{URL}'' as the possible interpolated values.
 ''{NAME}'' will be substituted with the local link, for example, ''https://wikipedia.org/wiki/{NAME}'' will become ''https://wikipedia.org/wiki/Foo'' with the link ''[[wp?Foo]]''.
@@ -72,7 +72,7 @@ The file ''$XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on e
 See [[http://docs.python.org/library/time.html%23time.strftime|this link]] for documentation of the strftime formatting.
 
 ==== Automount config file ====
-The config file $''XDG_CONFIG_HOME/zim/automount.conf'' can be used to configure mount commands for specific notebook paths. See [[Automount]] for details.
+The config file ''$XDG_CONFIG_HOME/zim/automount.conf'' can be used to configure mount commands for specific notebook paths. See [[Automount]] for details.
 
 ==== GUI style config file ====
 Zim has certain defaults on how to display styles. For example it displays links as blue text without underline. To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.
