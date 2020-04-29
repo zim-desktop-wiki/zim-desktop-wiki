@@ -609,7 +609,7 @@ def new_parsetree():
 	'''
 	if 'new_parsetree' not in _cache:
 		root = os.environ['ZIM_TEST_ROOT']
-		with open(root + '/tests/data/formats/wiki.txt') as file:
+		with open(root + '/tests/data/formats/wiki.txt', encoding='UTF-8') as file:
 			text = file.read()
 
 		import zim.formats.wiki
