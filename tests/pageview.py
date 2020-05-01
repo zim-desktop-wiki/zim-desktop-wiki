@@ -108,7 +108,7 @@ class TestLines(tests.TestCase):
 
 
 
-class TestCaseMixin(object):
+class TextBufferTestCaseMixin(object):
 	# Mixin class with extra test methods
 
 	def get_buffer(self, input=None, raw=True):
@@ -168,7 +168,7 @@ class TestCaseMixin(object):
 		self.assertEqual(cursor.get_line_offset(), offset)
 
 
-class TestTextBuffer(tests.TestCase, TestCaseMixin):
+class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testFormatRoundTrip(self):
 		tree = new_parsetree(self)
@@ -1066,7 +1066,7 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag>\n</p>', raw=False)
 
 
-class TestUndoStackManager(tests.TestCase, TestCaseMixin):
+class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testAll(self):
 		'''Test the undo/redo functionality'''
@@ -1225,7 +1225,7 @@ class TestUndoStackManager(tests.TestCase, TestCaseMixin):
 		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
 
 
-class TestFind(tests.TestCase, TestCaseMixin):
+class TestFind(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testVarious(self):
 		notebook = self.setUpNotebook()
@@ -1339,7 +1339,7 @@ dus*Baz* dus** Bar
 		self.assertBufferEquals(buffer, wanted)
 
 
-class TestLists(tests.TestCase, TestCaseMixin):
+class TestLists(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testBulletLists(self):
 		'''Test interaction for lists'''
@@ -1629,7 +1629,7 @@ def press(widget, sequence):
 		widget.test_key_press_event(keyval)
 
 
-class TestTextView(tests.TestCase, TestCaseMixin):
+class TestTextView(tests.TestCase, TextBufferTestCaseMixin):
 
 	def setUp(self):
 		# Initialize default preferences from module
@@ -1988,7 +1988,7 @@ Foo 123
 		self.assertIsInstance(menu, Gtk.Menu)
 
 
-class TestDoEndOfLine(tests.TestCase, TestCaseMixin):
+class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 
 	@classmethod
 	def setUpClass(cls):
@@ -2161,7 +2161,7 @@ class TestDoEndOfLine(tests.TestCase, TestCaseMixin):
 		)
 
 
-class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
+class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 
 	@classmethod
 	def setUpClass(cls):
@@ -2179,9 +2179,7 @@ class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
 		assert cls.buffer.get_text(start, end, True) == 'aaa\n', 'Just checking test routines work'
 
 	def setUp(self):
-		# Reset buffer state
-		self.buffer.set_text('')
-		self.buffer._editmode_tags = []
+		self.buffer.clear()
 
 	def assertTyping(self, text, wanted):
 		press(self.view, text)
@@ -2310,7 +2308,7 @@ class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
 		self.assertTyping('* Test ', '<h level="1">* Test test</h>\n')
 
 
-class TestPageView(tests.TestCase, TestCaseMixin):
+class TestPageView(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testGetSelection(self):
 		pageview = setUpPageView(self.setUpNotebook())
@@ -2459,7 +2457,7 @@ Baz
 		pageview.disconnect(id)
 
 
-class TestFormatActions(tests.TestCase, TestCaseMixin):
+class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 
 	def setUp(self):
 		self.pageview = setUpPageView(self.setUpNotebook())

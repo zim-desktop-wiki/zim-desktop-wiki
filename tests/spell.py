@@ -25,6 +25,7 @@ from zim.plugins import find_extension, PluginManager
 from zim.notebook import Path
 
 from tests.mainwindow import setUpMainWindow
+from tests.pageview import TextBufferTestCaseMixin
 
 
 class TestSpell(object):
@@ -79,3 +80,35 @@ class TestGtkspellchecker(TestSpell, tests.TestCase):
 		zim.plugins.spell.gtkspell = None
 		zim.plugins.spell.gtkspellcheck = gtkspellcheck
 		TestSpell.runTest(self, zim.plugins.spell.GtkspellcheckAdapter)
+
+
+class TestReplaceWordWithFormatting(TextBufferTestCaseMixin, tests.TestCase):
+
+	# Since spell checker is hard to trigger from test, copied relevant code from:
+	# https://github.com/koehlma/pygtkspellcheck/blob/4a77ccea2e892d0379a31a66b0a863782a2ca44b/src/gtkspellcheck/spellcheck.py#L598
+	def replace_word(self, buffer, start, end, new_word):
+		offset = start.get_offset()
+		buffer.begin_user_action()
+		buffer.delete(start, end)
+		buffer.insert(buffer.get_iter_at_offset(offset), new_word)
+		buffer.end_user_action()
+
+	def runTest(self):
+		# Ensure that replacing a word the formatting is preserved
+		buffer = self.get_buffer(
+			'<strong>mispelld</strong>\n'
+			'<emphasis>here misplled here as well</emphasis>\n\n'
+		)
+		new_word = "misspelled"
+		start, end = buffer.get_iter_at_offset(0), buffer.get_iter_at_offset(8)
+		self.replace_word(buffer, start, end, new_word)
+		self.assertBufferEquals(buffer,
+			'<strong>misspelled</strong>\n'
+			'<emphasis>here misplled here as well</emphasis>\n\n'
+		)
+		start, end = buffer.get_iter_at_offset(16), buffer.get_iter_at_offset(24)
+		self.replace_word(buffer, start, end, new_word)
+		self.assertBufferEquals(buffer,
+			'<strong>misspelled</strong>\n'
+			'<emphasis>here misspelled here as well</emphasis>\n\n'
+		)

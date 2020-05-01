@@ -615,7 +615,7 @@ class TextBuffer(Gtk.TextBuffer):
 		self.notebook = notebook
 		self.page = page
 		self._insert_tree_in_progress = False
-		self._check_edit_mode = False
+		self._deleted_editmode_mark = None
 		self._check_renumber = []
 		self._renumbering = False
 		self.user_action = UserActionContext(self)
@@ -636,6 +636,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 		textbuffer_register_serialize_formats(self, notebook, page)
 
+		self.connect('delete-range', self.__class__.do_pre_delete_range)
 		self.connect_after('delete-range', self.__class__.do_post_delete_range)
 
 	#~ def do_begin_user_action(self):
@@ -644,11 +645,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def do_end_user_action(self):
 		#~ print('<<<< USER ACTION')
-		if self._check_edit_mode:
-			self.update_editmode()
-			# This flag can e.g. indicate a delete happened in this
-			# user action, but we did not yet update edit mode -
-			# so we do it here so we are all set for the next action
+		if self._deleted_editmode_mark is not None:
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
 
 		if True: # not self._renumbering:
 			lines = list(self._check_renumber)
@@ -668,8 +667,11 @@ class TextBuffer(Gtk.TextBuffer):
 		self.emit('clear')
 
 	def do_clear(self):
-		self._editmode_tags = []
 		self.delete(*self.get_bounds())
+		if self._deleted_editmode_mark is not None:
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
+		self._editmode_tags = []
 
 	def get_insert_iter(self):
 		'''Get a C{Gtk.TextIter} for the current cursor position'''
@@ -756,6 +758,10 @@ class TextBuffer(Gtk.TextBuffer):
 		if not interactive:
 			self._editmode_tags = []
 		tree.decode_urls()
+
+		if self._deleted_editmode_mark is not None:
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
 
 		# Actual insert
 		modified = self.get_modified()
@@ -1344,6 +1350,10 @@ class TextBuffer(Gtk.TextBuffer):
 		instead of calling this method directly.
 		'''
 		assert bullet in BULLETS or is_numbered_bullet_re.match(bullet), 'Bullet: >>%s<<' % bullet
+		if self._deleted_editmode_mark is not None:
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
+
 		if not raw:
 			insert = self.get_insert_iter()
 			assert insert.starts_line(), 'BUG: bullet not at line start'
@@ -1561,8 +1571,6 @@ class TextBuffer(Gtk.TextBuffer):
 		but there are some cases where you may need to call it manually
 		to force a consistent state.
 		'''
-		self._check_edit_mode = False
-
 		bounds = self.get_selection_bounds()
 		if bounds:
 			# For selection we set editmode based on left hand side and looking forward
@@ -2070,6 +2078,14 @@ class TextBuffer(Gtk.TextBuffer):
 		'''Signal handler for insert-text signal'''
 		#~ print('INSERT', string)
 
+		if self._deleted_editmode_mark is not None:
+			# Use mark if we are the same postion, clear it anyway
+			markiter = self.get_iter_at_mark(self._deleted_editmode_mark)
+			if iter.equal(markiter):
+				self._editmode_tags = self._deleted_editmode_mark.editmode_tags
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
+
 		def end_or_protect_tags(string, length):
 			tags = list(filter(_is_tag_tag, self._editmode_tags))
 			if tags:
@@ -2168,19 +2184,21 @@ class TextBuffer(Gtk.TextBuffer):
 		for tag in filter(_is_indent_tag, self._editmode_tags):
 			self.apply_tag(tag, start, iter)
 
-	def do_post_delete_range(self, start, end):
-		# Post handler to hook _do_lines_merged and do some logic
-		# when deleting bullets
-		#
-		# Implementation detail:
+	def do_pre_delete_range(self, start, end):
 		# (Interactive) deleting a formatted word with <del>, or <backspace>
 		# should drop the formatting, however selecting a formatted word and
 		# than typing to replace it, should keep formatting
-		# Since we don't know at this point what scenario we are part
-		# off, we do NOT touch the editmode. However we do set a flag
-		# that edit mode needs to be checked at the end of the user
-		# action.
-		#
+		# Therefore we set a mark to remember the formatting and clear it
+		# at the end of a user action, or with the next insert at a different
+		# location
+		if self._deleted_editmode_mark:
+			self.delete_mark(self._deleted_editmode_mark)
+		self._deleted_editmode_mark = self.create_mark(None, end, left_gravity=True)
+		self._deleted_editmode_mark.editmode_tags = self.iter_get_zim_tags(end)
+
+	def do_post_delete_range(self, start, end):
+		# Post handler to hook _do_lines_merged and do some logic
+		# when deleting bullets
 		# Note that 'start' and 'end' refer to the same postion here ...
 
 		if (
@@ -2218,7 +2236,7 @@ class TextBuffer(Gtk.TextBuffer):
 				# handled by _do_lines_merged by extending the indent tag)
 				self.update_indent_tag(start.get_line(), None)
 
-		self._check_edit_mode = True
+		self.update_editmode()
 
 	def _do_lines_merged(self, iter):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
@@ -3585,18 +3603,15 @@ class TextFinder(object):
 		matches.reverse() # work our way back top keep offsets valid
 
 		with self.buffer.user_action:
-			with self.buffer.tmp_cursor():
-				for startoff, endoff, string in matches:
+			for startoff, endoff, string in matches:
+				start = self.buffer.get_iter_at_offset(startoff)
+				end = self.buffer.get_iter_at_offset(endoff)
+				if start.get_child_anchor() is not None:
+					self._replace_in_widget(start, self.regex, string, True)
+				else:
+					self.buffer.delete(start, end)
 					start = self.buffer.get_iter_at_offset(startoff)
-					end = self.buffer.get_iter_at_offset(endoff)
-					if start.get_child_anchor() is not None:
-						self._replace_in_widget(start, self.regex, string, True)
-					else:
-						self.buffer.select_range(start, end) # ensure editmode logic is used
-						self.buffer.delete(start, end)
-
-						start = self.buffer.get_iter_at_offset(startoff)
-						self.buffer.insert(start, string)
+					self.buffer.insert(start, string)
 
 		self._update_highlight()
 
