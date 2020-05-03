@@ -3010,6 +3010,17 @@ class TestPageViewActions(tests.TestCase):
 
 		self.assertEqual(pageview.page.dump('wiki'), ['[[mylink]]\n'])
 
+		def update_link(dialog):
+			dialog.set_input(href='mylink', text="foo")
+			dialog.assert_response_ok()
+
+		buffer = pageview.textview.get_buffer()
+		buffer.place_cursor(buffer.get_iter_at_offset(3))
+		with tests.DialogContext(update_link):
+			pageview.insert_link()
+
+		self.assertEqual(pageview.page.dump('wiki'), ['[[mylink|foo]]\n'])
+
 	def testOpenFileTemplatesFolder(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)

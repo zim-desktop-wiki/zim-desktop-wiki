@@ -1008,6 +1008,10 @@ class TextBuffer(Gtk.TextBuffer):
 		@param href: the target (URL, pagename) of the link as string
 		@param attrib: any other link attributes
 		'''
+		if self._deleted_editmode_mark is not None:
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
+
 		tag = self._create_link_tag(text, href, **attrib)
 		self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags)) + [tag]
 		self.insert_at_cursor(text)
@@ -1103,6 +1107,10 @@ class TextBuffer(Gtk.TextBuffer):
 		@param text: The text for the tag
 		@param attrib: any other tag attributes
 		'''
+		if self._deleted_editmode_mark is not None:
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
+
 		tag = self._create_tag_tag(text, **attrib)
 		self._editmode_tags = \
 			[t for t in self._editmode_tags if not _is_non_nesting_tag(t)] + [tag]
@@ -1536,6 +1544,10 @@ class TextBuffer(Gtk.TextBuffer):
 		This style will be applied to text inserted at the cursor.
 		Use C{set_textstyles(None)} to reset to normal text.
 		'''
+		if self._deleted_editmode_mark is not None:
+			self.delete_mark(self._deleted_editmode_mark)
+			self._deleted_editmode_mark = None
+
 		self._editmode_tags = list(filter(_is_not_style_tag, self._editmode_tags))  # remove all text styles first
 
 		if names:
