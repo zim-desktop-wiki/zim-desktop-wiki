@@ -27,6 +27,11 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 	}
 
+	plugin_preferences = (
+		# key, type, label, default
+		('default_text', 'string', _('Default text'), ''),
+	)
+
 	@classmethod
 	def check_dependencies(klass):
 		has_dotcmd = Application(dotcmd).tryexec()
@@ -49,6 +54,7 @@ class DiagramGenerator(ImageGeneratorClass):
 		self.dotfile = TmpFile('diagram.dot')
 		self.dotfile.touch()
 		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
+		self.default_text = plugin.preferences['default_text']
 
 	def generate_image(self, text):
 		# Write to tmp file
@@ -73,3 +79,7 @@ class DiagramGenerator(ImageGeneratorClass):
 	def cleanup(self):
 		self.dotfile.remove()
 		self.pngfile.remove()
+
+	def get_default_text(self):
+		'''Provides a template or starting point for the user to begin editing.'''
+		return self.default_text
