@@ -70,10 +70,10 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 	}
 
 	global WRAP_NONE, WRAP_WORD_CHAR, WRAP_CHAR, WRAP_WORD # Hack - to make sure translation is loaded
-	WRAP_NONE = _('Wrap lines never') # T: option value
-	WRAP_WORD_CHAR = _('Wrap at word and character boundaries') # T: option value
-	WRAP_CHAR = _('Wrap at character boundaries') # T: option value
-	WRAP_WORD = _('Wrap at word boundaries') # T: option value
+	WRAP_NONE = _('Never wrap lines') # T: option value
+	WRAP_WORD_CHAR = _('Try wrap at word boundaries or character') # T: option value
+	WRAP_CHAR = _('Always wrap at character') # T: option value
+	WRAP_WORD = _('Always wrap at word boundaries') # T: option value
 
 	plugin_preferences = (
 		# key, type, label, default
@@ -282,7 +282,7 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_right_margin_position(preferences['right_margin_position'])
 		self.view.set_show_right_margin(preferences['show_right_margin'])
 		self.view.set_tab_width(preferences['tab_width'])
-		self.view.set_wrap_mode(self.WRAP_MODE[preferences.get('wrap_mode', WRAP_WORD_CHAR)])
+		self.view.set_wrap_mode(self.WRAP_MODE[preferences['wrap_mode']])
 
 	def on_attrib_changed(self, attrib):
 		self.view.set_show_line_numbers(attrib['linenumbers'])

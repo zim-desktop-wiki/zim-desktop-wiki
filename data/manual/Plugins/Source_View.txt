@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 
 ====== Source View ======
 
@@ -18,11 +18,7 @@ If **Highlight current line** is enabled the current line in the widget is highl
 
 If **Show right margin** is enabled, there is a margin drawn on the right to guide maximum length of a line. Typically the margin is set at e.g. 72 or 80 characters.
 
-**Text wrap mode** allows you to choose between the following options:
-* **Wrap lines never**: Lines are never broken when the visible limit of the block is reached.
-* **Wrap at character boundaries**: Default, the lines are broken taking into account the characters that reach the row limit of the block.
-* **Wrap at word boundaries**: The lines are broken taking into account the words that reach the row limit of the block.
-* **Wrap at word and character boundaries**: The lines are broken taking into account the characters and words that reach the row limit of the block.
+**Text wrap mode** allows you to choose how line wrapping is handled.
 
 **Right margin position** gives the position of the right margin in characters.
 
