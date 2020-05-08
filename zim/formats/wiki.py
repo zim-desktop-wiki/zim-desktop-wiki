@@ -195,11 +195,9 @@ class WikiParser(object):
 		# Rules for inline formatting, links and tags
 		my_url_re = old_url_re if self.backward_url_parsing else url_re
 		descent = lambda *a: self.inline_parser(*a)
-		return (
-			Rule(LINK, my_url_re, process=self.parse_url)
-			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
-			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_link)
-			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
+
+		self.nested_inline_parser = (
+			Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(EMPHASIS, r'//(?!/)(.*?)(?<!:)//', descent=descent) # no ':' at the end (ex: 'http://')
 			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*', descent=descent)
 			| Rule(MARK, r'__(?!_)(.*?)__', descent=descent)
@@ -207,6 +205,14 @@ class WikiParser(object):
 			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}', descent=descent)
 			| Rule(STRIKE, r'~~(?!~)(.+?)~~', descent=descent)
 			| Rule(VERBATIM, r"''(?!')(.+?)''")
+
+		)
+
+		return (
+			Rule(LINK, my_url_re, process=self.parse_url)
+			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_link)
+			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
+			| self.nested_inline_parser
 		)
 
 	def _init_intermediate_parser(self):
@@ -548,7 +554,7 @@ class WikiParser(object):
 			builder.append(LINK, {'href': text}, text)
 		else:
 			builder.start(LINK, {'href': href})
-			self.inline_parser(builder, text)
+			self.nested_inline_parser(builder, text)
 			builder.end(LINK)
 
 	@staticmethod
