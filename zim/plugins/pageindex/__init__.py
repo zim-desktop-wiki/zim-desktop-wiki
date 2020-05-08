@@ -57,6 +57,7 @@ This plugin adds the page index pane to the main window.
 	plugin_preferences = (
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
+		('ignore_journal', 'bool', _('Disconnect Journal pane from updating Page Index'), False), # T: preferences option
 			# T: preferences option
 	)
 
@@ -84,9 +85,10 @@ class PageIndexPageViewExtension(PageViewExtension):
 		# 	lambda v, p: self.pageview.insert_links([p]))
 
 	def on_page_changed(self, pageview, page):
-		treepath = self.treeview.set_current_page(page, vivificate=True)
-		if treepath:
-			self.treeview.select_treepath(treepath)
+		if page and self.plugin.preferences['ignore_journal'] and not page.name.startswith('Journal'):
+			treepath = self.treeview.set_current_page(page, vivificate=True)
+			if treepath:
+				self.treeview.select_treepath(treepath)
 
 	def disconnect_model(self):
 		'''Stop the widget from listening to the index. Used e.g. to
