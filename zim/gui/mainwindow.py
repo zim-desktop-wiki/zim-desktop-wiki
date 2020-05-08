@@ -2,7 +2,7 @@
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
-from sys import platform
+import sys
 import logging
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -48,17 +48,17 @@ TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
 MENU_ACTIONS = (
-	['file_menu', None, _('_File')], # T: Menu title
-	['edit_menu', None, _('_Edit')], # T: Menu title
-	['view_menu', None, _('_View')], # T: Menu title
-	['insert_menu', None, _('_Insert')], # T: Menu title
-	['search_menu', None, _('_Search')], # T: Menu title
-	['format_menu', None, _('For_mat')], # T: Menu title
-	['tools_menu', None, _('_Tools')], # T: Menu title
-	['go_menu', None, _('_Go')], # T: Menu title
-	['help_menu', None, _('_Help')], # T: Menu title
-	['toolbar_menu', None, _('_Toolbar')], # T: Menu title
-	['checkbox_menu', None, _('_Checkbox')], # T: Menu title
+	('file_menu', None, _('_File')), # T: Menu title
+	('edit_menu', None, _('_Edit')), # T: Menu title
+	('view_menu', None, _('_View')), # T: Menu title
+	('insert_menu', None, _('_Insert')), # T: Menu title
+	('search_menu', None, _('_Search')), # T: Menu title
+	('format_menu', None, _('For_mat')), # T: Menu title
+	('tools_menu', None, _('_Tools')), # T: Menu title
+	('go_menu', None, _('_Go')), # T: Menu title
+	('help_menu', None, _('_Help')), # T: Menu title
+	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
+	('checkbox_menu', None, _('_Checkbox')), # T: Menu title
 )
 
 #: Preferences for the user interface
@@ -289,9 +289,9 @@ class MainWindow(Window):
 
 		group = get_gtk_actiongroup(self)
 		# don't use mnemonics on macOS to allow alt-<letter> shortcuts
-		if platform == "darwin":
-			for menu_action in MENU_ACTIONS:
-				menu_action[2] = menu_action[2].replace('_', '')
+		global MENU_ACTIONS
+		if sys.platform == "darwin":
+			MENU_ACTIONS = tuple((t[0], t[1], t[2].replace('_', '')) for t in MENU_ACTIONS)
 		group.add_actions(MENU_ACTIONS)
 		self.uimanager.insert_action_group(group, 0)
 
