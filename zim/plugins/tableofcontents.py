@@ -482,6 +482,7 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		self.pack_start(self.tocwidget, True, True, 0)
 
 		widget_set_css(self, 'zim-toc-widget', 'border: 1px solid @fg_color')
+		widget_set_css(self, 'zim-toc-widget', 'font-size: medium')
 		widget_set_css(self.head, 'zim-toc-head', 'border-bottom: 1px solid @fg_color')
 
 		## Add self to textview
