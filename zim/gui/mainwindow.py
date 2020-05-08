@@ -2,6 +2,7 @@
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
+import sys
 import logging
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -287,6 +288,10 @@ class MainWindow(Window):
 		self.uimanager.insert_action_group(group, 0)
 
 		group = get_gtk_actiongroup(self)
+		# don't use mnemonics on macOS to allow alt-<letter> shortcuts
+		global MENU_ACTIONS
+		if sys.platform == "darwin":
+			MENU_ACTIONS = tuple((t[0], t[1], t[2].replace('_', '')) for t in MENU_ACTIONS)
 		group.add_actions(MENU_ACTIONS)
 		self.uimanager.insert_action_group(group, 0)
 
