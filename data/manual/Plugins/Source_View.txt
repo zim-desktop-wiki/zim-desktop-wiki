@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 
 ====== Source View ======
 
@@ -17,6 +17,8 @@ If **Smart Home key** is enabled the ''Home'' key will go to the start of the li
 If **Highlight current line** is enabled the current line in the widget is highlighted.
 
 If **Show right margin** is enabled, there is a margin drawn on the right to guide maximum length of a line. Typically the margin is set at e.g. 72 or 80 characters.
+
+**Text wrap mode** allows you to choose how line wrapping is handled.
 
 **Right margin position** gives the position of the right margin in characters.
 
