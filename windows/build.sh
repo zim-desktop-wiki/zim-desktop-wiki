@@ -145,6 +145,7 @@ function help () {
   -e --skip-venv   Skip virtual environment preparation
   -z --skip-zim    Skip Zim setup installation
   -i --skip-inst   Skip running PyInstaller
+  -t --skip-theme  Skip replacing Gtk theme
   -s --skip-setup  Skip packaging setup
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
@@ -515,7 +516,7 @@ if ! [[ "${arg_z:?}" = "1" ]]; then
 
 fi
 
-__dist_dir="${__dir}/dist/zim"
+__dist_dir="${__dir}"/dist/zim
 
 if ! [[ "${arg_i:?}" = "1" ]]; then
 
@@ -532,9 +533,28 @@ if ! [[ "${arg_i:?}" = "1" ]]; then
   mv "${__dist_dir}"/share/icons/Adwaita "${__dist_dir}"/share/icons/Adwaita-full
   mkdir "${__dist_dir}"/share/icons/Adwaita
   cd "${__dist_dir}"/share/icons/Adwaita-full
-  find . -type f -name 'dialog-information.*' -exec cp -p --parents {} "${__dist_dir}"/share/icons/Adwaita ";"
+  find . -type f -name 'dialog-information*' -exec cp -p --parents {} "${__dist_dir}"/share/icons/Adwaita ";"
   cd -
   rm -rf "${__dist_dir}"/share/icons/Adwaita-full
+
+fi
+
+if ! [[ "${arg_t:?}" = "1" ]]; then
+
+  if [ ! -d "$DIRECTORY" ]; then
+    info "Cloning theme ..."
+    cd "${__dist_dir}"/..
+    git clone -n https://github.com/vinceliuice/Qogir-theme.git
+  fi
+  
+  cd Qogir-theme
+  git checkout 6b02ea807a4ad5e8660202af03154dccc6dcbcbc
+
+  info "Preparing theme ..."
+  ./install.sh --dest "${__dist_dir}"/share/themes --name Qogir --theme standard --color light --win square
+
+  info "Configuring theme ..."
+  mkdir -p "${__dist_dir}"/etc/gtk-3.0 && cp -a "${__dir}"/src/settings.ini "${__dist_dir}"/etc/gtk-3.0/settings.ini
 
 fi
 
