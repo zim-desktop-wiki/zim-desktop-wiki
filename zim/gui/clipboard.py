@@ -103,6 +103,8 @@ PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_
 #~ print('ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES)
 
 
+_internal_selection_data = None # HACK used for workaround for issue #390
+
 
 # Mimetype text/uri-list is used for drag n drop of URLs
 # it is plain text encoded list of urls, separated by \r\n

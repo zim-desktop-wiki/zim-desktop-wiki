@@ -333,3 +333,35 @@ class TestPageTreeView(tests.TestCase):
 
 		treeview.restore_expanded_path(treepath, None)
 		self.assertFalse(treeview.row_expanded(parent))
+
+	def testDragAndDropCallbacks(self):
+		# Don't know how to test real drag and drop, but at least test the callbacks
+		self._testDragAndDropCallbacks(workaround=False)
+
+	def testDragAndDropCallbacksWithWorkaround(self):
+		# Testing work around for issue #390
+		self._testDragAndDropCallbacks(workaround=True)
+
+	def _testDragAndDropCallbacks(self, workaround):
+		treeview = self.treeview
+
+		mocktarget = tests.MockObject(name=INTERNAL_PAGELIST_TARGET_NAME)
+		mockselectiondata = tests.MockObject(get_target=mocktarget)
+
+		treeview.do_drag_data_get(None, mockselectiondata, None, None)
+		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'Test\r\n'))
+
+		if workaround:
+			self.assertEqual(zim.gui.clipboard._internal_selection_data, b'Test\r\n')
+			mockselectiondata.mock_method('get_data', None)
+		else:
+			zim.gui.clipboard._internal_selection_data = None
+			mockselectiondata.mock_method('get_data', b'Test\r\n')
+
+		treepath = treeview.get_model().find(Path('Foo'))
+		position = Gtk.TreeViewDropPosition.INTO_OR_BEFORE
+		treeview.get_dest_row_at_pos = lambda x, y: (treepath, position) # MOCK method
+
+		with tests.LoggingFilter('zim.notebook', message='Number of links after move'):
+			context = tests.MockObject()
+			treeview.do_drag_data_received(context, None, None, mockselectiondata, None, None)

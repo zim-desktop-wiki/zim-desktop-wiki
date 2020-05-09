@@ -24,6 +24,8 @@ from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
 
+import zim.gui.clipboard
+
 
 logger = logging.getLogger('zim.gui')
 
@@ -566,6 +568,7 @@ class PathBar(ScrolledHBox):
 		logger.debug('Drag data requested from PathBar, we have internal path "%s"', path.name)
 		data = pack_urilist((path.name,))
 		selectiondata.set(selectiondata.get_target(), 8, data)
+		zim.gui.clipboard._internal_selection_data = data # HACK issue #390
 
 
 class HistoryPathBar(PathBar):

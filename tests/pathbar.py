@@ -98,9 +98,16 @@ class TestPathBar(tests.TestCase):
 			count += 1
 		self.assertTrue(count > 0)
 
-	@tests.expectedFailure
-	def testDragAndDropFromPathBar(self):
-		raise NotImplementedError
+	def testDragAndDropCallback(self):
+		mocktarget = tests.MockObject(name=INTERNAL_PAGELIST_TARGET_NAME)
+		mockselectiondata = tests.MockObject(get_target=mocktarget)
+
+		pathbar = MyPathBar(None, None, None)
+		button = pathbar.get_children()[1]
+		pathbar.on_drag_data_get(button, None, mockselectiondata, None, None)
+
+		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'aaa\r\n'))
+		self.assertEqual(zim.gui.clipboard._internal_selection_data, b'aaa\r\n')
 
 
 class TestHistoryPathBar(tests.TestCase):

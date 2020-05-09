@@ -27,6 +27,7 @@ from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separa
 	WindowSidePaneWidget
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 
+import zim.gui.clipboard
 
 logger = logging.getLogger('zim.plugins.tags')
 
@@ -291,6 +292,7 @@ class TagsPageTreeView(PageTreeView):
 		logger.debug('Drag data requested, we have internal tag/path "%s"', link)
 		data = pack_urilist((link,))
 		selectiondata.set(selectiondata.get_target(), 8, data)
+		zim.gui.clipboard._internal_selection_data = data # HACK issue #390
 
 	def set_current_page(self, path, vivificate=False):
 		'''Set the current page in the treeview

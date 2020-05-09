@@ -27,6 +27,7 @@ from zim.gui.clipboard import Clipboard, pack_urilist, unpack_urilist, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET
 from zim.gui.uiactions import UIActions, PAGE_EDIT_ACTIONS, PAGE_ROOT_ACTIONS
 
+import zim.gui.clipboard
 
 logger = logging.getLogger('zim.gui.pageindex')
 
@@ -498,10 +499,16 @@ class PageTreeView(BrowserTreeView):
 		logger.debug('Drag data requested, we have internal path "%s"', path.name)
 		data = pack_urilist((path.name,))
 		selectiondata.set(selectiondata.get_target(), 8, data)
+		zim.gui.clipboard._internal_selection_data = data # HACK issue #390
 
 	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, time):
 		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
-		names = unpack_urilist(selectiondata.get_data())
+		data = selectiondata.get_data()
+		if data is None:
+			data = zim.gui.clipboard._internal_selection_data # HACK issue #390
+			zim.gui.clipboard._internal_selection_data = None
+
+		names = unpack_urilist(data)
 		assert len(names) == 1
 		source = Path(names[0])
 

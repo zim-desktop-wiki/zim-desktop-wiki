@@ -708,6 +708,11 @@ class MockObject(MockObjectBase):
 	Attributes that are not methods need to be initialized explicitly.
 	'''
 
+	def __init__(self, **methods):
+		MockObjectBase.__init__(self)
+		for name, value in methods.items():
+			self.mock_method(name, value)
+
 	def __getattr__(self, name):
 		'''Automatically mock methods'''
 		if name == '__zim_extension_objects__':
