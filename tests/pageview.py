@@ -3095,6 +3095,31 @@ class TestPageViewActions(tests.TestCase):
 		pageview.zoom_reset()
 		#self.assertEqual(pageview.text_style['TextView']['font'], 'Arial 10') # FIXME
 
+	def testCopyCurrentLine(self):
+		# Check that the current line, where the cursor is located, can be
+		# copied from one page to another via the copy current line feature.
+		pageView1Text = 'test 123\ntest 456\ntest 789\n'
+		pageview1 = setUpPageView(self.setUpNotebook(), pageView1Text)
+		pageview2 = setUpPageView(self.setUpNotebook())
+
+		buffer1 = pageview1.textview.get_buffer()
+		buffer2 = pageview2.textview.get_buffer()
+
+		buffer1.place_cursor(buffer1.get_iter_at_offset(12))
+		pageview1.copy_current_line()
+		pageview2.paste()
+
+		self.assertEqual(get_text(buffer1), pageView1Text)
+		self.assertEqual(get_text(buffer2), 'test 456\n')
+
+		# Ensure copying a line with no text does not add anything
+		# to the clipboard.
+		Clipboard.clear()
+		pageview3 = setUpPageView(self.setUpNotebook())
+		buffer3 = pageview3.textview.get_buffer()
+		buffer3.place_cursor(buffer3.get_iter_at_offset(0))
+		pageview3.copy_current_line()
+		self.assertIsNone(Clipboard.get_parsetree())
 
 class TestPageviewDialogs(tests.TestCase):
 
