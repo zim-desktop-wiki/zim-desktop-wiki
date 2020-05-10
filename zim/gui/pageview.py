@@ -6202,6 +6202,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if bounds:
 			buffer.remove_link(*bounds)
 
+	@action(_('Copy Line'), accelerator='<Primary><Shift>C', menuhints='edit')
+	def copy_current_line(self):
+		'''Menu action to copy the current line to the clipboard'''
+		buffer = self.textview.get_buffer()
+		mark = buffer.create_mark(None, buffer.get_insert_iter())
+		buffer.select_line()
+
+		if buffer.get_has_selection():
+			bounds = buffer.get_selection_bounds()
+			tree = buffer.get_parsetree(bounds)
+			Clipboard.set_parsetree(self.notebook, self.page, tree)
+			buffer.unset_selection()
+			buffer.place_cursor(buffer.get_iter_at_mark(mark))
+
+		buffer.delete_mark(mark)
+
 	@action(_('_Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''

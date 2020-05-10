@@ -46,6 +46,7 @@
 			<separator/>
 			<placeholder name='plugin_items'/>
 			<separator/>
+			<menuitem action='copy_current_line'/>
 			<menuitem action='copy_location'/>
 			<separator/>
 			<menuitem action='show_templateeditor'/>
