@@ -1,5 +1,4 @@
 Head 1
-======
 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
 ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
@@ -17,7 +16,6 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 	sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 head 2
-------
 
 bold, italic and underline and verbatim
 and also strike through
@@ -30,7 +28,7 @@ And some empty space here:
 
 
 
-### head 3
+head 3
 foo  links to page in the current namespace or parents
 :foo links to page in the root namespace
 +foo links to page in a subnamespace
@@ -60,7 +58,7 @@ Foo Bar
 Tags: @foo @bar
 
 
-#### head 4
+head 4
 
 * item 1
 * item 2
@@ -104,7 +102,7 @@ D. bar
 	3. sub item start with 3
 E. baz
 
-##### head 5
+head 5
 some verbatim blocks:
 
 Sing, O goddess, the rage of
@@ -126,9 +124,8 @@ the Achaeans.
 		returen "foo" + bar % baz
 
 Internationalization
---------------------
 
-### 中文
+中文
 This section has a chinese heading
 
 Lines below are in right to left script:
@@ -143,7 +140,6 @@ aaa
 
 
 Some Objects
-------------
 
 def dump():
 	for i in range(1, 5):
@@ -156,7 +152,6 @@ brought countless ills upon
 the Achaeans.
 
 A table
--------
 
 +------------------+-----------+------+
 |        H1        |     H2 h2 | H3   |
@@ -169,7 +164,6 @@ A table
 +------------------+-----------+------+
 
 Multiformatting bold
---------------------
 
 normal bold normal2
 normal strike nested bold strike2 normal2
