@@ -81,6 +81,7 @@ class Dumper(DumperClass):
 		TAG: ('', ''),
 		SUBSCRIPT: ('', ''),
 		SUPERSCRIPT: ('', ''),
+		HEADING: ('', ''),
 	}
 
 	def dump_indent(self, tag, attrib, strings):
