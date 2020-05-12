@@ -541,13 +541,13 @@ fi
 
 if ! [[ "${arg_t:?}" = "1" ]]; then
 
-  if [ ! -d "$DIRECTORY" ]; then
+  if [ ! -d "${__dist_dir}"/../Qogir-theme ]; then
     info "Cloning theme ..."
     cd "${__dist_dir}"/..
     git clone -n https://github.com/vinceliuice/Qogir-theme.git
   fi
   
-  cd Qogir-theme
+  cd "${__dist_dir}"/../Qogir-theme
   git checkout 6b02ea807a4ad5e8660202af03154dccc6dcbcbc
 
   info "Preparing theme ..."
