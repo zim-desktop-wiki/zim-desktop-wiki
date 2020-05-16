@@ -300,6 +300,8 @@ class PluginsTab(Gtk.VBox):
 		if not activatable:
 			insert(_('This plugin failed to load') + '\n\n', 'red')
 			if not klass:
+				self.configure_button.set_sensitive(False)
+				self.plugin_help_button.set_sensitive(False)
 				return
 
 		insert(_('Name') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
