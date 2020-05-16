@@ -370,7 +370,7 @@ class PluginsTreeModel(Gtk.ListStore):
 				name = klass.plugin_info['name']
 				loaded = True
 			except:
-				name = name or key
+				name = key
 				logger.exception('Could not load plugin %s', key)
 			finally:
 				allplugins.append((name, key, klass, loaded))
