@@ -363,14 +363,13 @@ class PluginsTreeModel(Gtk.ListStore):
 
 		allplugins = []
 		for key in self.plugins.list_installed_plugins():
-			klass, name, loaded = None, "", False
+			klass, name, loaded = None, key, False
 
 			try:
 				klass = self.plugins.get_plugin_class(key)
 				name = klass.plugin_info['name']
 				loaded = True
 			except:
-				name = key
 				logger.exception('Could not load plugin %s', key)
 			finally:
 				allplugins.append((name, key, klass, loaded))
