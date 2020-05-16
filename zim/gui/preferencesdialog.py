@@ -296,6 +296,12 @@ class PluginsTab(Gtk.VBox):
 				buffer.insert_at_cursor(text)
 
 		buffer.delete(*buffer.get_bounds()) # clear
+
+		if not activatable:
+			insert(_('This plugin failed to load') + '\n\n', 'red')
+			if not klass:
+				return
+
 		insert(_('Name') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
 		insert(klass.plugin_info['name'].strip() + '\n\n')
 		insert(_('Description') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
@@ -357,21 +363,28 @@ class PluginsTreeModel(Gtk.ListStore):
 
 		allplugins = []
 		for key in self.plugins.list_installed_plugins():
+			klass, name, loaded = None, "", False
+
 			try:
 				klass = self.plugins.get_plugin_class(key)
 				name = klass.plugin_info['name']
-				allplugins.append((name, key, klass))
+				loaded = True
 			except:
+				name = name or key
 				logger.exception('Could not load plugin %s', key)
+			finally:
+				allplugins.append((name, key, klass, loaded))
+
 		allplugins.sort() # sort by translated name
 
-		for name, key, klass in allplugins:
+		for name, key, klass, loaded in allplugins:
 			active = key in self.plugins
 			try:
-				activatable = klass.check_dependencies_ok()
+				activatable = loaded and klass.check_dependencies_ok()
 			except:
+				activatable = False
 				logger.exception('Could not load plugin %s', name)
-			else:
+			finally:
 				self.append((key, active, activatable, name, klass))
 
 
