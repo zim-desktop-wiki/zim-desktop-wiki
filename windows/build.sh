@@ -206,13 +206,6 @@ export PYTHONHASHSEED
 # let Python be unpredictable again
 unset PYTHONHASHSEED
 
-#info "Cleaning distribution ..."
-#mv "${__dist_dir}/share/icons/Adwaita" "${__dist_dir}/share/icons/Adwaita-full"
-#mkdir "${__dist_dir}/share/icons/Adwaita"
-#(cd "${__dist_dir}/share/icons/Adwaita-full" && find . -type f -name 'dialog-information*' -exec cp -p --parents {} "${__dist_dir}/share/icons/Adwaita" ";")
-#(cd "${__dist_dir}/share/icons/Adwaita-full" && find . -type f -name 'format-text-bold*' -exec cp -p --parents {} "${__dist_dir}/share/icons/Adwaita" ";")
-#rm -rf "${__dist_dir}/share/icons/Adwaita-full"
-
 info "Fetching Gtk theme ..."
 
 __theme_tag="2020-02-26"
