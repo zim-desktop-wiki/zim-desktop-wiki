@@ -67,10 +67,17 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			color: %s;
 			background-color: %s;
 		}
-		''' % (self.preferences['textcolor'], self.preferences['basecolor'])
+		widget box box scrolledwindow{
+			border-style: none;
+			}
+		box {
+			background-color: %s;
+		}
+		''' % (self.preferences['textcolor'], self.preferences['basecolor'],self.preferences['basecolor'])
 		provider = Gtk.CssProvider()
 		provider.load_from_data(css.encode('UTF-8'))
 		return provider
+
 
 	def on_preferences_changed(self, preferences):
 		if self.window.isfullscreen:
