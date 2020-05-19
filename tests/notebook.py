@@ -600,31 +600,6 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 		self.assertEqual(self.getNotebookContent(notebook), post[0])
 		self.assertEqual(self.getNotebookLinks(notebook), set(post[1]))
 
-	def testMoveNonPageLink(self):
-		self.movePage(
-			pre=(
-				{'A': 'test 123\n', 'B': '[[C]]\n'},
-				[('B', 'C')]
-			),
-			move=('C', 'A'),
-			post=(
-				{'A': 'test 123\n', 'B': '[[A]]\n'},
-				[('B', 'A')]
-			)
-		)
-
-	def testRenameNonPageLink(self):
-		self.movePage(
-			pre=(
-				{'A': 'test 123\n', 'B': '[[C]]\n'},
-				[('B', 'C')]
-			),
-			move=('C', 'D'),
-			post=(
-				{'A': 'test 123\n', 'B': '[[D]]\n', 'D': ''},
-				[('B', 'D')]
-			)
-		)
 	def testFloatingLink(self):
 		self.movePage(
 			pre=(
@@ -977,6 +952,32 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 					'D': 'test 123\n',
 				},
 				[('B', 'C'), ('B', 'C:A1'), ('B', 'D')]
+			)
+		)
+		
+	def testMovePlaceholder(self):
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B': '[[C]]\n'},
+				[('B', 'C')]
+			),
+			move=('C', 'A'),
+			post=(
+				{'A': 'test 123\n', 'B': '[[A]]\n'},
+				[('B', 'A')]
+			)
+		)
+
+	def testRenamePlaceholder(self):
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B': '[[C]]\n'},
+				[('B', 'C')]
+			),
+			move=('C', 'D'),
+			post=(
+				{'A': 'test 123\n', 'B': '[[D]]\n', 'D': ''},
+				[('B', 'D')]
 			)
 		)
 
