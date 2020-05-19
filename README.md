@@ -30,6 +30,15 @@ ubuntu to package is simply called "zim".
 
 A windows installer can be found here: https://zim.glump.net/windows/
 
+On Mac OS X, zim can be installed from Homebrew using,
+
+```
+brew install zim
+```
+
+Optionally, you can [create a .app
+wrapper](https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OSX-App-%28wrapper%29)
+for convenience.
 
 ## Installing from Source
 
