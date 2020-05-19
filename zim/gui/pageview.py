@@ -5245,6 +5245,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if_preferences = ConfigManager.preferences['GtkInterface']
 		if_preferences.setdefault('autosave_timeout', 15)
 		if_preferences.setdefault('autosave_use_thread', True)
+		if_preferences.setdefault('autosave_on_focus_out', True)
 		logger.debug('Autosave interval: %r - use threads: %r',
 			if_preferences['autosave_timeout'],
 			if_preferences['autosave_use_thread']
@@ -5257,7 +5258,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		)
 
 		def on_focus_out_event(*a):
-			self._save_page_handler.try_save_page()
+			if if_preferences['autosave_on_focus_out']:
+				self._save_page_handler.try_save_page()
 			return False # don't block the event
 		self.textview.connect('focus-out-event', on_focus_out_event)
 
