@@ -954,6 +954,32 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 				[('B', 'C'), ('B', 'C:A1'), ('B', 'D')]
 			)
 		)
+		
+	def testMovePlaceholder(self):
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B': '[[C]]\n'},
+				[('B', 'C')]
+			),
+			move=('C', 'A'),
+			post=(
+				{'A': 'test 123\n', 'B': '[[A]]\n'},
+				[('B', 'A')]
+			)
+		)
+
+	def testRenamePlaceholder(self):
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B': '[[C]]\n'},
+				[('B', 'C')]
+			),
+			move=('C', 'D'),
+			post=(
+				{'A': 'test 123\n', 'B': '[[D]]\n', 'D': ''},
+				[('B', 'D')]
+			)
+		)
 
 
 class TestPath(tests.TestCase):
