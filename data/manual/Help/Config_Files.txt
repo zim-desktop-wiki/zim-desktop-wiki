@@ -13,27 +13,27 @@ Also see [[preferences]] for documentation of the preferences dialog.
 Zim uses the scheme as laid down in the "XDG Base Directory Specification" as published by [[http://freedesktop.org|freedesktop.org]]. The default paths are:
 
 '''
-XDG_CONFIG_HOME = HOME/.config/
-XDG_DATA_HOME   = HOME/.local/share/
-XDG_DATA_DIRS   = /usr/local/share/:/usr/share/
+$XDG_CONFIG_HOME = HOME/.config/
+$XDG_DATA_HOME   = HOME/.local/share/
+$XDG_DATA_DIRS   = /usr/local/share/:/usr/share/
 '''
 
 These can be overloaded with the coresponding environment variables.
 
-When zim writes config files it always uses ''XDG_CONFIG_HOME''. Data files are read only and are searched for in ''XDG_DATA_HOME'' and ''XDG_DATA_DIRS''. The installation defaults for config files are also installed in ''XDG_DATA_DIRS'', but these are copied on first use to ''XDG_CONFIG_HOME''.
+When zim writes config files it always uses ''$XDG_CONFIG_HOME''. Data files are read only and are searched for in ''$XDG_DATA_HOME'' and ''$XDG_DATA_DIRS''. The installation defaults for config files are also installed in ''$XDG_DATA_DIRS'', but these are copied on first use to ''$XDG_CONFIG_HOME''.
 
 ==== Windows ====
 On Windows the default paths are:
 
 '''
-XDG_CONFIG_HOME = APPDATA/zim/config/
-XDG_DATA_HOME   = APPDATA/zim/data/
+$XDG_CONFIG_HOME = %appdata%/zim/config/
+$XDG_DATA_HOME   = %appdata%/zim/data/
 '''
 
 
-Where ''APPDATA'' is the default Windows path to store application data, typically a path like "''USERPROFILE\Application Data''".
+Where ''%appdata%'' is the default Windows path to store application data, typically a path like "''%USERPROFILE%\Application Data''".
 
-When there is no ''HOME'' environment parameter defined on Windows either the ''USERPROFILE'' parameter or ''HOMEDRIVE'' + ''HOMEPATH'' are used. Make sure to define ''HOME'' or ''USERPROFILE'' including a drive letter.
+When there is no ''%HOME%'' environment parameter defined on Windows either the ''%USERPROFILE%'' parameter or ''%HOMEDRIVE%'' + ''%HOMEPATH%'' are used. Make sure to define ''%HOME%'' or ''%USERPROFILE%'' including a drive letter.
 
 
 
@@ -42,28 +42,37 @@ When there is no ''HOME'' environment parameter defined on Windows either the ''
 These config files determine various aspects of how zim behaves. They are global in the sense that they are not specific for one notebook.
 
 ==== Main config file ====
-The default config file is ''XDG_CONFIG_HOME/zim/preferences.conf''.
+The default config file is ''$XDG_CONFIG_HOME/zim/preferences.conf''.
 
 The config file is written automatically when you close zim. So if you want to change it manually you need to close all instances of zim first.
 
 There is a hidden option here called "''autosave_timeout''" which gives the interval for autosaving in seconds, default is 10.
 
 ==== Interwiki URL list ====
-The file ''XDG_DATA/zim/urls.list'' gives a list of urls which are used for the [[Links|interwiki]] function. All files in the XDG_DATA path are read when looking for an url, so you can use XDG_DATA_HOME to overload the installation defaults.
+The file ''$XDG_DATA/zim/urls.list'' gives a list of urls which are used for the [[Links|interwiki]] function. All files in the ''$XDG_DATA'' path are read when looking for a URL, so you can use $XDG_DATA_HOME to override the installation defaults.
 
-The format consist of one url per line, each line giving the key (which is the interwiki name), followed by whitespace, followed by the actual url. The url can conatin place holders "''{NAME}''" or "{URL}", the first will be replaced by the name of the interwiki page, the second by this name in url encoding. If no placeholder is found in the url the url encoded name is appended to the url.
+''urls.list'' is a tab/space delimited file, with the first column being the interwiki prefix, and the second column being a [[https://docs.python.org/3.8/library/stdtypes.html#str.format|str.format]]-compatible string with either ''{NAME}'' or ''{URL}'' as the possible interpolated values.
+''{NAME}'' will be substituted with the local link, for example, ''https://wikipedia.org/wiki/{NAME}'' will become ''https://wikipedia.org/wiki/Foo'' with the link ''[[wp?Foo]]''.
+''{URL}'' is ''{NAME}'''s data passed through a [[wp?urlencode|urlencode]] function.
+If none of the interpolated values are found in the second column's string, the local link is appended to the end of the specified URL.
 
-Note that if you want interwiki page to include url syntax like a "#" to link to anchors in the target page, you should write your URLs with "''{NAME}''".
+You can also use the non-standard "''zim+file://''" scheme in the second column to link to other zim notebooks on your machine.
 
-As a special case you can add other zim notebooks in the url list using "''zim+file://''" as URL scheme. These URLs will trigger zim to open the notebook directly.
+An example ''urls.list'' would look something like this:
+'''
+prj zim+file:///home/dvn/project/{NAME}
+w2  https://wiki.c2.com/?{URL}
+zh	https://zim-wiki.org/manual/Help/
+'''
+
 
 ==== Date format list ====
-The file ''XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on each line, to be used to populate the "Insert Date and Time" dialog. The first instance of this file that is found in the XDG_DATA path is used.
+The file ''$XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on each line, to be used to populate the "Insert Date and Time" dialog. The first instance of this file that is found in the $XDG_DATA path is used.
 
 See [[http://docs.python.org/library/time.html%23time.strftime|this link]] for documentation of the strftime formatting.
 
 ==== Automount config file ====
-The config file ''XDG_CONFIG_HOME/zim/automount.conf'' can be used to configure mount commands for specific notebook paths. See [[Automount]] for details.
+The config file ''$XDG_CONFIG_HOME/zim/automount.conf'' can be used to configure mount commands for specific notebook paths. See [[Automount]] for details.
 
 ==== GUI style config file ====
 Zim has certain defaults on how to display styles. For example it displays links as blue text without underline. To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.
@@ -147,11 +156,12 @@ More names are documented in the manual page of specific plugins.
 
 To identify these in the code, search for use of ''widget_set_css(...)'' and ''widget.set_name(...)''. The name used will be accessible from the CSS config as an "id".
 
-Another way to identify CSS selector IDs is to use GTK Inspector, which can be invoked when calling Zim from the command line as follows: 
+Another way to identify CSS selector IDs is to use GTK Inspector, which can be invoked when calling Zim from the command line as follows:
 
 '''
 GTK_DEBUG=interactive zim
 '''
+
 
 ==== CSS configuration examples ====
 The following snippets that can be used directly in ''~/.config/gtk-3.0/gtk.css''
@@ -184,4 +194,4 @@ One hidden property is "''end_of_line''" which determines the end-of-line conven
 
 A second hidden option is "''disable_trash''" which defaults to ''False''. If enabled this will cause zim to avoid using the system trash for this notebook, see the section about deleting in [[Pages]].
 
-A third hidden option is "''shared" which defaults to True'' (however will be ''False'' for older notebooks). If ''True'', zim stores the notebook cache in the home folder (XDG_CACHE_HOME). Usually this is what you want, however in particular cases, e.g. when the notebook resides in an encrypted folder, you may want to set this to ''False'' in order to make sure the cache is actually stored in the notebook folder (using a ".zim" hidden folder).
+A third hidden option is "''shared" which defaults to True'' (however will be ''False'' for older notebooks). If ''True'', zim stores the notebook cache in the home folder (''$XDG_CACHE_HOME''). Usually this is what you want, however in particular cases, e.g. when the notebook resides in an encrypted folder, you may want to set this to ''False'' in order to make sure the cache is actually stored in the notebook folder (using a ".zim" hidden folder).
