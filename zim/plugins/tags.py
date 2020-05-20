@@ -1,5 +1,5 @@
 
-# Copyright 2010 Fabian Moser
+# Copyright 2010 Fabian Stanke
 # Copyright 2011-2017 Jaap Karssenberg
 
 
@@ -39,7 +39,7 @@ class TagsPlugin(PluginClass):
 		'description': _('''\
 This plugin provides a page index filtered by means of selecting tags in a cloud.
 '''), # T: plugin description
-		'author': 'Fabian Moser & Jaap Karssenberg',
+		'author': 'Fabian Stanke & Jaap Karssenberg',
 		'help': 'Plugins:Tags',
 	}
 
