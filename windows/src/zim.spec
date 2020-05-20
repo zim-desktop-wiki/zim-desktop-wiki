@@ -91,26 +91,27 @@ include_icons = {
 }
 
 
-# Existing translations
-include_locale = {
-    'am', 'ar', 'ca', 'cs', 'da', 'de', 'el', 'en_GB', 'es', 'et', 'eu',
-    'fi', 'fr', 'gl', 'he', 'hu', 'it', 'ja', 'ko', 'nb', 'nl', 'pl', 'pt',
-    'pt_BR', 'ro', 'ru', 'sk', 'sl', 'sr', 'sv', 'tr', 'uk', 'zh_CN', 'zh_TW'
-}
+# Determine existing translations
+translations = []
+for x in a.datas:
+    if x[0].startswith('share/locale') and x[0].endswith('zim.mo'):
+        dirs = os.path.normpath(x[0]).split(os.path.sep)
+        translations.append(dirs[2])
+translations = set(translations)
+print('Trans:', translations)
 
 
+# Filter data resources
 def keepdata(x):
     if x[0].startswith('share/icons/Adwaita'):
         return os.path.splitext(os.path.basename(x[0]))[0] in include_icons
     elif x[0].startswith('share/locale'):
         dirs = os.path.normpath(x[0]).split(os.path.sep)
-        if x[0].startswith('share/locale/ar'):
-            print(dirs)
-        return (len(dirs) < 3) or (dirs[2] in include_locale)
+        return (len(dirs) < 3) or (dirs[2] in translations)
     return True
 
-
 a.datas = TOC([x for x in a.datas if keepdata(x)]) # noqa
+
 
 pyz = PYZ( # noqa
     a.pure, a.zipped_data,
