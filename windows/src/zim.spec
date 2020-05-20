@@ -98,7 +98,6 @@ for x in a.datas:
         dirs = os.path.normpath(x[0]).split(os.path.sep)
         translations.append(dirs[2])
 translations = set(translations)
-print('Trans:', translations)
 
 
 # Filter data resources

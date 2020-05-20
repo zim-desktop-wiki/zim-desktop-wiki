@@ -158,7 +158,7 @@ info "Preparing virtual environment for Zim ..."
 __build_dir=${__dir}/build
 __venv_dir=${__build_dir}/venv
 
-rm -rf "${__build_dir}/*"
+rm -rf "${__venv_dir}"
 python3 -m venv --prompt Zim "${__venv_dir}"
 
 info "Entering virtual environment ..."
@@ -207,13 +207,15 @@ export PYTHONHASHSEED
 # let Python be unpredictable again
 unset PYTHONHASHSEED
 
-info "Fetching Gtk theme ..."
-
 __theme_tag="2020-02-26"
-(cd "${__build_dir}" && wget -q -O "Qogir-theme-${__theme_tag}.zip" "https://github.com/vinceliuice/Qogir-theme/archive/${__theme_tag}.zip" && unzip -q "Qogir-theme-${__theme_tag}.zip")
+if [[ ! -f "${__build_dir}/Qogir-theme-${__theme_tag}.zip" ]]; then
+  info "Fetching Gtk theme ..."
+  wget -q -O "${__build_dir}/Qogir-theme-${__theme_tag}.zip" "https://github.com/vinceliuice/Qogir-theme/archive/${__theme_tag}.zip"
+fi
 
 info "Installing theme in distribution ..."
 
+unzip -q "${__build_dir}/Qogir-theme-${__theme_tag}.zip" -d "${__build_dir}"
 (cd "${__build_dir}/Qogir-theme-${__theme_tag}" && ./install.sh --dest "${__dist_dir}"/share/themes --name Qogir --theme standard --color light --win square)
 mkdir -p "${__dist_dir}/etc/gtk-3.0" && cp -a "${__dir}/src/settings.ini" "${__dist_dir}/etc/gtk-3.0/settings.ini"
 

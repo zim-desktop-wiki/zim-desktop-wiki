@@ -1,7 +1,3 @@
-; directories relative to windows/dist/zim
-
-; Define your application name
-
 !define APPNAME "Zim Desktop Wiki"
 !define UNINSTKEY "404fbece-3a0a-4f4f-b1f1-82ce46af9696" ; a random GUID
 !define ID "zim-wiki"
@@ -37,7 +33,7 @@ Var PortableMode
 !define MUI_ICON "..\..\..\icons\zim.ico"
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
-	"Setup will install ${APPNAME} in the following folder."
+    "Setup will install ${APPNAME} in the following folder."
 
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
@@ -52,9 +48,7 @@ Page Custom PortableModePageCreate PortableModePageLeave
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 
-; Set languages (first is default language)
 !insertmacro MUI_LANGUAGE English
-!insertmacro MUI_LANGUAGE German
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 
@@ -95,6 +89,7 @@ ${EndIf}
 Call SetModeDestinationFromInstdir
 FunctionEnd
 
+
 Function RequireAdmin
 UserInfo::GetAccountType
 Pop $8
@@ -134,6 +129,7 @@ ${EndIf}
 nsDialogs::Show
 FunctionEnd
 
+
 Function PortableModePageLeave
 ${NSD_GetState} $1 $0
 ${If} $0 <> ${BST_UNCHECKED}
@@ -146,108 +142,118 @@ ${Else}
 ${EndIf}
 FunctionEnd
 
+
 Var INST_BIN
+
 
 Section "-Main program" SecProgramFiles
     SetShellVarContext all
 
-	; Clear installation folder, to be sure to get rid of orphaned files
-	RMDir /r "$INSTDIR"
+    ; Clear installation folder, to be sure to get rid of orphaned files
+    RMDir /r "$INSTDIR"
 
-	; Set Section properties
-	SetOverwrite on
+    ; Set Section properties
+    SetOverwrite on
 
-	SetOutPath "$INSTDIR\"
+    SetOutPath "$INSTDIR\"
 
-	File /r \
-		/x "zim.exe.log" \
-		"*.*"
+    File /r \
+        /x "zim.exe.log" \
+        "*.*"
 
-	File "..\..\..\icons\zim.ico"
+    File "..\..\..\icons\zim.ico"
 
-	StrCpy $INST_BIN "$INSTDIR\zim.exe"
+    StrCpy $INST_BIN "$INSTDIR\zim.exe"
 
     ${If} $PortableMode = 0
-	    ; Add application entry
-	    WriteRegStr HKLM "Software\${APPNAME}\${ID}\Capabilities" "ApplicationDescription" "${DESC}"
-	    WriteRegStr HKLM "Software\${APPNAME}\${ID}\Capabilities" "ApplicationName" "${APPNAME}"
+        ; Add application entry
+        WriteRegStr HKLM "Software\${APPNAME}\${ID}\Capabilities" "ApplicationDescription" "${DESC}"
+        WriteRegStr HKLM "Software\${APPNAME}\${ID}\Capabilities" "ApplicationName" "${APPNAME}"
 
-	    ; Register application entry
-	    WriteRegStr HKLM "Software\RegisteredApplications" "${APPNAME}" "Software\${APPNAME}\${ID}\Capabilities"
+        ; Register application entry
+        WriteRegStr HKLM "Software\RegisteredApplications" "${APPNAME}" "Software\${APPNAME}\${ID}\Capabilities"
 
-	    ; Register app paths
-	    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\zim.exe" "" "$INST_BIN"
+        ; Register app paths
+        WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\zim.exe" "" "$INST_BIN"
 
-		CreateShortCut "$SMPROGRAMS\${APPNAME}.lnk" "$INST_BIN"
-	${EndIf}
+        CreateShortCut "$SMPROGRAMS\${APPNAME}.lnk" "$INST_BIN"
+    ${EndIf}
+
 SectionEnd
+
 
 Section /o "Desktop shortcut" SecDesktopShortcut
 
-	; Set Section properties
-	SetOverwrite on
+    ; Set Section properties
+    SetOverwrite on
 
-	; Set Section Files and Shortcuts
-	CreateShortCut "$DESKTOP\Zim Desktop Wiki.lnk" "$INST_BIN"
+    ; Set Section Files and Shortcuts
+    CreateShortCut "$DESKTOP\Zim Desktop Wiki.lnk" "$INST_BIN"
 
 SectionEnd
+
 
 Section ".zim file association" SecAssociate
 
-	${registerExtension} "$INST_BIN" ".zim" "${APPNAME}" "$INSTDIR\zim.ico"
+    ${registerExtension} "$INST_BIN" ".zim" "${APPNAME}" "$INSTDIR\zim.ico"
 
 SectionEnd
+
 
 Section "Create registry keys and uninstaller" SecUninstall
 
-	${If} $PortableMode = 0
-		WriteRegStr HKLM "Software\${APPNAME}" "" "$INSTDIR"
-		WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
-		WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$INSTDIR\uninstall.exe"
-	${EndIf}
+    ${If} $PortableMode = 0
+        WriteRegStr HKLM "Software\${APPNAME}" "" "$INSTDIR"
 
-	WriteUninstaller "$INSTDIR\uninstall.exe"
-	
+        WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTKEY}" "DisplayName" "${APPNAME}"
+        WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTKEY}" "UninstallString" "$INSTDIR\uninstall.exe"
+        WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTKEY}" "DisplayIcon" "$INSTDIR\zim.ico"
+    ${EndIf}
+
+    WriteUninstaller "$INSTDIR\uninstall.exe"
+    
 SectionEnd
+
 
 ; Modern install component descriptions
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopShortcut} \
-	"Install a shortcut to Zim on your Desktop."
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecAssociate} \
-	"Associate .zim files with Zim."
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} \
-	"Create uninstaller and registry keys necessary for uninstallation."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopShortcut} \
+    "Install a shortcut to Zim on your Desktop."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecAssociate} \
+    "Associate .zim files with Zim."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} \
+    "Create uninstaller and registry keys necessary for uninstallation."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
 Section Uninstall
+
     SetShellVarContext all
     SetAutoClose true
 
-	;Remove file association
-	${unregisterExtension} ".zim" "${APPNAME}"
+    ;Remove file association
+    ${unregisterExtension} ".zim" "${APPNAME}"
 
-	;Remove from registry...
-	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
-	DeleteRegKey HKLM "Software\${APPNAME}"
+    ;Remove from registry...
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTKEY}"
+    DeleteRegKey HKLM "Software\${APPNAME}"
 
-	; Delete self
-	Delete "$INSTDIR\uninstall.exe"
+    ; Delete self
+    Delete "$INSTDIR\uninstall.exe"
 
-	; Delete configuration
-	RMDir /r "$APPDATA\zim"
+    ; Delete configuration
+    RMDir /r "$APPDATA\zim"
 
-	; Remove remaining directories
-	Delete "$SMPROGRAMS\${APPNAME}.lnk"
-	RMDir /r "$INSTDIR"
+    ; Remove remaining directories
+    Delete "$SMPROGRAMS\${APPNAME}.lnk"
+    RMDir /r "$INSTDIR"
 
-	; Detel desktop icon and Start Menu shortcuts
-	SetShellVarContext all
-	Delete "$DESKTOP\${APPNAME}.lnk"
-	RMDir /r "$SMPROGRAMS\${APPNAME}"
-	SetShellVarContext current
-	Delete "$DESKTOP\${APPNAME}.lnk"
-	RMDir /r "$SMPROGRAMS\${APPNAME}"
+    ; Detel desktop icon and Start Menu shortcuts
+    SetShellVarContext all
+    Delete "$DESKTOP\${APPNAME}.lnk"
+    RMDir /r "$SMPROGRAMS\${APPNAME}"
+    SetShellVarContext current
+    Delete "$DESKTOP\${APPNAME}.lnk"
+    RMDir /r "$SMPROGRAMS\${APPNAME}"
 
 SectionEnd
