@@ -2,7 +2,7 @@
 
 We use msys2 any PyInstaller for creating the Windows installer.
 
-- Download msys2 64-bit from https://msys2.org
+- Download msys2 64-bit from https://www.msys2.org
 - Follow instructions on https://msys2.org
 - Execute `C:\msys64\mingw64.exe`
 - Run `pacman -Syu` to update packages
