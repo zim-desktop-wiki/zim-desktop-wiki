@@ -126,6 +126,7 @@ if [[ ! "${__skip_msys_deps}" = true ]] && [[ "${MSYSTEM_CARCH:-}" ]]; then
   pacman --noconfirm -S --needed \
       wget \
       make \
+      unzip \
       upx \
       mingw-w64-"${MSYSTEM_CARCH}"-gcc \
       mingw-w64-"${MSYSTEM_CARCH}"-gtk3 \
