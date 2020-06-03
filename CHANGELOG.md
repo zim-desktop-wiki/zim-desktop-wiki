@@ -336,7 +336,7 @@ intelligent - Virgil Dupras
 * Made image data pasted as bmp convert to png to make it more compact
 * Critical bug fix for version control plugin
 * Critical bug fix for xml.etree.TreeBuilder API for python 2.7.3
-* Bug fix for exceptions in index - Fabian Moser
+* Bug fix for exceptions in index - Fabian Stanke
 * Bug fix for interwiki links
 * On windows fix for bug when home folder or user name contain non-ascii characters
 * Fixed help manual opens in compiled windows version
@@ -462,7 +462,7 @@ Bug fix release
   added preference to revert to old behavior
 * Disable <Alt><Space> keybinding due to conflicts with internationalization
   added hidden preference to get it back if desired
-* Added support for organizing pages by tags - Fabian Moser
+* Added support for organizing pages by tags - Fabian Stanke
 * Added feature to zoom font size of the page view on <Ctrl>+ / <Ctrl>-
   - Konstantin Baierer
 * Added support for system Trash (using gio if available)
@@ -524,7 +524,7 @@ of input forms and dialogs, but this is not very visible to the user.
 * Patch backporting per-user site-packages dir for python 2.5 - by Jiří Janoušek
 * Fix for bug with spaces in links in exported HTML - by Jiří Janoušek
 * Fixed bug forcing empty lines after an indented section
-* Patch for indenting in verbatim paragraphs - by Fabian Moser
+* Patch for indenting in verbatim paragraphs - by Fabian Stanke
 * Fixed bug with unicode handling for file paths
 * Added names for pageindex and pageview widgets for use in gtkrc
 * Patch to jump to task within page - by Thomas Liebertraut
@@ -583,7 +583,7 @@ Big release with lots of new functionality but also many bug fixes
 * Fixed bug with non-utf8 unicode in urls
 * Fixed bugs with calendar plugin when embedded in side pane
 * Fixed support for icons for custom tools
-* Fixed bug with indented verbatim blocks (Fabian Moser)
+* Fixed bug with indented verbatim blocks (Fabian Stanke)
 * Added translation for Traditional Chinese
 
 ##  0.46 - Wed 24 Mar 2010
