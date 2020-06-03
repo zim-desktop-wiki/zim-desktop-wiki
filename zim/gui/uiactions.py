@@ -614,7 +614,7 @@ class MovePageDialog(Dialog):
 		update = self.form['update']
 
 		newbasename = Path.makeValidPageName(name)
-		newpath = parent + newbasename
+		newpath = parent + newbasename if parent else Path(newbasename)
 		if newpath == self.path:
 			return False
 

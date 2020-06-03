@@ -1772,7 +1772,11 @@ class PageEntry(InputEntry):
 		'''
 		if self.subpaths_only:
 			assert path.ischild(self.notebookpath)
-		self.set_text(':' + path.name)
+			self.set_text('+' + path.relname(self.notebookpath))
+		elif path.isroot:
+			self.set_text('')
+		else:
+			self.set_text(':' + path.name)
 
 	def get_path(self):
 		'''Get the path shown in the widget.
@@ -1783,12 +1787,13 @@ class PageEntry(InputEntry):
 		@returns: a L{Path} object or C{None} is no valid path was entered
 		'''
 		name = self.get_text().strip()
-		if self._allow_select_root and (name == ':' or not name):
-			self.set_input_valid(True)
-			return Path(':')
-		elif not name:
-			self.set_input_valid(False)
-			return None
+		if not name or name == ':':
+		   if self._allow_select_root:
+			   self.set_input_valid(True)
+			   return Path(':')
+		   else:
+			   self.set_input_valid(False)
+			   return None
 		else:
 			if self.subpaths_only and name[0] not in ('+', ':'):
 				name = '+' + name
