@@ -47,6 +47,7 @@ than 255 characters''') # T: Error explanation
 
 	def __init__(self, basename):
 		Error.__init__(self, _('File name too long: %s') % basename)
+			# T: error message for filesystem limitations
 
 
 class PathLenghtError(Error):
@@ -57,6 +58,7 @@ than 4096 characters''') # T: Error explanation
 
 	def __init__(self, path):
 		Error.__init__(self, _('File path too long: %s') % path)
+			# T: error message for filesystem limitations
 
 
 class LocalFSObjectBase(FSObjectBase):

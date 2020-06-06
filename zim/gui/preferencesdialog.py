@@ -38,6 +38,7 @@ def localeWarningBar(enc):
 	label = Gtk.Label(_(
 		'Your system encoding is set to %s, if you want support for special characters\n'
 		'or see errors due to encoding, please ensure to configure your system to use "UTF-8"') % enc)
+		# T: warning message, %s is the current locale - e.g. "NL_nl"
 	label.set_line_wrap(True)
 	label.set_xalign(0)
 	bar.get_content_area().pack_start(label, False, False, 0)

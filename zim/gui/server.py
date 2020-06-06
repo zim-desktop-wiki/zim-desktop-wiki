@@ -83,6 +83,7 @@ class ServerWindow(Gtk.Window):
 		self.templatecombobox.set_active(template_names.index('Default'))
 
 		self.auth_checkbox = Gtk.CheckButton.new_with_mnemonic(_('Require authentication'))
+			# T: checkbox in dialog for starting webserver
 		self.username_input = InputEntry()
 		self.password_input = InputEntry()
 		self.password_input.set_visibility(False)
@@ -103,10 +104,13 @@ class ServerWindow(Gtk.Window):
 			(_('Port'), self.portentry),
 				# T: Field in web server gui for HTTP port (e.g. port 80)
             (_('Template'), self.templatecombobox),
+				# T: Field in web server gui for webpage template
 			self.public_checkbox,
 			self.auth_checkbox,
 			(_('Username'), self.username_input),
+				# T: Field in web server gui
 			(_('Password'), self.password_input)
+				# T: Field in web server gui
 		))
 		vbox.pack_start(table, False, False, 0)
 
