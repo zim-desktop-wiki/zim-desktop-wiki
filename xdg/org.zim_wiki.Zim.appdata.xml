@@ -35,6 +35,25 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2020-06-06" version="0.73.0">
+      <description>
+        <ul>
+          <li>Add ability to combine formatting styles in editor</li>
+          <li>Improve URL and link parsing to look for matching brackets</li>
+          <li>Reduce the number of `-` needed to auto-format a horizontal line</li>
+          <li>Allow typing bullet after e.g. checkbox to replace it</li>
+          <li>Add autoformat for sub- and super-script by typing `^..` and `_{..}`</li>
+          <li>On autoformat headings also strip trailing `=`</li>
+          <li>Fix issue with lost formatting when using spellchecker</li>
+          <li>Add support for "paragraph-background" property in style.conf</li>
+          <li>Improve keyboard behavior of find bar in editor</li>
+          <li>Swap the layout in the InsertDateDialog</li>
+          <li>Allow re-arranging side pane tabs by drag and drop</li>
+          <li>Add option to automatically collapse sections in the pageindex</li>
+          <li>Fix regression for inserting links on "Attach file" and moved this</li>
+        </ul>
+      </description>
+    </release>
     <release date="2020-01-01" version="0.72.1">
       <description>
         <ul>

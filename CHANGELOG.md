@@ -5,6 +5,38 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.73.0 - Sat 06 Jun 2020
+* Add ability to combine formatting styles in editor
+* Improve URL and link parsing to look for matching brackets
+* Reduce the number of `-` needed to auto-format a horizontal line
+* Allow typing bullet after e.g. checkbox to replace it
+* Add autoformat for sub- and super-script by typing `^..` and `_{..}`
+* On autoformat headings also strip trailing `=`
+* Fix issue with lost formatting when using spellchecker
+* Add support for "paragraph-background" property in style.conf
+* Improve keyboard behavior of find bar in editor
+* Swap the layout in the InsertDateDialog
+* Allow re-arranging side pane tabs by drag and drop
+* Add option to automatically collapse sections in the pageindex
+* Fix regression for inserting links on "Attach file" and moved this
+  function to the Insert menu
+* Merge MovePageDialog and RenamePageDialog into a single dialog
+* Fix behavior when renaming non-existing "placeholder" pages
+* Add workaround for drag-and-drop issue #390
+* Whitelist image formats in latex export to avoid invalid image types
+* Add MacOS menubar plugin & fix for main menu mnemonics in MacOS
+* Give temporary directories unique names to improve robustness
+* Support TEXTDOMAINDIR evironment variable to set locale directory
+* Improve folder checks for automount feature
+* Improve window colors in distraction free mode
+* Add option to set the wrap-mode in sourceview
+* Add theme choice for the source view plugin
+* Add "private" switch to server command for commandline usage
+* Add authentication support to web server
+* Add template selection option to web server dialog
+* Add option for fontsize to table of contents plugin
+* Add option to show horizontal lines in table of contents
+
 ##  0.72.1 - Wed 01 Jan 2020
 * Update translations & documentation
 
