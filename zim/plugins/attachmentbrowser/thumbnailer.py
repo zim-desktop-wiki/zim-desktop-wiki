@@ -91,7 +91,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	functions to create the thumbnail.
 	'''
 	if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)):
-		raise ThumbnailCreatorFailure
+		raise ThumbnailCreatorFailure()
 
 	tmpfile = thumbfile.parent().file('zim-thumb.new~')
 	options = { # no unicode allowed in options!
@@ -109,7 +109,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 		pixbuf.savev(tmpfile.path, 'png', optionskeys, optionsvalues)
 		_atomic_rename(tmpfile.path, thumbfile.path)
 	except:
-		raise ThumbnailCreatorFailure
+		raise ThumbnailCreatorFailure()
 	else:
 		return pixbuf
 
@@ -286,7 +286,7 @@ class ThumbnailManager(object):
 		@raises ThumbnailCreatorFailure: if creation fails unexpectedly
 		'''
 		if not isinstance(file, LocalFile):
-			raise None(None)
+			raise ThumbnailCreatorFailure()
 
 		thumbfile = self.get_thumbnail_file(file, size)
 		thumbsize = THUMB_SIZE_NORMAL if size <= THUMB_SIZE_NORMAL else THUMB_SIZE_LARGE
