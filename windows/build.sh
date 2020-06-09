@@ -127,7 +127,6 @@ if [[ ! "${__skip_msys_deps}" = true ]] && [[ "${MSYSTEM_CARCH:-}" ]]; then
       wget \
       make \
       unzip \
-      upx \
       mingw-w64-"${MSYSTEM_CARCH}"-gcc \
       mingw-w64-"${MSYSTEM_CARCH}"-gtk3 \
       mingw-w64-"${MSYSTEM_CARCH}"-pkg-config \
