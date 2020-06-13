@@ -124,9 +124,7 @@ if [[ ! "${__skip_msys_deps}" = true ]] && [[ "${MSYSTEM_CARCH:-}" ]]; then
 
   # Install build dependencies
   pacman --noconfirm -S --needed \
-      wget \
       make \
-      unzip \
       mingw-w64-"${MSYSTEM_CARCH}"-gcc \
       mingw-w64-"${MSYSTEM_CARCH}"-gtk3 \
       mingw-w64-"${MSYSTEM_CARCH}"-pkg-config \
@@ -144,7 +142,6 @@ fi
 
 hash python3 2>/dev/null || emergency "Python 3.x not found. Have you started MSYS2 MinGW 64-bit?"
 hash pkg-config 2>/dev/null || emergency "pkg-config not found"
-hash wget 2>/dev/null || emergency "wget not found"
 hash sed 2>/dev/null || emergency "sed not found"
 
 pkg-config --print-errors --exists 'gobject-introspection-1.0 >= 1.46.0' >/dev/null 2>&1 || emergency "GObject-Introspection not found, Please check above errors and correct them"
@@ -205,18 +202,6 @@ export PYTHONHASHSEED
 (cd "${__dir}" && pyinstaller -y src/zim.spec)
 # let Python be unpredictable again
 unset PYTHONHASHSEED
-
-__theme_tag="2020-02-26"
-if [[ ! -f "${__build_dir}/Qogir-theme-${__theme_tag}.zip" ]]; then
-  info "Fetching Gtk theme ..."
-  wget -q -O "${__build_dir}/Qogir-theme-${__theme_tag}.zip" "https://github.com/vinceliuice/Qogir-theme/archive/${__theme_tag}.zip"
-fi
-
-info "Installing theme in distribution ..."
-
-unzip -q "${__build_dir}/Qogir-theme-${__theme_tag}.zip" -d "${__build_dir}"
-(cd "${__build_dir}/Qogir-theme-${__theme_tag}" && ./install.sh --dest "${__dist_dir}"/share/themes --name Qogir --theme standard --color light --win square)
-mkdir -p "${__dist_dir}/etc/gtk-3.0" && cp -a "${__dir}/src/settings.ini" "${__dist_dir}/etc/gtk-3.0/settings.ini"
 
 info "Building Zim installer ..."
 
