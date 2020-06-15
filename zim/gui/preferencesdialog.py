@@ -50,6 +50,7 @@ class PreferencesDialog(Dialog):
 	def __init__(self, widget, default_tab=None, select_plugin=None):
 		Dialog.__init__(self, widget, _('Preferences')) # T: Dialog title
 		self.preferences = ConfigManager.preferences
+		self.main_window = widget
 
 		# warning for locale
 		_pref_enc = locale.getpreferredencoding()
@@ -251,6 +252,11 @@ class PluginsTab(Gtk.VBox):
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
 		hbox.pack_start(self.configure_button, False, True, 0)
 
+		self.properties_button = \
+			Gtk.Button.new_with_mnemonic(_('_Properties'))  # T: Button in plugin tab
+		hbox.pack_start(self.properties_button, False, True, 0)
+		self.properties_button.connect('clicked', self.on_properties_button_clicked)
+
 		try:
 			self.treeselection.select_path(0)
 		except:
@@ -325,6 +331,7 @@ class PluginsTab(Gtk.VBox):
 		insert(klass.plugin_info['author'].strip())
 
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
+		self.properties_button.set_sensitive(active and bool(klass.plugin_notebook_properties))
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
 
 	def on_help_button_clicked(self, button):
@@ -336,6 +343,12 @@ class PluginsTab(Gtk.VBox):
 	def on_configure_button_clicked(self, button):
 		plugin = self.plugins[self._current_plugin]
 		PluginConfigureDialog(self.dialog, plugin).run()
+
+	def on_properties_button_clicked(self, button):
+		from zim.gui.propertiesdialog import PropertiesDialog
+		PropertiesDialog(self.dialog.main_window,
+						 self.dialog.main_window.notebook,
+						 chosen_plugin=self._current_plugin).run()
 
 	def select_plugin(self, name):
 		model = self.treeview.get_model()
