@@ -5295,6 +5295,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	stops emission after the first handler returns C{True}
 	@signal: C{ui-init ()}: trigger for extensions to load uimanager stuff,
 	do not rely on this signal, may be removed
+	@signal: C{link-caret-enter (link)}: Emitted when the caret enters a link
+	@signal: C{link-caret-leave (link)}: Emitted when the caret leaves a link
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
@@ -5310,6 +5312,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'ui-init': (GObject.SignalFlags.RUN_LAST, None, ()),
+		'link-caret-enter': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'link-caret-leave': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
 
 	__signals__ = {
@@ -5341,6 +5345,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._showing_template = False
 		self._change_counter = 0
 		self.ui_is_initialized = False
+		self._caret_link = None
 
 		self.preferences = ConfigManager.preferences['PageView']
 		self.preferences.define(
@@ -5920,6 +5925,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			buffer.insert_at_cursor(''.join(text))
 
 	def do_mark_set(self, buffer, iter, mark):
+		'''
+		@emits link-caret-enter
+		@emits link-caret-leave
+		'''
+
 		# Update menu items relative to cursor position
 		if self.readonly or mark.get_name() != 'insert':
 			return
@@ -5947,6 +5957,18 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			self.actiongroup.get_action('edit_object').set_sensitive(False)
 			self.actiongroup.get_action('remove_link').set_sensitive(False)
+
+		# Sets statusbar if passing through a link
+		link = buffer.get_link_data(iter)
+		if link:
+			if not self._caret_link:  # we enter link for the first time
+				self.emit("link-caret-enter", link)
+			elif self._caret_link != link:  # we changed the link
+				self.emit("link-caret-leave", self._caret_link)
+				self.emit("link-caret-enter", link)
+		elif self._caret_link:  # we left the link
+			self.emit("link-caret-leave", self._caret_link)
+		self._caret_link = link
 
 	def do_textstyle_changed(self, styles):
 		# Update menu items for current style
