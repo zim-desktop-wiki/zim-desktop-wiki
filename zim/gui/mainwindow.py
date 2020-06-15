@@ -226,6 +226,8 @@ class MainWindow(Window):
 			'toggle-overwrite', self.on_textview_toggle_overwrite)
 		self.pageview.textview.connect('link-enter', self.on_link_enter)
 		self.pageview.textview.connect('link-leave', self.on_link_leave)
+		self.pageview.connect('link-caret-enter', self.on_link_caret_enter)
+		self.pageview.connect('link-caret-leave', self.on_link_caret_leave)
 
 		self.add(self.pageview)
 
@@ -732,6 +734,12 @@ class MainWindow(Window):
 
 	def on_link_leave(self, view, link):
 		self.statusbar.pop(1)
+
+	def on_link_caret_enter(self, view, link):
+		self.statusbar.push(2, 'Go to "%s"' % link['href'])
+
+	def on_link_caret_leave(self, view, link):
+		self.statusbar.pop(2)
 
 	def do_button_press_event(self, event):
 		## Try to capture buttons for navigation
