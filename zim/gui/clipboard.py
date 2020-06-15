@@ -297,15 +297,18 @@ def _link_tree(links, notebook, path):
 			# FIXME - is this ever used ??
 			builder.append(TAG, {'name': links[i][1:]}, links[i])
 		else:
+			name = None
 			if type == 'page':
 				target = Path(Path.makeValidPageName(link)) # Assume links are always absolute
 				href = notebook.pages.create_link(path, target)
 				link = href.to_wiki_link()
+				if notebook.config['Notebook']['short_relative_links']:
+					name = href.parts()[-1]
 			elif type == 'file':
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
 
-			builder.append(LINK, {'href': link}, link)
+			builder.append(LINK, {'href': link}, name or link)
 
 	builder.end(FORMATTEDTEXT)
 	tree = builder.get_parsetree()

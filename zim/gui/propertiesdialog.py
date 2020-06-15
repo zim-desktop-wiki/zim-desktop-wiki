@@ -18,6 +18,7 @@ notebook_properties = (
 	('home', 'page', _('Home Page')), # T: label for properties dialog
 	('icon', 'image', _('Icon')), # T: label for properties dialog
 	('document_root', 'dir', _('Document Root')), # T: label for properties dialog
+	('short_relative_links', 'bool', _('Paste short relative link names'), False), # T: label for properties dialog
 	# 'shared' property is not shown in properties anymore
 )
 
