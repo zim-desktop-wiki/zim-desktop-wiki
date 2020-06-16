@@ -22,7 +22,7 @@ L{ImageView}, L{SingleClickTreeView} and L{BrowserTreeView}.
 @newfield requires: Requires
 '''
 
-from gi.repository import GObject
+from gi.repository import GObject, Gtk
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
@@ -37,6 +37,8 @@ import re
 import weakref
 import unicodedata
 import locale
+
+from zim import datetimetz as datetime
 
 try:
 	import gi
@@ -79,6 +81,8 @@ KEYVALS_SLASH = (
 	Gdk.unicode_to_keyval(ord('\\')),
 	Gdk.unicode_to_keyval(ord('/')), Gdk.keyval_from_name('KP_Divide'))
 KEYVAL_ESC = Gdk.keyval_from_name('Escape')
+KEYVALS_ENTER = list(map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter')))
+KEYVALS_SPACE = (Gdk.unicode_to_keyval(ord(' ')),)
 
 
 CANCEL_STR = _('_Cancel') # T: Button label
@@ -2959,7 +2963,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		@param values: initial values for the inputs
 		@param depends: dict with dependencies between inputs
 		@param trigger_response: if C{True} pressing C{<Enter>} in the
-		last entry widget will immediatly call L{response_ok()}. Set to
+		last entry widget will immediately call L{response_ok()}. Set to
 		C{False} if more forms will follow in the same dialog.
 		'''
 		if notebook is None and hasattr(self, 'notebook'):
@@ -4177,3 +4181,57 @@ class ImageView(Gtk.Layout):
 		self._image.set_from_pixbuf(pixbuf)
 		self.set_size(wvirt, hvirt)
 		self.move(self._image, (wvirt - wimg) / 2, (hvirt - himg) / 2)
+
+
+class Calendar(Gtk.Calendar):
+	'''Custom calendar widget class. Adds an 'activate' signal for when a
+	date is selected explicitly by the user.
+	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'activate': (GObject.SignalFlags.RUN_LAST, None, ()),
+	}
+
+	def __init__(self):
+		GObject.GObject.__init__(self)
+		self.selected = False
+
+	def do_key_press_event(self, event):
+		handled = Gtk.Calendar.do_key_press_event(self, event)
+		if handled and (event.keyval in KEYVALS_SPACE
+		or event.keyval in KEYVALS_ENTER):
+			self.emit('activate')
+		return handled
+
+	def do_button_press_event(self, event):
+		handled = Gtk.Calendar.do_button_press_event(self, event)
+		if event.button == 1 and self.selected:
+			self.selected = False
+			self.emit('activate')
+		return handled
+
+	def do_day_selected(self):
+		self.selected = True
+
+	def select_date(self, date):
+		'''Set selected date using a datetime oject'''
+		self.select_month(date.month - 1, date.year)
+		self.select_day(date.day)
+
+	def get_date(self):
+		'''Get the datetime object for the selected date'''
+		year, month, day = Gtk.Calendar.get_date(self)
+		if day == 0:
+			day = 1
+
+		try:
+			date = datetime.date(year, month + 1, day)
+		except ValueError:
+			# This error may mean that day number is higher than allowed.
+			# If so, set date to the last day of the month.
+			if day > 27:
+				date = datetime.date(year, month + 2, 1) - datetime.timedelta(days = 1)
+			else:
+				raise
+		return date

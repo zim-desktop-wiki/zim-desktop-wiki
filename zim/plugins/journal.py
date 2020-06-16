@@ -14,7 +14,6 @@ import logging
 
 from zim.plugins import PluginClass
 from zim.actions import action
-from zim.signals import SignalHandler, ConnectorMixin
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
 from zim.notebook import Path, NotebookExtension
@@ -23,7 +22,7 @@ from zim.templates.expression import ExpressionFunction
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import ScrolledWindow, \
-	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
+	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS, Calendar
 
 from zim.plugins.pageindex import PageTreeStore, PageTreeView
 
@@ -38,9 +37,6 @@ logger = logging.getLogger('zim.plugins.journal')
 #   add a preference for this
 # - Overload the "Insert date" dialog by adding a 'link' option
 
-
-KEYVALS_ENTER = list(map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter')))
-KEYVALS_SPACE = (Gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{1,2}:\d{2}$')
 week_path_re = re.compile(r'^(.*:)?\d{4}:Week \d{2}$')
@@ -115,6 +111,8 @@ Also adds a calendar widget to access these pages.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS), # T: preferences option
 		('hide_if_empty', 'bool', _('Hide Journal pane if empty'), False), # T: preferences option
+		('move_selected', 'bool', _('Going to Today moves text'
+									'\nAny selected text is replaced with a link and moved at the end of today\'s page'), False),  # T: preferences option
 	)
 
 	plugin_notebook_properties = (
@@ -268,63 +266,31 @@ class JournalPageViewExtension(PageViewExtension):
 
 	@action(_('To_day'), accelerator='<Alt>D', menuhints='go') # T: menu item
 	def go_page_today(self):
+		'''Opens the current day page in the Journal. If some text is selected,
+		it is replaced with a link and moved at the end of today's page.
+		'''
 		today = datetime.date.today()
 		path = self.plugin.path_from_date(self.pageview.notebook, today)
+
+		if not self.plugin.preferences['move_selected']:  # we are navigating to that page
+			self.navigation.open_page(path)
+			return
+
+		# we move the selected text to the newly created page
+		contents = ""
+		buffer = self.pageview.textview.get_buffer()
+		if buffer.get_selection_bounds():
+			contents = buffer.get_parsetree(buffer.get_selection_bounds())
+			buffer.delete(*buffer.get_selection_bounds())  # cuts the moved text from the original page
+			link = str(path)
+			link = self.pageview.notebook.suggest_link(self.pageview.page, link) or link
+			buffer.insert_link_at_cursor(str(path), link)
+
 		self.navigation.open_page(path)
 
-
-class Calendar(Gtk.Calendar):
-	'''Custom calendar widget class. Adds an 'activate' signal for when a
-	date is selected explicitly by the user.
-	'''
-
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'activate': (GObject.SignalFlags.RUN_LAST, None, ()),
-	}
-
-	def __init__(self):
-		GObject.GObject.__init__(self)
-		self.selected = False
-
-	def do_key_press_event(self, event):
-		handled = Gtk.Calendar.do_key_press_event(self, event)
-		if handled and (event.keyval in KEYVALS_SPACE
-		or event.keyval in KEYVALS_ENTER):
-			self.emit('activate')
-		return handled
-
-	def do_button_press_event(self, event):
-		handled = Gtk.Calendar.do_button_press_event(self, event)
-		if event.button == 1 and self.selected:
-			self.selected = False
-			self.emit('activate')
-		return handled
-
-	def do_day_selected(self):
-		self.selected = True
-
-	def select_date(self, date):
-		'''Set selected date using a datetime oject'''
-		self.select_month(date.month - 1, date.year)
-		self.select_day(date.day)
-
-	def get_date(self):
-		'''Get the datetime object for the selected date'''
-		year, month, day = Gtk.Calendar.get_date(self)
-		if day == 0:
-			day = 1
-
-		try:
-			date = datetime.date(year, month + 1, day)
-		except ValueError:
-			# This error may mean that day number is higher than allowed.
-			# If so, set date to the last day of the month.
-			if day > 27:
-				date = datetime.date(year, month + 2, 1) - datetime.timedelta(days = 1)
-			else:
-				raise
-		return date
+		if contents:
+			buffer = self.pageview.textview.get_buffer()
+			buffer.insert_parsetree(buffer.get_end_iter(), contents)
 
 
 class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
