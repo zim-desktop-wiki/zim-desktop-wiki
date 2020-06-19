@@ -6687,7 +6687,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Check formatting is consistent left and right
 			iter = buffer.get_insert_iter()
 			format_left = format in [t.zim_tag for t in buffer.iter_get_zim_tags(iter)]
-			format_right = format in [t.zim_tag for t in iter.get_tags()]
+			format_right = format in [t.zim_tag for t in filter(_is_zim_tag, iter.get_tags())]
 			if format_left is format_right:
 				selected = self.autoselect(selectline=False)
 
