@@ -7,8 +7,7 @@ import email.mime.nonmultipart
 
 import base64
 
-from zim.fs import get_tmpdir
-from zim.newfs import LocalFile, LocalFolder, File, Folder
+from zim.newfs import LocalFile, LocalFolder, File, Folder, get_tmpdir
 
 from zim.notebook import encode_filename
 
@@ -40,7 +39,7 @@ class MHTMLExporter(Exporter):
 
 	def export_iter(self, pages):
 		basename = encode_filename(pages.name)
-		folder = LocalFolder(get_tmpdir().subdir('mhtml_export_tmp_dir').path) # XXX
+		folder = get_tmpdir().folder('mhtml_export_tmp_dir')
 		if folder.exists():
 			folder.remove_children()
 		else:
