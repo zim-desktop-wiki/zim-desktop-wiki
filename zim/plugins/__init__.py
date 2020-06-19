@@ -36,6 +36,7 @@ import os
 import sys
 import logging
 import inspect
+import weakref
 
 try:
 	import collections.abc as abc
@@ -46,7 +47,7 @@ except ImportError:
 from zim.newfs import LocalFolder, LocalFile
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SIGNAL_RUN_LAST, SignalHandler
-from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses, WeakSet
+from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses
 from zim.actions import hasaction
 
 from zim.config import data_dirs, XDG_DATA_HOME, ConfigManager
@@ -351,7 +352,7 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 		self._preferences.setdefault('plugins', [])
 
 		self._plugins = {}
-		self._extendables = WeakSet()
+		self._extendables = weakref.WeakSet()
 		self.failed = set()
 
 		self.insertedobjects = InsertedObjectTypeMap()
@@ -625,7 +626,7 @@ class PluginClass(ConnectorMixin):
 		assert 'name' in self.plugin_info, 'Missing "name" in plugin_info'
 		assert 'description' in self.plugin_info, 'Missing "description" in plugin_info'
 		assert 'author' in self.plugin_info, 'Missing "author" in plugin_info'
-		self.extensions = WeakSet()
+		self.extensions = weakref.WeakSet()
 
 		if self.plugin_preferences:
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tuples'
@@ -704,7 +705,7 @@ class PluginClass(ConnectorMixin):
 		This should revert any changes the plugin made to the
 		application (although preferences etc. can be left in place).
 		'''
-		for obj in self.extensions:
+		for obj in list(self.extensions):
 			obj.destroy()
 
 		try:

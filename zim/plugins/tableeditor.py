@@ -9,6 +9,7 @@ from gi.repository import Gdk
 from gi.repository import Pango
 
 import re
+import weakref
 import logging
 
 
@@ -17,7 +18,7 @@ logger = logging.getLogger('zim.plugin.tableeditor')
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.actions import action
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_RUN_LAST
-from zim.utils import WeakSet, natural_sort_key
+from zim.utils import natural_sort_key
 from zim.config import String
 from zim.main import ZIM_APPLICATION
 from zim.formats import ElementTreeModule as ElementTree
@@ -160,7 +161,7 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 	}
 
 	def __init__(self, plugin, objmap):
-		self._widgets = WeakSet()
+		self._widgets = weakref.WeakSet()
 		self.preferences = plugin.preferences
 		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)

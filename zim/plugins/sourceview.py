@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger('zim.plugins.sourceview')
 
+import weakref
 
 # This plugin can work without GUI for just the export
 # Be nice about gtk, since it may not be present in a server CLI only version
@@ -25,7 +26,6 @@ except:
 
 from zim.plugins import PluginClass, InsertedObjectTypeExtension, PLUGIN_FOLDER
 from zim.actions import action
-from zim.utils import WeakSet
 from zim.config import String, Boolean, ConfigManager
 from zim.formats.html import html_encode
 
@@ -114,7 +114,7 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 	}
 
 	def __init__(self, plugin, objmap):
-		self._widgets = WeakSet()
+		self._widgets = weakref.WeakSet()
 		self.preferences = plugin.preferences
 		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)

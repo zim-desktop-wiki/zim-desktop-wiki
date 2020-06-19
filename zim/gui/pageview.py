@@ -27,6 +27,7 @@ from gi.repository import Pango
 
 import re
 import string
+import weakref
 import zim.datetimetz as datetime
 
 import zim.formats
@@ -54,7 +55,6 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 from zim.gui.insertedobjects import \
 	InsertedObjectWidget, UnknownInsertedObject, UnknownInsertedImageObject, \
 	POSITION_BEGIN, POSITION_END
-from zim.utils import WeakSet
 from zim.signals import callback
 from zim.formats import get_dumper
 from zim.formats.wiki import Dumper as WikiDumper
@@ -3685,7 +3685,7 @@ class TextView(Gtk.TextView):
 		self.set_size_request(24, 24)
 		self._cursor = CURSOR_TEXT
 		self._cursor_link = None
-		self._object_widgets = WeakSet()
+		self._object_widgets = weakref.WeakSet()
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(Gtk.WrapMode.WORD)

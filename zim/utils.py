@@ -143,45 +143,6 @@ def natural_sort_key(string, numeric_padding=5):
 	return key
 
 
-####
-
-# Python 2.7 has a weakref.WeakSet, but using this one for compatibility with 2.6 ..
-# Did not switch implementations per version to make sure we test
-# all modules with this implementation
-
-import weakref
-
-class WeakSet(object):
-	'''Class that behaves like a set, but keeps weak references to
-	members of the set.
-	'''
-
-	def __init__(self):
-		self._refs = []
-
-	def __iter__(self):
-		return (
-			obj for obj in
-					[ref() for ref in self._refs]
-							if obj is not None
-		)
-
-	def add(self, obj):
-		ref = weakref.ref(obj, self._del)
-		self._refs.append(ref)
-
-	def _del(self, ref):
-		try:
-			self._refs.remove(ref)
-		except ValueError:
-			pass
-
-	def discard(self, obj):
-		for ref in self._refs:
-			if ref() == obj:
-				self._refs.remove(ref)
-
-
 # Python 2.7 has a collections.OrderedDict, but using this one for compatibility
 # Did not switch implementations per version to make sure we test
 # all modules with this implementation
