@@ -317,7 +317,9 @@ class TestTagsView(tests.TestCase):
 
 		mytag = tags.lookup_by_tagname('tag1')
 		mytags = tags.list_intersecting_tags([mytag])
-		self.assertEqual([t.name for t in mytags], ['tag1', 'tag2'])
+		names = [t.name for t in mytags]
+		names.sort()
+		self.assertEqual(names, ['tag1', 'tag2'])
 
 		with self.assertRaises(IndexNotFoundError):
 			tags.list_pages('foooo')
