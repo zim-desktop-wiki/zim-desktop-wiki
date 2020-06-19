@@ -91,10 +91,10 @@ except:
 	Pango = None
 	logger.warn('Could not load pango - RTL scripts may look bad')
 
+import xml.etree.ElementTree # needed to compile with cElementTree
 try:
 	import xml.etree.cElementTree as ElementTreeModule
 except:  #pragma: no cover
-	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
 
 

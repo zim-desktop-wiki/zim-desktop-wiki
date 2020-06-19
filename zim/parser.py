@@ -37,7 +37,11 @@ through to the final expression.
 
 import re
 
-import xml.etree.cElementTree as ElementTree
+import xml.etree.ElementTree # needed to compile with cElementTree
+try:
+	import xml.etree.cElementTree as ElementTree
+except:  #pragma: no cover
+	import xml.etree.ElementTree as ElementTree
 
 
 from zim.errors import Error

@@ -8,7 +8,10 @@ import os
 import logging
 
 import xml.etree.ElementTree # needed to compile with cElementTree
-import xml.etree.cElementTree as ET
+try:
+	import xml.etree.cElementTree as ET
+except:  #pragma: no cover
+	import xml.etree.ElementTree as ET
 
 
 from zim.newfs import LocalFile
