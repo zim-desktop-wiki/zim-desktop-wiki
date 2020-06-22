@@ -26,7 +26,7 @@ except:
 from zim.plugins import PluginClass, InsertedObjectTypeExtension, PLUGIN_FOLDER
 from zim.actions import action
 from zim.utils import WeakSet
-from zim.config import String, Boolean
+from zim.config import String, Boolean, ConfigManager
 from zim.formats.html import html_encode
 
 from zim.gui.widgets import Dialog, ScrolledWindow
@@ -215,7 +215,6 @@ class SourceViewWidget(TextViewWidget):
 
 		self.view = GtkSource.View()
 		self.view.set_buffer(self.buffer)
-		self.view.modify_font(Pango.FontDescription('monospace'))
 		self.view.set_auto_indent(True)
 		self.view.set_smart_home_end(True)
 		self.view.set_highlight_current_line(True)
@@ -231,6 +230,14 @@ class SourceViewWidget(TextViewWidget):
 			WRAP_CHAR: Gtk.WrapMode.CHAR,
 			WRAP_WORD: Gtk.WrapMode.WORD,
 		}
+
+		text_style = ConfigManager.get_config_dict('style.conf')
+		try:
+			font = text_style['Tag code']['family']
+		except KeyError:
+			font = 'monospace'
+		finally:
+			self.view.modify_font(Pango.FontDescription(font))
 
 		# simple toolbar
 		#~ bar = Gtk.HBox() # FIXME: use Gtk.Toolbar stuff
