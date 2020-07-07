@@ -246,11 +246,11 @@ class TestSavingPages(tests.TestCase):
 		self.mainwindow.open_page(Path('Non-exsiting:page'))
 		self.assertFalse(self.mainwindow.page.exists())
 		self.assertIsNone(self.mainwindow.page.get_parsetree())
-		self.assertTrue(self.mainwindow.pageview._showing_template) # XXX check HACK
+		self.assertTrue(self.mainwindow.pageview.textview.get_buffer().showing_template)
 		self.mainwindow.pageview.save_page()
 		self.assertTrue(self.mainwindow.page.exists())
 		self.assertIsNotNone(self.mainwindow.page.get_parsetree())
-		self.assertFalse(self.mainwindow.pageview._showing_template) # XXX check HACK
+		self.assertFalse(self.mainwindow.pageview.textview.get_buffer().showing_template)
 
 	def testClose(self):
 		# Specific bug found when trying to close the page while auto-save

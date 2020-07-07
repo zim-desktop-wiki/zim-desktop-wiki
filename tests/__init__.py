@@ -649,7 +649,6 @@ def new_page():
 
 def new_page_from_text(text, format='wiki'):
 	from zim.notebook import Path, Page
-	from zim.notebook import Path, Page
 	from zim.newfs.mock import MockFile, MockFolder
 	file = MockFile('/mock/test/page.txt')
 	folder = MockFile('/mock/test/page/')

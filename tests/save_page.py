@@ -51,13 +51,13 @@ class TestSavePageHandler(tests.TestCase):
 		handler.save_page_now()
 		self.assertEqual(store_page_counter.count, 1)
 
-		page.modified = True
+		page.set_modified(True)
 		handler.try_save_page()
 		self.assertEqual(store_page_counter.count, 2)
 		ongoing_operation(notebook)() # effectively a join
 		self.assertFalse(page.modified)
 
-		page.modified = True
+		page.set_modified(True)
 		handler.save_page_now()
 		self.assertEqual(store_page_counter.count, 3)
 		self.assertFalse(page.modified)
@@ -74,7 +74,7 @@ class TestSavePageHandler(tests.TestCase):
 		notebook.store_page = wrapper3
 		notebook.store_page_async = wrapper4
 
-		page.modified = True
+		page.set_modified(True)
 
 		def catch_dialog(dialog):
 			assert isinstance(dialog, SavePageErrorDialog)
@@ -162,7 +162,7 @@ class TestDialog(tests.TestCase):
 
 		self.page = pageview.page
 		self.pageview = pageview
-		self.handler = SavePageHandler(pageview, notebook, pageview.get_page)
+		self.handler = SavePageHandler(pageview, notebook, lambda: pageview.page)
 
 	def testCancel(self):
 

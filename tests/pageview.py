@@ -22,11 +22,11 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	def __init__(self):
 		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
-def new_parsetree(testcase):
+def new_parsetree(testcase, path='Test'):
 	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
 	tree = tests.new_parsetree()
 	notebook = testcase.setUpNotebook()
-	page = notebook.get_page(Path('Foo'))
+	page = notebook.get_page(Path(path))
 	tree.resolve_images(notebook, page)
 	return tree
 
@@ -241,10 +241,8 @@ dus ja
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
-		self.assertFalse(buffer.get_modified())
 
 		rawtree = buffer.get_parsetree(raw=True)
-		self.assertFalse(buffer.get_modified())
 		self.assertEqual(rawtree.tostring(), input)
 
 		# Test errors are cleaned up correctly
@@ -267,7 +265,6 @@ grrr
 </p>
 <p><ul><li bullet="*">Foo</li><li bullet="*">Bar</li></ul></p></zim-tree>'''
 		tree = buffer.get_parsetree()
-		self.assertFalse(buffer.get_modified())
 		self.assertEqual(tree.tostring(), wanted)
 
 		# Test pasting some simple text
@@ -1068,12 +1065,16 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 
 class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 
-	def testAll(self):
-		'''Test the undo/redo functionality'''
+	def setUp(self):
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		undomanager = UndoStackManager(buffer)
+		self.buffer = TextBuffer(notebook, page)
+
+	def testInsertUndoRedo(self):
+		# Test inserting a full tree, than undoing and redoing it
+
+		buffer = self.buffer
+		undomanager = buffer.undostack
 		tree = new_parsetree(self)
 
 		with FilterNoSuchImageWarning():
@@ -1128,9 +1129,9 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertEqual(emptytree.tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\" />")
 
-		buffer.clear()
-		self.assertTrue(len(undomanager.stack) == 0)
-		undomanager.unblock()
+	def testMore(self):
+		buffer = self.buffer
+		undomanager = buffer.undostack
 
 		# Test merging
 		for c in 'fooo barr baz':
@@ -1820,6 +1821,8 @@ foo
 
 	@tests.expectedFailure
 	def testCopyPaste(self):
+		assert False # FIXME
+
 		notebook = self.setUpNotebook(
 			content={'roundtrip': tests.FULL_NOTEBOOK['roundtrip']}
 		)
@@ -2672,12 +2675,10 @@ class TestPageViewActions(tests.TestCase):
 	def testUndoRedo(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		buffer = pageview.textview.get_buffer()
-		with buffer.user_action:
-			buffer.insert_at_cursor('test')
-		with buffer.user_action:
-			buffer.insert_at_cursor(' ')
-		with buffer.user_action:
-			buffer.insert_at_cursor('123')
+
+		for text in ('test', ' ', '123'):
+			with buffer.user_action:
+				buffer.insert_at_cursor(text)
 
 		self.assertEqual(get_text(buffer), 'test 123\n')
 

@@ -52,7 +52,7 @@ class BookmarksBarMainWindowExtension(MainWindowExtension):
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.widget = BookmarkBar(window.notebook, window.navigation, self.uistate,
-					  self.window.pageview.get_page)
+					  lambda: self.window.pageview.page)
 		self.widget.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
 
 		self.widget.show_all()

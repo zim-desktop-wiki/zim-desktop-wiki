@@ -53,7 +53,7 @@ def dump():
 		self.assertTrue(pageview.textview.get_buffer().get_modified())
 
 		# test modification ends up in page
-		tree = pageview.get_parsetree()
+		tree = pageview.page.get_parsetree()
 		#print(tree.tostring())
 		elt = tree.find('object')
 		self.assertIsNotNone(elt)
@@ -73,7 +73,7 @@ def dump():
 		with tests.DialogContext(insert_code_block):
 			action.activate()
 
-		tree = window.pageview.get_parsetree()
+		tree = window.pageview.page.get_parsetree()
 		#print(tree.tostring())
 		elt = tree.find('object')
 		self.assertIsNotNone(elt)
@@ -94,7 +94,7 @@ def dump():
 		with tests.DialogContext(cancel_dialog):
 			action.activate()
 
-		tree = window.pageview.get_parsetree()
+		tree = window.pageview.page.get_parsetree()
 		#print(tree.tostring())
 		elt = tree.find('object')
 		self.assertIsNone(elt)

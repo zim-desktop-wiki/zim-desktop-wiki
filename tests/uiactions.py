@@ -924,5 +924,5 @@ class TestUIActionsRealFile(tests.TestCase):
 				self.uiactions.edit_page_source()
 
 		newtext = self.page.dump('plain')
-		self.assertEqual(signals['page-changed'], [(True,)]) # boolean for external change
+		self.assertEqual(signals['storage-changed'], [(True,)]) # boolean for external change
 		self.assertNotEqual(oldtext, newtext)

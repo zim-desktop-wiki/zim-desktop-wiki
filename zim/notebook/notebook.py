@@ -503,7 +503,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		page._store()
 		file, folder = self.layout.map_page(page)
 		self.index.update_file(file)
-		page.modified = False
+		page.set_modified(False)
 		self.emit('stored-page', page)
 
 	@notebook_state
@@ -542,7 +542,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				# HACK: Checking modified state protects against race condition
 				# in async store. Works because pageview sets "page.modified"
 				# to a counter rather than a boolean
-				page.modified = False
+				page.set_modified(False)
 				self.emit('stored-page', page)
 
 	def wait_for_store_page_async(self):

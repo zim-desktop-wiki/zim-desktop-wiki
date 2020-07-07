@@ -417,13 +417,15 @@ class Page(Path, SignalEmitter):
 	The way replace an invalid page object is by calling
 	C{notebook.get_page(invalid_page)}.
 
-	@signal: C{page-changed (changed-on-disk)}: signal emitted on page
+	@signal: C{storage-changed (changed-on-disk)}: signal emitted on page
 	change. The argument "changed-on-disk" is C{True} when an external
 	edit was detected. For internal edits it is C{False}.
+	@signal: C{modified-changed ()}: emitted when the page is edited
 	'''
 
 	__signals__ = {
-		'page-changed': (SIGNAL_NORMAL, None, (bool,))
+		'storage-changed': (SIGNAL_NORMAL, None, (bool,)),
+		'modified-changed': (SIGNAL_NORMAL, None, ()),
 	}
 
 	def __init__(self, path, haschildren, file, folder, format):
@@ -433,9 +435,10 @@ class Page(Path, SignalEmitter):
 			# Note: this attribute is updated by the owning notebook
 			# when a child page is stored
 		self.valid = True
-		self.modified = False
+		self._modified = False
+		self._change_counter = 0
 		self._parsetree = None
-		self._ui_object = None
+		self._textbuffer = None
 		self._meta = None
 
 		self._readonly = None
@@ -465,17 +468,40 @@ class Page(Path, SignalEmitter):
 	@property
 	def hascontent(self):
 		'''Returns whether this page has content'''
-		if self._parsetree:
+		if self._textbuffer:
+			return self._textbuffer.hascontent
+		elif self._parsetree:
 			return self._parsetree.hascontent
-		elif self._ui_object:
-			tree = self._ui_object.get_parsetree()
-			if tree:
-				return tree.hascontent
-			else:
-				return False
 		else:
 			return self.source_file.exists()
 
+	@property
+	def modified(self):
+		return self._modified
+
+	def set_modified(self, modified):
+		if modified:
+			# HACK: by setting page.modified to a number rather than a
+			# bool we can use this number to check against race conditions
+			# in notebook.store_page_async post handler
+			self._change_counter = max(1, (self._change_counter + 1) % 1000)
+			self._modified = self._change_counter
+			assert bool(self._modified) is True, 'BUG in counter'
+		else:
+			self._modified = False
+		self.emit('modified-changed')
+
+	def on_buffer_modified_changed(self, buffer):
+		# one-way traffic, set page modified after modifying the buffer
+		# but do not set page.modified False again when buffer goes
+		# back to un-modified. Reason is that we use the buffer modified
+		# state to track if we already requested the parse tree (see
+		# get_parsetree()) while page modified is used to track need
+		# for saving and is reset after save was done
+		if buffer.get_modified():
+			if self.readonly:
+				logger.warn('Buffer edited while page read-only - potential bug')
+			self.set_modified(True)
 
 	def _store(self):
 		tree = self.get_parsetree()
@@ -507,6 +533,7 @@ class Page(Path, SignalEmitter):
 			self.source_file.remove()
 			self._last_etag = None
 			self._meta = None
+		self.emit('storage-changed', False)
 
 	def check_source_changed(self):
 		self._check_source_etag()
@@ -524,7 +551,7 @@ class Page(Path, SignalEmitter):
 			self._last_etag = None
 			self._meta = None
 			self._parsetree = None
-			self.emit('page-changed', True)
+			self.emit('storage-changed', True)
 		else:
 			pass # no check
 
@@ -557,10 +584,14 @@ class Page(Path, SignalEmitter):
 		'''
 		assert self.valid, 'BUG: page object became invalid'
 
-		if self._parsetree:
+		if self._textbuffer:
+			if self._textbuffer.get_modified() or self._parsetree is None:
+				self._parsetree = self._textbuffer.get_parsetree()
+				self._textbuffer.set_modified(False)
+			#~ print self._parsetree.tostring()
 			return self._parsetree
-		elif self._ui_object:
-			return self._ui_object.get_parsetree()
+		elif self._parsetree:
+			return self._parsetree
 		else:
 			try:
 				text, self._last_etag = self.source_file.read_with_etag()
@@ -588,12 +619,22 @@ class Page(Path, SignalEmitter):
 		if self.readonly:
 			raise PageReadOnlyError(self)
 
-		if self._ui_object:
-			self._ui_object.set_parsetree(tree)
-		else:
-			self._parsetree = tree
+		self._parsetree = tree
+		if self._textbuffer:
+			assert not self._textbuffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
+			try:
+				if tree is None:
+					self._textbuffer.clear()
+				else:
+					self._textbuffer.set_parsetree(tree)
+			except:
+				# Prevent auto-save to kick in at any cost
+				self._textbuffer.set_modified(False)
+				raise
+			else:
+				self._textbuffer.set_modified(False)
 
-		self.modified = True
+		self.set_modified(True)
 
 	def append_parsetree(self, tree):
 		'''Append content
@@ -606,24 +647,48 @@ class Page(Path, SignalEmitter):
 		else:
 			self.set_parsetree(tree)
 
-	def set_ui_object(self, object):
-		'''Lock the page to an interface widget
+	def get_textbuffer(self, constructor=None):
+		'''Get a C{Gtk.TextBuffer} for the page
 
-		Setting a "ui object" locks the page and turns it into a proxy
-		for that widget - typically a L{zim.gui.pageview.PageView}.
-		The "ui object" should in turn have a C{get_parsetree()} and a
-		C{set_parsetree()} method which will be called by the page object.
+		Will either return an existing buffer or construct a new one and return
+		it. A C{Gtk.TextBuffer} can be shared between multiple C{Gtk.TextView}s.
+		The page object owns the textbuffer to allow multiple views on the same
+		page.
 
-		@param object: a widget or similar object or C{None} to unlock
+		Once a buffer is set, also methods like L{get_parsetree()} and
+		L{get_parsetree()} will interact with this buffer.
+
+		@param constructor: if not buffer was set previously, this function
+		is called to construct the buffer.
+
+		@returns: a C{TextBuffer} object or C{None} if no buffer is set and
+		no constructor is provided.
 		'''
-		if object is None:
-			if self._ui_object:
-				self._parsetree = self._ui_object.get_parsetree()
-				self._ui_object = None
-		else:
-			assert self._ui_object is None, 'BUG: page already being edited by another widget'
-			self._parsetree = None
-			self._ui_object = object
+		if self._textbuffer is None:
+			if constructor is None:
+				return None
+
+			tree = self.get_parsetree()
+			self._textbuffer = constructor()
+			if tree is not None:
+				self._textbuffer.set_parsetree(tree)
+				self._textbuffer.set_modified(False)
+
+			self._textbuffer.connect('modified-changed', self.on_buffer_modified_changed)
+
+		return self._textbuffer
+
+	def reload_textbuffer(self):
+		if self._textbuffer is None:
+			raise AssertionError('This method is only supported when a textbuffer is set')
+		buffer = self._textbuffer
+		self._textbuffer = None
+		self._parsetree = None
+		tree = self.get_parsetree()
+		self._textbuffer = buffer
+		buffer.set_modified(False)
+		self.set_parsetree(tree)
+		self.set_modified(False)
 
 	def dump(self, format, linker=None):
 		'''Get content in a specific format

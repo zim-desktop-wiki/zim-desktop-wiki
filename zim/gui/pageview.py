@@ -506,8 +506,6 @@ class TextBuffer(Gtk.TextBuffer):
 	Emitted when textstyle at the cursor changes, gets the list of text styles or None.
 	@signal: C{link-clicked ()}:
 	Emitted when a link is clicked; for example within a table cell
-	@signal: C{clear ()}:
-	emitted to clear the whole buffer before destruction
 	@signal: C{undo-save-cursor (iter)}:
 	emitted in some specific case where the undo stack should
 	lock the current cursor position
@@ -531,7 +529,6 @@ class TextBuffer(Gtk.TextBuffer):
 		'end-insert-tree': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'inserted-tree': (GObject.SignalFlags.RUN_LAST, None, (object, object, object, object)),
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-		'clear': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'undo-save-cursor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'insert-objectanchor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-clicked': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -620,6 +617,7 @@ class TextBuffer(Gtk.TextBuffer):
 		self._renumbering = False
 		self.user_action = UserActionContext(self)
 		self.finder = TextFinder(self)
+		self.showing_template = False
 
 		for name in self._static_style_tags:
 			tag = self.create_tag('style-' + name, **self.tag_styles[name])
@@ -639,9 +637,19 @@ class TextBuffer(Gtk.TextBuffer):
 		self.connect('delete-range', self.__class__.do_pre_delete_range)
 		self.connect_after('delete-range', self.__class__.do_post_delete_range)
 
+		self.undostack = UndoStackManager(self)
+
 	#~ def do_begin_user_action(self):
 		#~ print('>>>> USER ACTION')
 		#~ pass
+
+	@property
+	def hascontent(self):
+		if self.showing_template:
+			return False
+		else:
+			start, end = self.get_bounds()
+			return not start.equal(end)
 
 	def do_end_user_action(self):
 		#~ print('<<<< USER ACTION')
@@ -663,10 +671,6 @@ class TextBuffer(Gtk.TextBuffer):
 			self._check_renumber = []
 
 	def clear(self):
-		'''Clear all content from the buffer'''
-		self.emit('clear')
-
-	def do_clear(self):
 		self.delete(*self.get_bounds())
 		if self._deleted_editmode_mark is not None:
 			self.delete_mark(self._deleted_editmode_mark)
@@ -688,23 +692,19 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		return SaveCursorContext(self, iter, gravity)
 
-	def set_parsetree(self, tree):
+	def set_parsetree(self, tree, showing_template=False):
 		'''Load a new L{ParseTree} in the buffer
 
 		This method replaces any content in the buffer with the new
 		parser tree.
 
 		@param tree: a L{ParseTree} object
+		@param showing_template: if C{True} the C{tree} represents a template
+		and not actual page content (yet)
 		'''
 		self.clear()
-		try:
-			self.insert_parsetree_at_cursor(tree)
-		except:
-			# Prevent auto-save to kick in at any cost
-			self.set_modified(False)
-			raise
-		else:
-			self.set_modified(False)
+		self.insert_parsetree_at_cursor(tree)
+		self.showing_template = showing_template # Set after modifying!
 
 	def insert_parsetree(self, iter, tree, interactive=False):
 		'''Insert a L{ParseTree} in the buffer
@@ -736,6 +736,7 @@ class TextBuffer(Gtk.TextBuffer):
 		in the buffer is handled.
 		'''
 		#print('INSERT AT CURSOR', tree.tostring())
+		tree.resolve_images(self.notebook, self.page)
 
 		# Check tree
 		root = tree._etree.getroot() # HACK - switch to new interface !
@@ -1296,6 +1297,16 @@ class TextBuffer(Gtk.TextBuffer):
 			return anchor
 		else:
 			return None
+
+	def list_objectanchors(self):
+		start, end = self.get_bounds()
+		match = start.forward_search(PIXBUF_CHR, 0)
+		while match:
+			start, end = match
+			anchor = start.get_child_anchor()
+			if anchor and isinstance(anchor, InsertedObjectAnchor):
+				yield anchor
+			match = end.forward_search(PIXBUF_CHR, 0)
 
 	def set_bullet(self, line, bullet, indent=None):
 		'''Sets the bullet type for a line
@@ -2384,6 +2395,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 		@returns: a L{ParseTree} object
 		'''
+		if self.showing_template:
+			return None
+
 		if bounds is None:
 			start, end = self.get_bounds()
 			attrib = {}
@@ -3030,7 +3044,6 @@ class TextBuffer(Gtk.TextBuffer):
 			self.delete_mark(mark)
 
 			self.place_cursor(iter)
-			parsetree.resolve_images(self.notebook, self.page)
 			self.insert_parsetree_at_cursor(parsetree, interactive=True)
 
 
@@ -3696,8 +3709,20 @@ class TextView(Gtk.TextView):
 		self.connect_after('motion-notify-event', self.__class__.on_motion_notify_event)
 
 	def set_buffer(self, buffer):
-		buffer.connect('insert-objectanchor', self.on_insert_object)
+		# Clear old widgets
+		for child in self.get_children():
+			if isinstance(child, InsertedObjectWidget):
+				self._object_widgets.remove(child)
+				self.remove(child)
+
+		# Set new buffer
 		Gtk.TextView.set_buffer(self, buffer)
+
+		# Connect new widgets
+		for anchor in buffer.list_objectanchors():
+			self.on_insert_object(buffer, anchor)
+
+		buffer.connect('insert-objectanchor', self.on_insert_object)
 
 	def on_insert_object(self, buffer, anchor):
 		# Connect widget for this view to object
@@ -4665,9 +4690,6 @@ class UndoStackManager:
 		#~ self.buffer.connect_object('end-insert-tree',
 			#~ self.__class__.unblock, self)
 
-		self.buffer.connect_object('clear',
-			self.__class__.clear, self)
-
 		#~ self.buffer.connect_object('edit-textstyle-changed',
 			#~ self.__class__._flush_if_typing, self)
 		#~ self.buffer.connect_object('set-mark',
@@ -4695,16 +4717,6 @@ class UndoStackManager:
 			for id in self.recording_handlers:
 				self.buffer.handler_unblock(id)
 			self.block_count = 0
-
-	def clear(self):
-		'''Clear the undo stack'''
-		self.stack = []
-		self.group = UndoActionGroup()
-		self.interactive = False
-		self.insert_pending = False
-		self.undo_count = 0
-		self.block_count = 0
-		self.block()
 
 	def do_save_cursor(self, buffer, iter):
 		# Store the cursor position
@@ -4994,16 +5006,10 @@ class SavePageHandler(object):
 			if page:
 				try:
 					self._assert_can_save_page(page)
-
-					## HACK - otherwise we get a bug when saving a new page immediatly
-					# hasattr assertions used to detect when the hack breaks
-					assert hasattr(page, '_ui_object')
-					if page._ui_object:
-						assert hasattr(page._ui_object, '_showing_template')
-						page._ui_object._showing_template = False
-					##
-
 					logger.debug('Saving page: %s', page)
+					buffer = page.get_textbuffer()
+					if buffer:
+						buffer.showing_template = False # allow save_page to save template content
 					#~ assert False, "TEST"
 					self.notebook.store_page(page)
 
@@ -5107,12 +5113,7 @@ discarded, but you can restore the copy later.''')
 			button.show()
 
 	def discard(self):
-		self.page.set_ui_object(None) # unhook
-		self.pageview.clear()
-			# issue may be caused in pageview - make sure it unlocks
-		self.page._parsetree = None # removed cached tree
-		self.page.modified = False
-		self.pageview.set_page(self.page)
+		self.page.reload_textbuffer()
 		self._done = True
 
 	def save_copy(self):
@@ -5283,7 +5284,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	L{set_readonly()} for details
 	@ivar secondary: hint that the PageView is running in a secondairy
 	window (instead of the main window)
-	@ivar undostack: the L{UndoStackManager} object for
 	@ivar view: the L{TextView} child object
 	@ivar find_bar: the L{FindBar} child widget
 	@ivar preferences: a L{ConfigDict} with preferences
@@ -5340,10 +5340,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.secondary = secondary
 		if self.secondary:
 			self._readonly_set = True # HACK
-		self.undostack = None
 		self._current_toggle_action = None
-		self._showing_template = False
-		self._change_counter = 0
 		self.ui_is_initialized = False
 		self._caret_link = None
 
@@ -5435,7 +5432,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		)
 		self._save_page_handler = SavePageHandler(
 			self, notebook,
-			self.get_page,
+			lambda: self.page,
 			timeout=if_preferences['autosave_timeout'],
 			use_thread=if_preferences['autosave_use_thread']
 		)
@@ -5582,59 +5579,31 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		for existing pages or to the end of the template when the page
 		does not yet exist.
 		'''
-		# unhook from previous page
-		if self.page:
-			self.page.set_ui_object(None)
-		else:
+		if self.page is None:
 			# first run - bootstrap HACK
 			self._connect_focus_event()
 
-		# for some reason keeping a copy of the previous buffer
-		# prevents a number of segfaults ...
-		# we do clear the old buffer to save some memory
-		if self.undostack:
-			self.undostack.block()
-			self.undostack = None
-
-		self._prev_buffer = self.textview.get_buffer()
-		finderstate = self._prev_buffer.finder.get_state()
-
-		for child in self.textview.get_children():
-			if isinstance(child, InsertedObjectWidget):
-				self.textview.remove(child)
-
+		# Teardown connection with current page buffer
+		prev_buffer = self.textview.get_buffer()
+		finderstate = prev_buffer.finder.get_state()
 		for id in self._buffer_signals:
-			self._prev_buffer.disconnect(id)
+			prev_buffer.disconnect(id)
 		self._buffer_signals = ()
-		start, end = self._prev_buffer.get_bounds()
-		self._prev_buffer.clear()
 
 		# now create the new buffer
 		self._readonly_set_error = False
 		try:
 			self.page = page
-			buffer = TextBuffer(self.notebook, self.page)
+			buffer = page.get_textbuffer(self._create_textbuffer)
 			self._buffer_signals = (
 				buffer.connect('end-insert-tree', self._hack_on_inserted_tree),
 			)
 
 			self.textview.set_buffer(buffer)
-			tree = page.get_parsetree()
 
-			if tree is None:
-				# TODO check read-only
-				template = True
-				tree = self.notebook.get_template(page)
-				if cursor is None:
-					cursor = -1
-			else:
-				template = False
-				if cursor is None:
-					cursor = 0
+			if cursor is None:
+				cursor = -1 if buffer.showing_template else 0
 
-			self.set_parsetree(tree, template)
-			if not self.secondary:
-				page.set_ui_object(self) # only after successful set tree in buffer
 		except Exception as error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self._readonly_set_error = True
@@ -5642,6 +5611,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.set_sensitive(False)
 			ErrorDialog(self, error).run()
 		else:
+
 			# Finish hooking up the new page
 			self.set_cursor_pos(cursor)
 
@@ -5653,99 +5623,45 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 			buffer.finder.set_state(*finderstate) # maintain state
 
-			self.undostack = UndoStackManager(buffer)
 			self.set_sensitive(True)
 			self._update_readonly()
 
 			self.emit('page-changed', self.page)
 
-	def get_page(self):
-		'''Get the current page
-		@returns: the current L{Page} object
-		'''
-		return self.page
+	def _create_textbuffer(self):
+		# Callback for page.get_textbuffer
+		tree = self.page.get_parsetree()
+		buffer = TextBuffer(self.notebook, self.page)
+
+		if tree is None and not self.page.readonly or self.readonly:
+			# HACK: using None value instead of "hascontent" to distinguish
+			# between a page without source and an existing empty page
+			tree = self.notebook.get_template(self.page)
+			buffer.set_parsetree(tree, showing_template=True)
+			buffer.set_modified(False)
+
+		return buffer
 
 	def on_modified_changed(self, buffer):
-		# one-way traffic, set page modified after modifying the buffer
-		# but do not set page.modified False again when buffer goes
-		# back to un-modified. Reason is that we use the buffer modified
-		# state to track if we already requested the parse tree (see
-		# get_parsetree()) while page modified is used to track need
-		# for saving and is reset after save was done
-		self._showing_template = False
 		if buffer.get_modified():
 			if self.readonly:
-				logger.warn('Buffer edited while read-only - potential bug')
+				logger.warn('Buffer edited while textview read-only - potential bug')
 			else:
-				# HACK: by setting page.modified to a number rather than a
-				# bool we can use this number to check against race conditions
-				# in notebook.store_page_async post handler
-				self._change_counter = max(1, (self._change_counter + 1) % 1000)
-				self.page.modified = self._change_counter
-				assert bool(self.page.modified) is True, 'BUG in counter'
+				buffer.showing_template = False
 				self.emit('modified-changed')
-
 				self._save_page_handler.queue_autosave()
 
 	def save_changes(self, write_if_not_modified=False):
 		'''Save contents of the widget back to the page object and
 		synchronize it with the notebook.
+
 		@param write_if_not_modified: If C{True} page will be written
-		even if there are no changes in the widget.
+		even if it is not changed. (This allows e.g. to force saving template
+		content to disk without editing.)
 		'''
-		buffer = self.textview.get_buffer()
-		if write_if_not_modified or buffer.get_modified():
+		if write_if_not_modified or self.page.modified:
 			self._save_page_handler.save_page_now()
 		self._save_page_handler.wait_for_store_page_async()
-
-	def clear(self):
-		'''Clear the buffer'''
-		# Called e.g. by "discard changes" maybe due to an exception in
-		# buffer.get_parse_tree() - so just drop everything...
-		buffer = self.textview.get_buffer()
-		buffer.clear()
-		buffer.set_modified(False)
-		self._showing_template = False
-
-	def get_parsetree(self):
-		'''Get the L{ParseTree} for the content in the widget
-
-		Note that calling
-		L{Page.get_parsetree()<zim.notebook.Page.get_parsetree()>}
-		for the current page will call also call this method by proxy.
-
-		@returns: a L{ParseTree} object
-		'''
-		if self._showing_template:
-			return None
-		else:
-			buffer = self.textview.get_buffer()
-			if not hasattr(self, '_parsetree') or buffer.get_modified():
-				self._parsetree = buffer.get_parsetree()
-				buffer.set_modified(False)
-			#~ print self._parsetree.tostring()
-			return self._parsetree
-
-	def set_parsetree(self, tree, istemplate=False):
-		'''Set the L{ParseTree} for the content in the widget
-
-		Be aware that this will set new content in the current page
-		and modify the page.
-
-		Note that calling
-		L{Page.set_parsetree()<zim.notebook.Page.set_parsetree()>}
-		for the current page will call also call this method by proxy.
-
-		@param tree: a L{ParseTree} object
-		@param istemplate: C{True} when the tree is a page template
-		instead of the page content
-		'''
-		buffer = self.textview.get_buffer()
-		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
-		tree.resolve_images(self.notebook, self.page)
-		buffer.set_parsetree(tree)
-		self._parsetree = tree
-		self._showing_template = istemplate
 
 	def _hack_on_inserted_tree(self, *a):
 		if self.textview._object_widgets:
@@ -5776,9 +5692,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def on_insertedobjecttypemap_changed(self, *a):
 		self.save_changes()
-		buffer = self.textview.get_buffer()
-		tree = buffer.get_parsetree()
-		self.set_parsetree(tree, self._showing_template)
+		self.page.reload_textbuffer()
 
 	def set_readonly(self, readonly):
 		'''Set the widget read-only or not
@@ -6288,18 +6202,20 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		while saving a page. If that dialog is cancelled by the user,
 		the page may not be saved after all.
 		'''
-		self.save_changes(write_if_not_modified=True) # XXX
+		self.save_changes(write_if_not_modified=True)
 
 	@action(_('_Undo'), '<Primary>Z', menuhints='edit') # T: Menu item
 	def undo(self):
 		'''Menu action to undo a single step'''
-		self.undostack.undo()
+		buffer = self.textview.get_buffer()
+		buffer.undostack.undo()
 		self.scroll_cursor_on_screen()
 
 	@action(_('_Redo'), '<Primary><shift>Z', alt_accelerator='<Primary>Y', menuhints='edit') # T: Menu item
 	def redo(self):
 		'''Menu action to redo a single step'''
-		self.undostack.redo()
+		buffer = self.textview.get_buffer()
+		buffer.undostack.redo()
 		self.scroll_cursor_on_screen()
 
 	@action(_('Cu_t'), '<Primary>X', menuhints='edit') # T: Menu item

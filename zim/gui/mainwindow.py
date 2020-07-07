@@ -362,7 +362,6 @@ class MainWindow(Window):
 		self.pageview.save_changes()
 		if self.page.modified:
 			return # Do not quit if page not saved
-		self.pageview.page.set_ui_object(None) # XXX
 
 		self._do_close()
 
@@ -377,7 +376,7 @@ class MainWindow(Window):
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
 	def do_update_statusbar(self, *a):
-		page = self.pageview.get_page()
+		page = self.pageview.page
 		if not page:
 			return
 		label = page.name

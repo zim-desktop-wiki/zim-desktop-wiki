@@ -46,7 +46,7 @@ class TestBackwardImageGeneratorNoPlugins(tests.TestCase):
 
 		pageview = setUpPageView(notebook, text='{{./test.png?type=equation}}')
 		pageview.textview.get_buffer().set_modified(True)
-		tree = pageview.get_parsetree()
+		tree = pageview.page.get_parsetree()
 		text = WikiDumper().dump(tree)
 		self.assertEquals(text, ['{{./test.png?type=equation}}\n'])
 

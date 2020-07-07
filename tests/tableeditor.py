@@ -146,7 +146,7 @@ class TestPageViewNoPlugin(tests.TestCase):
 			text=TABLE_WIKI_TEXT,
 		)
 		pageview.textview.get_buffer().set_modified(True) # Force re-interpretation of the buffer
-		tree = pageview.get_parsetree()
+		tree = pageview.page.get_parsetree()
 		self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS)
 
 
@@ -172,7 +172,7 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 		#self.assertTrue(pageview.textview.get_buffer().get_modified())
 
 		# test modification ends up in page
-		tree = pageview.get_parsetree()
+		tree = pageview.page.get_parsetree()
 		#print(tree.tostring())
 		elt = tree.find('table')
 		self.assertIsNotNone(elt)
@@ -189,7 +189,7 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 		with tests.DialogContext(insert_table):
 			action.activate()
 
-		tree = window.pageview.get_parsetree()
+		tree = window.pageview.page.get_parsetree()
 		elt = tree.find('table')
 		self.assertIsNotNone(elt)
 
@@ -204,7 +204,7 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 		with tests.DialogContext(cancel_dialog):
 			action.activate()
 
-		tree = window.pageview.get_parsetree()
+		tree = window.pageview.page.get_parsetree()
 		elt = tree.find('table')
 		self.assertIsNone(elt)
 
