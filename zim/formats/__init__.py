@@ -782,7 +782,7 @@ class ParseTreeBuilder(Builder):
 		return zim.formats.ParseTree(root)
 
 	def start(self, tag, attrib=None):
-		attrib = attrib.copy() if attrib is not None else None
+		attrib = attrib.copy() if attrib is not None else {}
 		self._b.start(tag, attrib)
 		self.stack.append(tag)
 		if tag in BLOCK_LEVEL:
