@@ -504,12 +504,14 @@ class PageTreeView(BrowserTreeView):
 	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, time):
 		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		data = selectiondata.get_data()
+		logger.debug('Drag data recieved: %r', data)
 		if data is None:
 			data = zim.gui.clipboard._internal_selection_data # HACK issue #390
 			zim.gui.clipboard._internal_selection_data = None
+			logger.debug('Got data via workaround: %s', data)
 
 		names = unpack_urilist(data)
-		assert len(names) == 1
+		assert len(names) == 1, 'Could not get pagenames from: %r' % data
 		source = Path(names[0])
 
 		dest_row = self.get_dest_row_at_pos(x, y)
