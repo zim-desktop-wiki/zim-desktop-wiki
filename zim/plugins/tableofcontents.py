@@ -140,6 +140,8 @@ class ToCPageViewExtension(PageViewExtension):
 		if not isinstance(self.tocwidget, widgetclass):
 			if isinstance(self.tocwidget, SidePaneToC):
 				self.remove_sidepane_widget(self.tocwidget)
+			elif self.tocwidget:
+				self.tocwidget.destroy()
 
 			self.tocwidget = widgetclass(self.pageview)
 
@@ -561,7 +563,7 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 
 	def update_size_and_position(self, *a):
 		model = self.tocwidget.treeview.get_model()
-		if model.is_empty:
+		if model is None or model.is_empty:
 			self.hide()
 			return
 		else:
