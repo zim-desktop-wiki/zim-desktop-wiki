@@ -393,6 +393,16 @@ A list
 			found += 1
 		self.assertEqual(found, 3)
 
+	def testNoURLWithinLink(self):
+		# Ensure nested URL is not parsed
+		text = '[[http://link.com/23060.html|//http://link.com/23060.html//]]'
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><link href="http://link.com/23060.html"><emphasis>http://link.com/23060.html</emphasis></link>
+</p></zim-tree>'''
+		tree = self.format.Parser().parse(text)
+		self.assertEqual(tree.tostring(), xml)
+
 	def testBackwardVerbatim(self):
 		'''Test backward compatibility for wiki format'''
 		input = '''\
