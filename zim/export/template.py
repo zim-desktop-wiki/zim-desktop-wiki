@@ -424,7 +424,10 @@ class ParseTreeProxy(object):
 
 	@property
 	def meta(self):
-		return self._tree.meta or {}
+		if self._tree:
+			return self._tree.meta or {}
+		else:
+			return {}
 
 	@property
 	def heading(self):
