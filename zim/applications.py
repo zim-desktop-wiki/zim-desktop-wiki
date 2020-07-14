@@ -201,12 +201,6 @@ class Application(object):
 			argv = list(argv)
 			argv[0] = cmd
 
-		# if it is a python script, insert interpreter as the executable
-		if argv[0].endswith('.py') and not _main_is_frozen():
-			argv = list(argv)
-			argv.insert(0, sys.executable)
-		# TODO: consider an additional commandline arg to re-use compiled python interpreter
-
 		if hasattr(cwd, 'path'):
 			cwd = cwd.path
 
