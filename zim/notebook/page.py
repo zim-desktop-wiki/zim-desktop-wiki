@@ -426,7 +426,7 @@ class Page(Path, SignalEmitter):
 		'page-changed': (SIGNAL_NORMAL, None, (bool,))
 	}
 
-	def __init__(self, path, haschildren, file, folder):
+	def __init__(self, path, haschildren, file, folder, format):
 		assert isinstance(path, Path)
 		self.name = path.name
 		self.haschildren = haschildren
@@ -440,7 +440,10 @@ class Page(Path, SignalEmitter):
 
 		self._readonly = None
 		self._last_etag = None
-		self.format = zim.formats.get_format('wiki') # TODO make configurable
+		if isinstance(format, str):
+			self.format = zim.formats.get_format(format)
+		else:
+			self.format = format
 		self.source = SourceFile(file.path) # XXX
 		self.source_file = file
 		self.attachments_folder = folder

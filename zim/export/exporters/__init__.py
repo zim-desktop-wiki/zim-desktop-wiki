@@ -73,6 +73,6 @@ def createIndexPage(notebook, path, section=None):
 		tree = builder.get_parsetree()
 		#~ print("!!!", tree.tostring())
 
-		indexpage = Page(path, False, MockFile('/index'), None)
+		indexpage = Page(path, False, MockFile('/index'), None, 'wiki')
 		indexpage.set_parsetree(tree)
 		return indexpage

@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 
@@ -56,6 +56,9 @@ class NotebookConfig(INIConfigFile):
 			('shared', Boolean(True)),
 			('endofline', Choice(endofline, {'dos', 'unix'})),
 			('disable_trash', Boolean(False)),
+			('default_file_format', String('zim-wiki')),
+			('default_file_extension', String('.txt')),
+			('notebook_layout', String('files')),
 		))
 
 
@@ -238,17 +241,25 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		from .layout import FilesLayout
 
 		config = NotebookConfig(dir.file('notebook.zim'))
-		endofline = config['Notebook']['endofline']
-		shared = config['Notebook']['shared']
 
-		subdir = dir.subdir('.zim')
-		if not shared and subdir.exists() and _iswritable(subdir):
-			cache_dir = subdir
-		else:
+		if config['Notebook']['shared']:
 			cache_dir = _cache_dir_for_dir(dir)
+		else:
+			cache_dir = dir.subdir('.zim')
+			if not (cache_dir.exists() and _iswritable(cache_dir)):
+				cache_dir = _cache_dir_for_dir(dir)
 
 		folder = LocalFolder(dir.path)
-		layout = FilesLayout(folder, endofline)
+		if config['Notebook']['notebook_layout'] == 'files':
+			layout = FilesLayout(
+				folder,
+				config['Notebook']['endofline'],
+				config['Notebook']['default_file_format'],
+				config['Notebook']['default_file_extension']
+			)
+		else:
+			raise ValueError('Unkonwn notebook layout: %s' % config['Notebook']['notebook_layout'])
+
 		cache_dir.touch() # must exist for index to work
 		index = Index(cache_dir.file('index.db').path, layout)
 
@@ -413,7 +424,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			file, folder = self.layout.map_page(path)
 			folder = self.layout.get_attachments_folder(path)
-			page = Page(path, False, file, folder)
+			format = self.layout.get_format(file)
+			page = Page(path, False, file, folder, format)
 			try:
 				indexpath = self.pages.lookup_by_pagename(path)
 			except IndexNotFoundError:
