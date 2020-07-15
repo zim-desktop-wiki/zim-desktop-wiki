@@ -7,7 +7,9 @@ block_cipher = None
 a = Analysis( # noqa
     ['../build/venv/bin/zim_launch.py'],
     pathex=['../build'],
-    binaries=[],
+    binaries=[
+        ('C:\\msys64\\mingw64\\bin\\gspawn-win64-helper.exe', '.'),
+    ],
     datas=[
         ('../build/venv/share', 'share'),
         ('../../zim/plugins', 'share/zim/plugins'),
