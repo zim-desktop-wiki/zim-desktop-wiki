@@ -332,9 +332,9 @@ class FileBrowserIconView(Gtk.IconView):
 			pathinfo = iconview.get_path_at_pos(x, y)
 			if pathinfo is not None:
 				iconview.grab_focus()
-				gtk_popup_at_pointer(popup_menu, event)
 				self.do_populate_popup(popup_menu, pathinfo)
 					# FIXME should use a signal here
+				gtk_popup_at_pointer(popup_menu, event)
 				return True
 		return False
 

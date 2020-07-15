@@ -355,8 +355,8 @@ class ImageGeneratorDialog(Dialog):
 		self.logbutton.set_sensitive(self.log_file is not None)
 
 	def show_log(self):
-		assert self.logfile, 'BUG: no logfile set (yet)'
-		LogFileDialog(self, self.logfile).run()
+		assert self.log_file, 'BUG: no log_file set (yet)'
+		LogFileDialog(self, self.log_file).run()
 
 	def do_response_ok(self):
 		buffer = self.textview.get_buffer()

@@ -1885,7 +1885,7 @@ class PageEntry(InputEntry):
 			except IndexNotFoundError:
 				pass
 
-		elif text.startswith('+'):
+		elif text.startswith('+') and self.notebookpath:
 			prefix = '+'
 			path = self.notebookpath
 
@@ -1921,7 +1921,7 @@ class PageEntry(InputEntry):
 
 
 	def _fill_completion_any(self, path, text):
-		#print "COMPLETE ANY", path, text
+		#print("COMPLETE ANY", path, text)
 		# Complete all matches of "text"
 		# start with children and peers, than peers of parents, than rest of tree
 		completion = self.get_completion()
@@ -1930,9 +1930,13 @@ class PageEntry(InputEntry):
 		# TODO: use SQL to list all at once instead of walking and filter on "text"
 		#       do better sorting as well ?
 
-		def relative_link(target):
-			href = self.notebook.pages.create_link(path, target)
-			return href.to_wiki_link()
+		if path.isroot:
+			def relative_link(target):
+				return target.name
+		else:
+			def relative_link(target):
+				href = self.notebook.pages.create_link(path, target)
+				return href.to_wiki_link()
 
 		model = completion.get_model()
 		searchpath = list(path.parents())

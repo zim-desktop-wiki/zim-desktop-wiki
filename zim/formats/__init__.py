@@ -200,6 +200,10 @@ def canonical_name(name):
 		return name
 
 
+_aliases = {
+	'zim-wiki': 'wiki',
+}
+
 def get_format(name):
 	'''Returns the module object for a specific format.'''
 	# If this method is removes, class names in formats/*.py can be made more explicit
@@ -213,6 +217,7 @@ def get_format_module(name):
 	@param name: the format name
 	@returns: a module object
 	'''
+	name = _aliases.get(name, name)
 	return zim.plugins.get_module('zim.formats.' + canonical_name(name))
 
 
@@ -782,7 +787,7 @@ class ParseTreeBuilder(Builder):
 		return zim.formats.ParseTree(root)
 
 	def start(self, tag, attrib=None):
-		attrib = attrib.copy() if attrib is not None else None
+		attrib = attrib.copy() if attrib is not None else {}
 		self._b.start(tag, attrib)
 		self.stack.append(tag)
 		if tag in BLOCK_LEVEL:

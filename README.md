@@ -28,7 +28,7 @@ Zim can be used to:
 Most linux distributions include zim in their package repository. On debian and
 ubuntu to package is simply called "zim".
 
-A windows installer can be found here: https://zim.glump.net/windows/
+Debian/Ubuntu packages and a windows installer can be found via https://zim-wiki.org/downloads.html
 
 On Mac OS X, zim can be installed from Homebrew using,
 

@@ -954,7 +954,7 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 				[('B', 'C'), ('B', 'C:A1'), ('B', 'D')]
 			)
 		)
-		
+
 	def testMovePlaceholder(self):
 		self.movePage(
 			pre=(
@@ -1089,7 +1089,7 @@ class TestPage(TestPath):
 		from zim.newfs.mock import MockFile, MockFolder
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
-		return Page(Path(name), False, file, folder)
+		return Page(Path(name), False, file, folder, 'wiki')
 
 	def testPageObject(self):
 		'''Test Page object'''
@@ -1128,7 +1128,7 @@ class TestPage(TestPath):
 		from zim.newfs.mock import MockFile, MockFolder
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
-		page = Page(Path('Foo'), False, file, folder)
+		page = Page(Path('Foo'), False, file, folder, 'wiki')
 
 		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
 		tree.set_heading_text("Foo")
@@ -1143,7 +1143,7 @@ class TestPage(TestPath):
 
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
-		page = Page(Path('Foo'), False, file, folder)
+		page = Page(Path('Foo'), False, file, folder, 'wiki')
 
 		self.assertFalse(page.readonly)
 		self.assertFalse(page.hascontent)
@@ -1151,7 +1151,7 @@ class TestPage(TestPath):
 		self.assertIsNone(page.mtime)
 		self.assertIsNone(page.get_parsetree())
 
-		page1 = Page(Path('Foo'), False, file, folder)
+		page1 = Page(Path('Foo'), False, file, folder, 'wiki')
 		self.assertTrue(page.isequal(page1))
 
 		tree = ParseTree().fromstring('''\
@@ -1190,7 +1190,7 @@ class TestPage(TestPath):
 		### Custom header should be preserved
 		### Also when setting new ParseTree - e.g. after edting
 		file.writelines(lines[0:3] + ['X-Custom-Header: MyTest'] + lines[3:])
-		page = Page(Path('Foo'), False, file, folder)
+		page = Page(Path('Foo'), False, file, folder, 'wiki')
 		tree = page.get_parsetree()
 		page.set_parsetree(tree)
 		page._store()

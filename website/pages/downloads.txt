@@ -31,7 +31,7 @@ There is also a PPA with updates for zim [[https://launchpad.net/~jaap.karssenbe
 
 {{/images/os-windows.gif?width=24}}  **Windows**
 
-A windows installer can be found [[https://zim.glump.net/windows/|here]].
+A windows installer can also be found [[/downloads/|here]].
 
 {{/images/os-apple.png?width=24}}  ** Mac OS X**
 

@@ -70,10 +70,7 @@ class FilesLayout(NotebookLayout):
 	like-named file.
 	'''
 
-	default_extension = '.txt'
-	default_format = get_format('wiki')
-
-	def __init__(self, folder, endofline=_EOL):
+	def __init__(self, folder, endofline=_EOL, default_format='wiki', default_extension='.txt'):
 		'''Constructor
 		@param folder: a L{Folder} object
 		@param endofline: either "dos" or "unix", default per OS
@@ -81,6 +78,12 @@ class FilesLayout(NotebookLayout):
 		assert isinstance(folder, Folder)
 		self.root = folder
 		self.endofline = endofline
+
+		if not default_extension.startswith('.'):
+			default_extension = '.' + default_extension
+
+		self.default_extension = default_extension
+		self.default_format = get_format(default_format)
 
 	def map_page(self, pagename):
 		'''Map a pagename to a (default) file

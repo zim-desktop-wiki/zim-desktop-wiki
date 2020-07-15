@@ -266,6 +266,9 @@ class ExpressionFunctionCall(Expression):
 		## getitem dict / getattr objects / getattr on wrapper
 		obj = self.param.parent(context)
 		name = self.param.key
+		if obj is None:
+			raise AssertionError('No such object: %s' % self.param.parent.name)
+
 		try:
 			function = obj[name]
 			if not isinstance(function, ExpressionFunction):
@@ -337,7 +340,11 @@ class ExpressionFunction(object):
 	def __repr__(self):
 		# Also shows up when function parameter is used, but not called
 		# (TemplateToolkit allow implicit call - we don't !)
-		return "<%s: %s()>" % (self.__class__.__name__, self._func.__name__)
+		try:
+			return "<%s: %s()>" % (self.__class__.__name__, self._func.__name__)
+		except:
+			# Partial functions don't have a __name__ attribute
+			return "<%s: %r()>" % (self.__class__.__name__, self._func)
 
 
 class BoundExpressionFunction(ExpressionFunction):
