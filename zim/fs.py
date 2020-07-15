@@ -32,7 +32,7 @@ logger = logging.getLogger('zim.fs')
 
 from zim.newfs.base import _os_expanduser, SEP
 from zim.newfs.local import AtomicWriteContext
-
+from zim.newfs.local import get_tmpdir as _newfs_get_tmpdir
 
 def adapt_from_newfs(file):
 	from zim.newfs import LocalFile, LocalFolder
@@ -114,6 +114,7 @@ def isabs(path):
 	or os.path.isabs(path)
 
 
+_tmpdir = None
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
 	This zim specific temp folder has permission set to be readable
@@ -121,12 +122,13 @@ def get_tmpdir():
 	Used as base folder by L{TmpFile}.
 	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
+	global _tmpdir
 
-	if get_tmpdir.dir is None:
-		get_tmpdir.dir = Dir(tempfile.mkdtemp(prefix='zim-'))
+	if _tmpdir is None:
+		localdir = _newfs_get_tmpdir()
+		_tmpdir = Dir(localdir.path)
 
-	return get_tmpdir.dir
-get_tmpdir.dir = None
+	return _tmpdir
 
 
 def normalize_file_uris(path):

@@ -91,10 +91,10 @@ except:
 	Pango = None
 	logger.warn('Could not load pango - RTL scripts may look bad')
 
+import xml.etree.ElementTree # needed to compile with cElementTree
 try:
 	import xml.etree.cElementTree as ElementTreeModule
 except:  #pragma: no cover
-	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
 
 
@@ -310,10 +310,13 @@ class ParseTree(object):
 		'''Serialize the tree to a XML representation'''
 		from io import StringIO
 
-		# Parent dies when we have attributes that are not a string
+		# HACK: Force sorting of attrib - else change in python3.8 breaks test cases
+		# Ensure all attrib are string, else ElementTree fails
 		for element in self._etree.getiterator('*'):
-			for key in list(element.attrib.keys()):
-				element.attrib[key] = str(element.attrib[key])
+			myattrib = element.attrib.copy()
+			element.attrib.clear()
+			for key in sorted(myattrib.keys()):
+				element.attrib[key] = str(myattrib[key])
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")

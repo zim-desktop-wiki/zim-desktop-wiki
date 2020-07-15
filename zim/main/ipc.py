@@ -33,8 +33,7 @@ except ImportError:
 
 
 import zim
-import zim.fs
-
+from zim.parsing import url_encode, URL_ENCODE_READABLE
 
 logger = logging.getLogger('zim.ipc')
 
@@ -63,15 +62,35 @@ key = zim.__version__ + '-' + _m.hexdigest()[:8]
 
 if sys.platform == 'win32':
 	# Windows named pipe
-	userstring = zim.fs.get_tmpdir().basename # "zim-$USER" without unicode!
-	SERVER_ADDRESS = '\\\\.\\pipe\\%s-%s-primary' % (userstring, key)
+	userstring = url_encode(os.environ['USER'], URL_ENCODE_READABLE)
+	SERVER_ADDRESS = '\\\\.\\pipe\\zim-%s-%s' % (userstring, key)
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 	from multiprocessing.connection import PipeListener
 	Listener = PipeListener
 else:
 	# Unix domain socket
-	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('primary-%s' % key).path)
-		# BUG in multiprocess, name must be str instead of basestring
+	runtime_dir = os.environ.get('XDG_RUNTIME_DIR')
+	if runtime_dir is None:
+		# Use tmpdir as fallback
+		import tempfile
+		tmpdir = tempfile.gettempdir()
+		userstring = url_encode(os.environ['USER'], URL_ENCODE_READABLE)
+		runtime_dir = tmpdir + '/zim-' + userstring
+		logger.warn('XDG_RUNTIME_DIR is not set, using %s as a fallback' % runtime_dir)
+
+	try:
+		os.mkdir(runtime_dir, mode=0o700)
+		os.chmod(runtime_dir, 0o700) # Limit to single user when dir already existed
+			# Raises OSError if not allowed to chmod
+		os.listdir(runtime_dir)
+			# Raises OSError if we do not have access anymore
+	except FileExistsError:
+		pass
+	except OSError:
+		raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n'
+			'If you can not resolve this, try setting $XDG_RUNTIME_DIR or set $TMP to a different location.' % runtime_dir)
+
+	SERVER_ADDRESS = runtime_dir + '/zim-' + key
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 	Listener = SocketListener
 

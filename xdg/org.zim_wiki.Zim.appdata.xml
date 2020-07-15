@@ -35,6 +35,17 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2020-06-19" version="0.73.1">
+      <description>
+        <ul>
+          <li>Fix regression for opening single instance</li>
+          <li>Fix exception on toggle format</li>
+          <li>Fix failing tests due to change in sorting python3.8</li>
+          <li>Make robust for deprecation of cElementTree in python3.9</li>
+          <li>Improve tmpdir usage by using tempfile.mkdtemp()</li>
+        </ul>
+      </description>
+    </release>
     <release date="2020-06-06" version="0.73.0">
       <description>
         <ul>

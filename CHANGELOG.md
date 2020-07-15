@@ -5,6 +5,13 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.73.1 - Fri 19 Jun 2020
+* Fix regression for opening single instance
+* Fix exception on toggle format
+* Fix failing tests due to change in sorting python3.8
+* Make robust for deprecation of cElementTree in python3.9
+* Improve tmpdir usage by using tempfile.mkdtemp()
+
 ##  0.73.0 - Sat 06 Jun 2020
 * Add ability to combine formatting styles in editor
 * Improve URL and link parsing to look for matching brackets

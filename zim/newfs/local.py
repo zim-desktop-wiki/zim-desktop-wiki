@@ -423,34 +423,20 @@ class LocalFile(LocalFSObjectBase, File):
 		if cleanup:
 			self._cleanup()
 
-
-
+_tmpdir = None
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
 	This zim specific temp folder has permission set to be readable
 	only by the current users, and is touched if it didn't exist yet.
 	Used as base folder by L{TmpFile}.
-	@returns: a L{LocalFolder} object for the zim specific tmp folder
+	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
-	# We encode the user name using urlencoding to remove any non-ascii
-	# characters. This is because sockets are not always unicode safe.
+	global _tmpdir
 
-	root = tempfile.gettempdir()
-	name = url_encode(os.environ['USER'], URL_ENCODE_READABLE)
-	dir = LocalFolder(tempfile.gettempdir()).folder('zim-%s' % name)
+	if _tmpdir is None:
+		_tmpdir = LocalFolder(tempfile.mkdtemp(prefix='zim-'))
 
-	try:
-		dir.touch(mode=0o700) # Limit to single user
-		os.chmod(dir.path, 0o700) # Limit to single user when dir already existed
-			# Raises OSError if not allowed to chmod
-		os.listdir(dir.path)
-			# Raises OSError if we do not have access anymore
-	except OSError:
-		raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n'
-			'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
-	else:
-		# All OK, so we must be owner of a safe folder now ...
-		return dir
+	return _tmpdir
 
 
 class TmpFile(LocalFile):
