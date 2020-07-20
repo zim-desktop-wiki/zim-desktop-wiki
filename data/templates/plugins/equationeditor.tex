@@ -4,8 +4,14 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage[usenames]{color}
+[% IF dark_mode %]
+    \usepackage{xcolor}
+[% END %]
 
 \begin{document}
+[% IF dark_mode %]
+    \color{white}
+[% END %]
 
 % No empty lines allowed in math block !
 \begin{align*}
