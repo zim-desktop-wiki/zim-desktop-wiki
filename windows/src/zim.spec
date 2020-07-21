@@ -96,7 +96,11 @@ include_icons = {
     'zoom-fit-best',
     'zoom-in',
     'zoom-original',
-    'zoom-out'
+    'zoom-out',
+    'pan-start-symbolic',
+    'pan-end-symbolic',
+    'pan-down-symbolic',
+    'pan-up-symbolic',
 }
 
 
