@@ -117,6 +117,8 @@ import locale
 
 logger = logging.getLogger('zim')
 
+debug_log_file = None
+
 
 ########################################################################
 

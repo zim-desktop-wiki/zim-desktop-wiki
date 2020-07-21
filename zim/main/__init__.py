@@ -867,7 +867,8 @@ class ZimApplication(object):
 		else:
 			# Redirect output to file
 			dir = zim.fs.get_tmpdir()
-			err_stream = open(os.path.join(dir.path, "zim.log"), "w")
+			zim.debug_log_file = os.path.join(dir.path, "zim.log")
+			err_stream = open(zim.debug_log_file, "w")
 
 			# Try to flush standards out and error, if there
 			for pipe in (sys.stdout, sys.stderr):
@@ -888,8 +889,8 @@ class ZimApplication(object):
 
 			# Re-initialize logging handler, in case it keeps reference
 			# to the old stderr object
+			rootlogger = logging.getLogger()
 			try:
-				rootlogger = logging.getLogger()
 				for handler in rootlogger.handlers:
 					rootlogger.removeHandler(handler)
 
@@ -898,6 +899,11 @@ class ZimApplication(object):
 				rootlogger.addHandler(handler)
 			except:
 				pass
+
+			if rootlogger.getEffectiveLevel() != logging.DEBUG:
+				rootlogger.setLevel(logging.DEBUG) # else file remains empty
+				self._log_start()
+
 
 
 ZIM_APPLICATION = ZimApplication() # Singleton per process
