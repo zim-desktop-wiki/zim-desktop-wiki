@@ -35,6 +35,22 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2020-07-24" version="0.73.2">
+      <description>
+        <ul>
+          <li>Add "show debug log" menu item</li>
+          <li>Add missing "triangle" icons for windows installer</li>
+          <li>Include helper to spawn external processes for windows installer</li>
+          <li>Fix dropdown namespace autocomplete in move-page dialog</li>
+          <li>Fix wiki parser for case of nested URL</li>
+          <li>Fix ParseTreeBuilder interface for python3.9</li>
+          <li>Add debug output for drag-and-drop workaround</li>
+          <li>Fix popup menu in attachment browser plugin</li>
+          <li>Fix warnings during export for "page.meta"</li>
+          <li>Fix on-preferences-changed for tableofcontents plugin</li>
+        </ul>
+      </description>
+    </release>
     <release date="2020-06-19" version="0.73.1">
       <description>
         <ul>

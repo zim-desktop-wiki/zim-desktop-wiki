@@ -5,6 +5,18 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.73.2 - Fri 24 Jul 2020
+* Add "show debug log" menu item
+* Add missing "triangle" icons for windows installer
+* Include helper to spawn external processes for windows installer
+* Fix dropdown namespace autocomplete in move-page dialog
+* Fix wiki parser for case of nested URL
+* Fix ParseTreeBuilder interface for python3.9
+* Add debug output for drag-and-drop workaround
+* Fix popup menu in attachment browser plugin
+* Fix warnings during export for "page.meta"
+* Fix on-preferences-changed for tableofcontents plugin
+
 ##  0.73.1 - Fri 19 Jun 2020
 * Fix regression for opening single instance
 * Fix exception on toggle format
