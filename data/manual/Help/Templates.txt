@@ -179,6 +179,19 @@ loop.next		next item or None
 
 A BLOCK can be defined anywhere in the template and then included in other places using the INCLUDE statement. This is useful e.g. for template parts that repeat multiple times in the document. Note that a BLOCK is always defined in the top level scope, so you can not put them e.g. in an IF clause to define alternative versions. A BLOCK may be defined after the location where they are used.
 
+If no block with name "name" is defined, "name" will be evaluated as a parameter. If the value of the parameter is a block name, that block will be included. If the value of the parameter is a file path a file include will be done.
+
+=== File INCLUDE ==
+
+'''
+[% INCLUDE "path/to/file.txt" %]
+'''
+
+Will include the content of "file.txt" in the template and parse it as template content as well.
+
+Only files included in the template resources (see below) can be included this way.
+
+
 ==== Objects and functions ====
 
 Most variables behave partially as objects, which means that it is possible to call object methods on them. The following standard (python) object methods are commonly supported:
@@ -321,4 +334,3 @@ To add additional files to the template, create a folder of the same name as the
 Zim always includes some images when exporting for the checkboxes used in checkbox lists. To customize these there should be template resources named "''checked-box.png''", "''unchecked-box.png''" and "''xchecked-box.png''" in this folder.
 
 For the web interface the resources can also contain a "''favicon.ico''" to serve as the favicon of the website.
-

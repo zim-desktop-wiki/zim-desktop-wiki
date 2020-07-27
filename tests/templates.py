@@ -554,8 +554,9 @@ class TestTemplateProcessor(tests.TestCase):
 		processor.process(lines, TemplateContextDict(context))
 		self.assertEqual(''.join(lines), '1: aaa\n2: bbb\n3: ccc\n')
 
-	def testInclude(self):
-		# test 'INCLUDE',
+	def testIncludeName(self):
+		# test 'INCLUDE name',
+		# parameter "foo" in the context is ignored
 		processor = TemplateProcessor([
 			E('TEMPLATE', None, [
 				E('INCLUDE', {'expr': ExpressionParameter('foo')}),
@@ -566,9 +567,60 @@ class TestTemplateProcessor(tests.TestCase):
 		])
 
 		lines = []
-		processor.process(lines, TemplateContextDict({'foo': 'foo'}))
+		processor.process(lines, TemplateContextDict({'foo': 'bar'}))
 		self.assertEqual(''.join(lines), 'FOO\nFOO\nFOO\n')
 
+	def testIncludeNameExpr(self):
+		# test 'INCLUDE expression' where expression evals to name
+		# parameter "foo" points to block "bar"
+		processor = TemplateProcessor([
+			E('TEMPLATE', None, [
+				E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+				E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+				E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+			]),
+			E('BLOCK', {'name': 'bar'}, 'FOO\n'),
+		])
+
+		lines = []
+		processor.process(lines, TemplateContextDict({'foo': 'bar'}))
+		self.assertEqual(''.join(lines), 'FOO\nFOO\nFOO\n')
+
+	def testIncludePath(self):
+		# test 'INCLUDE path'
+		def parse_included_file_func(path):
+			self.assertEqual(path, 'include.txt')
+			return [E('TEMPLATE', None, [
+				'INCLUDED TEXT\n'
+			])]
+
+		processor = TemplateProcessor([
+			E('TEMPLATE', None, [
+				E('INCLUDE', {'expr': ExpressionLiteral('include.txt')}),
+			]),
+		], parse_included_file_func=parse_included_file_func)
+
+		lines = []
+		processor.process(lines, TemplateContextDict({}))
+		self.assertEqual(''.join(lines), 'INCLUDED TEXT\n')
+
+	def testIncludePathExpr(self):
+		# test 'INCLUDE expression' where expression evals to path
+		def parse_included_file_func(path):
+			self.assertEqual(path, 'include.txt')
+			return [E('TEMPLATE', None, [
+				'INCLUDED TEXT\n'
+			])]
+
+		processor = TemplateProcessor([
+			E('TEMPLATE', None, [
+				E('INCLUDE', {'expr': ExpressionParameter('path')}),
+			]),
+		], parse_included_file_func=parse_included_file_func)
+
+		lines = []
+		processor.process(lines, TemplateContextDict({'path': 'include.txt'}))
+		self.assertEqual(''.join(lines), 'INCLUDED TEXT\n')
 
 
 class TestTemplateList(tests.TestCase):
@@ -713,3 +765,32 @@ class TestTemplate(tests.TestCase):
 		output = []
 		templ.process(output, {})
 		self.assertEqual(output, [])
+
+
+class TestTemplateInclude(tests.TestCase):
+
+	def setUp(self):
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL) # Can be converted to virual after removal of "zim.fs"
+		self.file = folder.file('template.html')
+		include = folder.file('template/include.html')
+		include.write('INCLUDED TEXT [% foo %]')
+		protected = folder.file('passwd.txt')
+		protected.write('FAIL')
+
+	def testInclude(self):
+		# Test inclusion & parsing of template content
+		# see tests in TestTemplateProcessor for tests of syntax variants
+		self.file.write('[% foo="Test" %][% INCLUDE "include.html" %]')
+		templ = Template(self.file)
+		output = []
+		templ.process(output, {})
+		self.assertEqual(output, ['INCLUDED TEXT ', 'Test'])
+
+	def testIncludeFromParentDirNotAllowed(self):
+		# test 'INCLUDE path' does not allow include from ../../ something
+		self.file.write('[% foo="Test" %][% INCLUDE "../passwd.txt" %]')
+		templ = Template(self.file)
+		output = []
+		with tests.LoggingFilter('zim'):
+			templ.process(output, {})
+		self.assertNotIn('FAIL', output)

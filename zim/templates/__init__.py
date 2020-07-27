@@ -50,7 +50,7 @@ import logging
 
 logger = logging.getLogger('zim.templates')
 
-from zim.fs import File, Dir, PathLookupError
+from zim.fs import File, Dir, PathLookupError, FileNotFoundError, adapt_from_newfs
 from zim.config import data_dirs
 from zim.parsing import is_path_re
 from zim.signals import SignalEmitter
@@ -153,6 +153,7 @@ class Template(SignalEmitter):
 		'''Constructor
 		@param file: a L{File} object for the template file
 		'''
+		file = adapt_from_newfs(file)
 		self.filename = file.path
 		try:
 			self.parts = TemplateParser().parse(file.read())
@@ -166,6 +167,8 @@ class Template(SignalEmitter):
 			rdir = file.dir.subdir(name)
 			if rdir.exists():
 				self.resources_dir = rdir
+
+		self._resources_cache = {}
 
 	def process(self, output, context):
 		'''Evaluate the template
@@ -181,5 +184,22 @@ class Template(SignalEmitter):
 		self.emit('process', output, context)
 
 	def do_process(self, output, context):
-		processor = TemplateProcessor(self.parts)
+		if self.resources_dir:
+			processor = TemplateProcessor(self.parts, self.parse_included_file)
+		else:
+			processor = TemplateProcessor(self.parts)
 		processor.process(output, context)
+
+	def parse_included_file(self, path):
+		if path not in self._resources_cache:
+			file = self.resources_dir.file(path)
+			if not file.exists():
+				raise FileNotFoundError(file)
+
+			try:
+				self._resources_cache[path] = TemplateParser().parse(file.read())
+			except Exception as error:
+				error.parser_file = file
+				raise
+
+		return self._resources_cache[path]

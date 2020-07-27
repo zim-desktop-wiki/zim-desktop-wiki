@@ -16,6 +16,7 @@ except ImportError:
 	# python < version 3.3
 	import collections as abc
 
+from zim.fs import FileNotFoundError
 from zim.utils import MovingWindowIter
 from zim.parser import SimpleTreeElement
 
@@ -54,13 +55,14 @@ class TemplateProcessor(object):
 	# 	'FOR'
 	# 	'INCLUDE',
 
-	def __init__(self, parts):
+	def __init__(self, parts, parse_included_file_func=None):
 		'''Constructor
 		@param parts: A list of L{SimplerTreeElements} as produced by
 		L{TemplateParser.parse()}
 		'''
 		self.main = None
 		self.blocks = {}
+		self.parse_included_file_func = parse_included_file_func
 		for item in parts:
 			if item.tag == 'TEMPLATE':
 				self.main = item
@@ -133,14 +135,16 @@ class TemplateProcessor(object):
 					self._loop(output, element, context)
 				elif element.tag == 'INCLUDE':
 					expr = element.attrib['expr']
-					if isinstance(expr, ExpressionParameter):
-						name = expr.name
-						if name in self.blocks:
-							self.__call__(output, self.blocks[name], context) # recurs
-						else:
-							raise AssertionError('No such block defined: %s' % name)
+					if isinstance(expr, ExpressionParameter) and expr.name in self.blocks:
+						# INCLUDE name - do not evaluate as an expression
+						self._include_block(output, expr.name, context)
 					else:
-						raise AssertionError('TODO also allow files from template resources')
+						# INCLUDE expr - eval to either block name or file path
+						arg = expr(context)
+						if '/' in arg or '\\' in arg or '.' in arg:
+							self._include_file(output, arg, context)
+						else:
+							self._include_block(output, arg, context)
 				else:
 					raise AssertionError('Unknown instruction: %s' % element.tag)
 			except:
@@ -174,6 +178,32 @@ class TemplateProcessor(object):
 		# restore "loop"
 		context['loop'] = outer
 
+	def _include_block(self, output, name, context):
+		if name in self.blocks:
+			self.__call__(output, self.blocks[name], context) # recurs
+		else:
+			raise AssertionError('No such block defined: %s' % name)
+
+	def _include_file(self, output, path, context):
+		if self.parse_included_file_func is None:
+			raise AssertionError('No template resources provided')
+
+		try:
+			include_template = None
+			for item in self.parse_included_file_func(path):
+				if item.tag == 'TEMPLATE':
+					include_template = item
+				elif item.tag == 'BLOCK':
+					self.blocks[item.get('name')] = item
+				else:
+					raise AssertionError('Unknown tag: %s' % item.tag)
+		except FileNotFoundError:
+			raise AssertionError('No such file in template resources: %s' % path)
+		else:
+			if include_template is None:
+				raise AssertionError('BUG: Error while parsing INCLUDE (!?)')
+			else:
+				self.__call__(output, include_template, context) # recurs
 
 
 class TemplateLoopState(object):
