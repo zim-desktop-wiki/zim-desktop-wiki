@@ -1,13 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os.path
+import subprocess
+import sys
 
 block_cipher = None
+binaries = []
+
+if sys.platform == "win32":
+    posix2win = lambda cyg_path: subprocess.check_output(["cygpath", "-w", cyg_path]).strip(b"\n").decode()
+
+    binaries.append((posix2win('/mingw64/bin/gspawn-win64-helper'), '.'))
+    binaries.append((posix2win('/mingw64/bin/gspawn-win64-helper-console'), '.'))
 
 a = Analysis( # noqa
     ['../build/venv/bin/zim_launch.py'],
     pathex=['../build'],
-    binaries=[],
+    binaries=binaries,
     datas=[
         ('../build/venv/share', 'share'),
         ('../../zim/plugins', 'share/zim/plugins'),
@@ -87,7 +96,11 @@ include_icons = {
     'zoom-fit-best',
     'zoom-in',
     'zoom-original',
-    'zoom-out'
+    'zoom-out',
+    'pan-start-symbolic',
+    'pan-end-symbolic',
+    'pan-down-symbolic',
+    'pan-up-symbolic',
 }
 
 

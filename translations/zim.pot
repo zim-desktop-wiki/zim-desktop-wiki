@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-06-06 14:35+0200\n"
+"POT-Creation-Date: 2020-07-24 08:10+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -56,37 +56,37 @@ msgstr ""
 
 #. message for FileNotFoundError | 
 #. Error message in template lookup
-#: zim/fs.py:259 zim/templates/__init__.py:124
+#: zim/fs.py:261 zim/templates/__init__.py:124
 #, python-format
 msgid "No such file: %s"
 msgstr ""
 
 #. message for FileUnicodeError (%s is the file name)
-#: zim/fs.py:271 zim/newfs/base.py:64
+#: zim/fs.py:273 zim/newfs/base.py:64
 #, python-format
 msgid "Could not read: %s"
 msgstr ""
 
 #. message for FileUnicodeError
-#: zim/fs.py:273 zim/newfs/base.py:66
+#: zim/fs.py:275 zim/newfs/base.py:66
 msgid "This usually means the file contains invalid characters"
 msgstr ""
 
 #. label for detailed error | 
 #. section for version details in "save version" dialog
-#: zim/fs.py:275 zim/newfs/base.py:68
+#: zim/fs.py:277 zim/newfs/base.py:68
 #: zim/plugins/versioncontrol/__init__.py:776
 msgid "Details"
 msgstr ""
 
 #. Error message
-#: zim/fs.py:1165
+#: zim/fs.py:1167
 #, python-format
 msgid "File is not writable: %s"
 msgstr ""
 
 #. error message
-#: zim/fs.py:1237
+#: zim/fs.py:1239
 #, python-format
 msgid "File changed on disk: %s"
 msgstr ""
@@ -181,7 +181,7 @@ msgstr ""
 #: zim/gui/applications.py:1129 zim/gui/customtools.py:651
 #: zim/gui/notebookdialog.py:421 zim/gui/pageview.py:7891
 #: zim/gui/preferencesdialog.py:300 zim/gui/propertiesdialog.py:16
-#: zim/gui/templateeditordialog.py:158 zim/gui/uiactions.py:585
+#: zim/gui/templateeditordialog.py:158 zim/gui/uiactions.py:595
 #: zim/plugins/attachmentbrowser/filebrowser.py:388
 msgid "Name"
 msgstr ""
@@ -503,7 +503,7 @@ msgstr ""
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:59 zim/gui/widgets.py:2922
+#: zim/gui/mainwindow.py:59 zim/gui/widgets.py:2926
 msgid "_Help"
 msgstr ""
 
@@ -536,7 +536,7 @@ msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:343 zim/gui/widgets.py:2883
+#: zim/gui/mainwindow.py:343 zim/gui/widgets.py:2887
 msgid "_Close"
 msgstr ""
 
@@ -619,13 +619,13 @@ msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:843 zim/gui/widgets.py:3799
+#: zim/gui/mainwindow.py:843 zim/gui/widgets.py:3803
 msgid "_Back"
 msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:855 zim/gui/widgets.py:3803
+#: zim/gui/mainwindow.py:855 zim/gui/widgets.py:3807
 msgid "_Forward"
 msgstr ""
 
@@ -996,7 +996,7 @@ msgstr ""
 
 #. menu item to open a link | 
 #. Menu item
-#: zim/gui/pageview.py:6222 zim/gui/uiactions.py:143
+#: zim/gui/pageview.py:6222 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:105
 msgid "Open in New _Window"
 msgstr ""
@@ -1004,7 +1004,7 @@ msgstr ""
 #. menu item to open a link or file | 
 #. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview.py:6232 zim/gui/widgets.py:3477
+#: zim/gui/pageview.py:6232 zim/gui/widgets.py:3481
 #: zim/plugins/attachmentbrowser/filebrowser.py:354
 msgid "_Open"
 msgstr ""
@@ -1033,7 +1033,7 @@ msgstr ""
 #. Menu item | 
 #. Button label | 
 #. button label
-#: zim/gui/pageview.py:6261 zim/gui/widgets.py:3479
+#: zim/gui/pageview.py:6261 zim/gui/widgets.py:3483
 #: zim/plugins/versioncontrol/__init__.py:756
 msgid "_Save"
 msgstr ""
@@ -1289,7 +1289,7 @@ msgstr ""
 
 #. Input in 'edit image' dialog | 
 #. Input label for the section to move a page to
-#: zim/gui/pageview.py:7251 zim/gui/uiactions.py:587
+#: zim/gui/pageview.py:7251 zim/gui/uiactions.py:597
 msgid "Location"
 msgstr ""
 
@@ -1737,232 +1737,237 @@ msgid "Copy Template"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:91
+#: zim/gui/uiactions.py:95
 msgid "_New Page..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:102
+#: zim/gui/uiactions.py:106
 msgid "New S_ub Page..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:110
+#: zim/gui/uiactions.py:114
 msgid "_New Page Here..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:118
+#: zim/gui/uiactions.py:122
 msgid "_Open Another Notebook..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:138
+#: zim/gui/uiactions.py:142
 msgid "_Import Page..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:156
+#: zim/gui/uiactions.py:160
 msgid "Save A _Copy..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:161
+#: zim/gui/uiactions.py:165
 msgid "E_xport..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:168
+#: zim/gui/uiactions.py:172
 msgid "_Send To..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:181
+#: zim/gui/uiactions.py:185
 msgid "_Rename or move Page..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:190
+#: zim/gui/uiactions.py:194
 msgid "_Delete Page"
 msgstr ""
 
 #. Title of progressbar dialog
-#: zim/gui/uiactions.py:221 zim/gui/uiactions.py:703
+#: zim/gui/uiactions.py:225 zim/gui/uiactions.py:713
 msgid "Removing Links"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:234
+#: zim/gui/uiactions.py:238
 msgid "Proper_ties"
 msgstr ""
 
 #. Menu item | 
 #. menu item in tray icon menu
-#: zim/gui/uiactions.py:244 zim/plugins/trayicon.py:148
+#: zim/gui/uiactions.py:248 zim/plugins/trayicon.py:148
 msgid "_Quit"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:254
+#: zim/gui/uiactions.py:258
 msgid "Copy _Location"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:260
+#: zim/gui/uiactions.py:264
 msgid "_Templates"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:266
+#: zim/gui/uiactions.py:270
 msgid "Pr_eferences"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:276
+#: zim/gui/uiactions.py:280
 msgid "_Search..."
 msgstr ""
 
 #. Menu item for search a sub-set of the notebook
-#: zim/gui/uiactions.py:291
+#: zim/gui/uiactions.py:295
 msgid "Search this section"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:296
+#: zim/gui/uiactions.py:300
 msgid "Search _Backlinks..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:304
+#: zim/gui/uiactions.py:308
 msgid "Recent Changes..."
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:311
+#: zim/gui/uiactions.py:315
 msgid "Open Attachments _Folder"
 msgstr ""
 
 #. Error message
-#: zim/gui/uiactions.py:316
+#: zim/gui/uiactions.py:320
 msgid "This page does not have an attachments folder"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:322
+#: zim/gui/uiactions.py:326
 msgid "Open _Notebook Folder"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:327
+#: zim/gui/uiactions.py:331
 msgid "Open _Document Root"
 msgstr ""
 
 #. Error message
-#: zim/gui/uiactions.py:333
+#: zim/gui/uiactions.py:337
 msgid "No document root defined for this notebook"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:339
+#: zim/gui/uiactions.py:343
 msgid "Edit _Source"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:355
+#: zim/gui/uiactions.py:359
 msgid "Start _Web Server"
 msgstr ""
 
+#. menu item
+#: zim/gui/uiactions.py:366
+msgid "View debug log"
+msgstr ""
+
 #. Menu item
-#: zim/gui/uiactions.py:370
+#: zim/gui/uiactions.py:380
 msgid "Update Index"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:403
+#: zim/gui/uiactions.py:413
 msgid "Custom _Tools"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:409
+#: zim/gui/uiactions.py:419
 msgid "_Contents"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:420
+#: zim/gui/uiactions.py:430
 msgid "_FAQ"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:425
+#: zim/gui/uiactions.py:435
 msgid "_Keybindings"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:430
+#: zim/gui/uiactions.py:440
 msgid "_Bugs"
 msgstr ""
 
 #. Menu item
-#: zim/gui/uiactions.py:435
+#: zim/gui/uiactions.py:445
 msgid "_About"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/uiactions.py:451
+#: zim/gui/uiactions.py:461
 #, python-format
 msgid "New Page in %s"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/uiactions.py:453
+#: zim/gui/uiactions.py:463
 msgid "New Page"
 msgstr ""
 
 #. Dialog text in 'new page' dialog
-#: zim/gui/uiactions.py:457
+#: zim/gui/uiactions.py:467
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
 msgstr ""
 
 #. Input label
-#: zim/gui/uiactions.py:471
+#: zim/gui/uiactions.py:481
 msgid "Page Name"
 msgstr ""
 
 #. Choice label
-#: zim/gui/uiactions.py:472
+#: zim/gui/uiactions.py:482
 msgid "Page Template"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/uiactions.py:507
+#: zim/gui/uiactions.py:517
 msgid "Import Page"
 msgstr ""
 
 #. File filter for '*.txt'
-#: zim/gui/uiactions.py:511
+#: zim/gui/uiactions.py:521
 msgid "Text Files"
 msgstr ""
 
 #. Dialog title of file save dialog
-#: zim/gui/uiactions.py:540
+#: zim/gui/uiactions.py:550
 msgid "Save Copy"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/uiactions.py:564
+#: zim/gui/uiactions.py:574
 msgid "Rename or Move Page"
 msgstr ""
 
 #. Heading in 'move page' dialog - %s is the page name
-#: zim/gui/uiactions.py:569
+#: zim/gui/uiactions.py:579
 #, python-format
 msgid "Rename page \"%s\""
 msgstr ""
 
 #. label in MovePage dialog - %i is number of backlinks
-#: zim/gui/uiactions.py:580
+#: zim/gui/uiactions.py:590
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
@@ -1970,28 +1975,28 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. option in 'move page' dialog
-#: zim/gui/uiactions.py:589
+#: zim/gui/uiactions.py:599
 msgid "Update the heading of this page"
 msgstr ""
 
 #. label for progress dialog
-#: zim/gui/uiactions.py:624
+#: zim/gui/uiactions.py:634
 msgid "Updating Links"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/uiactions.py:642
+#: zim/gui/uiactions.py:652
 msgid "Delete Page"
 msgstr ""
 
 #. Heading in 'delete page' dialog - %s is the page name
-#: zim/gui/uiactions.py:657
+#: zim/gui/uiactions.py:667
 #, python-format
 msgid "Delete page \"%s\"?"
 msgstr ""
 
 #. Text in 'delete page' dialog - %s is the page name
-#: zim/gui/uiactions.py:659
+#: zim/gui/uiactions.py:669
 #, python-format
 msgid ""
 "Page \"%s\" and all of it's\n"
@@ -1999,7 +2004,7 @@ msgid ""
 msgstr ""
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
-#: zim/gui/uiactions.py:673
+#: zim/gui/uiactions.py:683
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
@@ -2007,12 +2012,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. General description of zim itself
-#: zim/gui/uiactions.py:722
+#: zim/gui/uiactions.py:732
 msgid "A desktop wiki"
 msgstr ""
 
 #. This string needs to be translated with names of the translators for this language
-#: zim/gui/uiactions.py:730
+#: zim/gui/uiactions.py:740
 msgid "translator-credits"
 msgstr ""
 
@@ -2052,55 +2057,55 @@ msgid "<Top>"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2051
+#: zim/gui/widgets.py:2055
 msgid "Left Side Pane"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2052
+#: zim/gui/widgets.py:2056
 msgid "Right Side Pane"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2053
+#: zim/gui/widgets.py:2057
 msgid "Bottom Pane"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2054
+#: zim/gui/widgets.py:2058
 msgid "Top Pane"
 msgstr ""
 
 #. Menu item
-#: zim/gui/widgets.py:2682
+#: zim/gui/widgets.py:2686
 msgid "_All Panes"
 msgstr ""
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3228
+#: zim/gui/widgets.py:3232
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
 msgstr ""
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3610
+#: zim/gui/widgets.py:3614
 msgid "All Files"
 msgstr ""
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3637
+#: zim/gui/widgets.py:3641
 msgid "Images"
 msgstr ""
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3733
+#: zim/gui/widgets.py:3737
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr ""
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3755
+#: zim/gui/widgets.py:3759
 msgid "Log file"
 msgstr ""
 
@@ -2210,12 +2215,12 @@ msgid "Can not modify page: %s"
 msgstr ""
 
 #. placeholder for unknown file name
-#: zim/parser.py:274
+#: zim/parser.py:278
 msgid "<Unknown>"
 msgstr ""
 
 #. Extended error message while parsing a file, gives file name, line number and words where error occurred
-#: zim/parser.py:280
+#: zim/parser.py:284
 #, python-format
 msgid "Error in %(file)s at line %(line)i near \"%(snippet)s\""
 msgstr ""
@@ -3345,17 +3350,17 @@ msgid "Set ToC fontsize"
 msgstr ""
 
 #. action to lower level of heading in the text
-#: zim/plugins/tableofcontents.py:384
+#: zim/plugins/tableofcontents.py:386
 msgid "Demote"
 msgstr ""
 
 #. action to raise level of heading in the text
-#: zim/plugins/tableofcontents.py:386
+#: zim/plugins/tableofcontents.py:388
 msgid "Promote"
 msgstr ""
 
 #. widget label
-#: zim/plugins/tableofcontents.py:480 zim/plugins/tableofcontents.py:510
+#: zim/plugins/tableofcontents.py:482 zim/plugins/tableofcontents.py:512
 msgid "ToC"
 msgstr ""
 

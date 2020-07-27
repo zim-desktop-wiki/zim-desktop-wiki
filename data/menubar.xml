@@ -135,6 +135,7 @@
 			<menuitem action='show_clean_notebook'/>
 -->
 			<separator/>
+			<menuitem action='show_debug_log'/>
 			<menuitem action='show_server_gui'/>
 			<menuitem action='open_document_root'/>
 <!--

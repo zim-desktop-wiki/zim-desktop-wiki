@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger('zim.gui')
 
-
+import zim
 from zim.actions import action
 
 from zim.main import ZIM_APPLICATION
@@ -24,7 +24,7 @@ from zim.notebook.index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 from zim.actions import get_gtk_actiongroup
 from zim.gui.widgets import Dialog, FileDialog, ProgressDialog, ErrorDialog, ScrolledTextView
-from zim.gui.applications import open_url, open_folder, open_folder_prompt_create, edit_file
+from zim.gui.applications import open_url, open_folder, open_folder_prompt_create, open_file, edit_file
 
 PAGE_EDIT_ACTIONS = 'page_edit'
 PAGE_ACCESS_ACTIONS = 'page_access'
@@ -68,6 +68,10 @@ class UIActions(object):
 		self.page = page
 		self.navigation = navigation
 		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
+
+		group = get_gtk_actiongroup(self)
+		action = self.actiongroup.get_action('show_debug_log')
+		action.set_sensitive(zim.debug_log_file is not None)
 
 	def on_notebook_properties_changed(self, propeties):
 		group = get_gtk_actiongroup(self)
@@ -358,6 +362,12 @@ class UIActions(object):
 		L{zim.gui.server}. Spawns a new zim instance for the server.
 		'''
 		ZIM_APPLICATION.run('--server', '--gui', self.notebook.uri)
+
+	@action(_('View debug log'), menuhints='tools') # T: menu item
+	def show_debug_log(self):
+		from zim.newfs import LocalFile
+		file = LocalFile(zim.debug_log_file)
+		open_file(self.widget, file, mimetype='text/plain')
 
 	def ensure_index_uptodate(self):
 		if not self.notebook.index.is_uptodate:
