@@ -30,6 +30,11 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 	}
 
+	plugin_preferences = (
+		# key, type, label, default
+		('dark_mode', 'bool', _('Use dark font'), False),
+        )
+
 	@classmethod
 	def check_dependencies(klass):
 		has_latex = Application(latexcmd).tryexec()
@@ -61,6 +66,7 @@ class EquationGenerator(ImageGeneratorClass):
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
+		self.preferences = plugin.preferences
 		self.template = get_template('plugins', 'equationeditor.tex')
 		self.texfile = TmpFile('equation.tex')
 
@@ -75,7 +81,10 @@ class EquationGenerator(ImageGeneratorClass):
 
 		# Write to tmp file using the template for the header / footer
 		lines = []
-		self.template.process(lines, {'equation': text})
+		self.template.process(lines, {
+			'equation': text,
+			'dark_mode': self.preferences['dark_mode']
+		})
 		self.texfile.writelines(lines)
 		#~ print('>>>%s<<<' % self.texfile.read())
 
