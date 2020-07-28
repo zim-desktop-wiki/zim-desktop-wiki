@@ -32,7 +32,7 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('dark_mode', 'bool', _('Use dark font'), False),
+		('dark_mode', 'bool', _('Use font color for dark theme'), False),
         )
 
 	@classmethod
