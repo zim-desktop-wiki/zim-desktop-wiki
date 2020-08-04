@@ -1,5 +1,5 @@
 
-# Copyright 2013-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Action interface classes.
 
@@ -10,8 +10,32 @@ interface parameters, like what icon and label to use in the menu.
 
 Use the L{action} and L{toggle_action} decorators to create actions.
 
-There is no direct relation with the C{Gtk.Action} and C{Gtk.ToggleAction}
-classes, but it can cooperate with these classes and use them as proxies.
+The classes defined here can cooperate with C{Gio.Action} to tie into the
+Gtk action framework. Also they can use Gtk widgets like C{Gtk.Button} as
+a "proxy" to trigger the action and reflect the state.
+
+## Menuhints
+
+The "menuhints" attribute for actions sets one or more hints of where the action
+should be in the menu and the behavior of the action. Multiple hints can
+be separated with ":" in the string. The first one determines the menu, other
+can modify the behavior.
+
+Known values include:
+
+  - notebook -- notebook section in "File" menu
+  - page -- page section in "File" menu
+  - edit -- "Edit" menu - modifies page, insensitive for read-only page
+  - insert -- "Insert" menu - modifies page, insensitive for read-only page
+  - view -- "View" menu
+  - tools -- "Tools" menu
+  - go -- "Go" menu
+  - accelonly -- do not show in menu, shortcut key only
+
+Other values are ignored silently
+
+ TODO: find right place in the documentation for this and update list
+
 '''
 
 import inspect
@@ -23,12 +47,17 @@ import zim.errors
 
 logger = logging.getLogger('zim')
 
-
-
-def _get_modifier_mask():
+try:
 	import gi
 	gi.require_version('Gtk', '3.0')
 	from gi.repository import Gtk
+	from gi.repository import Gio
+except:
+	Gtk = None
+	Gio = None
+
+def _get_modifier_mask():
+	assert Gtk
 	x, mod = Gtk.accelerator_parse('<Primary>')
 	return mod
 
@@ -40,15 +69,24 @@ def hasaction(obj, actionname):
 	'''Like C{hasattr} but for attributes that define an action'''
 	actionname = actionname.replace('-', '_')
 	return hasattr(obj.__class__, actionname) \
-		and isinstance(getattr(obj.__class__, actionname), ActionMethod)
+		and isinstance(getattr(obj.__class__, actionname), ActionDescriptor)
 
 
-class ActionMethod(object):
-	pass
+class ActionDescriptor(object):
+
+	_bound_class = None
+
+	def __get__(self, instance, klass):
+		if instance is None:
+			return self # class access
+		else:
+			if instance not in self._bound_actions:
+				self._bound_actions[instance] = self._bound_class(instance, self)
+			return self._bound_actions[instance]
 
 
-def action(label, accelerator='', icon=None, verb_icon=None, menuhints='', alt_accelerator=None):
-	'''Decorator to turn a method into an L{Action} object
+def action(label, accelerator='', icon=None, verb_icon=None, menuhints='', alt_accelerator=None, tooltip=None):
+	'''Decorator to turn a method into an L{ActionMethod} object
 	Methods decorated with this decorator can have keyword arguments
 	but no positional arguments.
 	@param label: the label used e.g for the menu item (can use "_" for mnemonics)
@@ -59,67 +97,136 @@ def action(label, accelerator='', icon=None, verb_icon=None, menuhints='', alt_a
 	@param verb_icon: name of a "verb" icon - only used for compact menu views
 	@param menuhints: string with hints for menu placement and sensitivity
 	@param alt_accelerator: alternative accelerator key binding
+	@param tooltip: tooltip label, defaults to C{label}
 	'''
 	def _action(function):
-		return Action(function.__name__, function, label, icon, verb_icon, accelerator, alt_accelerator, menuhints)
+		return ActionClassMethod(function.__name__, function, label, icon, verb_icon, accelerator, alt_accelerator, menuhints, tooltip)
 
 	return _action
 
 
-class Action(ActionMethod):
-	'''Action, used by the L{action} decorator'''
+class BoundActionMethod(object):
 
-	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', alt_accelerator=None, menuhints=''):
-		assert self._assert_args(func), '%s() has incompatible argspec' % func.__name__
-		tooltip = label.replace('_', '')
-		self.name = name
-		self.func = func
-		self._attr = (self.name, label, tooltip, icon or verb_icon)
-		self._alt_attr = (self.name + '_alt1', label, tooltip, icon or verb_icon)
-		self._accel = accelerator
-		self._alt_accel = alt_accelerator
-		self.icon = icon
-		self.verb_icon = verb_icon
-		self.menuhints = menuhints.split(':')
+	def __init__(self, instance, action):
+		self._instance = instance
+		self._action = action
+		self._sensitive = True
+		self._proxies = set()
+			# NOTE: Wanted to use WeakSet() here, but somehow we loose refs to
+			#       widgets still being displayed
+		self._gaction = None
 
-	def _assert_args(self, func):
-		args, varargs, keywords, defaults = inspect.getargspec(func)
-		if defaults:
-			return len(defaults) == len(args) - 1 # -1 for "self"
-		else:
-			return len(args) == 1 # self
+	def __call__(self, *args, **kwargs):
+		if not self._sensitive:
+			raise AssertionError('Action not senitive: %s' % self.name)
+		return self._action.func(self._instance, *args, **kwargs)
 
-	def __get__(self, instance, klass):
-		if instance is None:
-			return self # class access
+	def __getattr__(self, name):
+		return getattr(self._action, name)
 
-		# instance acces, return bound method
-		def func(*args, **kwargs):
-			return self.func(instance, *args, **kwargs)
+	def get_sensitive(self):
+		return self._sensitive
 
-		return func
+	def set_sensitive(self, sensitive):
+		self._sensitive = sensitive
 
-	def connect_actionable(self, instance, actionable):
-		'''Connect a C{Gtk.Action} or C{Gtk.Button} to this action.
-		@param instance: the object instance that owns this action
-		@param actionable: proxy object, needs to have methods
-		C{set_active(is_active)} and C{get_active()} and a signal
-		'C{activate}'.
-		'''
-		actionable.connect('activate', self.do_activate, instance)
+		if self._gaction:
+			self._gaction.set_enabled(sensitive)
 
-	def do_activate(self, actionable, instance):
-		'''Callback for activate signal of connected objects'''
+		for proxy in self._proxies:
+			proxy.set_sensitive(sensitive)
+
+	def get_gaction(self):
+		if self._gaction is None:
+			assert Gio is not None
+			self._gaction = Gio.SimpleAction.new(self.name)
+			self._gaction.set_enabled(self._sensitive)
+			self._gaction.connect('activate', self._on_activate)
+		return self._gaction
+
+	def _on_activate(self, proxy, value):
+		# "proxy" can either be Gtk.Button, Gtk.Action or Gio.Action
 		logger.debug('Action: %s', self.name)
 		try:
-			self.__get__(instance, instance.__class__)()
+			self.__call__()
 		except:
 			zim.errors.exception_handler(
 				'Exception during action: %s' % self.name)
 
+	def _connect_gtkaction(self, gtkaction):
+		gtkaction.connect('activate', self._on_activate_proxy)
+		gtkaction.set_sensitive(self._sensitive)
+		self._proxies.add(gtkaction)
 
-def toggle_action(label, accelerator='', icon=None, verb_icon=None, init=False, menuhints=''):
-	'''Decorator to turn a method into an L{ToggleAction} object
+
+class ActionMethod(BoundActionMethod):
+
+	_button_class = Gtk.Button if Gtk is not None else None
+
+	def create_button(self):
+		assert Gtk is not None
+		button = self._button_class.new_with_mnemonic(self.label)
+		button.set_tooltip_text(self.tooltip)
+		self.connect_button(button)
+		return button
+
+	def create_icon_button(self):
+		assert Gtk is not None
+		icon_name = self.verb_icon or self.icon
+		assert icon_name, 'No icon or verb_icon defined for action "%s"' % self.name
+		icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
+		button = self._button_class()
+		button.set_image(icon)
+		button.set_tooltip_text(self.tooltip) # icon button should always have tooltip
+		self.connect_button(button)
+		return button
+
+	def connect_button(self, button):
+		button.connect('clicked', self._on_activate_proxy)
+		button.set_sensitive(self._sensitive)
+		self._proxies.add(button)
+		button.connect('destroy', self._on_destroy_proxy)
+
+	def _on_destroy_proxy(self, proxy):
+		self._proxies.discard(proxy)
+
+	def _on_activate_proxy(self, proxy):
+		self._on_activate(proxy, None)
+
+
+class ActionClassMethod(ActionDescriptor):
+
+	_bound_class = ActionMethod
+	_n_args = 1 # self
+
+	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', alt_accelerator=None, menuhints='', tooltip=None):
+		assert self._assert_args(func), '%s() has incompatible argspec' % func.__name__
+		tooltip = tooltip or label.replace('_', '')
+		self.name = name
+		self.func = func
+		self.label = label
+		self.tooltip = tooltip
+		self.icon = icon
+		self.verb_icon = verb_icon
+		self.menuhints = menuhints.split(':')
+
+		self._attr = (self.name, label, tooltip, icon or verb_icon)
+		self._alt_attr = (self.name + '_alt1', label, tooltip, icon or verb_icon)
+		self._accel = accelerator
+		self._alt_accel = alt_accelerator
+
+		self._bound_actions = weakref.WeakKeyDictionary()
+
+	def _assert_args(self, func):
+		spec = inspect.getfullargspec(func)
+		if spec.defaults:
+			return len(spec.defaults) == len(spec.args) - self._n_args
+		else:
+			return len(spec.args) == self._n_args
+
+
+def toggle_action(label, accelerator='', icon=None, verb_icon=None, init=False, menuhints='', tooltip=None):
+	'''Decorator to turn a method into an L{ToggleActionMethod} object
 
 	The decorated method should be defined as:
 	C{my_toggle_method(self, active)}. The 'C{active}' parameter is a
@@ -137,93 +244,85 @@ def toggle_action(label, accelerator='', icon=None, verb_icon=None, init=False, 
 	@param verb_icon: name of a "verb" icon - only used for compact menu views
 	@param init: initial state of the toggle
 	@param menuhints: string with hints for menu placement and sensitivity
+	@param tooltip: tooltip label, defaults to C{label}
 	'''
 	def _toggle_action(function):
-		return ToggleAction(function.__name__, function, label, icon, verb_icon, accelerator, init, menuhints)
+		return ToggleActionClassMethod(function.__name__, function, label, icon, verb_icon, accelerator, init, menuhints, tooltip)
 
 	return _toggle_action
 
 
-class ToggleAction(Action):
-	'''Toggle action, used by the L{toggle_action} decorator'''
+class ToggleActionMethod(ActionMethod):
 
-	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', init=False, menuhints=''):
-		# The ToggleAction instance lives in the client class object;
-		# using weakkeydict to store instance attributes per
-		# client object
-		Action.__init__(self, name, func, label, icon, verb_icon, accelerator, menuhints=menuhints)
-		self._init = init
-		self._state = weakref.WeakKeyDictionary()
-		self._proxies = weakref.WeakKeyDictionary()
+	_button_class = Gtk.ToggleButton if Gtk is not None else None
 
-	def _assert_args(self, func):
-		args, varargs, keywords, defaults = inspect.getargspec(func)
-		return len(args) == 2 # (self, active)
+	def __init__(self, instance, action):
+		ActionMethod.__init__(self, instance, action)
+		self._state = action._init
 
-	def __get__(self, instance, klass):
-		if instance is None:
-			return self # class access
+	def __call__(self, active=None):
+		if not self._sensitive:
+			raise AssertionError('Action not senitive: %s' % self.name)
 
-		if not instance in self._state:
-			self._state[instance] = self._init
+		if active is None:
+			active = not self._state
+		elif active == self._state:
+			return # nothing to do
 
-		# instance acces, return bound method
-		def func(active=None):
-			if active is None:
-				active = not self._state[instance]
-			elif active == self._state[instance]:
-				return # nothing to do
+		self._action.func(self._instance, active)
+		self.set_active(active)
 
-			self.func(instance, active)
+	def connect_button(self, button):
+		'''Connect a C{Gtk.ToggleAction} or C{Gtk.ToggleButton} to this action'''
+		button.set_active(self._state)
+		button.set_sensitive(self._sensitive)
+		button.connect('toggled', self._on_activate_proxy)
+		self._proxies.add(button)
 
-			# Update state and notify actionables
-			self._state[instance] = active
-			for actionable in self._proxies.get(instance, []):
-				actionable.set_active(active)
+	_connect_gtkaction = connect_button
 
-		return func
-
-	def connect_actionable(self, instance, actionable):
-		'''Connect a C{Gtk.ToggleAction} or C{Gtk.ToggleButton} to this action.
-		@param instance: the object instance that owns this action
-		@param actionable: proxy object, needs to have methods
-		C{set_active(is_active)} and C{get_active()} and a signal
-		'C{toggled}'.
-		'''
-		actionable.set_active(self._state.get(instance, self._init))
-		actionable.connect('toggled', self.do_activate, instance)
-
-		if not instance in self._proxies:
-			self._proxies[instance] = []
-		self._proxies[instance].append(actionable)
-
-	def do_activate(self, actionable, instance):
+	def _on_activate(self, proxy, value):
 		'''Callback for activate signal of connected objects'''
-		active = actionable.get_active()
-		if active != self._state.get(instance, self._init):
+		active = proxy.get_active()
+		if active != self._state:
 			logger.debug('Action: %s(%s)', self.name, active)
 			try:
-				self.__get__(instance, instance.__class__)()
+				self.__call__(active)
 			except Exception as error:
 				zim.errors.exception_handler(
 					'Exception during toggle action: %s(%s)' % (self.name, active))
 
-	def get_toggleaction_state(self, instance):
-		'''Get the state for C{instance}'''
-		# TODO: this should be method on bound object
-		return self._state.get(instance, self._init)
+	def get_active(self):
+		return self._state
 
-	def set_toggleaction_state(self, instance, active):
-		'''Change state for C{instance} *without* calling the action'''
-		# TODO: this should be method on bound object
-		self._state[instance] = active
-		for actionable in self._proxies.get(instance, []):
-			actionable.set_active(active)
+	def set_active(self, active):
+		'''Change the state of the action without triggering the action'''
+		self._state = active
+		for proxy in self._proxies:
+			proxy.set_active(active)
+
+
+class ToggleActionClassMethod(ActionClassMethod):
+	'''Toggle action, used by the L{toggle_action} decorator'''
+
+	_bound_class = ToggleActionMethod
+	_n_args = 2 # self, active
+
+	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', init=False, menuhints='', tooltip=None):
+		# The ToggleAction instance lives in the client class object;
+		# using weakkeydict to store instance attributes per
+		# client object
+		ActionClassMethod.__init__(self, name, func, label, icon, verb_icon, accelerator, menuhints=menuhints, tooltip=tooltip)
+		self._init = init
+
+	def _assert_args(self, func):
+		spec = inspect.getfullargspec(func)
+		return len(spec.args) == 2 # (self, active)
 
 
 def radio_action(menulabel, *radio_options, menuhints=''):
 	def _action(function):
-		return RadioAction(function.__name__, function, menulabel, radio_options, menuhints)
+		return RadioActionClassMethod(function.__name__, function, menulabel, radio_options, menuhints)
 
 	return _action
 
@@ -242,12 +341,55 @@ def gtk_radioaction_set_current(g_radio_action, key):
 			break
 
 
-class RadioAction(ActionMethod):
+class RadioActionMethod(BoundActionMethod):
+
+	def __init__(self, instance, action):
+		BoundActionMethod.__init__(self, instance, action)
+		self._state = None
+
+	def __call__(self, key):
+		if not key in self.keys:
+			raise ValueError('Invalid key: %s' % key)
+		self.func(self._instance, key)
+		self.set_state(key)
+
+	def get_state(self):
+		return self._state
+
+	def set_state(self, key):
+		self._state = key
+		for proxy in self._proxies:
+			gtk_radioaction_set_current(proxy, key)
+
+	def get_gaction(self):
+		raise NotImplementedError # TODO
+
+	def _connect_gtkaction(self, gtkaction):
+		gtkaction.connect('changed', self._on_gtkaction_changed)
+		self._proxies.add(gtkaction)
+		if self._state is not None:
+			gtk_radioaction_set_current(gtkaction, self._state)
+
+	def _on_gtkaction_changed(self, gaction, current):
+		try:
+			name = current.get_name()
+			assert name.startswith(self.name + '_')
+			key = name[len(self.name) + 1:]
+			if self._state == key:
+				pass
+			else:
+				logger.debug('Action: %s(%s)', self.name, key)
+				self.__call__(key)
+		except:
+			zim.errors.exception_handler(
+				'Exception during action: %s(%s)' % (self.name, key))
+
+
+class RadioActionClassMethod(ActionDescriptor):
+
+	_bound_class = RadioActionMethod
 
 	def __init__(self, name, func, menulabel, radio_options, menuhints=''):
-		# The RadioAction instance lives in the client class object;
-		# using weakkeydict to store instance attributes per
-		# client object
 		self.name = name
 		self.func = func
 		self.menulabel = menulabel
@@ -256,49 +398,17 @@ class RadioAction(ActionMethod):
 			(name + '_' + opt[0],) + opt[1:] + (i,)
 				for i, opt in enumerate(radio_options)
 		)
-		self._state = weakref.WeakKeyDictionary()
-		self._proxies = weakref.WeakKeyDictionary()
 		self.menuhints = menuhints.split(':')
 
-	def _assert_args(self, func):
-		args, varargs, keywords, defaults = inspect.getargspec(func)
-		return len(args) == 2 # (self, key)
-
-	def __get__(self, instance, klass):
-		if instance is None:
-			return self # class access
-
-		# instance acces, return bound method
-		def func(key):
-			if not key in self.keys:
-				raise ValueError('Invalid key: %s' % key)
-			self.func(instance, key)
-
-			# Update state and notify actionables
-			self._state[instance] = key
-			for actionable in self._proxies.get(instance, []):
-				gtk_radioaction_set_current(actionable, key)
-
-		return func
-
-	def do_changed(self, gaction, current, instance):
-		'''Callback for activate signal of connected objects'''
-		try:
-			name = current.get_name()
-			assert name.startswith(self.name + '_')
-			key = name[len(self.name) + 1:]
-			if instance in self._state and key == self._state[instance]:
-				pass
-			else:
-				logger.debug('Action: %s(%s)', self.name, key)
-				self.__get__(instance, instance.__class__)(key)
-		except:
-			zim.errors.exception_handler(
-				'Exception during action: %s(%s)' % (self.name, key))
+		self._bound_actions = weakref.WeakKeyDictionary()
 
 
 def get_actions(obj):
-	return inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionMethod))
+	'''Returns bound actions for object'''
+	actions = []
+	for name, action in inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionDescriptor)):
+		actions.append((name, action.__get__(obj, obj.__class__)))
+	return actions
 
 
 def get_gtk_actiongroup(obj):
@@ -309,7 +419,7 @@ def get_gtk_actiongroup(obj):
 
 	This method can only be used when gtk is available
 	'''
-	from gi.repository import Gtk
+	assert Gtk is not None
 
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:
@@ -318,16 +428,10 @@ def get_gtk_actiongroup(obj):
 	obj.actiongroup = Gtk.ActionGroup(obj.__class__.__name__)
 
 	for name, action in get_actions(obj):
-		if isinstance(action, RadioAction):
+		if isinstance(action, RadioActionMethod):
 			obj.actiongroup.add_radio_actions(action._entries)
-			gaction = obj.actiongroup.get_action(action._entries[0][0])
-			gaction.connect('changed', action.do_changed, obj)
-			if not obj in action._proxies:
-				action._proxies[obj] = []
-			action._proxies[obj].append(gaction)
-			if obj in action._state:
-				key = action._state[obj]
-				gtk_radioaction_set_current(gaction, key)
+			gtkaction = obj.actiongroup.get_action(action._entries[0][0])
+			action._connect_gtkaction(gtkaction)
 		else:
 			_gtk_add_action_with_accel(obj, obj.actiongroup, action, action._attr, action._accel)
 			if action._alt_accel:
@@ -337,15 +441,24 @@ def get_gtk_actiongroup(obj):
 
 
 def _gtk_add_action_with_accel(obj, actiongroup, action, attr, accel):
-	from gi.repository import Gtk
+	assert Gtk is not None
 
-	if isinstance(action, ToggleAction):
-		gaction = Gtk.ToggleAction(*attr)
+	if isinstance(action, ToggleActionMethod):
+		gtkaction = Gtk.ToggleAction(*attr)
 	else:
-		gaction = Gtk.Action(*attr)
+		gtkaction = Gtk.Action(*attr)
 
-	gaction.zim_readonly = not bool(
+	gtkaction.zim_readonly = not bool(
 		'edit' in action.menuhints or 'insert' in action.menuhints
 	)
-	action.connect_actionable(obj, gaction)
-	actiongroup.add_action_with_accel(gaction, accel)
+	action._connect_gtkaction(gtkaction)
+	actiongroup.add_action_with_accel(gtkaction, accel)
+
+
+def initialize_actiongroup(obj, prefix):
+	assert Gio is not None
+	actiongroup = Gio.SimpleActionGroup()
+	for name, action in get_actions(obj):
+		gaction = action.get_gaction()
+		actiongroup.add_action(gaction)
+	obj.insert_action_group(prefix, actiongroup)

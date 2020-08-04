@@ -4,7 +4,7 @@
 # pageview modules
 
 from zim.plugins import ExtensionBase
-from zim.actions import get_actions, get_gtk_actiongroup, RadioAction
+from zim.actions import get_actions, get_gtk_actiongroup, RadioActionMethod
 
 
 class ActionExtensionBase(ExtensionBase):
@@ -56,7 +56,7 @@ class ActionExtensionBase(ExtensionBase):
 			menu_name = menuhint + '_menu'
 			placeholder_name = 'plugin_items'
 
-		if isinstance(action, RadioAction):
+		if isinstance(action, RadioActionMethod):
 			submenu_name = action.name + '_menu'
 			submenu_label = action.menulabel
 			actiongroup.add_actions(((submenu_name, None, submenu_label),))
@@ -83,7 +83,7 @@ class ActionExtensionBase(ExtensionBase):
 		</ui>
 		''' % (menu_name, placeholder_name, item)
 
-		if not isinstance(action, RadioAction) and menuhint in ('view', 'insert') \
+		if not isinstance(action, RadioActionMethod) and menuhint in ('view', 'insert') \
 			and (action.icon or action.verb_icon):
 				ui = ui.replace('</ui>', '''\
 		<toolbar name='toolbar'>

@@ -5,6 +5,7 @@ import tests
 
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import Gio
 
 from zim.actions import *
 
@@ -32,14 +33,15 @@ class TestAction(tests.TestCase):
 
 		class TestClass(object):
 
-			@action('Do Action', accelerator='<Control>A')
+			@action('Do Action', accelerator='<Control>A', icon='gtk-home')
 			def test_action(self):
 				output.append('OK')
 				return 'FOO'
 
-		self.assertIsInstance(TestClass.test_action, Action)
+		self.assertIsInstance(TestClass.test_action, ActionClassMethod)
 
 		obj = TestClass()
+		self.assertIsInstance(obj.test_action, ActionMethod)
 		self.assertTrue(hasaction(obj, 'test_action'))
 		self.assertTrue(hasaction(obj, 'test-action'))
 		re = obj.test_action()
@@ -52,6 +54,24 @@ class TestAction(tests.TestCase):
 
 		gtk_action.activate()
 		self.assertEqual(output, ['OK', 'OK'])
+
+		self.assertTrue(obj.test_action.get_sensitive())
+		self.assertTrue(gtk_action.get_sensitive())
+		obj.test_action.set_sensitive(False)
+		self.assertFalse(obj.test_action.get_sensitive())
+		self.assertFalse(gtk_action.get_sensitive())
+		obj.test_action.set_sensitive(True)
+		self.assertTrue(obj.test_action.get_sensitive())
+		self.assertTrue(gtk_action.get_sensitive())
+
+		gaction = obj.test_action.get_gaction()
+		self.assertIsInstance(gaction, Gio.Action)
+
+		button = obj.test_action.create_button()
+		self.assertIsInstance(button, Gtk.Button)
+
+		button = obj.test_action.create_icon_button()
+		self.assertIsInstance(button, Gtk.Button)
 
 
 class TestToggleAction(tests.TestCase):
@@ -66,9 +86,10 @@ class TestToggleAction(tests.TestCase):
 				output.append(active)
 				return 'FOO'
 
-		self.assertIsInstance(TestClass.test_action, ToggleAction)
+		self.assertIsInstance(TestClass.test_action, ToggleActionClassMethod)
 
 		obj = TestClass()
+		self.assertIsInstance(obj.test_action, ToggleActionMethod)
 		self.assertTrue(hasaction(obj, 'test_action'))
 		self.assertTrue(hasaction(obj, 'test-action'))
 		re = obj.test_action()
@@ -107,9 +128,10 @@ class TestRadioAction(tests.TestCase):
 				output.append(key)
 				return 'FOO'
 
-		self.assertIsInstance(TestClass.test_action, RadioAction)
+		self.assertIsInstance(TestClass.test_action, RadioActionClassMethod)
 
 		obj = TestClass()
+		self.assertIsInstance(obj.test_action, RadioActionMethod)
 		self.assertTrue(hasaction(obj, 'test_action'))
 		self.assertTrue(hasaction(obj, 'test-action'))
 		re = obj.test_action('AAA')

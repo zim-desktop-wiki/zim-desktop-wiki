@@ -297,8 +297,8 @@ class MainWindow(Window):
 		group.add_actions(MENU_ACTIONS)
 		self.uimanager.insert_action_group(group, 0)
 
-		group.get_action('open_page_back').set_sensitive(False)
-		group.get_action('open_page_forward').set_sensitive(False)
+		self.open_page_back.set_sensitive(False)
+		self.open_page_forward.set_sensitive(False)
 
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
@@ -341,6 +341,7 @@ class MainWindow(Window):
 			self.open_page_home()
 
 		self.pageview.grab_focus()
+
 
 	@action(_('_Close'), '<Primary>W') # T: Menu item
 	def close(self):
@@ -393,7 +394,7 @@ class MainWindow(Window):
 
 		if bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
 			self.isfullscreen = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
-			self.__class__.toggle_fullscreen.set_toggleaction_state(self, self.isfullscreen)
+			self.toggle_fullscreen.set_active(self.isfullscreen)
 
 		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED) \
 			or bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
@@ -639,8 +640,7 @@ class MainWindow(Window):
 
 		if self.notebook.readonly:
 			self.toggle_editable(False)
-			action = self.actiongroup.get_action('toggle_editable')
-			action.set_sensitive(False)
+			self.toggle_editable.set_sensitive(False)
 		else:
 			self.toggle_editable(not self.uistate['readonly'])
 
@@ -823,24 +823,16 @@ class MainWindow(Window):
 
 	def update_buttons_history(self):
 		historyrecord = self.history.get_current()
-
-		back = self.actiongroup.get_action('open_page_back')
-		back.set_sensitive(not historyrecord.is_first)
-
-		forward = self.actiongroup.get_action('open_page_forward')
-		forward.set_sensitive(not historyrecord.is_last)
+		self.open_page_back.set_sensitive(not historyrecord.is_first)
+		self.open_page_forward.set_sensitive(not historyrecord.is_last)
 
 	def update_buttons_hierarchy(self):
-		parent = self.actiongroup.get_action('open_page_parent')
-		child = self.actiongroup.get_action('open_page_child')
-		parent.set_sensitive(len(self.page.namespace) > 0)
-		child.set_sensitive(self.page.haschildren)
+		self.open_page_parent.set_sensitive(len(self.page.namespace) > 0)
+		self.open_page_child.set_sensitive(self.page.haschildren)
 
-		previous = self.actiongroup.get_action('open_page_previous')
-		next = self.actiongroup.get_action('open_page_next')
 		has_prev, has_next = self.notebook.pages.get_has_previous_has_next(self.page)
-		previous.set_sensitive(has_prev)
-		next.set_sensitive(has_next)
+		self.open_page_previous.set_sensitive(has_prev)
+		self.open_page_next.set_sensitive(has_next)
 
 	@action(_('_Jump To...'), '<Primary>J') # T: Menu item
 	def show_jump_to(self):
