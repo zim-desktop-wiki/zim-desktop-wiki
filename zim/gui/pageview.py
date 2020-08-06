@@ -64,6 +64,9 @@ from zim.plugins import PluginManager
 logger = logging.getLogger('zim.gui.pageview')
 
 
+MAX_PAGES_UNDO_STACK = 10 #: Keep this many pages in a queue to keep ref and thus undostack alive
+
+
 class LineSeparator(InsertedObjectWidget):
 	'''Class to create a separation line.'''
 
@@ -5343,6 +5346,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._current_toggle_action = None
 		self.ui_is_initialized = False
 		self._caret_link = None
+		self._undo_history_queue = [] # we never lookup in this list, only keep refs - notebook does the caching
 
 		self.preferences = ConfigManager.preferences['PageView']
 		self.preferences.define(
@@ -5647,6 +5651,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			if self.readonly:
 				logger.warn('Buffer edited while textview read-only - potential bug')
 			else:
+				if not (self._undo_history_queue and self._undo_history_queue[-1] is self.page):
+					if self.page in self._undo_history_queue:
+						self._undo_history_queue.remove(self.page)
+					elif len(self._undo_history_queue) > MAX_PAGES_UNDO_STACK:
+						self._undo_history_queue.pop(0)
+					self._undo_history_queue.append(self.page)
+
 				buffer.showing_template = False
 				self.emit('modified-changed')
 				self._save_page_handler.queue_autosave()
