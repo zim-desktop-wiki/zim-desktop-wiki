@@ -85,7 +85,7 @@ class _BootstrapPluginManager(object):
 	def __init__(self):
 		self._extendables = []
 
-	def _new_extendable(self, extendable):
+	def new_extendable(self, extendable):
 		self._extendables.append(extendable)
 
 
@@ -93,9 +93,12 @@ _bootstrappluginmanager = _BootstrapPluginManager()
 PluginManager = _bootstrappluginmanager
 
 
-def extendable(*extension_bases):
+def extendable(*extension_bases, auto_init=True):
 	'''Class decorator to mark a class as "extendable"
 	@param extension_bases: base classes for extensions
+	@param auto_init: if C{True} the class is registered with the L{PluginManager}
+	directly after it's C{__init__()} method has run. If C{False} the class
+	can call C{PluginManager.new_extendable(self)} explicitly whenever ready.
 	'''
 	assert all(issubclass(ec, ExtensionBase) for ec in extension_bases)
 
@@ -106,7 +109,8 @@ def extendable(*extension_bases):
 			orig_init(self, *arg, **kwarg)
 			self.__zim_extension_bases__ = extension_bases
 			self.__zim_extension_objects__ = []
-			PluginManager._new_extendable(self)
+			if auto_init:
+				PluginManager.new_extendable(self)
 
 		cls.__init__ = _init_wrapper
 
@@ -421,12 +425,11 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 		mod = get_module(modname)
 		return lookup_subclass(mod, PluginClass)
 
-	def _new_extendable(self, obj):
-		'''Let any plugin extend the object instance C{obj}
-		Will also remember the object (by a weak reference) such that
-		plugins loaded after this call will also be called to extend
-		C{obj} on their construction
-		@param obj: arbitrary object that can be extended by plugins
+	def new_extendable(self, obj):
+		'''Register an extendable object
+		This is called automatically by the L{extendable()} class decorator
+		unless the option c{auto_init} was set to C{False}.
+		Relies on C{obj} already being setup correctly by the L{extendable} decorator.
 		'''
 		logger.debug("New extendable: %s", obj)
 		assert not obj in self._extendables
@@ -502,7 +505,7 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 
 PluginManager = PluginManagerClass()  # singleton
 for _extendable in _bootstrappluginmanager._extendables:
-	PluginManager._new_extendable(_extendable)
+	PluginManager.new_extendable(_extendable)
 del _bootstrappluginmanager
 del _extendable
 

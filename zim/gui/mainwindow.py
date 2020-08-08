@@ -302,7 +302,6 @@ class MainWindow(Window):
 
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
-		self.pageview.emit('ui-init') # Needs to trigger after default menus are build
 
 		# Do this last, else menu items show up in wrong place
 		self._customtools = CustomToolManagerUI(self.uimanager, self.pageview)

@@ -5158,19 +5158,6 @@ from zim.gui.actionextension import ActionExtensionBase
 from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
 
 
-class NavigationWrapper(object):
-	'''Wrapper to allow late initialization of the "navigation" object'''
-
-	def __init__(self):
-		self._real_navigation = None
-
-	def open_page(self, *arg, **kwarg):
-		if self._real_navigation:
-			return self._real_navigation.open_page(*arg, **kwarg)
-		else:
-			logger.warn('navigation called before initialisation')
-
-
 class PageViewExtension(ActionExtensionBase):
 	'''Base class for extensions that want to interact with the "page view",
 	which is the primary editor view of the application.
@@ -5193,69 +5180,37 @@ class PageViewExtension(ActionExtensionBase):
 	(To access the preference use C{plugin.preferences}.)
 	'''
 
-	# HACK: complicated class because we rely on MainWindow for most of the
-	# functionality of this extension class. However at initialisation there
-	# is no parent window, so we need to delay loading.
-	# Plan is to refactor MainWindow and PageView such that these functions
-	# end up in the right place.
-
 	def __init__(self, plugin, pageview):
 		ExtensionBase.__init__(self, plugin, pageview)
 		self.pageview = pageview
-		self._on_ui_init_queue = []
-		self.connectto(pageview, 'ui-init', self.on_ui_init)
+		self._window = self.pageview.get_toplevel()
+		assert hasattr(self._window, 'add_tab'), 'expect mainwindow, got %s' % self._window
+
+		self.navigation = self._window.navigation
+		self.uistate = pageview.notebook.state[self.plugin.config_key]
 
 		self._sidepane_widgets = {}
-		self.navigation = NavigationWrapper()
-		self.uistate = pageview.notebook.state[self.plugin.config_key]
-		self._do_on_ui_init(self._init_window)
-
-	def _init_window(self, window):
-		if hasattr(window, 'uimanager'): # HACK: PageWindow does not have uimanager
-			self._add_actions(window.uimanager)
-		self.navigation._real_navigation = window.navigation
-
-	def _do_on_ui_init(self, func, *arg, **kwarg):
-		if self.pageview.ui_is_initialized:
-			window = self.pageview.get_toplevel()
-			assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
-			func(window, *arg, **kwarg)
-		else:
-			self._on_ui_init_queue.append((func, arg, kwarg))
-
-	def on_ui_init(self, pageview, *a):
-		# Execute calls that only work once there is a mainwindow available.
-		# Needed because pageview extensions are loaded before the pageview
-		# is added to the window.
-		window = pageview.get_toplevel()
-		assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
-		for func, arg, kwarg in self._on_ui_init_queue:
-			func(window, *arg, **kwarg)
-		self._on_ui_init_queue = []
+		self._add_actions(self._window.uimanager)
 
 	def add_sidepane_widget(self, widget, preferences_key):
 		key = widget.__class__.__name__
 		position = self.plugin.preferences[preferences_key]
-		self._do_on_ui_init(lambda window: window.add_tab(key, widget, position))
+		self._window.add_tab(key, widget, position)
 
 		def on_preferences_changed(preferences):
 			position = self.plugin.preferences[preferences_key]
-			self._do_on_ui_init(lambda window: window.remove(widget))
-			self._do_on_ui_init(lambda window: window.add_tab(key, widget, position))
+			self._window.remove(widget)
+			self._window.add_tab(key, widget, position)
 
 		sid = self.connectto(self.plugin.preferences, 'changed', on_preferences_changed)
 		self._sidepane_widgets[widget] = sid
 		widget.show_all()
 
 	def remove_sidepane_widget(self, widget):
-
-		def remove(window):
-			try:
-				window.remove(widget)
-			except ValueError:
-				pass
-
-		self._do_on_ui_init(remove)
+		try:
+			self._window.remove(widget)
+		except ValueError:
+			pass
 
 		try:
 			sid = self._sidepane_widgets.pop(widget)
@@ -5267,12 +5222,11 @@ class PageViewExtension(ActionExtensionBase):
 		for widget in list(self._sidepane_widgets):
 			self.remove_sidepane_widget(widget)
 			widget.disconnect_all()
-		self._on_ui_init_queue = []
 
 
 from zim.signals import GSignalEmitterMixin
 
-@extendable(PageViewExtension)
+@extendable(PageViewExtension, auto_init=False)
 class PageView(GSignalEmitterMixin, Gtk.VBox):
 	'''Widget to display a single page, consists of a L{TextView} and
 	a L{FindBar}. Also adds menu items and in general integrates
@@ -5296,8 +5250,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	Emitted when textstyle at the cursor changes, gets the list of text styles or None.
 	@signal: C{activate-link (link, hints)}: emitted when a link is opened,
 	stops emission after the first handler returns C{True}
-	@signal: C{ui-init ()}: trigger for extensions to load uimanager stuff,
-	do not rely on this signal, may be removed
 	@signal: C{link-caret-enter (link)}: Emitted when the caret enters a link
 	@signal: C{link-caret-leave (link)}: Emitted when the caret leaves a link
 
@@ -5314,7 +5266,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'modified-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-		'ui-init': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'link-caret-enter': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-caret-leave': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
@@ -5451,8 +5402,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.on_insertedobjecttypemap_changed
 		)
 
-	def do_ui_init(self):
-		self.ui_is_initialized = True
+		# setup needed due to "auto_init=False"
+		def on_hierarchy_changed(o, window):
+			assert window is None, 'TODO - unparent extensions'
+			PluginManager.new_extendable(self)
+
+		self.connect('hierarchy-changed', on_hierarchy_changed)
 
 	def grab_focus(self):
 		self.textview.grab_focus()
