@@ -20,3 +20,30 @@ Icon:  jam-task-list
 Icon set: Jam Icons
 Author: Michael Amprimo
 License: MIT
+
+## format-text-code-symbolic
+
+Obtained from: https://iconify.design/icon-sets/heroicons-solid/code.html
+
+Icon:  heroicons-solid:code
+Icon set: HeroIcons Solid
+Author: Steve Schoger
+License: MIT
+
+## format-text-subscript-symbolic
+
+Obtained from: https://iconify.design/icon-sets/foundation/subscript.html
+
+Icon:  foundation-subscript
+Icon set: Foundation
+Author: Zurb
+License: MIT
+
+## format-text-superscript-symbolic
+
+Obtained from: https://iconify.design/icon-sets/foundation/superscript.html
+
+Icon:  foundation-superscript
+Icon set: Foundation
+Author: Zurb
+License: MIT

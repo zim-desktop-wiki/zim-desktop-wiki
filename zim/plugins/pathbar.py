@@ -188,7 +188,8 @@ class ScrolledHBox(Gtk.HBox):
 
 	def add(self, child):
 		self._state = None
-		widget_set_css(child, 'zim-pathbar-path-button', 'padding: 2px 6px 2px 6px;')
+		#widget_set_css(child, 'zim-pathbar-path-button', 'padding: 2px 6px 2px 6px;')
+		widget_set_css(child, 'zim-pathbar-path-button', 'padding-right: 6px; padding-left: 6px;')
 			# Make buttons a bit smaller (but keep some horizontal padding)
 		req = child.get_preferred_size()[1]
 		child.set_size_request(min(req.width, MAX_BUTTON_WIDTH), req.height)

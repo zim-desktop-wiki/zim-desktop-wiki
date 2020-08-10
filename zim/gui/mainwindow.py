@@ -220,10 +220,6 @@ class MainWindow(Window):
 
 		self.pageview = PageView(self.notebook, self.navigation)
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
-		self.pageview.connect_after(
-			'textstyle-changed', self.on_textview_textstyle_changed)
-		self.pageview.textview.connect_after(
-			'toggle-overwrite', self.on_textview_toggle_overwrite)
 		self.pageview.textview.connect('link-enter', self.on_link_enter)
 		self.pageview.textview.connect('link-leave', self.on_link_leave)
 		self.pageview.connect('link-caret-enter', self.on_link_caret_enter)
@@ -237,20 +233,6 @@ class MainWindow(Window):
 		self.add_bar(self.statusbar, start=False)
 		self.statusbar.set_property('margin', 0)
 		self.statusbar.set_property('spacing', 0)
-
-		def statusbar_element(string, size):
-			frame = Gtk.Frame()
-			frame.set_shadow_type(Gtk.ShadowType.NONE)
-			self.statusbar.pack_end(frame, False, True, 0)
-			label = Gtk.Label(label=string)
-			label.set_size_request(size, 10)
-			label.set_alignment(0.1, 0.5)
-			frame.add(label)
-			return label
-
-		# specify statusbar elements right-to-left
-		self.statusbar_insert_label = statusbar_element('INS', 60)
-		self.statusbar_style_label = statusbar_element('<style>', 110)
 
 		# and build the widget for backlinks
 		self.statusbar_backlinks_button = \
@@ -741,18 +723,6 @@ class MainWindow(Window):
 				self.set_icon_from_file(self.notebook.icon)
 			except GObject.GError:
 				logger.exception('Could not load icon %s', self.notebook.icon)
-
-	def on_textview_toggle_overwrite(self, view):
-		state = view.get_overwrite()
-		if state:
-			text = 'OVR'
-		else:
-			text = 'INS'
-		self.statusbar_insert_label.set_text(text)
-
-	def on_textview_textstyle_changed(self, view, styles):
-		label = ", ".join([s.title() for s in styles if s]) if styles else 'None'
-		self.statusbar_style_label.set_text(label)
 
 	def on_link_enter(self, view, link):
 		self.statusbar.push(1, 'Go to "%s"' % link['href'])

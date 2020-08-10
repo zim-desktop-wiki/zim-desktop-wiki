@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="20"
+   height="20"
+   preserveAspectRatio="xMidYMid meet"
+   viewBox="0 0 20 20"
+   style="-ms-transform: rotate(360deg); -webkit-transform: rotate(360deg); transform: rotate(360deg);"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="format-text-code-symbolic.svg"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
+  <metadata
+     id="metadata14">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs12" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1366"
+     inkscape:window-height="704"
+     id="namedview10"
+     showgrid="false"
+     inkscape:zoom="11.8"
+     inkscape:cx="5.8474576"
+     inkscape:cy="10"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg8" />
+  <g
+     id="g4"
+     transform="matrix(1.0847478,0,0,1.0847426,-0.84747774,-0.84742374)"
+     style="fill:#000000">
+    <path
+       d="m 12.316,3.051 a 1,1 0 0 1 0.633,1.265 l -4,12 A 1.0002285,1.0002285 0 1 1 7.051,15.684 l 4,-12 A 1,1 0 0 1 12.316,3.051 Z M 5.707,6.293 a 1,1 0 0 1 0,1.414 L 3.414,10 5.707,12.293 a 1,1 0 1 1 -1.414,1.414 l -3,-3 a 1,1 0 0 1 0,-1.414 l 3,-3 a 1,1 0 0 1 1.414,0 z m 8.586,0 a 1,1 0 0 1 1.414,0 l 3,3 a 1,1 0 0 1 0,1.414 l -3,3 A 1,1 0 1 1 14.293,12.293 L 16.586,10 14.293,7.707 a 1,1 0 0 1 0,-1.414 z"
+       id="path2"
+       inkscape:connector-curvature="0"
+       style="clip-rule:evenodd;fill-rule:evenodd;fill:#000000" />
+  </g>
+</svg>

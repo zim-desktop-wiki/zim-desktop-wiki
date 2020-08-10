@@ -177,18 +177,6 @@
 	</menubar>
 	<toolbar name='toolbar'>
 		<toolitem action='toggle_panes'/>
-		<separator/>
-		<toolitem action='toggle_format_strong'/>
-		<toolitem action='toggle_format_emphasis'/>
-		<toolitem action='toggle_format_mark'/>
-		<toolitem action='toggle_format_strike'/>
-		<separator/>
-		<toolitem action='insert_link'/>
-		<toolitem action='attach_file'/>
-		<placeholder name='insert_plugin_items'/>
-		<separator/>
-		<separator/>
-		<placeholder name='view_plugin_items'/>
 	</toolbar>
 	<popup name='toolbar_popup'>
 		<menuitem action='set_toolbar_style_icons_and_text'/>

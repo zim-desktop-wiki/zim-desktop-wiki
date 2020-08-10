@@ -28,6 +28,7 @@ from gi.repository import Pango
 import re
 import string
 import weakref
+import functools
 import zim.datetimetz as datetime
 
 import zim.formats
@@ -43,7 +44,8 @@ from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT
 from zim.formats.wiki import url_re, match_url
-from zim.actions import get_gtk_actiongroup, action, toggle_action
+from zim.actions import get_gtk_actiongroup, action, toggle_action, \
+	ActionClassMethod, ToggleActionClassMethod, initialize_actiongroup
 from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	IconButton, MenuButton, BrowserTreeView, InputEntry, \
@@ -152,30 +154,6 @@ KEYSTATES = Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.META_MASK | Gdk.Mod
 MENU_ACTIONS = (
 	# name, stock id, label
 	('insert_new_file_menu', None, _('New _Attachment')), # T: Menu title
-)
-
-ui_format_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('apply_format_h1', None, _('Heading _1'), '<Primary>1', _('Heading 1')), # T: Menu item
-	('apply_format_h2', None, _('Heading _2'), '<Primary>2', _('Heading 2')), # T: Menu item
-	('apply_format_h3', None, _('Heading _3'), '<Primary>3', _('Heading 3')), # T: Menu item
-	('apply_format_h4', None, _('Heading _4'), '<Primary>4', _('Heading 4')), # T: Menu item
-	('apply_format_h5', None, _('Heading _5'), '<Primary>5', _('Heading 5')), # T: Menu item
-	('apply_format_strong', 'gtk-bold', _('_Strong'), '<Primary>B', _('Strong')), # T: Menu item
-	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<Primary>I', _('Emphasis')), # T: Menu item
-	('apply_format_mark', 'gtk-underline', _('_Mark'), '<Primary>U', _('Mark')), # T: Menu item
-	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<Primary>K', _('Strike')), # T: Menu item
-	('apply_format_sub', None, _('_Subscript'), '<Primary><Shift>b', _('_Subscript')), # T: Menu item
-	('apply_format_sup', None, _('_Superscript'), '<Primary><Shift>p', _('_Superscript')), # T: Menu item
-	('apply_format_code', None, _('_Verbatim'), '<Primary>T', _('Verbatim')), # T: Menu item
-)
-
-ui_format_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong')),
-	('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis')),
-	('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark')),
-	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike')),
 )
 
 COPY_FORMATS = zim.formats.list_formats(zim.formats.TEXT_FORMAT)
@@ -5224,8 +5202,48 @@ class PageViewExtension(ActionExtensionBase):
 			widget.disconnect_all()
 
 
+def _install_format_actions(klass):
+	for name, label, accelerator in (
+		('apply_format_h1', _('Heading _1'), '<Primary>1'), # T: Menu item
+		('apply_format_h2', _('Heading _2'), '<Primary>2'), # T: Menu item
+		('apply_format_h3', _('Heading _3'), '<Primary>3'), # T: Menu item
+		('apply_format_h4', _('Heading _4'), '<Primary>4'), # T: Menu item
+		('apply_format_h5', _('Heading _5'), '<Primary>5'), # T: Menu item
+		('apply_format_strong', _('_Strong'), '<Primary>B'), # T: Menu item
+		('apply_format_emphasis', _('_Emphasis'), '<Primary>I'), # T: Menu item
+		('apply_format_mark', _('_Mark'), '<Primary>U'), # T: Menu item
+		('apply_format_strike', _('_Strike'), '<Primary>K'), # T: Menu item
+		('apply_format_sub', _('_Subscript'), '<Primary><Shift>b'), # T: Menu item
+		('apply_format_sup', _('_Superscript'), '<Primary><Shift>p'), # T: Menu item
+		('apply_format_code', _('_Verbatim'), '<Primary>T'), # T: Menu item
+	):
+		func = functools.partial(klass.do_toggle_format_action, action=name)
+		setattr(klass, name,
+			ActionClassMethod(name, func, label, accelerator=accelerator, menuhints='edit')
+		)
+
+	klass._format_toggle_actions = []
+	for name, label, icon in (
+		('toggle_format_strong', _('_Strong'), 'format-text-bold-symbolic'),
+		('toggle_format_emphasis', _('_Emphasis'), 'format-text-italic-symbolic'),
+		('toggle_format_mark', _('_Mark'), 'format-text-underline-symbolic'),
+		('toggle_format_strike', _('_Strike'), 'format-text-strikethrough-symbolic'),
+		('toggle_format_code', _('_Verbatim'), 'format-text-code-symbolic'),
+		('toggle_format_sub', _('Su_bscript'), 'format-text-subscript-symbolic'),
+		('toggle_format_sup', _('Su_perscript'), 'format-text-superscript-symbolic'),
+	):
+		func = functools.partial(klass.do_toggle_format_action_alt, action=name)
+		setattr(klass, name,
+			ToggleActionClassMethod(name, func, label, icon=icon, menuhints='edit')
+		)
+		klass._format_toggle_actions.append(name)
+
+	return klass
+
+
 from zim.signals import GSignalEmitterMixin
 
+@_install_format_actions
 @extendable(PageViewExtension, register_after_init=False)
 class PageView(GSignalEmitterMixin, Gtk.VBox):
 	'''Widget to display a single page, consists of a L{TextView} and
@@ -5268,6 +5286,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-caret-enter': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-caret-leave': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'readonly-changed': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
 	}
 
 	__signals__ = {
@@ -5294,7 +5313,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.secondary = secondary
 		if self.secondary:
 			self._readonly_set = True # HACK
-		self._current_toggle_action = None
 		self.ui_is_initialized = False
 		self._caret_link = None
 		self._undo_history_queue = [] # we never lookup in this list, only keep refs - notebook does the caching
@@ -5344,22 +5362,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		action.zim_readonly = False
 		action.connect('activate', self._update_new_file_submenu)
 
-		# format actions need some custom hooks
-		actiongroup = self.actiongroup
-		actiongroup.add_actions(ui_format_actions)
-		actiongroup.add_toggle_actions(ui_format_toggle_actions)
-
-		for name in [a[0] for a in ui_format_actions]:
-			action = actiongroup.get_action(name)
-			action.zim_readonly = False
-			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
-			action.connect('activate', self.do_toggle_format_action)
-
-		for name in [a[0] for a in ui_format_toggle_actions]:
-			action = actiongroup.get_action(name)
-			action.zim_readonly = False
-			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
-			action.connect('activate', self.do_toggle_format_action)
+		# ...
+		edit_toolbar = EditToolBar(self)
+		self.pack_start(edit_toolbar, False, True, 0)
+		#self.reorder_child(edit_toolbar, 0)
 
 		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed()
@@ -5401,6 +5407,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			'changed',
 			self.on_insertedobjecttypemap_changed
 		)
+
+		initialize_actiongroup(self, 'pageview')
 
 	def grab_focus(self):
 		self.textview.grab_focus()
@@ -5669,6 +5677,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		self._readonly_set = readonly
 		self._update_readonly()
+		self.emit('readonly-changed', readonly)
 
 	def _update_readonly(self):
 		self.readonly = self._readonly_set \
@@ -5844,31 +5853,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._caret_link = link
 
 	def do_textstyle_changed(self, styles):
-		# Update menu items for current style
-		#~ print('>>> SET STYLE', style)
-
 		if not styles:  # styles can be None or a list
 			styles = []
 
-		# Here we explicitly never change the toggle that initiated
-		# the change (_current_toggle_action). Somehow touching this
-		# toggle action will cause a new 'activate' signal to be fired,
-		# *after* we go out of this function and thus after the unblock.
-		# If we are lucky this second signal just undoes our current
-		# action. If we are unlucky, it puts us in an infinite loop...
-		# Not sure of the root cause, probably due to gtk+ internals.
-		# There is no proper way to block it, so we need to avoid
-		# calling it in the first place.
-		for name in [a[0] for a in ui_format_toggle_actions]:
-			action = self.actiongroup.get_action(name)
-			if name == self._current_toggle_action:
-				continue
-			else:
-				action.handler_block_by_func(self.do_toggle_format_action)
-				action.set_active(name[len("toggle_format_"):] in styles)
-				action.handler_unblock_by_func(self.do_toggle_format_action)
-
-		#~ print('<<<')
+		for name in self._format_toggle_actions:
+			getattr(self, name).set_active(name[14:] in styles) # len("toggle_format_") = 14
 
 	def activate_link(self, link, new_window=False):
 		if not isinstance(link, str):
@@ -6302,7 +6291,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		buffer.delete_mark(mark)
 
-	@action(_('_Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
+	@action(_('Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
 		InsertDateDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
@@ -6544,7 +6533,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				dir.touch()
 				open_file(self, dir)
 
-	@action(_('_Clear Formatting'), accelerator='<Primary>9', menuhints='edit') # T: Menu item
+	@action(_('_Clear Formatting'), accelerator='<Primary>9', menuhints='edit', verb_icon='edit-clear-all-symbolic') # T: Menu item
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''
 		buffer = self.textview.get_buffer()
@@ -6564,11 +6553,16 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		buffer.delete_mark(mark)
 
+	def do_toggle_format_action_alt(self, active, action):
+		self.do_toggle_format_action(action)
+
 	def do_toggle_format_action(self, action):
 		'''Handler that catches all actions to apply and/or toggle formats'''
-		name = action.get_name()
+		if isinstance(action, str):
+			name = action
+		else:
+			name = action.get_name()
 		logger.debug('Action: %s (toggle_format action)', name)
-		self._current_toggle_action = name
 		if name.startswith('apply_format_'):
 			style = name[13:]
 		elif name.startswith('toggle_format_'):
@@ -6576,7 +6570,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			assert False, "BUG: don't known this action"
 		self.toggle_format(style)
-		self._current_toggle_action = None
 
 	def toggle_format(self, format):
 		'''Toggle the format for the current (auto-)selection or new
@@ -6748,6 +6741,131 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.textview.modify_font(font)
 
 		self.text_style.write()
+
+
+class EditToolBar(Gtk.ActionBar):
+
+	def __init__(self, pageview):
+		Gtk.ActionBar.__init__(self)
+		for action in (
+			pageview.toggle_format_strong,
+			pageview.toggle_format_emphasis,
+			pageview.toggle_format_mark,
+			pageview.toggle_format_strike,
+			pageview.toggle_format_code,
+			pageview.toggle_format_sub,
+			pageview.toggle_format_sup,
+		):
+			button = action.create_icon_button()
+			button.connect('clicked', lambda o: pageview.grab_focus())
+			self.pack_start(button)
+
+		format_button, format_popover = self._create_menu_button(_('_Format'))
+		self.pack_start(format_button)
+
+		from gi.repository import Gio
+		menu = Gio.Menu()
+		section = Gio.Menu()
+		menu.append_section(None, section)
+		for action in (
+			pageview.apply_format_h1,
+			pageview.apply_format_h2,
+			pageview.apply_format_h3,
+			pageview.apply_format_h4,
+			pageview.apply_format_h5,
+			'----',
+			pageview.apply_format_bullet_list,
+			pageview.apply_format_numbered_list,
+			pageview.apply_format_checkbox_list,
+		):
+			if action == '----':
+				section = Gio.Menu()
+				menu.append_section(None, section)
+			else:
+				section.append(action.label, 'pageview.' + action.name)
+
+		format_popover.bind_model(menu)
+		format_popover.connect('closed', lambda o: pageview.grab_focus())
+
+		insert_button, insert_popover = self._create_menu_button(_('_Insert'))
+		self.pack_start(insert_button)
+
+		menu = Gio.Menu()
+		section = Gio.Menu()
+		menu.append_section(None, section)
+		for action in (
+			pageview.attach_file,
+			'----',
+			pageview.show_insert_image,
+			pageview.insert_text_from_file,
+			# <plugins>
+			'----',
+			pageview.insert_date,
+			pageview.insert_line,
+			pageview.insert_link,
+		):
+			if action == '----':
+				section = Gio.Menu()
+				menu.append_section(None, section)
+			else:
+				section.append(action.label, 'pageview.' + action.name)
+
+		insert_popover.bind_model(menu)
+		insert_popover.connect('closed', lambda o: pageview.grab_focus())
+
+		# TODO: move to plugin
+		#'new attachement from template'
+		#'open_file_templates_folder'
+
+		clear_button = pageview.clear_formatting.create_icon_button()
+		clear_button.connect('clicked', lambda o: pageview.grab_focus())
+		self.pack_end(clear_button)
+
+
+		self.insert_state_label = Gtk.Label()
+		self.insert_state_label.set_sensitive(False)
+		self.pack_end(self.insert_state_label)
+		textview = pageview.textview
+		self.on_textview_toggle_overwrite(textview)
+		textview.connect_after(
+			'toggle-overwrite', self.on_textview_toggle_overwrite)
+
+		self.style_info_label = Gtk.Label()
+		self.style_info_label.set_sensitive(False)
+		self.style_info_label.set_ellipsize(Pango.EllipsizeMode.END)
+		self.pack_end(self.style_info_label)
+		pageview.connect(
+			'textstyle-changed', self.on_textview_textstyle_changed)
+
+		pageview.connect(
+			'readonly-changed', self.on_readonly_changed)
+
+
+	def _create_menu_button(self, label):
+		button = Gtk.MenuButton()
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
+		hbox.add(Gtk.Label.new_with_mnemonic(label))
+		hbox.add(Gtk.Image.new_from_icon_name('pan-down-symbolic', Gtk.IconSize.BUTTON))
+		button.add(hbox)
+		popover = Gtk.Popover()
+		button.set_popover(popover)
+		return button, popover
+
+	def on_textview_toggle_overwrite(self, textview):
+		text = 'OVR' if textview.get_overwrite() else 'INS'
+		self.insert_state_label.set_text(text + '  ')
+
+	def on_textview_textstyle_changed(self, pageview, styles):
+		label = ", ".join([s.title() for s in styles if s]) if styles else ''
+		self.style_info_label.set_text(label)
+
+	def on_readonly_changed(self, pageview, readonly):
+		if readonly:
+			self.hide()
+			self.set_no_show_all(True)
+		else:
+			self.set_no_show_all(False)
+			self.show()
 
 
 class InsertedObjectAnchor(Gtk.TextChildAnchor):
@@ -7512,28 +7630,27 @@ class FindWidget(object):
 		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 
-class FindBar(FindWidget, Gtk.HBox):
+class FindBar(FindWidget, Gtk.ActionBar):
 	'''Bar to be shown below the TextView for find functions'''
 
 	# TODO use smaller buttons ?
 
 	def __init__(self, textview):
 		GObject.GObject.__init__(self)
-		self.set_spacing(5)
 		FindWidget.__init__(self, textview)
 
-		self.pack_start(Gtk.Label(_('Find') + ': '), False, True, 0)
+		self.pack_start(Gtk.Label(_('Find') + ': '))
 			# T: label for input in find bar on bottom of page
-		self.pack_start(self.find_entry, False, True, 0)
-		self.pack_start(self.previous_button, False, True, 0)
-		self.pack_start(self.next_button, False, True, 0)
-		self.pack_start(self.case_option_checkbox, False, True, 0)
-		self.pack_start(self.highlight_checkbox, False, True, 0)
+		self.pack_start(self.find_entry)
+		self.pack_start(self.previous_button)
+		self.pack_start(self.next_button)
+		self.pack_start(self.case_option_checkbox)
+		self.pack_start(self.highlight_checkbox)
 		# TODO allow box to shrink further by putting buttons in menu
 
 		close_button = IconButton(Gtk.STOCK_CLOSE, relief=False, size=Gtk.IconSize.MENU)
 		close_button.connect_object('clicked', self.__class__.hide, self)
-		self.pack_end(close_button, False, True, 0)
+		self.pack_end(close_button)
 
 	def grab_focus(self):
 		self.find_entry.grab_focus()
@@ -7544,7 +7661,7 @@ class FindBar(FindWidget, Gtk.HBox):
 		self.show_all()
 
 	def hide(self):
-		Gtk.HBox.hide(self)
+		Gtk.ActionBar.hide(self)
 		self.set_no_show_all(True)
 		buffer = self.textview.get_buffer()
 		buffer.finder.set_highlight(False)
