@@ -5226,7 +5226,7 @@ class PageViewExtension(ActionExtensionBase):
 
 from zim.signals import GSignalEmitterMixin
 
-@extendable(PageViewExtension, auto_init=False)
+@extendable(PageViewExtension, register_after_init=False)
 class PageView(GSignalEmitterMixin, Gtk.VBox):
 	'''Widget to display a single page, consists of a L{TextView} and
 	a L{FindBar}. Also adds menu items and in general integrates
@@ -5401,13 +5401,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			'changed',
 			self.on_insertedobjecttypemap_changed
 		)
-
-		# setup needed due to "auto_init=False"
-		def on_hierarchy_changed(o, window):
-			assert window is None, 'TODO - unparent extensions'
-			PluginManager.new_extendable(self)
-
-		self.connect('hierarchy-changed', on_hierarchy_changed)
 
 	def grab_focus(self):
 		self.textview.grab_focus()

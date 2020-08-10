@@ -14,6 +14,15 @@ from gi.repository import GdkPixbuf
 from zim.config import data_dirs
 
 
+def set_icon_search_path():
+	icon_theme = Gtk.IconTheme.get_default()
+	for dir in data_dirs():
+		if dir.subdir('icons').exists():
+			icon_theme.append_search_path(dir.subdir('icons').path)
+
+set_icon_search_path()
+
+
 # Load custom application icons as stock
 def load_zim_stock_icons():
 	'''Function to load zim custom stock icons for Gtk. Will load all

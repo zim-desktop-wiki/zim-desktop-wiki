@@ -39,6 +39,13 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Link Map',
 	}
 
+
+	plugin_preferences = (
+		# key, type, label, default
+		('button_in_headerbar', 'bool', _('Show linkmap button in headerbar'), True),
+			# T: preferences option
+	)
+
 	@classmethod
 	def check_dependencies(klass):
 		has_xdot = xdot is not None
@@ -111,7 +118,15 @@ class LinkMap(object):
 
 class LinkMapPageViewExtension(PageViewExtension):
 
-	@action(_('Link Map'), icon='zim-linkmap', menuhints='view') # T: menu item
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
+		self.set_action_in_headerbar(self.show_linkmap, preferences['button_in_headerbar'])
+
+	@action(_('Link Map'), icon='linkmap-symbolic', menuhints='view:headerbar') # T: menu item
 	def show_linkmap(self):
 		linkmap = LinkMap(self.pageview.notebook, self.pageview.page)
 		dialog = LinkMapDialog(self.pageview, linkmap, self.navigation)

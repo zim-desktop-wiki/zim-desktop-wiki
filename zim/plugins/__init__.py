@@ -85,7 +85,7 @@ class _BootstrapPluginManager(object):
 	def __init__(self):
 		self._extendables = []
 
-	def new_extendable(self, extendable):
+	def register_new_extendable(self, extendable):
 		self._extendables.append(extendable)
 
 
@@ -93,12 +93,12 @@ _bootstrappluginmanager = _BootstrapPluginManager()
 PluginManager = _bootstrappluginmanager
 
 
-def extendable(*extension_bases, auto_init=True):
+def extendable(*extension_bases, register_after_init=True):
 	'''Class decorator to mark a class as "extendable"
 	@param extension_bases: base classes for extensions
-	@param auto_init: if C{True} the class is registered with the L{PluginManager}
+	@param register_after_init: if C{True} the class is registered with the L{PluginManager}
 	directly after it's C{__init__()} method has run. If C{False} the class
-	can call C{PluginManager.new_extendable(self)} explicitly whenever ready.
+	can call C{PluginManager.register_new_extendable(self)} explicitly whenever ready.
 	'''
 	assert all(issubclass(ec, ExtensionBase) for ec in extension_bases)
 
@@ -109,8 +109,8 @@ def extendable(*extension_bases, auto_init=True):
 			orig_init(self, *arg, **kwarg)
 			self.__zim_extension_bases__ = extension_bases
 			self.__zim_extension_objects__ = []
-			if auto_init:
-				PluginManager.new_extendable(self)
+			if register_after_init:
+				PluginManager.register_new_extendable(self)
 
 		cls.__init__ = _init_wrapper
 
@@ -176,6 +176,7 @@ class ExtensionBase(SignalEmitter, ConnectorMixin):
 		@param obj: the object being extended
 		'''
 		self.plugin = plugin
+		self.obj = obj
 		obj.__zim_extension_objects__.append(self)
 
 	def destroy(self):
@@ -425,10 +426,10 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 		mod = get_module(modname)
 		return lookup_subclass(mod, PluginClass)
 
-	def new_extendable(self, obj):
+	def register_new_extendable(self, obj):
 		'''Register an extendable object
 		This is called automatically by the L{extendable()} class decorator
-		unless the option c{auto_init} was set to C{False}.
+		unless the option c{register_after_init} was set to C{False}.
 		Relies on C{obj} already being setup correctly by the L{extendable} decorator.
 		'''
 		logger.debug("New extendable: %s", obj)
@@ -505,7 +506,7 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 
 PluginManager = PluginManagerClass()  # singleton
 for _extendable in _bootstrappluginmanager._extendables:
-	PluginManager.new_extendable(_extendable)
+	PluginManager.register_new_extendable(_extendable)
 del _bootstrappluginmanager
 del _extendable
 

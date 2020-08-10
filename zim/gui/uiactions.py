@@ -277,7 +277,7 @@ class UIActions(object):
 		if not self.notebook.index.is_uptodate:
 			self.reload_index(update_only=True)
 
-	@action(_('_Search...'), '<shift><Primary>F') # T: Menu item
+	@action(_('_Search...'), '<shift><Primary>F', verb_icon='edit-find-symbolic') # T: Menu item
 	def show_search(self, query=None):
 		'''Menu action to show the L{SearchDialog}
 		@param query: the search query to show

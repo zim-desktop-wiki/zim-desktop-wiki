@@ -49,6 +49,8 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		# key, type, label, default
+		('button_in_headerbar', 'bool', _('Show tasklist button in headerbar'), True),
+			# T: preferences option
 		('embedded', 'bool', _('Show tasklist in sidepane'), False),
 			# T: preferences option
 		('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
@@ -156,7 +158,7 @@ class TaskListPageViewExtension(PageViewExtension):
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-	@action(_('Task List'), icon='zim-task-list', menuhints='view') # T: menu item
+	@action(_('Task List'), icon='task-list-symbolic', menuhints='view:headerbar') # T: menu item
 	def show_task_list(self):
 		# TODO: add check + dialog for index probably_up_to_date
 
@@ -178,6 +180,8 @@ class TaskListPageViewExtension(PageViewExtension):
 				self.add_sidepane_widget(self._widget, 'pane')
 			else:
 				self._widget.task_list.refresh()
+
+		self.set_action_in_headerbar(self.show_task_list, preferences['button_in_headerbar'])
 
 	def _init_widget(self):
 		index = self.pageview.notebook.index

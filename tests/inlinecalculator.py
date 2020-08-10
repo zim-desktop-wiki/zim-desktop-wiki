@@ -6,7 +6,7 @@ import tests
 from zim.plugins import find_extension, PluginManager
 from zim.plugins.inlinecalculator import InlineCalculatorPageViewExtension
 
-from tests.pageview import setUpPageView
+from tests.mainwindow import setUpMainWindow
 
 
 @tests.slowTest
@@ -86,7 +86,8 @@ class TestInlineCalculatorExtension(tests.TestCase):
 	def runTest(self):
 		plugin = PluginManager.load_plugin('inlinecalculator')
 		notebook = self.setUpNotebook()
-		pageview = setUpPageView(notebook)
+		window = setUpMainWindow(notebook)
+		pageview = window.pageview
 
 		extension = find_extension(pageview, InlineCalculatorPageViewExtension)
 		buffer = pageview.textview.get_buffer()

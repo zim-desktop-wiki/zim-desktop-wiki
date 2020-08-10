@@ -31,6 +31,8 @@ Known values include:
   - tools -- "Tools" menu
   - go -- "Go" menu
   - accelonly -- do not show in menu, shortcut key only
+  - headerbar -- place action in the headerbar of the window, will place "view"
+    menu items on the right, others on the left
 
 Other values are ignored silently
 

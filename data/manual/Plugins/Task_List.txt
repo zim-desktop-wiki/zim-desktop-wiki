@@ -22,6 +22,7 @@ The options **Section(s) to index** and **Section(s) to ignore** can be used to 
 
 The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window; **Show due date in sidepane** selects whether a tasklist in a side pane displays the due date of a task.
 
+The option **Show tasklist button in headerbar** determines whether a button is shown in the headerbar on the top of the window for opening the tasklist dialog.
 
 ==== Context menu ====
 The context menu of the tasklist (the "right click" menu) has two further options to control the view:

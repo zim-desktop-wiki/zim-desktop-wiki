@@ -178,12 +178,6 @@
 	<toolbar name='toolbar'>
 		<toolitem action='toggle_panes'/>
 		<separator/>
-		<toolitem action='open_page_home'/>
-		<toolitem action='open_page_back'/>
-		<toolitem action='open_page_forward'/>
-		<separator/>
-		<toolitem action='toggle_editable'/>
-		<separator/>
 		<toolitem action='toggle_format_strong'/>
 		<toolitem action='toggle_format_emphasis'/>
 		<toolitem action='toggle_format_mark'/>

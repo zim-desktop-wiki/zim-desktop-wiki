@@ -29,6 +29,9 @@ class ActionExtensionBase(ExtensionBase):
 						uimanager.add_ui_from_string(xml)
 					)
 
+				if 'headerbar' in action.menuhints:
+					self.add_to_headerbar(action)
+
 	def teardown(self):
 		if hasattr(self, '_uimanager_ids'):
 			for ui_id in self._uimanager_ids:
@@ -38,6 +41,40 @@ class ActionExtensionBase(ExtensionBase):
 		if hasattr(self, 'actiongroup') and self.actiongroup is not None:
 			self._uimanager.remove_action_group(self.actiongroup)
 			self.actiongroup = None
+
+		for name, action in get_actions(self):
+			if 'headerbar' in action.menuhints:
+				self.remove_from_headerbar(action)
+
+	def add_to_headerbar(self, action):
+		button = action.create_icon_button()
+		headerbar = self.obj.get_toplevel().get_titlebar()
+		if 'view' in action.menuhints:
+			headerbar.pack_end(button)
+		else:
+			headerbar.pack_start(button)
+		button.show_all()
+
+	def remove_from_headerbar(self, action):
+		# fails silently
+		headerbar = self.obj.get_toplevel().get_titlebar()
+		for button in action._proxies:
+			try:
+				headerbar.remove(button)
+			except:
+				pass
+
+	def set_action_in_headerbar(self, action, visible):
+		if visible:
+			headerbar = self.obj.get_toplevel().get_titlebar()
+			children = headerbar.get_children()
+			for button in action._proxies:
+				if button in children:
+					return
+			else:
+				self.add_to_headerbar(action)
+		else:
+			self.remove_from_headerbar(action)
 
 	@staticmethod
 	def _uimanager_xml(action, actiongroup, defaultmenu):
@@ -83,7 +120,7 @@ class ActionExtensionBase(ExtensionBase):
 		</ui>
 		''' % (menu_name, placeholder_name, item)
 
-		if not isinstance(action, RadioActionMethod) and menuhint in ('view', 'insert') \
+		if not isinstance(action, RadioActionMethod) and menuhint == 'insert' \
 			and (action.icon or action.verb_icon):
 				ui = ui.replace('</ui>', '''\
 		<toolbar name='toolbar'>

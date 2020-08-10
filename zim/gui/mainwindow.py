@@ -35,7 +35,7 @@ from zim.gui.insertedobjects import InsertedObjectUI
 
 from zim.gui.pageview import PageView
 
-from zim.plugins import ExtensionBase, extendable
+from zim.plugins import ExtensionBase, extendable, PluginManager
 from zim.gui.actionextension import ActionExtensionBase
 
 
@@ -303,6 +303,32 @@ class MainWindow(Window):
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
 
+		# header Bar
+		headerbar = Gtk.HeaderBar()
+		headerbar.set_show_close_button(True)
+
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		for action in (
+			self.open_page_back,
+			self.open_page_home,
+			self.open_page_forward,
+		):
+			button = action.create_icon_button()
+			hbox.add(button)
+		context = hbox.get_style_context()
+		context.add_class("linked")
+		headerbar.pack_start(hbox)
+
+		action = self._uiactions.show_search
+		button = action.create_icon_button()
+		headerbar.pack_end(button)
+
+		action = self.toggle_editable
+		button = action.create_icon_button()
+		headerbar.pack_end(button)
+
+		self.set_titlebar(headerbar)
+
 		# Do this last, else menu items show up in wrong place
 		self._customtools = CustomToolManagerUI(self.uimanager, self.pageview)
 		self._insertedobjects = InsertedObjectUI(self.uimanager, self.pageview)
@@ -339,6 +365,7 @@ class MainWindow(Window):
 		else:
 			self.open_page_home()
 
+		PluginManager.register_new_extendable(self.pageview)
 		self.pageview.grab_focus()
 
 
@@ -581,7 +608,7 @@ class MainWindow(Window):
 
 		self.preferences['toolbar_size'] = size
 
-	@toggle_action(_('Notebook _Editable'), icon='gtk-edit', init=True) # T: menu item
+	@toggle_action(_('Notebook _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
 	def toggle_editable(self, editable):
 		'''Menu action to toggle the read-only state of the application
 		@emits: readonly-changed
@@ -708,7 +735,7 @@ class MainWindow(Window):
 			self.notebook.state.write()
 
 	def on_notebook_properties_changed(self, properties):
-		self.set_title(self.notebook.name + ' - Zim')
+		self._update_window_title()
 		if self.notebook.icon:
 			try:
 				self.set_icon_from_file(self.notebook.icon)
@@ -815,6 +842,13 @@ class MainWindow(Window):
 		self.update_buttons_history()
 		self.update_buttons_hierarchy()
 		self.statusbar_backlinks_button.set_page(self.page)
+		self._update_window_title()
+
+	def _update_window_title(self):
+		if self.page:
+			self.set_title(self.page.name + ' - ' + self.notebook.name)
+		else:
+			self.set_title(self.notebook.name)
 
 	def do_page_info_changed(self, notebook, page):
 		if page == self.page:
@@ -838,8 +872,9 @@ class MainWindow(Window):
 		return OpenPageDialog(self, self.page, self.open_page).run()
 
 	@action(
-		_('_Back'), verb_icon='gtk-go-back', # T: Menu item
-		accelerator='<alt>Left', alt_accelerator='XF86Back'
+		_('_Back'), verb_icon='go-previous-symbolic', # T: Menu item
+		accelerator='<alt>Left', alt_accelerator='XF86Back',
+		tooltip=_('Go back')
 	)
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
@@ -850,8 +885,9 @@ class MainWindow(Window):
 			self.open_page(record)
 
 	@action(
-		_('_Forward'), verb_icon='gtk-go-forward', # T: Menu item
-		accelerator='<alt>Right', alt_accelerator='XF86Forward'
+		_('_Forward'), verb_icon='go-next-symbolic', # T: Menu item
+		accelerator='<alt>Right', alt_accelerator='XF86Forward',
+		tooltip=_('Go forward')
 	)
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
@@ -904,7 +940,7 @@ class MainWindow(Window):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Home'), '<alt>Home', icon='gtk-home') # T: Menu item
+	@action(_('_Home'), '<alt>Home', verb_icon='go-home-symbolic', tooltip=_('Go to home page')) # T: Menu item
 	def open_page_home(self):
 		'''Menu action to open the home page'''
 		self.open_page(self.notebook.get_home_page())
@@ -967,7 +1003,7 @@ class PageWindow(Window):
 		self.navigation = navigation
 		self.notebook = notebook
 
-		self.set_title(page.name + ' - Zim')
+		self.set_title(page.name)
 		#if ui.notebook.icon:
 		#	try:
 		#		self.set_icon_from_file(ui.notebook.icon)
