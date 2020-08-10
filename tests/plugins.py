@@ -145,7 +145,7 @@ class TestPlugins(tests.TestCase):
 		self.assertGreaterEqual(len(notebook.__zim_extension_objects__), 2)
 			# At least journal and tasklist should load
 
-		mainwindow = setUpMainWindow(notebook, plugins=manager)
+		mainwindow = setUpMainWindow(notebook)
 		self.assertGreaterEqual(len(mainwindow.pageview.__zim_extension_objects__), 3)
 			# enough plugins without dependencies here
 

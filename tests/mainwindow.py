@@ -14,12 +14,11 @@ from zim.gui.mainwindow import *
 is_sensitive = lambda w: w.get_property('sensitive')
 
 
-def setUpMainWindow(notebook, path='Test', plugins=None):
+def setUpMainWindow(notebook, path='Test'):
 	if isinstance(path, str):
 		path = Path(path)
 
 	mainwindow = MainWindow(notebook, page=path)
-	mainwindow.__pluginmanager__ = plugins or PluginManager()
 	mainwindow.init_uistate() # XXX
 	return mainwindow
 

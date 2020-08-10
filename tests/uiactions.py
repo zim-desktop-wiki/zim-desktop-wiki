@@ -455,7 +455,6 @@ class TestUIActions(tests.TestCase):
 		from zim.plugins import PluginManager
 
 		self.uiactions.widget = Gtk.Window()
-		self.uiactions.widget.__pluginmanager__ = PluginManager()
 
 		def edit_properties(dialog):
 			dialog.set_input(home='NewHome')
@@ -471,7 +470,6 @@ class TestUIActions(tests.TestCase):
 		from zim.plugins import PluginManager
 
 		self.uiactions.widget = Gtk.Window()
-		self.uiactions.widget.__pluginmanager__ = PluginManager()
 
 		self.assertFalse(self.notebook.readonly) # implies attribute exists ..
 		self.notebook.readonly = True
@@ -488,7 +486,6 @@ class TestUIActions(tests.TestCase):
 		from zim.plugins import PluginManager
 
 		self.uiactions.widget = Gtk.Window()
-		self.uiactions.widget.__pluginmanager__ = PluginManager()
 
 		# In fact this is testig the "cancel" button for all dialogs
 		# which have one ..
@@ -522,7 +519,6 @@ class TestUIActions(tests.TestCase):
 		from zim.plugins import PluginManager
 
 		self.uiactions.widget = Gtk.Window()
-		self.uiactions.widget.__pluginmanager__ = PluginManager()
 
 		with tests.DialogContext(PreferencesDialog):
 			self.uiactions.show_preferences()

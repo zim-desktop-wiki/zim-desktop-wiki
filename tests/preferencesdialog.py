@@ -14,7 +14,6 @@ from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
 def MyWindow():
 	from gi.repository import Gtk
 	window = Gtk.Window()
-	window.__pluginmanager__ = PluginManager()
 	return window
 
 
@@ -65,7 +64,7 @@ class TestPreferencesDialog(tests.TestCase):
 
 		pref_dialog = PreferencesDialog(window)
 		treeview = pref_dialog.plugins_tab.treeview
-		for name in window.__pluginmanager__.list_installed_plugins():
+		for name in PluginManager.list_installed_plugins():
 			pref_dialog.plugins_tab.select_plugin(name)
 			model, iter = treeview.get_selection().get_selected()
 			self.assertEqual(model[iter][0], name)
