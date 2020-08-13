@@ -39,14 +39,6 @@ from zim.plugins import ExtensionBase, extendable, PluginManager
 from zim.gui.actionextension import ActionExtensionBase
 
 
-TOOLBAR_ICONS_AND_TEXT = 'icons_and_text'
-TOOLBAR_ICONS_ONLY = 'icons_only'
-TOOLBAR_TEXT_ONLY = 'text_only'
-
-TOOLBAR_ICONS_LARGE = 'large'
-TOOLBAR_ICONS_SMALL = 'small'
-TOOLBAR_ICONS_TINY = 'tiny'
-
 MENU_ACTIONS = (
 	('file_menu', None, _('_File')), # T: Menu title
 	('edit_menu', None, _('_Edit')), # T: Menu title
@@ -57,7 +49,6 @@ MENU_ACTIONS = (
 	('tools_menu', None, _('_Tools')), # T: Menu title
 	('go_menu', None, _('_Go')), # T: Menu title
 	('help_menu', None, _('_Help')), # T: Menu title
-	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 	('checkbox_menu', None, _('_Checkbox')), # T: Menu title
 )
 
@@ -91,7 +82,7 @@ def schedule_on_idle(function, args=()):
 class MainWindowExtension(ActionExtensionBase):
 	'''Base class for extending the L{MainWindow}
 
-	Menu and toolbar actions can be defined by defining an action method
+	Menu actions can be defined by defining an action method
 	and specifying where in the menu this should be placed.
 
 	An action method is any object method of the extension method that
@@ -193,7 +184,6 @@ class MainWindow(Window):
 		self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 		self.uistate.setdefault('windowmaximized', False)
 		self.uistate.setdefault('active_tabs', None, tuple)
-		self.uistate.setdefault('show_toolbar', True)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('readonly', False)
 
@@ -205,18 +195,13 @@ class MainWindow(Window):
 		<ui>
 			<menubar name="menubar">
 			</menubar>
-			<toolbar name="toolbar">
-			</toolbar>
 		</ui>
 		''')
 
-		# setup menubar and toolbar
+		# setup menubar
 		self.add_accel_group(self.uimanager.get_accel_group())
 		self.menubar = self.uimanager.get_widget('/menubar')
-		self.toolbar = self.uimanager.get_widget('/toolbar')
-		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
 		self.add_bar(self.menubar)
-		self.add_bar(self.toolbar)
 
 		self.pageview = PageView(self.notebook, self.navigation)
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
@@ -447,23 +432,6 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-	@toggle_action(_('_Toolbar'), init=True) # T: Menu item
-	def toggle_toolbar(self, show):
-		'''Menu action to toggle the visibility of the tool bar'''
-		if show:
-			self.toolbar.set_no_show_all(False)
-			self.toolbar.show()
-		else:
-			self.toolbar.hide()
-			self.toolbar.set_no_show_all(True)
-
-		self.uistate['show_toolbar'] = show
-
-	def do_toolbar_popup(self, toolbar, x, y, button):
-		'''Show the context menu for the toolbar'''
-		menu = self.uimanager.get_widget('/toolbar_popup')
-		gtk_popup_at_pointer(menu)
-
 	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
 	def toggle_statusbar(self, show):
 		'''Menu action to toggle the visibility of the status bar'''
@@ -542,54 +510,6 @@ class MainWindow(Window):
 
 		return True # stop
 
-	@radio_action(
-		None,
-		radio_option(TOOLBAR_ICONS_AND_TEXT, _('Icons _And Text')), # T: Menu item
-		radio_option(TOOLBAR_ICONS_ONLY, _('_Icons Only')), # T: Menu item
-		radio_option(TOOLBAR_TEXT_ONLY, _('_Text Only')), # T: Menu item
-	)
-	def set_toolbar_style(self, style):
-		'''Set the toolbar style
-		@param style: can be either:
-			- C{TOOLBAR_ICONS_AND_TEXT}
-			- C{TOOLBAR_ICONS_ONLY}
-			- C{TOOLBAR_TEXT_ONLY}
-		'''
-		if style == TOOLBAR_ICONS_AND_TEXT:
-			self.toolbar.set_style(Gtk.ToolbarStyle.BOTH)
-		elif style == TOOLBAR_ICONS_ONLY:
-			self.toolbar.set_style(Gtk.ToolbarStyle.ICONS)
-		elif style == TOOLBAR_TEXT_ONLY:
-			self.toolbar.set_style(Gtk.ToolbarStyle.TEXT)
-		else:
-			assert False, 'BUG: Unkown toolbar style: %s' % style
-
-		self.preferences['toolbar_style'] = style
-
-	@radio_action(
-		None,
-		radio_option(TOOLBAR_ICONS_LARGE, _('_Large Icons')), # T: Menu item
-		radio_option(TOOLBAR_ICONS_SMALL, _('_Small Icons')), # T: Menu item
-		radio_option(TOOLBAR_ICONS_TINY, _('_Tiny Icons')), # T: Menu item
-	)
-	def set_toolbar_icon_size(self, size):
-		'''Set the toolbar style
-		@param size: can be either:
-			- C{TOOLBAR_ICONS_LARGE}
-			- C{TOOLBAR_ICONS_SMALL}
-			- C{TOOLBAR_ICONS_TINY}
-		'''
-		if size == TOOLBAR_ICONS_LARGE:
-			self.toolbar.set_icon_size(Gtk.IconSize.LARGE_TOOLBAR)
-		elif size == TOOLBAR_ICONS_SMALL:
-			self.toolbar.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
-		elif size == TOOLBAR_ICONS_TINY:
-			self.toolbar.set_icon_size(Gtk.IconSize.MENU)
-		else:
-			assert False, 'BUG: Unkown toolbar size: %s' % size
-
-		self.preferences['toolbar_size'] = size
-
 	@toggle_action(_('Notebook _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
 	def toggle_editable(self, editable):
 		'''Menu action to toggle the read-only state of the application
@@ -627,22 +547,9 @@ class MainWindow(Window):
 			if self.uistate['windowmaximized']:
 				self.maximize()
 
-		# For these two "None" means system default, but we don't know what that default is :(
-		self.preferences.setdefault('toolbar_style', None,
-			(TOOLBAR_ICONS_ONLY, TOOLBAR_ICONS_AND_TEXT, TOOLBAR_TEXT_ONLY))
-		self.preferences.setdefault('toolbar_size', None,
-			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
-
-		self.toggle_toolbar(self.uistate['show_toolbar'])
 		self.toggle_statusbar(self.uistate['show_statusbar'])
 
 		Window.init_uistate(self) # takes care of sidepane positions etc
-
-		if self.preferences['toolbar_style'] is not None:
-			self.set_toolbar_style(self.preferences['toolbar_style'])
-
-		if self.preferences['toolbar_size'] is not None:
-			self.set_toolbar_icon_size(self.preferences['toolbar_size'])
 
 		self.toggle_fullscreen(self._set_fullscreen)
 
@@ -669,26 +576,6 @@ class MainWindow(Window):
 		self.uimanager.ensure_update()
 			# Prevent flashing when the toolbar is loaded after showing the window
 			# and do this before connecting signal below for accelmap.
-
-		# Add search bar onec toolbar is loaded
-		space = Gtk.SeparatorToolItem()
-		space.set_draw(False)
-		space.set_expand(True)
-		self.toolbar.insert(space, -1)
-
-		from zim.gui.widgets import InputEntry
-		entry = InputEntry(placeholder_text=_('Search'))
-		entry.set_icon_from_stock(Gtk.EntryIconPosition.SECONDARY, Gtk.STOCK_FIND)
-		entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, True)
-		entry.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY, _('Search Pages...'))
-			# T: label in search entry
-		inline_search = lambda e, *a: self._uiactions.show_search(query=e.get_text() or None)
-		entry.connect('activate', inline_search)
-		entry.connect('icon-release', inline_search)
-		entry.show()
-		item = Gtk.ToolItem()
-		item.add(entry)
-		self.toolbar.insert(item, -1)
 
 		# Load accelmap config and setup saving it
 		# TODO - this probably belongs in the application class, not here

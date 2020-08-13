@@ -32,8 +32,6 @@ Then there is the checkbox **Command does not modify data**. Enable this option 
 
 If the option **Output should replace current selection** is enabled (and the above checkbox is not enabled) the output of the command is used to replace the current selection in the editor window. This can be used for custom commands that modify a single word or sentence.
 
-The option **Show in the toolbar** determines if this tool will be added to the toolbar or not.
-
 Tools are always visible in the "Tools" menu in the main window. Depending on the parameters they take, they may also be shown in the context menus for pages or for selected text in the editor.
 
 

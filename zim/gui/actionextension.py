@@ -120,15 +120,4 @@ class ActionExtensionBase(ExtensionBase):
 		</ui>
 		''' % (menu_name, placeholder_name, item)
 
-		if not isinstance(action, RadioActionMethod) and menuhint == 'insert' \
-			and (action.icon or action.verb_icon):
-				ui = ui.replace('</ui>', '''\
-		<toolbar name='toolbar'>
-			<placeholder name='%s'>
-			%s
-			</placeholder>
-		</toolbar>
-		</ui>
-		''' % (menuhint + '_plugin_items', item.replace('menuitem', 'toolitem')))
-
 		return ui

@@ -438,7 +438,6 @@ class CustomToolManagerUI(object):
 	def get_ui_xml(self):
 		tools = self._manager
 		menulines = ["<menuitem action='%s'/>\n" % t.key for t in tools]
-		toollines = ["<toolitem action='%s'/>\n" % t.key for t in tools if t.showintoolbar]
 		textlines = ["<menuitem action='%s'/>\n" % t.key for t in tools if t.showincontextmenu == 'Text']
 		pagelines = ["<menuitem action='%s'/>\n" % t.key for t in tools if t.showincontextmenu == 'Page']
 		return """\
@@ -450,11 +449,6 @@ class CustomToolManagerUI(object):
 					</placeholder>
 				</menu>
 			</menubar>
-			<toolbar name='toolbar'>
-				<placeholder name='tools'>
-				%s
-				</placeholder>
-			</toolbar>
 			<popup name='text_popup'>
 				<placeholder name='tools'>
 				%s
@@ -468,7 +462,6 @@ class CustomToolManagerUI(object):
 		</ui>
 		""" % (
 			''.join(menulines),
-			''.join(toollines),
 			''.join(textlines),
 			''.join(pagelines)
 		)
@@ -675,12 +668,12 @@ class EditCustomToolDialog(Dialog):
 		self.form.add_inputs((
 			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')), # T: Input in "Edit Custom Tool" dialog
 			('X-Zim-ReplaceSelection', 'bool', _('Output should replace current selection')), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
+			#('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
 		))
 		self.form.update({
 			'X-Zim-ReadOnly': readonly,
 			'X-Zim-ReplaceSelection': replaceselection,
-			'X-Zim-ShowInToolBar': toolbar,
+			#'X-Zim-ShowInToolBar': toolbar,
 		})
 
 		self.add_help_text(_('''\

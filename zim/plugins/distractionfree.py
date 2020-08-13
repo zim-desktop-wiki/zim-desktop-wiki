@@ -34,7 +34,6 @@ class DistractionFreePlugin(PluginClass):
 	plugin_preferences = (
 		# key, type, label, default
 		('hide_menubar', 'bool', _('Hide menubar in fullscreen mode'), True), # T: plugin preference
-		('hide_toolbar', 'bool', _('Hide toolbar in fullscreen mode'), True), # T: plugin preference
 		('hide_statusbar', 'bool', _('Hide statusbar in fullscreen mode'), True), # T: plugin preference
 		('max_page_width', 'int', _('Maximum page width'), 850, (_minsize, 10000)), # T: plugin preference
 		('vmargin', 'int', _('Border width'), 50, (0, 10000)), # T: plugin preference
@@ -82,7 +81,6 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 	def on_preferences_changed(self, preferences):
 		if self.window.isfullscreen:
 			self.window.toggle_menubar(not preferences['hide_menubar'])
-			self.window.toggle_toolbar(not preferences['hide_toolbar'])
 			self.window.toggle_statusbar(not preferences['hide_statusbar'])
 
 	def on_window_state_event(self, window, event):
@@ -113,21 +111,13 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			window.pageview.grab_focus()
 
 	def save_bar_state(self):
-		self._bar_state = (
-			self.window.uistate['show_toolbar'],
-			self.window.uistate['show_statusbar'],
-		)
+		self._bar_state = self.window.uistate['show_statusbar']
 
 	def restore_bar_state(self):
-		if self._bar_state is None:
-			return
-		show_toolbar, show_statusbar = self._bar_state
-		self.window.toggle_toolbar(show_toolbar)
-		self.window.toggle_statusbar(show_statusbar)
+		self.window.toggle_statusbar(self._bar_state)
 
 	def set_bar_state_fullscreen(self):
 		self.window.toggle_menubar(not self.preferences['hide_menubar'])
-		self.window.toggle_toolbar(not self.preferences['hide_toolbar'])
 		self.window.toggle_statusbar(not self.preferences['hide_statusbar'])
 
 	def insert_maxwidth(self):

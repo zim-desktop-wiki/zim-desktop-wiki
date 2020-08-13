@@ -53,19 +53,9 @@
 		</menu>
 		<menu action='view_menu'>
 			<menuitem action='toggle_editable'/>
-			<menuitem action='toggle_toolbar'/>
 			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_panes'/>
 			<menuitem action='show_all_panes'/>
-			<menu action='toolbar_menu'>
-				<menuitem action='set_toolbar_style_icons_and_text'/>
-				<menuitem action='set_toolbar_style_icons_only'/>
-				<menuitem action='set_toolbar_style_text_only'/>
-				<separator/>
-				<menuitem action='set_toolbar_icon_size_large'/>
-				<menuitem action='set_toolbar_icon_size_small'/>
-				<menuitem action='set_toolbar_icon_size_tiny'/>
-			</menu>
 			<menuitem action='toggle_fullscreen'/>
 			<separator/>
 			<placeholder name='plugin_items'/>
@@ -175,18 +165,6 @@
 			<menuitem action='show_about'/>
 		</menu>
 	</menubar>
-	<toolbar name='toolbar'>
-		<toolitem action='toggle_panes'/>
-	</toolbar>
-	<popup name='toolbar_popup'>
-		<menuitem action='set_toolbar_style_icons_and_text'/>
-		<menuitem action='set_toolbar_style_icons_only'/>
-		<menuitem action='set_toolbar_style_text_only'/>
-		<separator/>
-		<menuitem action='set_toolbar_icon_size_large'/>
-		<menuitem action='set_toolbar_icon_size_small'/>
-		<menuitem action='set_toolbar_icon_size_tiny'/>
-	</popup>
 	<popup name='page_edit_popup'>
 		<menuitem action='new_page_here'/>
 		<menuitem action='new_sub_page'/>

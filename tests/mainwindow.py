@@ -190,12 +190,6 @@ class TestTogglingState(tests.TestCase):
 		window.toggle_menubar()
 		#self.assertTrue(window.uistate['show_menubar'])
 
-		self.assertTrue(window.uistate['show_toolbar'])
-		window.toggle_toolbar()
-		self.assertFalse(window.uistate['show_toolbar'])
-		window.toggle_toolbar()
-		self.assertTrue(window.uistate['show_toolbar'])
-
 		self.assertTrue(window.uistate['show_statusbar'])
 		window.toggle_statusbar()
 		self.assertFalse(window.uistate['show_statusbar'])
@@ -211,24 +205,6 @@ class TestTogglingState(tests.TestCase):
 		self.assertFalse(window.uistate['left_pane'][0])
 		window.toggle_panes()
 		self.assertTrue(window.uistate['left_pane'][0])
-
-		# note: no default style here - system default unknown
-		for style in (
-			TOOLBAR_ICONS_AND_TEXT,
-			TOOLBAR_ICONS_ONLY,
-			TOOLBAR_TEXT_ONLY,
-		):
-			window.set_toolbar_style(style)
-			self.assertEqual(window.preferences['toolbar_style'], style)
-
-		# note: no default style here - system default unknown
-		for size in (
-			TOOLBAR_ICONS_LARGE,
-			TOOLBAR_ICONS_SMALL,
-			TOOLBAR_ICONS_TINY,
-		):
-			window.set_toolbar_icon_size(size)
-			self.assertEqual(window.preferences['toolbar_size'], size)
 
 		# ..
 		window.toggle_fullscreen()

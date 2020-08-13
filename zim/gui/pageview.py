@@ -1661,7 +1661,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 		This method is mainly to change the behavior for
 		interactive editing. E.g. it is called indirectly when the
-		user clicks one of the formatting buttons in the toolbar.
+		user clicks one of the formatting buttons in the EditBar.
 
 		For selections we remove the format if the whole range has the
 		format already. If some part of the range does not have the
@@ -6700,7 +6700,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		not selection, the word is selected automatically to toggle the format.
 		For headings and other line based formats auto-selects the whole line.
 
-		This is the handler for all the format menu- and toolbar-items.
+		This is the handler for all the format actions.
 
 		@param format: the format style name (e.g. "h1", "strong" etc.)
 		'''
