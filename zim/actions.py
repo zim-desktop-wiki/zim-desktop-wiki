@@ -26,7 +26,7 @@ Known values include:
   - notebook -- notebook section in "File" menu
   - page -- page section in "File" menu
   - edit -- "Edit" menu - modifies page, insensitive for read-only page
-  - insert -- "Insert" menu - modifies page, insensitive for read-only page
+  - insert -- "Insert" menu & editor actionbar - modifies page, insensitive for read-only page
   - view -- "View" menu
   - tools -- "Tools" menu
   - go -- "Go" menu
@@ -46,6 +46,9 @@ import logging
 import re
 
 import zim.errors
+
+from zim.signals import SignalHandler
+
 
 logger = logging.getLogger('zim')
 
@@ -271,7 +274,8 @@ class ToggleActionMethod(ActionMethod):
 		elif active == self._state:
 			return # nothing to do
 
-		self._action.func(self._instance, active)
+		with self._on_activate.blocked():
+			self._action.func(self._instance, active)
 		self.set_active(active)
 
 	def connect_button(self, button):
@@ -283,6 +287,7 @@ class ToggleActionMethod(ActionMethod):
 
 	_connect_gtkaction = connect_button
 
+	@SignalHandler
 	def _on_activate(self, proxy, value):
 		'''Callback for activate signal of connected objects'''
 		active = proxy.get_active()
@@ -299,9 +304,12 @@ class ToggleActionMethod(ActionMethod):
 
 	def set_active(self, active):
 		'''Change the state of the action without triggering the action'''
+		if active == self._state:
+			return
 		self._state = active
-		for proxy in self._proxies:
-			proxy.set_active(active)
+		with self._on_activate.blocked():
+			for proxy in self._proxies:
+				proxy.set_active(active)
 
 
 class ToggleActionClassMethod(ActionClassMethod):

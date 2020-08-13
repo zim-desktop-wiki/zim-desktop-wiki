@@ -404,12 +404,9 @@ class InsertedObjectUI(object):
 
 	def get_ui_xml(self):
 		menulines = []
-		toollines = []
 		for obj in self.insertedobjects.values():
 			name = 'insert_' + obj.name
 			menulines.append("<menuitem action='%s'/>\n" % name)
-			if obj.verb_icon is not None:
-				toollines.append("<toolitem action='%s'/>\n" % name)
 		return """\
 		<ui>
 			<menubar name='menubar'>
@@ -419,15 +416,9 @@ class InsertedObjectUI(object):
 					</placeholder>
 				</menu>
 			</menubar>
-			<toolbar name='toolbar'>
-				<placeholder name='insert_plugin_items'>
-				%s
-				</placeholder>
-			</toolbar>
 		</ui>
 		""" % (
 			''.join(menulines),
-			''.join(toollines),
 		)
 
 	def _action_handler(self, action):

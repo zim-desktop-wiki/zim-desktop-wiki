@@ -2468,6 +2468,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.buffer.set_text("Test 123\n")
 
 	def activate(self, name):
+		# TODO: directly use action methods instead of actiongroup
 		self.pageview.actiongroup.get_action(name).activate()
 
 	def testApplyFormatHeadingWithSelection(self):

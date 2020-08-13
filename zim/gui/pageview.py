@@ -44,7 +44,7 @@ from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT
 from zim.formats.wiki import url_re, match_url
-from zim.actions import get_gtk_actiongroup, action, toggle_action, \
+from zim.actions import get_gtk_actiongroup, action, toggle_action, get_actions, \
 	ActionClassMethod, ToggleActionClassMethod, initialize_actiongroup
 from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -5170,6 +5170,21 @@ class PageViewExtension(ActionExtensionBase):
 		self._sidepane_widgets = {}
 		self._add_actions(self._window.uimanager)
 
+		for name, action in get_actions(self):
+			if action.menuhints[0] == 'insert':
+				self._add_insert_action(action)
+
+	def _add_insert_action(self, action):
+		actiongroup = self.pageview.get_action_group('pageview')
+		gaction = action.get_gaction()
+		actiongroup.add_action(gaction)
+		self.pageview.edit_bar.add_plugin_action_insert_menu(action)
+
+	def _remove_insert_action(self, action):
+		self.pageview.edit_bar.remove_plugin_action_insert_menu(action)
+		actiongroup = self.pageview.get_action_group('pageview')
+		actiongroup.remove_action(action.name)
+
 	def add_sidepane_widget(self, widget, preferences_key):
 		key = widget.__class__.__name__
 		position = self.plugin.preferences[preferences_key]
@@ -5200,6 +5215,96 @@ class PageViewExtension(ActionExtensionBase):
 		for widget in list(self._sidepane_widgets):
 			self.remove_sidepane_widget(widget)
 			widget.disconnect_all()
+
+		for name, action in get_actions(self):
+			if action.menuhints[0] == 'insert':
+				self._remove_insert_action(action)
+
+
+class InsertedObjectPageviewManager(object):
+	'''"Glue" object to manage "insert object" actions for the L{PageView}
+	Creates an action object for each object type and inserts UI elements
+	for the action in the pageview.
+	'''
+
+	_class_actions = set()
+
+	def __init__(self, pageview):
+		self.pageview = pageview
+		self._actions = set()
+		self.on_changed(None)
+		PluginManager.insertedobjects.connect('changed', self.on_changed)
+
+	@staticmethod
+	def _action_name(key):
+		return 'insert_' + re.sub('\W', '_', key)
+
+	def on_changed(self, o):
+		insertedobjects = PluginManager.insertedobjects
+		keys = set(insertedobjects.keys())
+
+		for key in self._actions - keys:
+			self._remove_insert_action(getattr(self, self._action_name(key)))
+			self._actions.remove(key)
+
+		self._update_class_actions() # Modifies class
+
+		for key in keys - self._actions:
+			self._add_insert_action(getattr(self, self._action_name(key)))
+			self._actions.add(key)
+
+		assert self._actions == keys
+
+	def _add_insert_action(self, action):
+		actiongroup = self.pageview.get_action_group('pageview')
+		gaction = action.get_gaction()
+		actiongroup.add_action(gaction)
+		self.pageview.edit_bar.add_plugin_action_insert_menu(action)
+
+	def _remove_insert_action(self, action):
+		self.pageview.edit_bar.remove_plugin_action_insert_menu(action)
+		actiongroup = self.pageview.get_action_group('pageview')
+		actiongroup.remove_action(action.name)
+
+	@classmethod
+	def _update_class_actions(cls):
+		# Triggered by instance, could be run multiple times for same change
+		# but redundant runs should do nothing because of no change compared
+		# to "_class_actions"
+		insertedobjects = PluginManager.insertedobjects
+		keys = set(insertedobjects.keys())
+		for key in cls._class_actions - keys:
+			name = cls._action_name(key)
+			if hasattr(cls, name):
+				delattr(cls, name)
+			cls._class_actions.remove(key)
+
+		for key in keys - cls._class_actions:
+			name = cls._action_name(key)
+			obj = insertedobjects[key]
+			func = functools.partial(cls._action_handler, key)
+			action = ActionClassMethod(
+				name, func, obj.label,
+				verb_icon=obj.verb_icon,
+				menuhints='insert',
+			)
+			setattr(cls, name, action)
+			cls._class_actions.add(key)
+
+		assert cls._class_actions == keys
+
+	def _action_handler(key, self): # reverse arg spec due to partial
+		try:
+			otype = PluginManager.insertedobjects[key]
+			notebook, page = self.pageview.notebook, self.pageview.page
+			try:
+				model = otype.new_model_interactive(self.pageview, notebook, page)
+			except ValueError:
+				return # dialog cancelled
+			self.pageview.insert_object_model(otype, model)
+		except:
+			zim.errors.exception_handler(
+				'Exception during action: insert_%s' % key)
 
 
 def _install_format_actions(klass):
@@ -5363,10 +5468,25 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		action.connect('activate', self._update_new_file_submenu)
 
 		# ...
-		edit_toolbar = EditToolBar(self)
-		self.pack_start(edit_toolbar, False, True, 0)
-		#self.reorder_child(edit_toolbar, 0)
+		self.edit_bar = EditBar(self)
+		self.pack_start(self.edit_bar, False, True, 0)
+		#self.reorder_child(self.edit_bar, 0)
 
+		def _toggle_on_readonly(*a):
+			if self.find_bar.get_property('visible') or self.readonly:
+				self.edit_bar.hide()
+			else:
+				self.edit_bar.show_all()
+
+		def _show_edit_bar_on_hide_find(*a):
+			if not self.readonly:
+				self.edit_bar.show_all()
+
+		self.connect('readonly-changed', _toggle_on_readonly)
+		self.find_bar.connect('show', lambda o: self.edit_bar.hide())
+		self.find_bar.connect_after('hide', _show_edit_bar_on_hide_find)
+
+		# ...
 		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed()
 
@@ -5409,6 +5529,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		)
 
 		initialize_actiongroup(self, 'pageview')
+		self._insertedobject_manager = InsertedObjectPageviewManager(self)
 
 	def grab_focus(self):
 		self.textview.grab_focus()
@@ -6743,10 +6864,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.text_style.write()
 
 
-class EditToolBar(Gtk.ActionBar):
+class EditBar(Gtk.ActionBar):
 
 	def __init__(self, pageview):
 		Gtk.ActionBar.__init__(self)
+		self._plugin_actions_insert_menu = []
+
 		for action in (
 			pageview.toggle_format_strong,
 			pageview.toggle_format_emphasis,
@@ -6798,7 +6921,8 @@ class EditToolBar(Gtk.ActionBar):
 			'----',
 			pageview.show_insert_image,
 			pageview.insert_text_from_file,
-			# <plugins>
+			'----',
+			'<plugins>',
 			'----',
 			pageview.insert_date,
 			pageview.insert_line,
@@ -6807,6 +6931,8 @@ class EditToolBar(Gtk.ActionBar):
 			if action == '----':
 				section = Gio.Menu()
 				menu.append_section(None, section)
+			elif action == '<plugins>':
+				self._plugin_actions_insert_menu_section = section
 			else:
 				section.append(action.label, 'pageview.' + action.name)
 
@@ -6820,7 +6946,6 @@ class EditToolBar(Gtk.ActionBar):
 		clear_button = pageview.clear_formatting.create_icon_button()
 		clear_button.connect('clicked', lambda o: pageview.grab_focus())
 		self.pack_end(clear_button)
-
 
 		self.insert_state_label = Gtk.Label()
 		self.insert_state_label.set_sensitive(False)
@@ -6836,10 +6961,6 @@ class EditToolBar(Gtk.ActionBar):
 		self.pack_end(self.style_info_label)
 		pageview.connect(
 			'textstyle-changed', self.on_textview_textstyle_changed)
-
-		pageview.connect(
-			'readonly-changed', self.on_readonly_changed)
-
 
 	def _create_menu_button(self, label):
 		button = Gtk.MenuButton()
@@ -6859,13 +6980,28 @@ class EditToolBar(Gtk.ActionBar):
 		label = ", ".join([s.title() for s in styles if s]) if styles else ''
 		self.style_info_label.set_text(label)
 
-	def on_readonly_changed(self, pageview, readonly):
-		if readonly:
-			self.hide()
-			self.set_no_show_all(True)
+	def add_plugin_action_insert_menu(self, action):
+		# Assumes action is also registered with pageview actionmap
+		self._plugin_actions_insert_menu.append(action)
+		self._rebuild_plugin_actions()
+
+	def remove_plugin_action_insert_menu(self, action):
+		try:
+			self._plugin_actions_insert_menu.remove(action)
+		except ValueError:
+			pass
 		else:
-			self.set_no_show_all(False)
-			self.show()
+			self._rebuild_plugin_actions()
+
+	def _rebuild_plugin_actions(self):
+		menu = self._plugin_actions_insert_menu_section
+		menu.remove_all()
+		for action in self._plugin_actions_insert_menu:
+			menu.append(action.label, 'pageview.' + action.name)
+
+		#for object in PluginManager.insertedobjects:
+		#	...
+
 
 
 class InsertedObjectAnchor(Gtk.TextChildAnchor):
