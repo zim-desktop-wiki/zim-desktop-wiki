@@ -423,6 +423,13 @@ class LocalFile(LocalFSObjectBase, File):
 		if cleanup:
 			self._cleanup()
 
+
+class LocalTmpFolder(LocalFolder):
+
+	def remove(self):
+		raise FolderNotEmptyError('not allowed to cleanup tmp folder')
+
+
 _tmpdir = None
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
@@ -434,7 +441,7 @@ def get_tmpdir():
 	global _tmpdir
 
 	if _tmpdir is None:
-		_tmpdir = LocalFolder(tempfile.mkdtemp(prefix='zim-'))
+		_tmpdir = LocalTmpFolder(tempfile.mkdtemp(prefix='zim-'))
 
 	return _tmpdir
 
@@ -462,4 +469,4 @@ class TmpFile(LocalFile):
 
 	def __del__(self):
 		if not self.persistent:
-			self.remove()
+			self.remove(cleanup=False)
