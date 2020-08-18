@@ -146,7 +146,7 @@ class UIActions(object):
 
 	@action(_('Open in New _Window')) # T: Menu item
 	def open_new_window(self, page=None):
-		'''Menu action to open a page in a secondary L{PageWindow}
+		'''Menu action to open a page in a L{PageWindow}
 		@param page: the page L{Path}, deafults to current selected
 		'''
 		from zim.gui.mainwindow import PageWindow

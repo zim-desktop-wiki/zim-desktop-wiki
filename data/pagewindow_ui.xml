@@ -1,0 +1,31 @@
+<ui>
+<accelerator action='insert_date'/>
+<accelerator action='insert_bullet_list'/>
+<accelerator action='insert_numbered_list'/>
+<accelerator action='insert_checkbox_list'/>
+<accelerator action='insert_line'/>
+<accelerator action='show_insert_image'/>
+<accelerator action='attach_file'/>
+<accelerator action='insert_text_from_file'/>
+<accelerator action='insert_link'/>
+<accelerator action='apply_format_h1'/>
+<accelerator action='apply_format_h2'/>
+<accelerator action='apply_format_h3'/>
+<accelerator action='apply_format_h4'/>
+<accelerator action='apply_format_h5'/>
+<accelerator action='apply_format_bullet_list'/>
+<accelerator action='apply_format_numbered_list'/>
+<accelerator action='apply_format_checkbox_list'/>
+<accelerator action='apply_format_strong'/>
+<accelerator action='apply_format_emphasis'/>
+<accelerator action='apply_format_mark'/>
+<accelerator action='apply_format_strike'/>
+<accelerator action='apply_format_code'/>
+<accelerator action='apply_format_sub'/>
+<accelerator action='apply_format_sup'/>
+<accelerator action='clear_formatting'/>
+<accelerator action='show_find'/>
+<accelerator action='find_next'/>
+<accelerator action='find_previous'/>
+<accelerator action='show_find_and_replace'/>
+</ui>

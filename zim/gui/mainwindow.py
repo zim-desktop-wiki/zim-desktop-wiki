@@ -853,12 +853,26 @@ class BackLinksMenuButton(MenuButton):
 
 
 class PageWindow(Window):
-	'''Secondary window, showing a single page'''
+	'''Window to show a single page'''
 
-	def __init__(self, notebook, page, navigation):
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'readonly-changed': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
+	}
+
+	def __init__(self, notebook, page, navigation, editable=True):
 		Window.__init__(self)
 		self.navigation = navigation
 		self.notebook = notebook
+
+		headerbar = Gtk.HeaderBar()
+		headerbar.set_show_close_button(True)
+
+		action = self.toggle_editable
+		button = action.create_icon_button()
+		headerbar.pack_end(button)
+
+		self.set_titlebar(headerbar)
 
 		self.set_title(page.name)
 		#if ui.notebook.icon:
@@ -867,23 +881,73 @@ class PageWindow(Window):
 		#	except GObject.GError:
 		#		logger.exception('Could not load icon %s', ui.notebook.icon)
 
-		page = notebook.get_page(page)
+		self.notebook = notebook
+		self.page = notebook.get_page(page)
 
 		self.uistate = notebook.state['PageWindow']
 		self.uistate.setdefault('windowsize', (500, 400), check=value_is_coord)
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
-		self.pageview = PageView(notebook, navigation, secondary=True)
-		self.pageview.set_page(page)
+		self.pageview = PageView(notebook, navigation)
+		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
+		self.pageview.set_page(self.page)
 		self.add(self.pageview)
 
+		# Need UIManager to make accelerators work
+		self.uimanager = Gtk.UIManager()
+		self.add_accel_group(self.uimanager.get_accel_group())
+		group = get_gtk_actiongroup(self.pageview)
+		self.uimanager.insert_action_group(group, 0)
+		fname = 'pagewindow_ui.xml'
+		self.uimanager.add_ui_from_string(data_file(fname).read())
 
+		# Close window when page is moved or deleted
+		def on_notebook_change(o, path, *a):
+			if path == self.page:
+				logger.debug('Close PageWindow for %s (page is gone)', self.page)
+				self._save_uistate()
+				self.destroy()
+
+		notebook.connect('deleted-page', on_notebook_change)
+		notebook.connect('moved-page', on_notebook_change)
+
+		# setup state
+		if self.notebook.readonly:
+			self.toggle_editable(False)
+			self.toggle_editable.set_sensitive(False)
+		else:
+			self.toggle_editable(editable)
+
+		# on close window
 		def do_delete_event(*a):
-			logger.debug('Close PageWindow for %s', page)
-			self.uistate['windowsize'] = tuple(self.get_size())
+			logger.debug('Close PageWindow for %s', self.page)
+			self._save_uistate()
 
 		self.connect('delete-event', do_delete_event)
+
+	def _save_uistate(self):
+		self.uistate['windowsize'] = tuple(self.get_size())
+
+	@toggle_action(_('Notebook _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
+	def toggle_editable(self, editable):
+		'''Menu action to toggle the read-only state of the application
+		@emits: readonly-changed
+		'''
+		readonly = not editable
+		if readonly and self.page and self.page.modified:
+			# Save any modification now - will not be allowed after switch
+			self.pageview.save_changes()
+
+		for group in self.uimanager.get_action_groups():
+			for action in group.list_actions():
+				if hasattr(action, 'zim_readonly') \
+				and not action.zim_readonly:
+					action.set_sensitive(not readonly)
+
+		#self.uistate['readonly'] = readonly
+		self.emit('readonly-changed', readonly)
+
 
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.

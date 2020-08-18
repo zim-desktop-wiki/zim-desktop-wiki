@@ -5362,8 +5362,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@ivar page: L{Page} object for the current page displayed in the widget
 	@ivar readonly: C{True} when the widget is read-only, see
 	L{set_readonly()} for details
-	@ivar secondary: hint that the PageView is running in a secondairy
-	window (instead of the main window)
 	@ivar view: the L{TextView} child object
 	@ivar find_bar: the L{FindBar} child widget
 	@ivar preferences: a L{ConfigDict} with preferences
@@ -5379,9 +5377,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
 	@todo: document style properties supported by this widget
-
-	@todo: refactor such that the PageView doesn't need to know whether
-	it is in a secondary window or not
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -5398,12 +5393,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'activate-link': (GObject.SignalFlags.RUN_LAST, bool, (object, object))
 	}
 
-	def __init__(self, notebook, navigation, secondary=False):
+	def __init__(self, notebook, navigation):
 		'''Constructor
 		@param notebook: the L{Notebook} object
 		@param navigation: L{NavigationModel} object
-		@param secondary: C{True} if this widget is part of a secondary
-		widget
 		'''
 		GObject.GObject.__init__(self)
 		GSignalEmitterMixin.__init__(self)
@@ -5415,9 +5408,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.readonly = True
 		self._readonly_set = False
 		self._readonly_set_error = False
-		self.secondary = secondary
-		if self.secondary:
-			self._readonly_set = True # HACK
 		self.ui_is_initialized = False
 		self._caret_link = None
 		self._undo_history_queue = [] # we never lookup in this list, only keep refs - notebook does the caching
@@ -5455,10 +5445,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.find_bar.hide()
 
 		## setup GUI actions
-		if self.secondary:
-			# HACK - divert actions from uimanager
-			self.actiongroup = Gtk.ActionGroup('SecondaryPageView')
-
 		group = get_gtk_actiongroup(self)
 		group.add_actions(MENU_ACTIONS, self)
 
