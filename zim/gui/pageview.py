@@ -407,6 +407,93 @@ class SaveCursorContext(object):
 		buffer.delete_mark(self.mark)
 
 
+def image_file_get_dimensions(file_path):
+	""" 
+	Replacement for GdkPixbuf.Pixbuf.get_file_info
+	@return (width, height) in pixels
+		or None if file does not exist or failed to load
+	"""
+
+	# Let GTK try reading the file
+	_, width, height = GdkPixbuf.Pixbuf.get_file_info(file_path)
+	if width > 0 and height > 0:
+		return (width, height)
+
+	# Fallback to Pillow
+	try:
+		from PIL import Image # load Pillow only if necessary
+		with Image.open(file_path) as img_pil:
+			return (img_pil.width, img_pil.height)
+	except:
+		return None
+
+
+def image_file_load_pixels(file, width_override=-1, height_override=-1):
+	""" 
+	Replacement for GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, w, h)
+	When file does not exist or fails to load, this throws exceptions.	
+	"""
+
+	if not file.exists():
+		# if the file does not exist, no need to make the effort of trying to read it
+		raise FileNotFoundError(file.path)
+
+	b_size_override = width_override > 0 or height_override > 0
+
+	# Let GTK try reading the file
+	try:
+		if b_size_override:
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, width_override, height_override)
+		else:
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
+		
+		pixbuf = rotate_pixbuf(pixbuf)
+	
+	except:
+		logger.debug('GTK failed to read image, using Pillow fallback: %s', file.path)
+	
+		from PIL import Image # load Pillow only if necessary
+
+		with Image.open(file.path) as img_pil:
+			
+			# resize if a specific size was requested
+			if b_size_override:
+				if height_override <= 0:
+					height_override = int(img_pil.height * width_override / img_pil.width)
+				if width_override <= 0:
+					width_override = int(img_pil.width * height_override / img_pil.height)
+
+				logger.debug(f'PIL resizing {width_override} {height_override}')
+				img_pil = img_pil.resize((width_override, height_override))
+
+			# check if there is an alpha channel
+			if img_pil.mode == 'RGB':
+				has_alpha = False
+			elif img_pil.mode == 'RGBA':
+				has_alpha = True
+			else:
+				raise ValueError('Pixel format {fmt} can not be converted to Pixbuf for image {p}'.format(
+					fmt = img_pil.mode, p = file.path,
+				))
+			
+			# convert to GTK pixbuf
+			data_gtk = GLib.Bytes.new_take(img_pil.tobytes())
+
+			pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+				data = data_gtk, 
+				colorspace = GdkPixbuf.Colorspace.RGB,
+				has_alpha = has_alpha,
+				# GTK docs: "Currently only RGB images with 8 bits per sample are supported"
+				# https://developer.gnome.org/gdk-pixbuf/stable/gdk-pixbuf-Image-Data-in-Memory.html#gdk-pixbuf-new-from-bytes
+				bits_per_sample = 8,
+				width = img_pil.width,
+				height = img_pil.height,
+				rowstride = img_pil.width * (4 if has_alpha else 3),
+			)
+
+	return pixbuf
+
+
 class TextBuffer(Gtk.TextBuffer):
 	'''Data model for the editor widget
 
@@ -1171,13 +1258,7 @@ class TextBuffer(Gtk.TextBuffer):
 		if isinstance(file, str):
 			file = File(file)
 		try:
-			if 'width' in attrib or 'height' in attrib:
-				w = int(attrib.get('width', -1))
-				h = int(attrib.get('height', -1))
-				pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, w, h)
-			else:
-				pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
-			pixbuf = rotate_pixbuf(pixbuf)
+			pixbuf = image_file_load_pixels(file, int(attrib.get('width', -1)), int(attrib.get('height', -1)))
 		except:
 			#~ logger.exception('Could not load image: %s', file)
 			logger.warn('No such image: %s', file)
@@ -7221,7 +7302,7 @@ class InsertImageDialog(FileDialog):
 		if file is None:
 			return False
 
-		if not GdkPixbuf.Pixbuf.get_file_info(file.path):
+		if not image_file_get_dimensions(file.path):
 			ErrorDialog(self, _('File type not supported: %s' % file.get_mimetype())).run()
 				# T: Error message when trying to insert a not supported file as image
 			return False
@@ -7443,7 +7524,7 @@ class EditImageDialog(Dialog):
 		height = self.form.widgets['height']
 		file = self.form['file']
 		try:
-			info, w, h = GdkPixbuf.Pixbuf.get_file_info(file.path)
+			w, h = image_file_get_dimensions(file.path)
 			if w <= 0 or h <= 0:
 				raise AssertionError
 		except:
