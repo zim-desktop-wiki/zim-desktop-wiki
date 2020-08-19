@@ -103,6 +103,7 @@ IMAGE_EXTENSIONS = (
 	'svg', # image/svg+xml
 	'svgz', # image/svg+xml
 	'svg.gz', # image/svg+xml
+	'webp', # image/webp
 )
 
 
