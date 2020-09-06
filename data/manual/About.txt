@@ -7,13 +7,13 @@ Wiki-Format: zim 0.4
 
 A "//desktop wiki//" means that we try to capture the idea of a wiki, not as a webpage but as a collection of files on your local file system that can be edited with a GUI application. The main focus is a kind of personal wiki that serves for all kind of notes: todo-lists, addresses, brainstorm ideas etc.
 
-But we want to go further then just a wiki filled with random content. It should also be possible to use you random notes as the basis for more structured data: articles, presentations etc. Zim will not include tools to layout a presentation or something like that, you should use your office suite of choice for that, but it should be a tool that can deliver all the content for a presentation in a form that only needs a template and some layout before usage. Therefore certain features normally not found in wikis will be added.
+But we want to go further then just a wiki filled with random content. It should also be possible to use your random notes as the basis for more structured data: articles, presentations etc. Zim will not include tools to layout a presentation or something like that, you should use your office suite of choice for that, but it should be a tool that can deliver all the content for a presentation in a form that only needs a template and some layout before usage. Therefore certain features normally not found in wikis will be added.
 
 
 ===== Features =====
 
 ==== Content is saved "transparently" ====
-All pages you create in zim are saved as plain text files with wiki formatting. This means that you can access your content with any other editor or file manager without being dependent on zim. You can even have your pages in a revision control system like CVS or use a Makefile to compile your notes into a webpage.
+All pages you create in zim are saved as plain text files with wiki formatting. This means that you can access your content with any other editor or file manager without being dependent on zim. You can even have your pages in a revision control system like Git or use a custom Makefile to compile your notes into a webpage.
 
 Any images you add are just image files which are linked from the text files. This means that zim can call your standard programs to edit images. When you embed an image in a page the context menu for the image will offer to open it with whatever image manipulation programs you have installed. After editing you just reload the page to see the result.
 
