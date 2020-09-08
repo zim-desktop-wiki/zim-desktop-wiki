@@ -216,6 +216,16 @@ class TestParseTree(tests.TestCase):
 		tree = ParseTree().fromstring(self.xml)
 		self.assertEqual(tree.get_heading_text(), "Head 1")
 
+	def testGetHeadingTextNestedFormat(self):
+		xml = '''<?xml version='1.0' encoding='utf-8'?>
+		<zim-tree>
+		<h level="1">Head 1 <strong>BOLD</strong> <link>URL</link></h>
+		<h level="2">Head 2</h>
+		</zim-tree>
+		'''
+		tree = ParseTree().fromstring(xml)
+		self.assertEqual(tree.get_heading_text(), "Head 1 BOLD URL")
+
 	def testSetHeadingText(self):
 		tree = ParseTree().fromstring(self.xml)
 		tree.set_heading_text('Foo')

@@ -393,7 +393,8 @@ class ParseTree(object):
 		strings = [elt.text]
 		for e in elt:
 			strings.append(self._elt_to_text(e)) # recurs
-		return ''.join(strings)
+			strings.append(e.tail)
+		return ''.join(s for s in strings if s) # remove possible None values
 
 	def get_heading_text(self, level=1):
 		heading_elem = self._get_heading_element(level)
