@@ -3121,7 +3121,9 @@ class TestPageViewActions(tests.TestCase):
 		buffer3 = pageview3.textview.get_buffer()
 		buffer3.place_cursor(buffer3.get_iter_at_offset(0))
 		pageview3.copy_current_line()
-		self.assertIsNone(Clipboard.get_parsetree())
+		with tests.LoggingFilter('zim.pageview'):
+			self.assertIsNone(Clipboard.get_parsetree())
+
 
 class TestPageviewDialogs(tests.TestCase):
 
