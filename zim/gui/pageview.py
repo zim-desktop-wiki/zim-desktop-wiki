@@ -6856,6 +6856,12 @@ class EditBar(Gtk.ActionBar):
 		Gtk.ActionBar.__init__(self)
 		self._plugin_actions_insert_menu = []
 
+		def _grab_focus_on_click(button):
+			# Need additional check for has_focus, else this grab will happen
+			# for every state change of the underlying action
+			if button.has_focus():
+				pageview.grab_focus()
+
 		for action in (
 			pageview.toggle_format_strong,
 			pageview.toggle_format_emphasis,
@@ -6866,7 +6872,7 @@ class EditBar(Gtk.ActionBar):
 			pageview.toggle_format_sup,
 		):
 			button = action.create_icon_button()
-			button.connect('clicked', lambda o: pageview.grab_focus())
+			button.connect('clicked', _grab_focus_on_click)
 			self.pack_start(button)
 
 		format_button, format_popover = self._create_menu_button(_('_Format'))
