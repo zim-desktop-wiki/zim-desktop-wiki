@@ -186,10 +186,8 @@ class Dumper(DumperClass):
 		# Just plain text, either alt text or src
 		src = attrib['src']
 		alt = attrib.get('alt')
-		if alt:
-			return alt
-		else:
-			return src
+		text = alt if alt else src
+		return [text]
 
 	def dump_object_fallback(self, tag, attrib, strings):
 		return strings

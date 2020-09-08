@@ -732,9 +732,9 @@ class Dumper(TextDumper):
 			src += '?%s' % '&'.join(opts)
 
 		if alt:
-			return ('{{', src, '|', alt, '}}')
+			return ['{{', src, '|', alt, '}}']
 		else:
-			return('{{', src, '}}')
+			return ['{{', src, '}}']
 
 		# TODO use text for caption (with full recursion)
 

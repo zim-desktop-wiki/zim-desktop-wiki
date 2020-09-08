@@ -88,7 +88,7 @@ class Dumper(TextDumper):
 			elif v: # skip None, "" and 0
 				text += '   :%s: %s\n' % (k, v)
 
-		return text + '\n'
+		return [text + '\n']
 
 		# TODO use text for caption (with full recursion)
 		# can be done using "figure" directive
