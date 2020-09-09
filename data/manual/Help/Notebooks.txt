@@ -3,7 +3,7 @@ Wiki-Format: zim 0.4
 
 ====== NoteBooks ======
 
-A **notebook** is a collection of [[pages]] that are linked to each other. Typically all pages within a notebook belong to the some project; although it is also very common to have a "dump" or "scratch" notebook were all odds and ends end up.
+A **notebook** is a collection of [[pages]] that are linked to each other. Typically all pages within a notebook belong to the same project; although it is also very common to have a "dump" or "scratch" notebook where all odds and ends end up.
 
 You can have multiple notebooks, for example for separate projects. Or you can have a single notebook for all your stuff. In general when you have separate groups of pages that do not interlink, it is best to put these groups in separate notebooks. That way zim remembers the state and history of each of these groups independent of the others. 
 
