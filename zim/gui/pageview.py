@@ -839,7 +839,7 @@ class TextBuffer(Gtk.TextBuffer):
 				if not iter.starts_line():
 					self.insert_at_cursor('\n')
 
-		for element in node.getchildren():
+		for element in iter(node):
 			if element.tag in ('p', 'div'):
 				# No force line start here on purpose
 				if 'indent' in element.attrib:
