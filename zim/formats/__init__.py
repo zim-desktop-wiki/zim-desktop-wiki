@@ -262,7 +262,7 @@ class ParseTree(object):
 		'''Returns True if the tree contains any content at all.'''
 		root = self._etree.getroot()
 		return root is not None and (
-			bool(root.getchildren()) or (root.text and not root.text.isspace())
+			bool(list(root)) or (root.text and not root.text.isspace())
 		)
 
 	@property
@@ -284,14 +284,14 @@ class ParseTree(object):
 		myroot = self._etree.getroot()
 		otherroot = tree._etree.getroot()
 		if otherroot.text:
-			children = myroot.getchildren()
+			children = list(myroot)
 			if children:
 				last = children[-1]
 				last.tail = (last.tail or '') + otherroot.text
 			else:
 				myroot.text = (myroot.text or '') + otherroot.text
 
-		for element in otherroot.getchildren():
+		for element in iter(otherroot):
 			myroot.append(element)
 
 		return self
@@ -312,7 +312,7 @@ class ParseTree(object):
 
 		# HACK: Force sorting of attrib - else change in python3.8 breaks test cases
 		# Ensure all attrib are string, else ElementTree fails
-		for element in self._etree.getiterator('*'):
+		for element in self._etree.iter('*'):
 			myattrib = element.attrib.copy()
 			element.attrib.clear()
 			for key in sorted(myattrib.keys()):
@@ -342,8 +342,8 @@ class ParseTree(object):
 		from zim.notebook.page import HRef # XXX
 		seen = set()
 		for elt in itertools.chain(
-			self._etree.getiterator(LINK),
-			self._etree.getiterator(IMAGE)
+			self._etree.iter(LINK),
+			self._etree.iter(IMAGE)
 		):
 			href = elt.attrib.get('href')
 			if href and href not in seen:
@@ -359,7 +359,7 @@ class ParseTree(object):
 		@returns: yields an unordered list of tag names
 		'''
 		seen = set()
-		for elt in self._etree.getiterator(TAG):
+		for elt in self._etree.iter(TAG):
 			name = elt.text
 			if not name in seen:
 				seen.add(name)
@@ -367,7 +367,7 @@ class ParseTree(object):
 
 	def _get_heading_element(self, level=1):
 		root = self._etree.getroot()
-		children = root.getchildren()
+		children = list(root)
 		if root.text and not root.text.isspace():
 			return None
 
@@ -424,7 +424,7 @@ class ParseTree(object):
 		'''
 		root = self._etree.getroot()
 		roottext = root.text and not root.text.isspace()
-		children = root.getchildren()
+		children = list(root)
 
 		if children and not roottext:
 			first = children[0]
@@ -442,7 +442,7 @@ class ParseTree(object):
 		and a max depth.
 		'''
 		path = []
-		for heading in self._etree.getiterator('h'):
+		for heading in self._etree.iter('h'):
 			level = int(heading.attrib['level'])
 			# find parent header in path using old level
 			while path and path[-1][0] >= level:
@@ -461,11 +461,11 @@ class ParseTree(object):
 		adds a '_src_file' attribute to the elements with the full file path.
 		'''
 		if notebook is None:
-			for element in self._etree.getiterator('img'):
+			for element in self._etree.iter('img'):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = File(filepath)
 		else:
-			for element in self._etree.getiterator('img'):
+			for element in self._etree.iter('img'):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
@@ -473,7 +473,7 @@ class ParseTree(object):
 		'''Undo effect of L{resolve_images()}, mainly intended for
 		testing.
 		'''
-		for element in self._etree.getiterator('img'):
+		for element in self._etree.iter('img'):
 			if '_src_file' in element.attrib:
 				element.attrib.pop('_src_file')
 
@@ -481,7 +481,7 @@ class ParseTree(object):
 		'''Calls encode_url() on all links that contain urls.
 		See zim.parsing for details. Modifies the parse tree.
 		'''
-		for link in self._etree.getiterator('link'):
+		for link in self._etree.iter('link'):
 			href = link.attrib['href']
 			if href and is_url_re.match(href):
 				link.attrib['href'] = url_encode(href, mode=mode)
@@ -492,7 +492,7 @@ class ParseTree(object):
 		'''Calls decode_url() on all links that contain urls.
 		See zim.parsing for details. Modifies the parse tree.
 		'''
-		for link in self._etree.getiterator('link'):
+		for link in self._etree.iter('link'):
 			href = link.attrib['href']
 			if href and is_url_re.match(href):
 				link.attrib['href'] = url_decode(href, mode=mode)
@@ -502,7 +502,7 @@ class ParseTree(object):
 	def count(self, text):
 		'''Returns the number of occurences of 'text' in this tree.'''
 		count = 0
-		for element in self._etree.getiterator():
+		for element in self._etree.iter():
 			if element.text:
 				count += element.text.count(text)
 			if element.tail:
@@ -515,7 +515,7 @@ class ParseTree(object):
 		in this tree.
 		'''
 		count = 0
-		for element in self._etree.getiterator():
+		for element in self._etree.iter():
 			if element.text:
 				newstring, n = regex.subn('', element.text)
 				count += n
@@ -535,7 +535,7 @@ class ParseTree(object):
 			elif element.tag in ('li', 'h'):
 				return True # implicit newline
 			else:
-				children = element.getchildren()
+				children = list(element)
 				if children:
 					return self._get_element_ends_with_newline(children[-1]) # recurs
 				elif element.text:
@@ -586,7 +586,7 @@ class ParseTree(object):
 		@param tag: tag name
 		@returns: yields L{Node} objects
 		'''
-		for elt in self._etree.getiterator(tag):
+		for elt in self._etree.iter(tag):
 			yield Element.new_from_etree(elt)
 
 	def replace(self, tag, func):
@@ -932,7 +932,7 @@ class OldParseTreeBuilder(object):
 		if len(self._stack) > 1 and not (
 			tag in (IMAGE, OBJECT, HEADDATA, TABLEDATA)
 			or (self._last.text and not self._last.text.isspace())
-			or self._last.getchildren()
+			or bool(list(self._last))
 		):
 			# purge empty tags
 			if self._last.text and self._last.text.isspace():
@@ -940,7 +940,7 @@ class OldParseTreeBuilder(object):
 
 			empty = self._stack.pop()
 			self._stack[-1].remove(empty)
-			children = self._stack[-1].getchildren()
+			children = list(self._stack[-1])
 			if children:
 				self._last = children[-1]
 				if not self._last.tail is None:
@@ -1053,7 +1053,7 @@ class OldParseTreeBuilder(object):
 	def _append_to_previous(self, text):
 		'''Add text before current element'''
 		parent = self._stack[-2]
-		children = parent.getchildren()[:-1]
+		children = list(parent)[:-1]
 		if children:
 			if children[-1].tail:
 				children[-1].tail = children[-1].tail + text

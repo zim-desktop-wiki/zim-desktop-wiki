@@ -559,7 +559,7 @@ class _TestData(object):
 		tree = etree.ElementTree(file=root + '/tests/data/notebook-wiki.xml')
 
 		test_data = []
-		for node in tree.getiterator(tag='page'):
+		for node in tree.iter(tag='page'):
 			name = node.attrib['name']
 			text = str(node.text.lstrip('\n'))
 			test_data.append((name, text))
