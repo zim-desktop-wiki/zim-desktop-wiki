@@ -8,15 +8,17 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2017-04-28 22:03+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
-"Language-Team: Norwegian Bokmal <nb@li.org>\n"
+"PO-Revision-Date: 2020-09-17 05:43+0000\n"
+"Last-Translator: Allan Nordhøy <epost@anotheragency.no>\n"
+"Language-Team: Norwegian Bokmål <https://hosted.weblate.org/projects/zim/"
+"master/nb_NO/>\n"
+"Language: nb\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -455,17 +457,17 @@ msgstr ""
 #. Label for object manager
 #: zim/gui/insertedobjects.py:277
 msgid "Enable plugin"
-msgstr ""
+msgstr "Skri på programtillegg"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:310
 msgid "Unkown Object"
-msgstr ""
+msgstr "Ukjent objekt"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:349
 msgid "Unkown Image type"
-msgstr ""
+msgstr "Ukjent bildetype"
 
 #. Menu title
 #: zim/gui/mainwindow.py:49
@@ -527,7 +529,7 @@ msgstr "Verk_tøylinje"
 #. Menu title
 #: zim/gui/mainwindow.py:59
 msgid "_Checkbox"
-msgstr ""
+msgstr "_Avkryssningsboks"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 #: zim/gui/mainwindow.py:65
@@ -686,7 +688,7 @@ msgstr "Gå til"
 #. Button label
 #: zim/gui/mainwindow.py:977
 msgid "_Jump"
-msgstr ""
+msgstr "_Hopp"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:982
@@ -709,12 +711,12 @@ msgstr "Åpne Notisblokk"
 #. Button label
 #: zim/gui/notebookdialog.py:327
 msgid "_Add"
-msgstr ""
+msgstr "_Legg til"
 
 #. Button label
 #: zim/gui/notebookdialog.py:331 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "_Fjern"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:347
@@ -900,8 +902,9 @@ msgstr ""
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:199
+#, fuzzy
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "Gjentatt klikking på avkryssningsboksen veksler mellom dens tilstander"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -950,7 +953,7 @@ msgstr ""
 #: zim/gui/pageview.py:4896 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:858
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
-msgstr ""
+msgstr "_Avbryt"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:4901
@@ -1033,23 +1036,23 @@ msgstr "_Åpne"
 #. popup menu menuitem
 #: zim/gui/pageview.py:6047
 msgid "Check Checkbox '>'"
-msgstr ""
+msgstr "Huk av avkryssningsboksen '>'"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:6048
 msgid "Check Checkbox 'X'"
-msgstr ""
+msgstr "Huk av avkryssningsboksen 'X'"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:6049
 msgid "Check Checkbox 'V'"
-msgstr ""
+msgstr "Huk av avkryssningsboksen 'V'"
 
 #. popup menu menuitem |
 #. Menu item
 #: zim/gui/pageview.py:6050 zim/gui/pageview.py:6101
 msgid "Un-check Checkbox"
-msgstr ""
+msgstr "Tøm avkryssningsboks"
 
 #. Menu item |
 #. Button label |
@@ -1105,7 +1108,7 @@ msgstr "Veksle avkryssingsboks 'X'"
 #. Menu item
 #: zim/gui/pageview.py:6125
 msgid "Toggle Checkbox '>'"
-msgstr ""
+msgstr "Veksle avkryssningsboks 'v'"
 
 #. Menu item
 #: zim/gui/pageview.py:6134
@@ -1120,7 +1123,7 @@ msgstr "_Dato og tid..."
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:6205
 msgid "Horizontal _Line"
-msgstr ""
+msgstr "Vannrett _linje"
 
 #. Menu item
 #: zim/gui/pageview.py:6217
@@ -1560,6 +1563,8 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
+"Dette programtillegget har også egenskaper,\n"
+"sjekk dialogvinduet for notisbok-egenskaper"
 
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:440
@@ -1609,7 +1614,7 @@ msgstr "Sist endret"
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
-msgstr ""
+msgstr "_Finn"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -1689,8 +1694,9 @@ msgstr "Ny _underside..."
 
 #. Menu item
 #: zim/gui/uiactions.py:110
+#, fuzzy
 msgid "_New Page Here..."
-msgstr ""
+msgstr "_Ny side her …"
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1771,7 +1777,7 @@ msgstr "_Søk..."
 #. Menu item for search a sub-set of the notebook
 #: zim/gui/uiactions.py:300
 msgid "Search this section"
-msgstr ""
+msgstr "Søk i dette avsnittet"
 
 #. Menu item
 #: zim/gui/uiactions.py:305
@@ -1811,7 +1817,7 @@ msgstr "Åpne _rotdokument"
 #. Error message
 #: zim/gui/uiactions.py:350
 msgid "No document root defined for this notebook"
-msgstr ""
+msgstr "Inget dokument definert for denne notisboken"
 
 #. Menu item
 #: zim/gui/uiactions.py:356
@@ -1862,7 +1868,7 @@ msgstr "_Om"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "Ny side i %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2011,7 +2017,7 @@ msgstr "Skriv over"
 #. Button label
 #: zim/gui/uiactions.py:859 zim/gui/widgets.py:85
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:903
@@ -2118,7 +2124,7 @@ msgstr "Bilder"
 #: zim/gui/widgets.py:3676
 #, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{count} av {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3698
@@ -2179,25 +2185,27 @@ msgstr "Oppdaterer indeks"
 #: zim/notebook/notebook.py:120
 #, python-format
 msgid "No such page: %s"
-msgstr ""
+msgstr "Siden finnes ikke: %s"
 
 #. message for PageNotAllowedError
 #: zim/notebook/notebook.py:124
 #, python-format
 msgid "Page not allowed: %s"
-msgstr ""
+msgstr "Siden tillates ikke: %s"
 
 #. description for PageNotAllowedError
 #: zim/notebook/notebook.py:125
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr ""
+"Dette sidenavnet kan ikke brukes som følge av tekniske begrensninger i "
+"lagringen"
 
 #. message for PageExistsError
 #: zim/notebook/notebook.py:130
 #, python-format
 msgid "Page already exists: %s"
-msgstr ""
+msgstr "Siden finnes allerede: %s"
 
 #. error message for read-only pages
 #: zim/notebook/notebook.py:134
@@ -2305,8 +2313,8 @@ msgstr "Vedlegg"
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i vedlegg"
+msgstr[1] "%i vedlegg"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2334,13 +2342,13 @@ msgstr "Linker hit"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:261
 msgid "_Edit..."
-msgstr ""
+msgstr "_Rediger …"
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:289
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "Rediger %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:314
@@ -2373,7 +2381,7 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:45
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "Maksimalt antall bokmerker"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:46
@@ -2398,7 +2406,7 @@ msgstr "Bokmerker"
 #. button label
 #: zim/plugins/bookmarksbar.py:184
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "Legg til bokmerker/vis innstillinger"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:294
@@ -2433,12 +2441,12 @@ msgstr "Fjern alle"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Kopier"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Lim inn"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2509,7 +2517,7 @@ msgstr "Maksimums side størrelse"
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Border width"
-msgstr ""
+msgstr "Kantbredde"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:41
@@ -2536,8 +2544,9 @@ msgstr ""
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
+#, fuzzy
 msgid "Ascii graph (Ditaa)"
-msgstr ""
+msgstr "ASCII-diagram (Ditaa)"
 
 #. plugin name
 #: zim/plugins/equationeditor.py:23
@@ -2555,7 +2564,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/equationeditor.py:44
 msgid "Equation"
-msgstr ""
+msgstr "Ligning"
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
@@ -3402,12 +3411,12 @@ msgstr "Dato"
 #. start date for task
 #: zim/plugins/tasklist/gui.py:795
 msgid "Start"
-msgstr ""
+msgstr "Start"
 
 #. due date for task
 #: zim/plugins/tasklist/gui.py:797
 msgid "Due"
-msgstr ""
+msgstr "Frist"
 
 #. plugin description
 #: zim/plugins/tasklist/__init__.py:39
@@ -3442,27 +3451,27 @@ msgstr ""
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:65
 msgid "do not use"
-msgstr ""
+msgstr "ikke bruk"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:66
 msgid "as start date for tasks"
-msgstr ""
+msgstr "som startdato for gjøremål"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:67
 msgid "as due date for tasks"
-msgstr ""
+msgstr "som tidsfristdato for gjøremål"
 
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:69
 msgid "Section(s) to index"
-msgstr ""
+msgstr "Avsnitt å indeksere"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:71
 msgid "Section(s) to ignore"
-msgstr ""
+msgstr "Avsnitt å ignorere"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:76
