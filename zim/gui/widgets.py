@@ -343,11 +343,11 @@ def rotate_pixbuf(pixbuf):
 	if o:
 		o = int(o)
 	if o == 3: # 180 degrees
-		return pixbuf.rotate_simple(Gdk.PIXBUF_ROTATE_UPSIDEDOWN)
+		return pixbuf.rotate_simple(GdkPixbuf.PixbufRotation.UPSIDEDOWN)
 	elif o == 6: # 270 degrees
-		return pixbuf.rotate_simple(Gdk.PIXBUF_ROTATE_CLOCKWISE)
+		return pixbuf.rotate_simple(GdkPixbuf.PixbufRotation.CLOCKWISE)
 	elif o == 9: # 90 degrees
-		return pixbuf.rotate_simple(Gdk.PIXBUF_ROTATE_COUNTERCLOCKWISE)
+		return pixbuf.rotate_simple(GdkPixbuf.PixbufRotation.COUNTERCLOCKWISE)
 	else:
 		# No rotation info, older gtk version, or advanced transpose
 		return pixbuf
