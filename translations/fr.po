@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2020-09-17 05:43+0000\n"
+"PO-Revision-Date: 2020-09-21 06:39+0000\n"
 "Last-Translator: J. Lavoie <j.lavoie@net-c.ca>\n"
 "Language-Team: French <https://hosted.weblate.org/projects/zim/develop/fr/>\n"
 "Language: fr\n"
@@ -159,7 +159,9 @@ msgstr "Configurez une application pour ouvrir les liens « %s »"
 msgid ""
 "Configure an application to open files\n"
 "of type \"%s\""
-msgstr "Configurer une application pour ouvrir des fichiers de type « %s »"
+msgstr ""
+"Configurer une application pour ouvrir des fichiers\n"
+" de type « %s »"
 
 #. Dialog title
 #: zim/gui/applications.py:1003
@@ -223,7 +225,7 @@ msgid ""
 "in the tool menu and in the tool bar or context menus."
 msgstr ""
 "Vous pouvez configurer des outils personnalisés qui \n"
-"apparaîtront dans le menu « Outils » et dans la barre d'outils \n"
+"apparaîtront dans le menu « Outils » et dans la barre d'outils\n"
 "ou les menus contextuels."
 
 #. Dialog title
@@ -315,7 +317,7 @@ msgstr ""
 #. message heading
 #: zim/gui/exportdialog.py:155
 msgid "File exists"
-msgstr "Le fichier existe."
+msgstr "Le fichier existe"
 
 #. detailed message, answers are Yes and No
 #: zim/gui/exportdialog.py:156
@@ -695,8 +697,8 @@ msgstr "_Actualiser"
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _rétro-lien"
-msgstr[1] "%i _rétro-liens"
+msgstr[0] "%i _rétro-lien…"
+msgstr[1] "%i _rétro-liens…"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -749,7 +751,7 @@ msgstr "Ajouter un bloc-note"
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:406
 msgid "Please select a name and a folder for the notebook."
-msgstr "Veuillez choisir un nom et un dossier pour le bloc-notes"
+msgstr "Veuillez choisir un nom et un dossier pour le bloc-notes."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:422
