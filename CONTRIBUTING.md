@@ -43,8 +43,9 @@ Also feature requests can go in the bug tracker. In this case:
   solve with the proposed feature before describing the solution. This allows
   other users to think along and maybe improve on your solution.
 * Make sure the use case is generic enough that it will benefit other users
-  as well. If it is highly tailored for your specific work flow, changes are
-  that no-one will work on it.
+  as well. If it is highly tailored for your specific work flow, chances are
+  that no-one will work on it (and no-one will want to maintain it in working
+  state over the years).
 
 
 ## Getting started with the code
@@ -61,7 +62,7 @@ See the website for documentation on using this system: https://git-scm.com/
 For obvious bugs with simple fixes a merge request can be opened directly.
 These should be very easy to review and merge. If you consider something a bug
 even though the code does what it is supposed to do, please discuss first on
-the mailing list or through am issue ticket.
+the mailing list or through an issue ticket.
 
 
 ## Adding new features
@@ -95,8 +96,8 @@ new patch doesn't break any existing code.
 
 For any but the most trivial fixes test cases should be written to ensure the
 functionality works as designed and to avoid breaking it again at a later time.
-You'll surprise how often the same bug comes back after some time if there is
-now test case is in place to detect it. Some bugs are just waiting to happen
+You'll be surprised how often the same bug comes back after some time if there is
+no test case in place to detect it. Some bugs are just waiting to happen
 again and again.
 
 For writing tests have a look at the existing test code or check the
@@ -113,7 +114,8 @@ If you added e.g. a new class and wrote a test case for it have a look at the
 coverage to see what additional tests are needed to cover all code.
 
 Of course having full coverage is no guarantee we cover all possible inputs, but
-looking at coverage combined with writing tests for reported bugs
+looking at coverage combined with writing tests for reported bugs should ensure
+good project quality and satisfaction for all Zim users.
 
 
 ## Merge requests
@@ -121,17 +123,18 @@ Please use github to upload your patches and file a merge request towards the
 zim repository. If you mention relevant issue numbers in the merge request it
 will automatically be flagged in those issue tickets as well.
 
-## Limitations
+## Known Zim limitations
 Main assumption about the whole file handling and page rendering is that files
 are small enough that we can load them into memory several times. This seems a
 valid assumption as notebooks are spread over many files. Having really huge
-files with contents is outside the scope of the design. If this is what you want
-to do, you probably need a more heavy duty text editor.
+files as wiki content is outside the scope of the design. If this is what you want
+to do, you probably need a more heavy-duty text editor or another specialized
+application.
 
 
 ## Translations
 
-To contribute to translations onlne please go to https://launchpad.net.
+To contribute to translations onlne please go to https://translations.launchpad.net/zim .
 
 To test a new translation you can either download the snapshot from launchpad and run:
 
@@ -146,7 +149,8 @@ After adding the .po file(s) you can compile the translation using:
 
 
 ### Italian Translation
-A few remarks for Italian contributors. Please notice that these choices were
+
+> A few remarks for Italian contributors. Please notice that these choices were
 made earlier and we should respect them in order to assure consistency. It
 doesn't mean that they're better than others. It's a just matter of stop
 discussing and choosing one option instead of another. :)
