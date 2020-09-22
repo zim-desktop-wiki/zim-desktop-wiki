@@ -822,7 +822,7 @@ class ParseTreeBuilder(Builder):
 		self._last_char = None
 
 	def append(self, tag, attrib=None, text=None):
-		attrib = attrib.copy() if attrib is not None else None
+		attrib = attrib.copy() if attrib is not None else {}
 		if tag in BLOCK_LEVEL:
 			if text and not text.endswith('\n'):
 				text += '\n'
