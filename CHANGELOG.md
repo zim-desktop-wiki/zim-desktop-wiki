@@ -64,7 +64,7 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Improve statusbar visual style
 * Change behavior for lists with mixed bullets
 * Add configuration of keybindings to preferences dialog
-* Support gnome-screenshot in the insert screenshot pluing
+* Support gnome-screenshot in the insert screenshot plugin
 * Save size of secondary page window
 * Add option for linenumbers option in insert code block dialog
 * Add option to display date column in tasklist side pane
