@@ -15,7 +15,7 @@
 This is the development documentation of zim.
 
 B{NOTE:} There is also some generic development documentation in the
-"HACKING" folder in the source distribution. Please also have a look
+"CONTRIBUTING.md" file in the source distribution. Please also have a look
 at that if you want to help with zim development.
 
 In this API documentation many of the methods with names starting with

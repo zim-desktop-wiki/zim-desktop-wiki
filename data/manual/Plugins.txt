@@ -44,5 +44,4 @@ Plugins can be enabled and configured in the [[Help:Preferences|preferences dial
 More plugins can be found here: https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins
 
 ===== Writing Plugins =====
-If you are looking for information on **writing plugins** please download the source package and have a look at the module documentation of the "''zim.plugins''" python module as well as the "HACKING" notebook that is included.
-
+If you are looking for information on **writing plugins** please download the source package and have a look at the module documentation of the "''zim.plugins''" python module as well as the "PLUGIN_WRITING.md" file.

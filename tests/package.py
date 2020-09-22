@@ -74,9 +74,9 @@ class TestDist(tests.TestCase):
 		#~ '''Test if included notebooks are up to date'''
 		#~ from zim.fs import Dir
 		#~ from zim.notebook import init_notebook
-		#~ for path in ('data/manual', 'HACKING'):
-			#~ notebook = init_notebook(Dir(path))
-			#~ self.assertTrue(not notebook.needs_upgrade)
+		#~ path = 'data/manual'
+		#~ notebook = init_notebook(Dir(path))
+		#~ self.assertTrue(not notebook.needs_upgrade)
 
 
 class TestCoding(tests.TestCase):
