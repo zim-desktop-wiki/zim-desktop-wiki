@@ -4,9 +4,9 @@ Creation-Date: Wed, 19 Nov 2008 22:58:54 +0100
 
 ====== Zim User Manual ======
 
-For a quick introduction see [[Usage:Getting Started|Getting Started]] 
+For a quick introduction see [[Usage:Getting Started|Getting Started]]
 
-//For development documentation please download the source package and have a look at the notes included in the "HACKING" folder and at the inline API documentation in the source code.//
+//For development documentation please download the source package and have a look at the notes included in the "CONTRIBUTING.md" and "PLUGIN_WRITING.md" files and at the inline API documentation in the source code.//
 
 
 ===== Contents =====
@@ -17,10 +17,10 @@ For a quick introduction see [[Usage:Getting Started|Getting Started]]
 * [[Bugs]]
 
 **Usage tips and tricks:**
-* [[Usage]] 
+* [[Usage]]
 
 **Plugins:**
-* [[Plugins]] 
+* [[Plugins]]
 
 **Help section:**
 * Function by Menu Item
@@ -49,4 +49,3 @@ For a quick introduction see [[Usage:Getting Started|Getting Started]]
 	* [[Help:Wiki Syntax|Wiki Syntax]]
 	* [[Help:Importing external files|Importing external files]]
 	* [[Help:Migrating to latest version|Migrating to latest version]]
-

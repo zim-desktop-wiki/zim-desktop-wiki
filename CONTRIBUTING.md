@@ -11,6 +11,9 @@ them up. To get started please have a look at the
 and
 [plugin idea](https://github.com/zim-desktop-wiki/zim-desktop-wiki/labels/plugin%20idea) labels.
 
+Also please read [WhyIsItNotDoneYet](https://github.com/zim-desktop-wiki/zim-desktop-wiki/wiki/WhyIsItNotDoneYet)
+and [Development Planning](https://github.com/zim-desktop-wiki/zim-desktop-wiki/wiki/Planning) in the development wiki pages.
+
 
 ## Other resources
 * Code repository:
@@ -56,6 +59,10 @@ to get the latest development branch.
 
 The zim code is kept under version control using the git version control system.
 See the website for documentation on using this system: https://git-scm.com/
+
+For indenting of python code the code base uses TABs (not spaces) with a
+tabstop set to the equivalent of 4 spaces. (Yes I know this breaks the PEP8
+recommendation.)
 
 
 ## Bug fixes
@@ -134,14 +141,13 @@ application.
 
 ## Translations
 
-To contribute to translations onlne please go to https://translations.launchpad.net/zim .
+To contribute to translations online please go to either
+https://hosted.weblate.org/projects/zim/master/
+or https://hosted.weblate.org/projects/zim/develop/.
 
-To test a new translation you can either download the snapshot from launchpad and run:
+The first one (ending in "master") contains translation strings for the current / upcoming releases. The second one (ending in "develop") could contain strings for new features.
 
-    ./tools/import-launchpad-translations.py launchpad-export.tar.gz
-
-
-Or you can edit the template zim.pot with your favourite editor. In that case you should add you new .po file to the po/ directory.
+Or you can edit the template zim.pot with your favorite editor. In that case you should add you new .po file to the po/ directory.
 
 After adding the .po file(s) you can compile the translation using:
 
