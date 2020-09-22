@@ -8,7 +8,7 @@ Zim is completely free software, free as in open source //and// free as in free 
 
 INSERT_PAYPAL_BUTTON_HERE
 
-In the paypal form there is a link "Suggestions and Comments" (it is a bit small but it is there when you confirm the donation). Feel free to use this text field to tell me what is on your whish list for future development. I can not promise to implement every feature that gets mentioned in a donation, but it will certainly be taken into consideration. If enough funds come in we will set up bounties for other developers that want to work on nominated features as well.
+In the paypal form there is a link "Suggestions and Comments" (it is a bit small but it is there when you confirm the donation). Feel free to use this text field to tell me what is on your wish list for future development. I can not promise to implement every feature that gets mentioned in a donation, but it will certainly be taken into consideration. If enough funds come in we will set up bounties for other developers that want to work on nominated features as well.
 
 ===== User Manual Updates =====
 Updates for the user manual can be submitted in [[https://www.zim-wiki.org/wiki/|the wiki]] or as patches (see below).
