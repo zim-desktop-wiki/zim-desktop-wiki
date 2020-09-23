@@ -8,15 +8,17 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-01-28 19:25+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
-"Language-Team: Portuguese <pt@li.org>\n"
+"PO-Revision-Date: 2020-09-24 20:40+0000\n"
+"Last-Translator: Helder Guerreiro <helder@paxjulia.org>\n"
+"Language-Team: Portuguese <https://hosted.weblate.org/projects/zim/master/pt/"
+">\n"
+"Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -97,7 +99,7 @@ msgstr "O ficheiro %s foi alterado no disco"
 #. Heading in a question dialog for creating a folder
 #: zim/gui/applications.py:500 zim/gui/pageview.py:6414
 msgid "Create folder?"
-msgstr "Criar pasta"
+msgstr "Criar pasta?"
 
 #. Text in a question dialog for creating a folder, %s will be the folder base name
 #: zim/gui/applications.py:502
@@ -127,8 +129,8 @@ msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
 msgstr ""
-"Você está a editar um ficheiro em um aplicativo externo. Você pode fechar "
-"esta janela quando terminar."
+"Você está a editar um ficheiro numa aplicação externa. Pode fechar esta "
+"janela quando terminar"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:923
@@ -322,7 +324,9 @@ msgstr "O ficheiro existe"
 msgid ""
 "This file already exists.\n"
 "Do you want to overwrite it?"
-msgstr "O ficheiro já existe."
+msgstr ""
+"O ficheiro já existe.\n"
+"Deseja escrever por cima?"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:167
@@ -459,28 +463,28 @@ msgstr "Ver R_egisto"
 #: zim/gui/insertedobjects.py:265
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "Não há plugin disponível para mostrar objectos do tipo: %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:273
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "O plugin \"%s\" é necessário para exibir este objecto"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:277
 msgid "Enable plugin"
-msgstr ""
+msgstr "Activar plugin"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:310
 msgid "Unkown Object"
-msgstr ""
+msgstr "Objecto desconhecido"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:349
 msgid "Unkown Image type"
-msgstr ""
+msgstr "Tipo de imagem desconhecido"
 
 #. Menu title
 #: zim/gui/mainwindow.py:49
@@ -701,7 +705,7 @@ msgstr "Saltar para"
 #. Button label
 #: zim/gui/mainwindow.py:977
 msgid "_Jump"
-msgstr ""
+msgstr "_Ir para"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:982
@@ -724,12 +728,12 @@ msgstr "Abrir Bloco de Notas"
 #. Button label
 #: zim/gui/notebookdialog.py:327
 msgid "_Add"
-msgstr ""
+msgstr "_Adicionar"
 
 #. Button label
 #: zim/gui/notebookdialog.py:331 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "_Remover"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:347
@@ -918,7 +922,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "Clicar repetidamente numa caixa de selecção muda para o estado seguinte"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -966,7 +970,7 @@ msgstr ""
 #: zim/gui/pageview.py:4896 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:858
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
-msgstr ""
+msgstr "_Cancelar"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:4901
@@ -976,7 +980,7 @@ msgstr "_Descartar alterações"
 #. Button in error dialog
 #: zim/gui/pageview.py:4906
 msgid "_Save Copy"
-msgstr "Gra_var cópia..."
+msgstr "Gra_var cópia"
 
 #. error when unknown interwiki link is clicked
 #: zim/gui/pageview.py:5792
@@ -1126,7 +1130,7 @@ msgstr "Alternar caixa de seleção com '>'"
 #. Menu item
 #: zim/gui/pageview.py:6134
 msgid "_Edit Link or Object..."
-msgstr "_Editar Ligação ou Objeto"
+msgstr "_Editar Ligação ou Objeto…"
 
 #. Menu item
 #: zim/gui/pageview.py:6190
@@ -1179,7 +1183,7 @@ msgstr "Nenhum modelo instalado"
 #. Menu item in "Insert > New File Attachment" submenu
 #: zim/gui/pageview.py:6402
 msgid "File _Templates..."
-msgstr "Modelos de _Ficheiro"
+msgstr "Modelos de _Ficheiro…"
 
 #. Text in a question dialog for creating a folder, %s is the folder path
 #: zim/gui/pageview.py:6416
@@ -1576,6 +1580,8 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
+"Este plugin tem propriedades,\n"
+"consultar o dialogo de propriedades do bloco de notas"
 
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:440
@@ -1625,7 +1631,7 @@ msgstr "Última Modificação"
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
-msgstr ""
+msgstr "_Procurar"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -1706,7 +1712,7 @@ msgstr "Nova S_ub Página..."
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "_Nova Página Aqui..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1792,12 +1798,12 @@ msgstr "Buscar nesta seção"
 #. Menu item
 #: zim/gui/uiactions.py:305
 msgid "Search _Backlinks..."
-msgstr "Pesquisar Ligações de _Entrada"
+msgstr "Pesquisar Ligações de _Entrada…"
 
 #. Menu item
 #: zim/gui/uiactions.py:313
 msgid "Recent Changes..."
-msgstr "Mudanças recentes"
+msgstr "Mudanças recentes…"
 
 #. Menu item
 #: zim/gui/uiactions.py:320
@@ -1812,7 +1818,7 @@ msgstr "Abrir Pasta de Ane_xos"
 #. Error message
 #: zim/gui/uiactions.py:333
 msgid "This page does not have an attachments folder"
-msgstr "Esta página não possui uma pasta de anexos."
+msgstr "Esta página não possui uma pasta de anexos"
 
 #. Menu item
 #: zim/gui/uiactions.py:339
@@ -1827,7 +1833,7 @@ msgstr "Abrir _Documento Raiz"
 #. Error message
 #: zim/gui/uiactions.py:350
 msgid "No document root defined for this notebook"
-msgstr ""
+msgstr "Não há documento raiz definido para este bloco de notas"
 
 #. Menu item
 #: zim/gui/uiactions.py:356
@@ -1878,7 +1884,7 @@ msgstr "_Acerca"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "Nova Página em %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2027,7 +2033,7 @@ msgstr "Substituir"
 #. Button label
 #: zim/gui/uiactions.py:859 zim/gui/widgets.py:85
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:903
@@ -2116,7 +2122,7 @@ msgid ""
 "the information from the text box below"
 msgstr ""
 "Ao reportar este erro, por favor inclua\n"
-"as informações da caixa de texto abaixo."
+"as informações da caixa de texto abaixo"
 
 #. Filter in open file dialog, shows all files (*)
 #: zim/gui/widgets.py:3553
@@ -2132,7 +2138,7 @@ msgstr "Imagens"
 #: zim/gui/widgets.py:3676
 #, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{count} de {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3698
@@ -2324,8 +2330,8 @@ msgstr "Anexos"
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i Anexo"
+msgstr[1] "%i Anexos"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2353,13 +2359,13 @@ msgstr "Ligações de entrada"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:261
 msgid "_Edit..."
-msgstr ""
+msgstr "_Editar…"
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:289
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "Editar %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:314
@@ -2452,12 +2458,12 @@ msgstr "Remover todos"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Copiar"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Colar"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2489,7 +2495,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/diagrameditor.py:39
 msgid "Diagram"
-msgstr ""
+msgstr "Diagrama"
 
 #. plugin name
 #: zim/plugins/distractionfree.py:25
@@ -2528,7 +2534,7 @@ msgstr "Largura máxima da página"
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Border width"
-msgstr ""
+msgstr "Espessura do limite"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:41
@@ -2559,7 +2565,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
 msgid "Ascii graph (Ditaa)"
-msgstr ""
+msgstr "Diagramas ASCII (Ditaa)"
 
 #. plugin name
 #: zim/plugins/equationeditor.py:23
@@ -2580,7 +2586,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/equationeditor.py:44
 msgid "Equation"
-msgstr ""
+msgstr "Equação"
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
@@ -2612,7 +2618,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:52
 msgid "GNU R Plot"
-msgstr ""
+msgstr "GNU R Plot"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -2673,7 +2679,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/insertsymbol.py:77
 msgid "Sy_mbol..."
-msgstr "Sí_mbolo"
+msgstr "Sí_mbolo…"
 
 #. plugin name |
 #. side pane title
@@ -2715,7 +2721,7 @@ msgstr "Ano"
 #. preferences option
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
-msgstr ""
+msgstr "Esconder o painel do Diário se estiver vazio"
 
 #. preferences option, values will be "Day", "Month", ...
 #: zim/plugins/journal.py:122
@@ -2751,7 +2757,7 @@ msgstr ""
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:40
 msgid "Please select more than one line of text"
-msgstr ""
+msgstr "Por favor seleccione mais de uma linha de texto"
 
 #. menu item
 #: zim/plugins/linesorter.py:70
@@ -2804,12 +2810,13 @@ msgstr ""
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:49
 msgid "Page Index"
-msgstr ""
+msgstr "Índice Páginas"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:50
 msgid "This plugin adds the page index pane to the main window.\n"
 msgstr ""
+"Este plugin adiciona o painel com o índice de páginas à janela principal.\n"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:111 data/templates/html/Default.html:52
@@ -2822,7 +2829,7 @@ msgstr "Índice"
 #. plugin name
 #: zim/plugins/pathbar.py:30
 msgid "Path Bar"
-msgstr ""
+msgstr "Barra Caminho"
 
 #. plugin description
 #: zim/plugins/pathbar.py:31
@@ -2831,6 +2838,10 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"Este plugin adiciona uma \"barra de caminho\" no topo da janela.\n"
+"Esta \"barra de caminho\" pode mostrar o caminho no bloco de notas da página "
+"corrente,\n"
+"páginas visitadas recentemente ou páginas editadas recentemente.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -2894,7 +2905,7 @@ msgstr "Visualizar no navegador Web"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "_Imprimir"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
@@ -3057,6 +3068,8 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"Este plugin pemite inserir 'blocos de código' na página. Estes serão\n"
+"exibidos como widgets embebidos com realce de sintaxe, número de linha etc.\n"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:62
@@ -3278,7 +3291,7 @@ msgstr ""
 #. Popup dialog
 #: zim/plugins/tableeditor.py:771 zim/plugins/tableeditor.py:1080
 msgid "Please select a row, before you push the button."
-msgstr "Por favor, selecione uma linha antes de premir o botão"
+msgstr "Por favor, selecione uma linha antes de premir o botão."
 
 #. Dialog title
 #: zim/plugins/tableeditor.py:858
@@ -3780,7 +3793,7 @@ msgstr "_Lado a Lado"
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:985
 msgid "Annotated Page Source"
-msgstr "Código da página  anotado"
+msgstr "Código da página anotado"
 
 #. Confirmation question
 #: zim/plugins/versioncontrol/__init__.py:994
@@ -3797,7 +3810,9 @@ msgid ""
 "All changes since the last saved version will be lost !"
 msgstr ""
 "Você quer restaurar a página: %(page)s\n"
-"à versão guardada: %(version)s?"
+"à versão guardada: %(version)s?\n"
+"\n"
+"Todas as modificações desde a última versão gravada serão perdidas!"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:1010
@@ -3817,7 +3832,7 @@ msgstr "Registar eventos com o Zeitgeist"
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:33
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr "Encaminha os eventos Zeitgeist Daemon"
+msgstr "Encaminha os eventos Zeitgeist Daemon."
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:63
