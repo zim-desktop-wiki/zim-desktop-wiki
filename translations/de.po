@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-05-17 12:05+0000\n"
-"Last-Translator: Murat Güven <muratg@online.de>\n"
-"Language-Team: German <de@li.org>\n"
+"PO-Revision-Date: 2020-09-24 20:40+0000\n"
+"Last-Translator: Andreas Klostermaier <andreas.klostermaier@appendx.de>\n"
+"Language-Team: German <https://hosted.weblate.org/projects/zim/master/de/>\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -130,7 +131,7 @@ msgstr ""
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:923
 msgid "Customize..."
-msgstr "Anpassen …"
+msgstr "Anpassen..."
 
 #. message when no applications in "Open With" menu
 #: zim/gui/applications.py:949
@@ -156,7 +157,7 @@ msgid ""
 "Configure an application to open files\n"
 "of type \"%s\""
 msgstr ""
-"Anwendung auswählen, mit der Dateien vom Typ \"%s\" geöffnet werden sollen."
+"Anwendung festlegen, mit der Dateien vom Typ \"%s\" geöffnet werden sollen"
 
 #. Dialog title
 #: zim/gui/applications.py:1003
@@ -557,7 +558,7 @@ msgstr "Links entfernen, wenn Seiten gelöscht werden"
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:71
 msgid "Always use last cursor position when opening a page"
-msgstr "Verwende immer die  letzte Cursorposition beim Öffnen einer Seite"
+msgstr "Verwende immer die letzte Cursorposition beim Öffnen einer Seite"
 
 #. Menu item |
 #. Button label
@@ -689,8 +690,8 @@ msgstr "_Neu laden"
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _Backlink..."
-msgstr[1] "%i _Backlinks..."
+msgstr[0] "%i _Rückverweis..."
+msgstr[1] "%i _Rückverweise..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -743,7 +744,7 @@ msgstr "Notizbuch hinzufügen"
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:406
 msgid "Please select a name and a folder for the notebook."
-msgstr "Bitte wählen sie einen Namen und Ort für das Notizbuch"
+msgstr "Bitte wählen sie einen Namen und Ort für das Notizbuch."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:422
@@ -903,7 +904,7 @@ msgstr "Dateien automatisch verlinken"
 #: zim/gui/pageview.py:193
 msgid "Automatically select the current word when you apply formatting"
 msgstr ""
-"Das aktuelle Wort automatisch auswählen, wenn Sie die Formatierung ändern."
+"Das aktuelle Wort automatisch auswählen, wenn Sie die Formatierung ändern"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:196
@@ -919,7 +920,7 @@ msgstr ""
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
 "Wiederholtes Klicken einer Checkbox schaltet durch die verschiedenen "
-"Zustände der Checkbox."
+"Zustände der Checkbox"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -930,7 +931,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:205
 msgid "Checking a checkbox also change any sub-items"
-msgstr "Das Abhaken einer Checkbox ändert auch deren Unterpunkte."
+msgstr "Das Abhaken einer Checkbox ändert auch deren Unterpunkte"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:208
@@ -990,12 +991,12 @@ msgstr "Kein Wiki definiert: %s"
 #. menu item for context menu of editor
 #: zim/gui/pageview.py:5885
 msgid "Copy _As..."
-msgstr "Kopieren _Als"
+msgstr "Kopieren _als..."
 
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:5892
 msgid "Move Selected Text..."
-msgstr "Ausgewählten Text verschieben"
+msgstr "Ausgewählten Text verschieben..."
 
 #. Menu item
 #: zim/gui/pageview.py:5940 zim/gui/pageview.py:6172
@@ -1711,12 +1712,12 @@ msgstr "Neue Unter_seite..."
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr "_Neue Seite an dieser Stelle"
+msgstr "_Neue Seite an dieser Stelle..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
 msgid "_Open Another Notebook..."
-msgstr "Ein neues Notizbuch _öffnen"
+msgstr "Ein neues Notizbuch _öffnen..."
 
 #. Menu item
 #: zim/gui/uiactions.py:138
@@ -1787,7 +1788,7 @@ msgstr "_Einstellungen"
 #. Menu item
 #: zim/gui/uiactions.py:285
 msgid "_Search..."
-msgstr "Notizbuch durchsuchen"
+msgstr "Notizbuch durchsuchen..."
 
 #. Menu item for search a sub-set of the notebook
 #: zim/gui/uiactions.py:300
@@ -1797,7 +1798,7 @@ msgstr "Suche in diesem Abschnitt"
 #. Menu item
 #: zim/gui/uiactions.py:305
 msgid "Search _Backlinks..."
-msgstr "Suche nach _Backlinks..."
+msgstr "Suche nach _Rückverweisen..."
 
 #. Menu item
 #: zim/gui/uiactions.py:313
@@ -1898,7 +1899,7 @@ msgid ""
 msgstr ""
 "Bitte beachten Sie, dass der Link auf eine nicht\n"
 "existierende Seite automatisch eine neue, leere \n"
-"Seite erzeugt"
+"Seite erzeugt."
 
 #. Input label
 #: zim/gui/uiactions.py:488
@@ -2316,7 +2317,7 @@ msgstr "Abbrechen"
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
 msgid "Attachment Browser"
-msgstr "Attachment Browser"
+msgstr "Anhangs-Verzeichnis"
 
 #. plugin description
 #: zim/plugins/attachmentbrowser/__init__.py:70
@@ -2324,7 +2325,7 @@ msgid ""
 "This plugin shows the attachments folder of the current page as an\n"
 "icon view at bottom pane.\n"
 msgstr ""
-"Dieses Plugin erstellt eine Auflistung der Anhänge\n"
+"Dieses Plugin erstellt ein Verzeichnis der Anhänge\n"
 "der aktuellen Seite in Form einer Symbolansicht\n"
 "unterhalb der aktuellen Seite.\n"
 
@@ -2365,6 +2366,8 @@ msgid ""
 msgstr ""
 "Dieses Plugin fügt ein zusätzliches Widget hinzu, das eine Liste\n"
 "von Seiten anzeigt, die auf die aktuelle Seite verweisen.\n"
+"\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:62
@@ -2573,8 +2576,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dieses Plugin ermöglicht es Ditaa basierte Diagramme in zim einzugen.\n"
-"Dieses Plugin gehört zum Lieferumfang von Zim\n"
+"Dieses Plugin ermöglicht es Ditaa-basierte Diagramme in Zim einzufügen.\n"
+"\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
@@ -2659,7 +2663,9 @@ msgid ""
 "This is a core plugin shipping with zim.\n"
 msgstr ""
 "Dieses Plugin ermöglicht die schnelle Berechnung einfacher mathematischer "
-"Ausdrücke in zim.\n"
+"Ausdrücke in Zim.\n"
+"\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:271
@@ -2689,7 +2695,7 @@ msgstr ""
 "Der ermöglicht die automatische Formatierung typografischer \n"
 "Sonderzeichen.\n"
 "\n"
-"Dieses Plugin gehört zum Lieferumfang von Zim\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. menu item
 #: zim/plugins/insertsymbol.py:77
@@ -2904,9 +2910,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dieses Plugin stellt ein Workaround für die fehlende Druckfunktion \n"
-"in Zim bereit. Es exportiert die aktuelle Seite in eine HTML-Datei und \n"
-"öffnet diese im Browser. Darüber kann die Datei dann gedruckt werden.\n"
+"Dieses Plugin stellt eine Umgehungslösung für die fehlende Druckfunktion in "
+"Zim bereit. Es exportiert die aktuelle Seite in eine HTML-Datei und öffnet "
+"diese im Browser. Darüber kann die Datei dann gedruckt werden.\n"
 "\n"
 "Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
@@ -2933,16 +2939,15 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dieses Plugin stellt ein Dialogfenster zur Verfügung, dass \n"
-"es erlaubt Text oder den Inhalt der Zwischenablage in eine\n"
-"Notiz einzufügen.\n"
+"Dieses Plugin stellt ein Dialogfenster zur Verfügung, das es erlaubt Text "
+"oder den Inhalt der Zwischenablage in eine Notiz einzufügen.\n"
 "\n"
-"Dieses Plugin gehört zum Lieferumfang von zim.\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. menu item
 #: zim/plugins/quicknote.py:186
 msgid "Quick Note..."
-msgstr "Kurz Notiz"
+msgstr "Kurznotiz..."
 
 #. text entry field
 #: zim/plugins/quicknote.py:248
@@ -2983,6 +2988,8 @@ msgid ""
 msgstr ""
 "Dieses Plugin stellt einen Notensatz-Editor für Zim bereit, basierend auf "
 "GNU Lilypond.\n"
+"\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:55
@@ -3147,10 +3154,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dieses Plugin stellt eine automatische Rechtschreibprüfung \n"
-"zur Verfügung.\n"
+"Dieses Plugin stellt eine automatische Rechtschreibprüfung zur Verfügung.\n"
 "\n"
-"Dieses Plugin gehört zum Lieferumfang von zim.\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. menu item
 #: zim/plugins/spell.py:128
@@ -3168,7 +3174,7 @@ msgid ""
 "This could mean you don't have the proper\n"
 "dictionaries installed"
 msgstr ""
-"Dies könnte bedeuten, dass die richtigen Wörterbücher nicht installiert sind"
+"Dies könnte bedeuten, dass die richtigen Wörterbücher nicht installiert sind."
 
 #. alignment option
 #: zim/plugins/tableeditor.py:52 zim/plugins/tableeditor.py:862
@@ -3518,9 +3524,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dieses Plugin zeigt alle offenen Aufgaben. Offene Aufgaben sind entweder \n"
-"offene Ankreuzkästchen oder Elemente, die mit 'FIXME' oder 'TODO' markiert "
-"wurden.\n"
+"Dieses Plugin zeigt alle offenen Aufgaben des Notizbuchs. Offene Aufgaben "
+"sind entweder unangekreuzte Aufgabenkästchen oder Elemente, die mit 'FIXME' "
+"oder 'TODO' markiert wurden.\n"
 "\n"
 "Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
@@ -3600,7 +3606,8 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dieses Plugin fügt ein Informationssymbol zum Benachrichtigungsfeld hinzu\n"
+"Dieses Plugin fügt ein Informationssymbol zum Benachrichtigungsfeld hinzu.\n"
+"\n"
 "Sie benötigen Gtk+ ab der Version 2.10, um es einsetzen zu können.\n"
 "\n"
 "Dieses Plugin gehört zum Lieferumfang von Zim.\n"
@@ -3622,7 +3629,7 @@ msgstr "Ein eigenes Symbol für jedes Notizbuch anzeigen"
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:132
 msgid "_Quick Note..."
-msgstr "_Kurz Notiz"
+msgstr "_Kurznotiz..."
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:141
@@ -3654,8 +3661,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dieses Plugin ermöglicht eine Versionsverwaltung in ihrem Notizbuch.\n"
-"Unterstützt werden Bazaar, Git und Mercurial Versionswerwaltungen.\n"
+"Dieses Plugin ergänzt eine Versionsverwaltung für das Notizbuch.\n"
+"\n"
+"Unterstützt werden die Versionsverwaltungen Bazaar (bzr), Mercurial (hg), "
+"Git (git) und Fossil (fossil).\n"
+"\n"
 "Dieses Plugin gehört zum Lieferumfang von Zim\n"
 
 #. Label for plugin preference
@@ -3692,7 +3702,7 @@ msgstr "_Versionen..."
 #: zim/plugins/versioncontrol/__init__.py:242
 msgid ""
 "There are no changes in this notebook since the last version that was saved"
-msgstr "Seit der letzten Sicherung wurde dieses Notizbuch nicht geändert."
+msgstr "Seit der letzten Sicherung wurde dieses Notizbuch nicht verändert."
 
 #. Short error descriotion
 #: zim/plugins/versioncontrol/__init__.py:245
@@ -3736,7 +3746,7 @@ msgstr ""
 #. option to chose versioncontrol backend
 #: zim/plugins/versioncontrol/__init__.py:737
 msgid "Backend"
-msgstr "Backend"
+msgstr "Back-End"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:755
@@ -3797,7 +3807,7 @@ msgstr "Unterschiede anzeigen"
 #. button in versions dialog for side by side comparison
 #: zim/plugins/versioncontrol/__init__.py:897
 msgid "_Side by Side"
-msgstr "_nebeneinander"
+msgstr "_Nebeneinander"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:985
@@ -3831,7 +3841,7 @@ msgstr "Änderungen"
 #. Column header versions dialog
 #: zim/plugins/versioncontrol/__init__.py:1068
 msgid "Rev"
-msgstr "Rev"
+msgstr "Revision"
 
 #. plugin name
 #: zim/plugins/zeitgeist-logger.py:32
@@ -3841,7 +3851,7 @@ msgstr "Ereignisse mit Zeitgeist protokollieren"
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:33
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr "Ereignisse per Zeitgeist-Dämon aufzeichnen"
+msgstr "Zeichnet Ereignisse per Zeitgeist-Dämon auf."
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:63
@@ -3874,7 +3884,7 @@ msgstr "Weiter"
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
 msgid "Backlinks:"
-msgstr "Backlinks"
+msgstr "Rückverweise:"
 
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
