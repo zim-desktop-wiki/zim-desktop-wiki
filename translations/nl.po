@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-07-24 08:10+0200\n"
-"PO-Revision-Date: 2019-05-17 09:02+0000\n"
+"PO-Revision-Date: 2020-09-27 19:13+0000\n"
 "Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
-"Language-Team: Dutch <nl@li.org>\n"
+"Language-Team: Dutch <https://hosted.weblate.org/projects/zim/master/nl/>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:85
@@ -690,13 +690,11 @@ msgstr "_Herladen"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:943
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Verwijzing..."
-msgstr[1] "%i _Verwijzingen..."
+msgstr[0] "%i _Verwijzing"
+msgstr[1] "%i _Verwijzingen"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1003
