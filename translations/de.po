@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
-"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2019-05-09 20:40+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-09-22 20:58+0200\n"
 "PO-Revision-Date: 2020-09-24 20:40+0000\n"
 "Last-Translator: Andreas Klostermaier <andreas.klostermaier@appendx.de>\n"
 "Language-Team: German <https://hosted.weblate.org/projects/zim/develop/de/>\n"
@@ -20,13 +20,13 @@ msgstr ""
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
-#: zim/applications.py:87
+#: zim/applications.py:85
 #, python-format
 msgid "Failed to run application: %s"
 msgstr "Anwendung konnte nicht gestartet werden: %s"
 
 #. Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
-#: zim/applications.py:90
+#: zim/applications.py:88
 #, python-format
 msgid ""
 "%(cmd)s\n"
@@ -34,19 +34,19 @@ msgid ""
 msgstr "Aufruf von %(cmd)s fehlgeschlagen. Fehlercode: %(code)i"
 
 #. error when application failed to start
-#: zim/applications.py:365
+#: zim/applications.py:361
 #, python-format
 msgid "Failed running: %s"
 msgstr "Konnte nicht starten: %s"
 
-#. label for default webbrowser |
+#. label for default webbrowser | 
 #. label for default application
-#: zim/applications.py:386 zim/applications.py:429 zim/gui/applications.py:1013
+#: zim/applications.py:382 zim/applications.py:425 zim/gui/applications.py:1013
 msgid "Default"
 msgstr "Standard"
 
 #. Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
-#: zim/datetimetz.py:95
+#: zim/datetimetz.py:98
 msgid "calendar:week_start:0"
 msgstr "Kalender:Wochen_Start:0"
 
@@ -55,45 +55,45 @@ msgstr "Kalender:Wochen_Start:0"
 msgid "Looks like you found a bug"
 msgstr "Anscheinend haben Sie einen Fehler gefunden"
 
-#. message for FileNotFoundError |
+#. message for FileNotFoundError | 
 #. Error message in template lookup
-#: zim/fs.py:272 zim/templates/__init__.py:124
+#: zim/fs.py:261 zim/templates/__init__.py:124
 #, python-format
 msgid "No such file: %s"
 msgstr "Datei nicht gefunden: %s"
 
 #. message for FileUnicodeError (%s is the file name)
-#: zim/fs.py:284 zim/newfs/base.py:64
+#: zim/fs.py:273 zim/newfs/base.py:64
 #, python-format
 msgid "Could not read: %s"
 msgstr "Lesen von %s nicht möglich!"
 
 #. message for FileUnicodeError
-#: zim/fs.py:286 zim/newfs/base.py:66
+#: zim/fs.py:275 zim/newfs/base.py:66
 msgid "This usually means the file contains invalid characters"
 msgstr "Gewöhnlich bedeutet dies, dass die Datei ungültige Zeichen enthält."
 
-#. label for detailed error |
+#. label for detailed error | 
 #. section for version details in "save version" dialog
-#: zim/fs.py:288 zim/newfs/base.py:68
+#: zim/fs.py:277 zim/newfs/base.py:68
 #: zim/plugins/versioncontrol/__init__.py:776
 msgid "Details"
 msgstr "Details"
 
 #. Error message
-#: zim/fs.py:1178
+#: zim/fs.py:1167
 #, python-format
 msgid "File is not writable: %s"
 msgstr "Datei ist nicht schreibbar: %s"
 
 #. error message
-#: zim/fs.py:1250
+#: zim/fs.py:1239
 #, python-format
 msgid "File changed on disk: %s"
 msgstr "Die Datei wurde auf der Festplatte geändert: %s"
 
 #. Heading in a question dialog for creating a folder
-#: zim/gui/applications.py:500 zim/gui/pageview.py:6414
+#: zim/gui/applications.py:500 zim/gui/pageview.py:6632
 msgid "Create folder?"
 msgstr "Verzeichnis erstellen?"
 
@@ -164,7 +164,7 @@ msgstr ""
 msgid "Configure Applications"
 msgstr "Anwendungen konfigurieren"
 
-#. Button for adding a new application to the 'open with' menu |
+#. Button for adding a new application to the 'open with' menu | 
 #. Dialog title
 #: zim/gui/applications.py:1017 zim/gui/applications.py:1125
 msgid "Add Application"
@@ -175,26 +175,26 @@ msgstr "Anwendung hinzufügen"
 msgid "System Default"
 msgstr "Systemvorgabe"
 
-#. Field in 'custom command' dialog |
-#. Input in "Edit Custom Tool" dialog |
-#. input field in 'Add Notebook' dialog |
-#. input for new file name |
-#. Heading in plugins tab of preferences dialog |
-#. label for properties dialog |
-#. Input label for the new name when copying a template |
-#. Input label in the 'rename page' dialog for the new name |
+#. Field in 'custom command' dialog | 
+#. Input in "Edit Custom Tool" dialog | 
+#. input field in 'Add Notebook' dialog | 
+#. input for new file name | 
+#. Heading in plugins tab of preferences dialog | 
+#. label for properties dialog | 
+#. Input label for the new name when copying a template | 
+#. Input label in the 'rename page' dialog for the new name | 
 #. label for file name
-#: zim/gui/applications.py:1129 zim/gui/customtools.py:651
-#: zim/gui/notebookdialog.py:421 zim/gui/pageview.py:7587
-#: zim/gui/preferencesdialog.py:279 zim/gui/propertiesdialog.py:16
-#: zim/gui/templateeditordialog.py:158 zim/gui/uiactions.py:603
-#: zim/plugins/attachmentbrowser/filebrowser.py:377
+#: zim/gui/applications.py:1129 zim/gui/customtools.py:644
+#: zim/gui/notebookdialog.py:421 zim/gui/pageview.py:8049
+#: zim/gui/preferencesdialog.py:306 zim/gui/propertiesdialog.py:16
+#: zim/gui/templateeditordialog.py:158 zim/gui/uiactions.py:595
+#: zim/plugins/attachmentbrowser/filebrowser.py:388
 msgid "Name"
 msgstr "Name"
 
-#. Field in 'custom command' dialog |
+#. Field in 'custom command' dialog | 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/applications.py:1130 zim/gui/customtools.py:653
+#: zim/gui/applications.py:1130 zim/gui/customtools.py:646
 msgid "Command"
 msgstr "Befehl"
 
@@ -210,12 +210,12 @@ msgid "Could not find executable \"%s\""
 msgstr "Konnte die ausführbare Datei \"%s\" nicht finden"
 
 #. Dialog title
-#: zim/gui/customtools.py:510
+#: zim/gui/customtools.py:503
 msgid "Custom Tools"
 msgstr "Benutzerdefinierte Werkzeuge"
 
 #. help text in "Custom Tools" dialog
-#: zim/gui/customtools.py:515
+#: zim/gui/customtools.py:508
 msgid ""
 "You can configure custom tools that will appear\n"
 "in the tool menu and in the tool bar or context menus."
@@ -224,39 +224,34 @@ msgstr ""
 "der Werkzeugleiste und in Kontextmenüs erscheinen."
 
 #. Dialog title
-#: zim/gui/customtools.py:631
+#: zim/gui/customtools.py:624
 msgid "Edit Custom Tool"
 msgstr "Benutzerdefiniertes Werkzeug bearbeiten"
 
-#. Input in "Edit Custom Tool" dialog |
+#. Input in "Edit Custom Tool" dialog | 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/customtools.py:652 zim/gui/preferencesdialog.py:281
+#: zim/gui/customtools.py:645 zim/gui/preferencesdialog.py:308
 msgid "Description"
 msgstr "Beschreibung"
 
-#. Input in "Edit Custom Tool" dialog |
+#. Input in "Edit Custom Tool" dialog | 
 #. label for properties dialog
-#: zim/gui/customtools.py:667 zim/gui/propertiesdialog.py:19
+#: zim/gui/customtools.py:660 zim/gui/propertiesdialog.py:19
 msgid "Icon"
 msgstr "Symbol"
 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:676
+#: zim/gui/customtools.py:669
 msgid "Command does not modify data"
 msgstr "Befehl verändert keine Daten"
 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:677
+#: zim/gui/customtools.py:670
 msgid "Output should replace current selection"
 msgstr "Ausgabe soll aktuelle Auswahl ersetzen"
 
-#. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:678
-msgid "Show in the toolbar"
-msgstr "Erscheint in Werkzeugleiste"
-
 #. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
-#: zim/gui/customtools.py:686
+#: zim/gui/customtools.py:679
 msgid ""
 "The following parameters will be substituted\n"
 "in the command when it is executed:\n"
@@ -329,7 +324,7 @@ msgstr ""
 msgid "Select the pages to export"
 msgstr "Wählen Sie die zu exportierenden Seiten"
 
-#. Option in export dialog to export complete notebook |
+#. Option in export dialog to export complete notebook | 
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:173 zim/plugins/versioncontrol/__init__.py:824
 msgid "Complete _notebook"
@@ -340,16 +335,16 @@ msgstr "Komplettes _Notizbuch"
 msgid "Single _page"
 msgstr "Einzelne _Seite"
 
-#. Input field in export dialog |
-#. label in word count dialog |
-#. Column header |
-#. Column header search dialog |
-#. Column header Task List dialog |
+#. Input field in export dialog | 
+#. label in word count dialog | 
+#. Column header | 
+#. Column header search dialog | 
+#. Column header Task List dialog | 
 #. page label
-#: zim/gui/exportdialog.py:181 zim/gui/pageview.py:7472
+#: zim/gui/exportdialog.py:181 zim/gui/pageview.py:7934
 #: zim/gui/recentchangesdialog.py:59 zim/gui/searchdialog.py:146
-#: zim/plugins/quicknote.py:247 zim/plugins/tasklist/gui.py:493
-#: zim/plugins/tasklist/gui.py:799
+#: zim/plugins/quicknote.py:247 zim/plugins/tasklist/gui.py:495
+#: zim/plugins/tasklist/gui.py:801
 msgid "Page"
 msgstr "Seite"
 
@@ -368,14 +363,15 @@ msgstr "Wählen Sie das Exportformat"
 msgid "Other..."
 msgstr "Anderes …"
 
-#. Input label in the export dialog |
+#. Input label in the export dialog | 
 #. label in "insert date" dialog
-#: zim/gui/exportdialog.py:223 zim/gui/pageview.py:6709
+#: zim/gui/exportdialog.py:223 zim/gui/pageview.py:7093
 msgid "Format"
 msgstr "Format"
 
-#. Input label in the export dialog
-#: zim/gui/exportdialog.py:224
+#. Input label in the export dialog | 
+#. Field in web server gui for webpage template
+#: zim/gui/exportdialog.py:224 zim/gui/server.py:106
 msgid "Template"
 msgstr "Vorlage"
 
@@ -395,37 +391,37 @@ msgid "Get more templates online"
 msgstr "Weitere Vorlagen online holen"
 
 #. title of step in export dialog
-#: zim/gui/exportdialog.py:311
+#: zim/gui/exportdialog.py:310
 msgid "Select the output file or folder"
 msgstr "Wählen Sie den Ausgabeordner"
 
 #. Label for option in export dialog
-#: zim/gui/exportdialog.py:317
+#: zim/gui/exportdialog.py:316
 msgid "Export each page to a separate file"
 msgstr "Jede Seite in eine eigene Datei exportieren"
 
 #. Label for option in export dialog
-#: zim/gui/exportdialog.py:319
+#: zim/gui/exportdialog.py:318
 msgid "Export all pages to a single file"
 msgstr "Alle Seiten in eine einzige Datei exportieren"
 
 #. Label for folder selection in export dialog
-#: zim/gui/exportdialog.py:322
+#: zim/gui/exportdialog.py:321
 msgid "Output folder"
 msgstr "Ausgabeverzeichnis"
 
 #. Label for setting a name for the index of exported pages
-#: zim/gui/exportdialog.py:324
+#: zim/gui/exportdialog.py:323
 msgid "Index page"
 msgstr "Indexseite"
 
 #. Label for file selection in export dialog
-#: zim/gui/exportdialog.py:327
+#: zim/gui/exportdialog.py:326
 msgid "Output file"
 msgstr "Ausgabedatei"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:416
+#: zim/gui/exportdialog.py:415
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
 msgstr ""
@@ -433,25 +429,25 @@ msgstr ""
 "Protokoll)"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:419
+#: zim/gui/exportdialog.py:418
 #, python-format
 msgid "%i errors occurred, see log"
 msgstr "%i Fehler aufgetreten, siehe Log"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:422
+#: zim/gui/exportdialog.py:421
 #, python-format
 msgid "%i warnings occurred, see log"
 msgstr "%i Warnungen aufgetreten, siehe Log"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:427
+#: zim/gui/exportdialog.py:426
 msgid "Export completed"
 msgstr "Export abgeschlossen"
 
-#. button in export dialog |
+#. button in export dialog | 
 #. button in e.g. equation editor dialog
-#: zim/gui/exportdialog.py:430 zim/plugins/base/imagegenerator.py:323
+#: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:323
 msgid "View _Log"
 msgstr "_Protokoll anzeigen"
 
@@ -483,236 +479,212 @@ msgid "Unkown Image type"
 msgstr "Unbekanntes Bildformat"
 
 #. Menu title
-#: zim/gui/mainwindow.py:49
+#: zim/gui/mainwindow.py:43
 msgid "_File"
 msgstr "_Datei"
 
-#. Menu title |
+#. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:50 zim/gui/pageview.py:6746
+#: zim/gui/mainwindow.py:44 zim/gui/pageview.py:7114
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "_Bearbeiten"
 
-#. Menu title |
+#. Menu title | 
 #. button label
-#: zim/gui/mainwindow.py:51 zim/gui/templateeditordialog.py:43
+#: zim/gui/mainwindow.py:45 zim/gui/templateeditordialog.py:43
 msgid "_View"
 msgstr "_Ansicht"
 
-#. Menu title |
+#. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:52 zim/gui/pageview.py:6696
+#: zim/gui/mainwindow.py:46 zim/gui/pageview.py:6905 zim/gui/pageview.py:7064
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "_Einfügen"
 
 #. Menu title
-#: zim/gui/mainwindow.py:53
+#: zim/gui/mainwindow.py:47
 msgid "_Search"
 msgstr "_Suchen"
 
 #. Menu title
-#: zim/gui/mainwindow.py:54
+#: zim/gui/mainwindow.py:48
 msgid "For_mat"
 msgstr "For_mat"
 
 #. Menu title
-#: zim/gui/mainwindow.py:55
+#: zim/gui/mainwindow.py:49
 msgid "_Tools"
 msgstr "_Werkzeuge"
 
 #. Menu title
-#: zim/gui/mainwindow.py:56
+#: zim/gui/mainwindow.py:50
 msgid "_Go"
 msgstr "_Gehe zu"
 
-#. Menu title |
+#. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:2868
+#: zim/gui/mainwindow.py:51 zim/gui/widgets.py:2926
 msgid "_Help"
 msgstr "_Hilfe"
 
-#. Menu title |
-#. Menu item
-#: zim/gui/mainwindow.py:58 zim/gui/mainwindow.py:425
-msgid "_Toolbar"
-msgstr "_Werkzeugleiste"
-
 #. Menu title
-#: zim/gui/mainwindow.py:59
+#: zim/gui/mainwindow.py:52
 msgid "_Checkbox"
 msgstr "_Ankreuzfeld"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
-#: zim/gui/mainwindow.py:65
+#: zim/gui/mainwindow.py:58
 #, python-format
 msgid "Use %s to switch to the side pane"
 msgstr "%s verwenden, um zur Seitenleiste zu wechseln"
 
 #. Option in the preferences dialog
-#: zim/gui/mainwindow.py:69
+#: zim/gui/mainwindow.py:62
 msgid "Remove links when deleting pages"
 msgstr "Links entfernen, wenn Seiten gelöscht werden"
 
 #. Option in the preferences dialog
-#: zim/gui/mainwindow.py:71
+#: zim/gui/mainwindow.py:64
 msgid "Always use last cursor position when opening a page"
 msgstr "Verwende immer die letzte Cursorposition beim Öffnen einer Seite"
 
-#. Menu item |
+#. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:334 zim/gui/widgets.py:2832
+#: zim/gui/mainwindow.py:339 zim/gui/widgets.py:2887
 msgid "_Close"
 msgstr "_Schließen"
 
 #. page status in statusbar
-#: zim/gui/mainwindow.py:370
+#: zim/gui/mainwindow.py:380
 msgid "readonly"
 msgstr "schreibgeschützt"
 
 #. label for View->Menubar menu item
-#: zim/gui/mainwindow.py:412
+#: zim/gui/mainwindow.py:422
 msgid "Menubar"
 msgstr "Menüleiste"
 
 #. Menu item
-#: zim/gui/mainwindow.py:442
+#: zim/gui/mainwindow.py:435
 msgid "_Statusbar"
 msgstr "_Statuszeile"
 
 #. Menu item
-#: zim/gui/mainwindow.py:454
+#: zim/gui/mainwindow.py:447
 msgid "_Fullscreen"
 msgstr "_Vollbild"
 
 #. Menu item
-#: zim/gui/mainwindow.py:472
+#: zim/gui/mainwindow.py:465
 msgid "_Side Panes"
 msgstr "_Seitenbereiche"
 
-#. Menu item
-#: zim/gui/mainwindow.py:522
-msgid "Icons _And Text"
-msgstr "Symbole _und Text"
-
-#. Menu item
-#: zim/gui/mainwindow.py:523
-msgid "_Icons Only"
-msgstr "Nur _Symbole"
-
-#. Menu item
-#: zim/gui/mainwindow.py:524
-msgid "_Text Only"
-msgstr "Nur _Text"
-
-#. Menu item
-#: zim/gui/mainwindow.py:546
-msgid "_Large Icons"
-msgstr "_Große Symbole"
-
-#. Menu item
-#: zim/gui/mainwindow.py:547
-msgid "_Small Icons"
-msgstr "_Kleine Symbole"
-
-#. Menu item
-#: zim/gui/mainwindow.py:548
-msgid "_Tiny Icons"
-msgstr "_Winzige Symbole"
-
 #. menu item
-#: zim/gui/mainwindow.py:568
+#: zim/gui/mainwindow.py:513 zim/gui/mainwindow.py:932
 msgid "Notebook _Editable"
 msgstr "Schr_eibschutz für Notizbuch"
 
-#. Dialog title |
-#. input label
-#: zim/gui/mainwindow.py:656 zim/gui/searchdialog.py:25
-#: zim/gui/searchdialog.py:33
-msgid "Search"
-msgstr "Suche"
-
-#. label in search entry
-#: zim/gui/mainwindow.py:659
-msgid "Search Pages..."
-msgstr "Seiten durchsuchen..."
+#. menu item
+#: zim/gui/mainwindow.py:513 zim/gui/mainwindow.py:932
+#, fuzzy
+#| msgid "Notebook _Editable"
+msgid "Toggle editable"
+msgstr "Schr_eibschutz für Notizbuch"
 
 #. Menu item
-#: zim/gui/mainwindow.py:817
+#: zim/gui/mainwindow.py:727
 msgid "_Jump To..."
 msgstr "_Gehe zu..."
 
-#. Menu item |
+#. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:822 zim/gui/widgets.py:3742
+#: zim/gui/mainwindow.py:732 zim/gui/widgets.py:3803
 msgid "_Back"
 msgstr "_Zurück"
 
-#. Menu item |
+#: zim/gui/mainwindow.py:734
+msgid "Go back"
+msgstr ""
+
+#. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:834 zim/gui/widgets.py:3746
+#: zim/gui/mainwindow.py:745 zim/gui/widgets.py:3807
 msgid "_Forward"
 msgstr "_Weiter"
 
+#: zim/gui/mainwindow.py:747
+#, fuzzy
+#| msgid "_Forward"
+msgid "Go forward"
+msgstr "_Weiter"
+
 #. Menu item
-#: zim/gui/mainwindow.py:845
+#: zim/gui/mainwindow.py:757
 msgid "_Parent"
 msgstr "_Übergeordnete Seite"
 
 #. Menu item
-#: zim/gui/mainwindow.py:854
+#: zim/gui/mainwindow.py:766
 msgid "_Child"
 msgstr "_Untergeordnete Seite"
 
 #. Menu item
-#: zim/gui/mainwindow.py:870
+#: zim/gui/mainwindow.py:782
 msgid "_Previous in index"
 msgstr "_Vorige Seite im Index"
 
 #. Menu item
-#: zim/gui/mainwindow.py:879
+#: zim/gui/mainwindow.py:791
 msgid "_Next in index"
 msgstr "_Nächste Seite im Index"
 
 #. Menu item
-#: zim/gui/mainwindow.py:888
+#: zim/gui/mainwindow.py:800
 msgid "_Home"
 msgstr "_Startseite"
 
 #. Menu item
-#: zim/gui/mainwindow.py:893
+#: zim/gui/mainwindow.py:800
+msgid "Go to home page"
+msgstr ""
+
+#. Menu item
+#: zim/gui/mainwindow.py:805
 msgid "_Reload"
 msgstr "_Neu laden"
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/mainwindow.py:922
-#, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
+#: zim/gui/mainwindow.py:834
+#, fuzzy, python-format
+#| msgid "%i _Backlink..."
+#| msgid_plural "%i _Backlinks..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
 msgstr[0] "%i _Rückverweis..."
 msgstr[1] "%i _Rückverweise..."
 
 #. Dialog title
-#: zim/gui/mainwindow.py:976
+#: zim/gui/mainwindow.py:958
 msgid "Jump to"
 msgstr "Gehe zu"
 
 #. Button label
-#: zim/gui/mainwindow.py:977
+#: zim/gui/mainwindow.py:959
 msgid "_Jump"
 msgstr "_Gehe zu"
 
 #. Label for page input
-#: zim/gui/mainwindow.py:982
+#: zim/gui/mainwindow.py:964
 msgid "Jump to Page"
 msgstr "Gehe zur Seite"
 
-#. Column heading in 'open notebook' dialog |
-#. Field in web server gui |
+#. Column heading in 'open notebook' dialog | 
+#. Field in web server gui | 
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:191 zim/gui/propertiesdialog.py:50
-#: zim/gui/server.py:92 zim/plugins/quicknote.py:222
+#: zim/gui/notebookdialog.py:191 zim/gui/propertiesdialog.py:56
+#: zim/gui/server.py:102 zim/plugins/quicknote.py:222
 msgid "Notebook"
 msgstr "Notizbuch"
 
@@ -762,122 +734,12 @@ msgstr ""
 "werden.\n"
 
 #. Menu title
-#: zim/gui/pageview.py:150
+#: zim/gui/pageview.py:156
 msgid "New _Attachment"
 msgstr "Neuer _Anhang"
 
-#. Menu item
-#: zim/gui/pageview.py:155
-msgid "Heading _1"
-msgstr "Überschrift _1"
-
-#. Menu item
-#: zim/gui/pageview.py:155
-msgid "Heading 1"
-msgstr "Überschrift 1"
-
-#. Menu item
-#: zim/gui/pageview.py:156
-msgid "Heading _2"
-msgstr "Überschrift _2"
-
-#. Menu item
-#: zim/gui/pageview.py:156
-msgid "Heading 2"
-msgstr "Überschrift 2"
-
-#. Menu item
-#: zim/gui/pageview.py:157
-msgid "Heading _3"
-msgstr "Überschrift _3"
-
-#. Menu item
-#: zim/gui/pageview.py:157
-msgid "Heading 3"
-msgstr "Überschrift 3"
-
-#. Menu item
-#: zim/gui/pageview.py:158
-msgid "Heading _4"
-msgstr "Überschrift _4"
-
-#. Menu item
-#: zim/gui/pageview.py:158
-msgid "Heading 4"
-msgstr "Überschrift 4"
-
-#. Menu item
-#: zim/gui/pageview.py:159
-msgid "Heading _5"
-msgstr "Überschrift _5"
-
-#. Menu item
-#: zim/gui/pageview.py:159
-msgid "Heading 5"
-msgstr "Überschrift 5"
-
-#. Menu item
-#: zim/gui/pageview.py:160 zim/gui/pageview.py:171
-msgid "_Strong"
-msgstr "_Fett"
-
-#. Menu item
-#: zim/gui/pageview.py:160 zim/gui/pageview.py:171
-msgid "Strong"
-msgstr "Fett"
-
-#. Menu item
-#: zim/gui/pageview.py:161 zim/gui/pageview.py:172
-msgid "_Emphasis"
-msgstr "Hervorgehoben"
-
-#. Menu item
-#: zim/gui/pageview.py:161 zim/gui/pageview.py:172
-msgid "Emphasis"
-msgstr "Kursiv"
-
-#. Menu item
-#: zim/gui/pageview.py:162 zim/gui/pageview.py:173
-msgid "_Mark"
-msgstr "Markiert"
-
-#. Menu item
-#: zim/gui/pageview.py:162 zim/gui/pageview.py:173
-msgid "Mark"
-msgstr "Markiert"
-
-#. Menu item
-#: zim/gui/pageview.py:163 zim/gui/pageview.py:174
-msgid "_Strike"
-msgstr "_Durchgestrichen"
-
-#. Menu item
-#: zim/gui/pageview.py:163 zim/gui/pageview.py:174
-msgid "Strike"
-msgstr "Durchgestrichen"
-
-#. Menu item
-#: zim/gui/pageview.py:164
-msgid "_Subscript"
-msgstr "Subskript"
-
-#. Menu item
-#: zim/gui/pageview.py:165
-msgid "_Superscript"
-msgstr "Superskript"
-
-#. Menu item
-#: zim/gui/pageview.py:166
-msgid "_Verbatim"
-msgstr "_Vorformatiert"
-
-#. Menu item
-#: zim/gui/pageview.py:166
-msgid "Verbatim"
-msgstr "Vorformatiert"
-
 #. option in preferences dialog
-#: zim/gui/pageview.py:181
+#: zim/gui/pageview.py:163
 msgid ""
 "Use the <Enter> key to follow links\n"
 "(If disabled you can still use <Alt><Enter>)"
@@ -886,28 +748,28 @@ msgstr ""
 "(Wenn deaktiviert, benutzen Sie <Alt><Return>)"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:184
+#: zim/gui/pageview.py:166
 msgid "Show the cursor also for pages that can not be edited"
 msgstr "Auch bei schreibgeschützten Seiten Schreibmarke anzeigen"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:187
+#: zim/gui/pageview.py:169
 msgid "Automatically turn \"CamelCase\" words into links"
 msgstr "'KamelSchreibWeise' automatisch verlinken"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:190
+#: zim/gui/pageview.py:172
 msgid "Automatically turn file paths into links"
 msgstr "Dateien automatisch verlinken"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:193
+#: zim/gui/pageview.py:175
 msgid "Automatically select the current word when you apply formatting"
 msgstr ""
 "Das aktuelle Wort automatisch auswählen, wenn Sie die Formatierung ändern"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:196
+#: zim/gui/pageview.py:178
 msgid ""
 "Unindent on <BackSpace>\n"
 "(If disabled you can still use <Shift><Tab>)"
@@ -916,46 +778,46 @@ msgstr ""
 "(Alternativ <Hochstell><Backspace>)"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:199
+#: zim/gui/pageview.py:181
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
 "Wiederholtes Klicken einer Checkbox schaltet durch die verschiedenen "
 "Zustände der Checkbox"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:202
+#: zim/gui/pageview.py:184
 msgid "(Un-)Indenting a list item also change any sub-items"
 msgstr ""
 "Ein- / Ausrücken von Punkten einer Liste ändert auch dessen Unterpunkte"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:205
+#: zim/gui/pageview.py:187
 msgid "Checking a checkbox also change any sub-items"
 msgstr "Das Abhaken einer Checkbox ändert auch deren Unterpunkte"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:208
+#: zim/gui/pageview.py:190
 msgid "Reformat wiki markup on the fly"
 msgstr "Gleichzeitig Wiki Markups re-formatieren"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:211
+#: zim/gui/pageview.py:193
 msgid "Default format for copying text to the clipboard"
 msgstr "Standardformat für das Kopieren von Text in die Zwischenablage"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:214
+#: zim/gui/pageview.py:196
 msgid "Folder with templates for attachment files"
 msgstr "Speicherort für Vorlagen von Dateianhängen"
 
 #. Heading of error dialog
-#: zim/gui/pageview.py:4873
+#: zim/gui/pageview.py:5054
 #, python-format
 msgid "Could not save page: %s"
 msgstr "Seite %s konnte nicht gespeichert werden"
 
 #. text in error dialog when saving page failed
-#: zim/gui/pageview.py:4877
+#: zim/gui/pageview.py:5058
 msgid ""
 "To continue you can save a copy of this page or discard\n"
 "any changes. If you save a copy changes will be also\n"
@@ -967,226 +829,313 @@ msgstr ""
 "Kopie wieder herstellen."
 
 #. Button label
-#: zim/gui/pageview.py:4896 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:858
+#: zim/gui/pageview.py:5077 zim/gui/pageview.py:7351 zim/gui/searchdialog.py:42
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
 msgstr "_Abbrechen"
 
 #. Button in error dialog
-#: zim/gui/pageview.py:4901
+#: zim/gui/pageview.py:5082
 msgid "_Discard Changes"
 msgstr "Änderungen _verwerfen"
 
 #. Button in error dialog
-#: zim/gui/pageview.py:4906
+#: zim/gui/pageview.py:5087
 msgid "_Save Copy"
 msgstr "_Kopie speichern"
 
+#. Menu item
+#: zim/gui/pageview.py:5312
+msgid "Heading _1"
+msgstr "Überschrift _1"
+
+#. Menu item
+#: zim/gui/pageview.py:5313
+msgid "Heading _2"
+msgstr "Überschrift _2"
+
+#. Menu item
+#: zim/gui/pageview.py:5314
+msgid "Heading _3"
+msgstr "Überschrift _3"
+
+#. Menu item
+#: zim/gui/pageview.py:5315
+msgid "Heading _4"
+msgstr "Überschrift _4"
+
+#. Menu item
+#: zim/gui/pageview.py:5316
+msgid "Heading _5"
+msgstr "Überschrift _5"
+
+#. Menu item
+#: zim/gui/pageview.py:5317 zim/gui/pageview.py:5332
+msgid "_Strong"
+msgstr "_Fett"
+
+#. Menu item
+#: zim/gui/pageview.py:5318 zim/gui/pageview.py:5333
+msgid "_Emphasis"
+msgstr "Hervorgehoben"
+
+#. Menu item
+#: zim/gui/pageview.py:5319 zim/gui/pageview.py:5334
+msgid "_Mark"
+msgstr "Markiert"
+
+#. Menu item
+#: zim/gui/pageview.py:5320 zim/gui/pageview.py:5335
+msgid "_Strike"
+msgstr "_Durchgestrichen"
+
+#. Menu item
+#: zim/gui/pageview.py:5321
+msgid "_Subscript"
+msgstr "Subskript"
+
+#. Menu item
+#: zim/gui/pageview.py:5322
+msgid "_Superscript"
+msgstr "Superskript"
+
+#. Menu item
+#: zim/gui/pageview.py:5323 zim/gui/pageview.py:5336
+msgid "_Verbatim"
+msgstr "_Vorformatiert"
+
+#: zim/gui/pageview.py:5337
+#, fuzzy
+#| msgid "_Subscript"
+msgid "Su_bscript"
+msgstr "Subskript"
+
+#: zim/gui/pageview.py:5338
+#, fuzzy
+#| msgid "_Superscript"
+msgid "Su_perscript"
+msgstr "Superskript"
+
 #. error when unknown interwiki link is clicked
-#: zim/gui/pageview.py:5792
+#: zim/gui/pageview.py:5985
 #, python-format
 msgid "No such wiki defined: %s"
 msgstr "Kein Wiki definiert: %s"
 
 #. menu item for context menu of editor
-#: zim/gui/pageview.py:5885
+#: zim/gui/pageview.py:6078
 msgid "Copy _As..."
 msgstr "Kopieren _als..."
 
 #. Context menu item for pageview to move selected text to new/other page
-#: zim/gui/pageview.py:5892
+#: zim/gui/pageview.py:6085
 msgid "Move Selected Text..."
 msgstr "Ausgewählten Text verschieben..."
 
 #. Menu item
-#: zim/gui/pageview.py:5940 zim/gui/pageview.py:6172
+#: zim/gui/pageview.py:6133 zim/gui/pageview.py:6367
 msgid "_Remove Link"
 msgstr "Ve_rknüpfung entfernen"
 
 #. menu item in context menu for image
-#: zim/gui/pageview.py:5947
+#: zim/gui/pageview.py:6140
 msgid "_Edit Properties"
 msgstr "Eigenschaften editieren"
 
 #. menu item in context menu
-#: zim/gui/pageview.py:5949
+#: zim/gui/pageview.py:6142
 msgid "_Edit Link"
 msgstr "Link _bearbeiten"
 
 #. context menu item
-#: zim/gui/pageview.py:5969 zim/gui/pageview.py:5975 zim/gui/pageview.py:5982
+#: zim/gui/pageview.py:6162 zim/gui/pageview.py:6168 zim/gui/pageview.py:6175
 msgid "Copy _Link"
 msgstr "_Verknüpfung kopieren"
 
 #. context menu item
-#: zim/gui/pageview.py:5979
+#: zim/gui/pageview.py:6172
 msgid "Copy Email Address"
 msgstr "E-Mail-Adresse kopieren"
 
 #. menu item to open containing folder of files
-#: zim/gui/pageview.py:5990
+#: zim/gui/pageview.py:6183
 msgid "Open Folder"
 msgstr "Ordner öffnen"
 
-#. menu item for sub menu with applications |
+#. menu item for sub menu with applications | 
 #. menu item
-#: zim/gui/pageview.py:5999 zim/gui/pageview.py:6010
-#: zim/plugins/attachmentbrowser/filebrowser.py:336
+#: zim/gui/pageview.py:6192 zim/gui/pageview.py:6203
+#: zim/plugins/attachmentbrowser/filebrowser.py:347
 msgid "Open With..."
 msgstr "Öffnen mit..."
 
-#. menu item to open a link |
+#. menu item to open a link | 
 #. Menu item
-#: zim/gui/pageview.py:6020 zim/gui/uiactions.py:143
+#: zim/gui/pageview.py:6213 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:105
 msgid "Open in New _Window"
 msgstr "In neuem _Fenster öffnen"
 
-#. menu item to open a link or file |
-#. Button label |
+#. menu item to open a link or file | 
+#. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview.py:6030 zim/gui/widgets.py:3420
-#: zim/plugins/attachmentbrowser/filebrowser.py:343
+#: zim/gui/pageview.py:6223 zim/gui/widgets.py:3481
+#: zim/plugins/attachmentbrowser/filebrowser.py:354
 msgid "_Open"
 msgstr "Öffnen"
 
 #. popup menu menuitem
-#: zim/gui/pageview.py:6047
+#: zim/gui/pageview.py:6240
 msgid "Check Checkbox '>'"
 msgstr "Ankreuzfeld '>' ankreuzen"
 
 #. popup menu menuitem
-#: zim/gui/pageview.py:6048
+#: zim/gui/pageview.py:6241
 msgid "Check Checkbox 'X'"
 msgstr "Ankreuzfeld 'X' ankreuzen"
 
 #. popup menu menuitem
-#: zim/gui/pageview.py:6049
+#: zim/gui/pageview.py:6242
 msgid "Check Checkbox 'V'"
 msgstr "Ankreuzfeld 'V' ankreuzen"
 
-#. popup menu menuitem |
+#. popup menu menuitem | 
 #. Menu item
-#: zim/gui/pageview.py:6050 zim/gui/pageview.py:6101
+#: zim/gui/pageview.py:6243 zim/gui/pageview.py:6296
 msgid "Un-check Checkbox"
 msgstr "Ankreuzfeld abwählen"
 
-#. Menu item |
-#. Button label |
+#. Menu item | 
+#. Button label | 
 #. button label
-#: zim/gui/pageview.py:6059 zim/gui/widgets.py:3422
+#: zim/gui/pageview.py:6252 zim/gui/widgets.py:3483
 #: zim/plugins/versioncontrol/__init__.py:756
 msgid "_Save"
 msgstr "_Speichern"
 
 #. Menu item
-#: zim/gui/pageview.py:6069
+#: zim/gui/pageview.py:6262
 msgid "_Undo"
 msgstr "_Rückgängig"
 
 #. Menu item
-#: zim/gui/pageview.py:6075
+#: zim/gui/pageview.py:6269
 msgid "_Redo"
 msgstr "_Wiederherstellen"
 
 #. Menu item
-#: zim/gui/pageview.py:6081
+#: zim/gui/pageview.py:6276
 msgid "Cu_t"
 msgstr "_Ausschneiden"
 
-#. Menu item |
-#. Button label |
+#. Menu item | 
+#. Button label | 
 #. menu label
-#: zim/gui/pageview.py:6086 zim/gui/templateeditordialog.py:46
-#: zim/plugins/tasklist/gui.py:771
+#: zim/gui/pageview.py:6281 zim/gui/templateeditordialog.py:46
+#: zim/plugins/tasklist/gui.py:773
 msgid "_Copy"
 msgstr "_Kopieren"
 
 #. Menu item
-#: zim/gui/pageview.py:6091
+#: zim/gui/pageview.py:6286
 msgid "_Paste"
 msgstr "_Einfügen"
 
 #. Menu item
-#: zim/gui/pageview.py:6096
+#: zim/gui/pageview.py:6291
 msgid "_Delete"
 msgstr "_Löschen"
 
 #. Menu item
-#: zim/gui/pageview.py:6107
+#: zim/gui/pageview.py:6302
 msgid "Toggle Checkbox 'V'"
 msgstr "Ankreuzfeld 'v' umschalten"
 
 #. Menu item
-#: zim/gui/pageview.py:6116
+#: zim/gui/pageview.py:6311
 msgid "Toggle Checkbox 'X'"
 msgstr "Ankreuzfeld 'x' umschalten"
 
 #. Menu item
-#: zim/gui/pageview.py:6125
+#: zim/gui/pageview.py:6320
 msgid "Toggle Checkbox '>'"
 msgstr "Ankreuzfeld '>' umschalten"
 
 #. Menu item
-#: zim/gui/pageview.py:6134
+#: zim/gui/pageview.py:6329
 msgid "_Edit Link or Object..."
 msgstr "Link oder Objekt _bearbeiten..."
 
+#: zim/gui/pageview.py:6385
+#, fuzzy
+#| msgid "Copy _Link"
+msgid "Copy Line"
+msgstr "_Verknüpfung kopieren"
+
 #. Menu item
-#: zim/gui/pageview.py:6190
-msgid "_Date and Time..."
+#: zim/gui/pageview.py:6401
+#, fuzzy
+#| msgid "_Date and Time..."
+msgid "Date and Time..."
 msgstr "_Datum und Zeit..."
 
 #. Menu item for Insert menu
-#: zim/gui/pageview.py:6205
+#: zim/gui/pageview.py:6416
 msgid "Horizontal _Line"
 msgstr "Horizontale _Linie"
 
 #. Menu item
-#: zim/gui/pageview.py:6217
+#: zim/gui/pageview.py:6428
 msgid "_Image..."
 msgstr "_Bild..."
 
-#. Menu item |
+#. Menu item
+#: zim/gui/pageview.py:6435
+#, fuzzy
+#| msgid "Attachments"
+msgid "_Attachment..."
+msgstr "Dateianhänge"
+
+#. Menu item | 
 #. Menu item,
-#: zim/gui/pageview.py:6234 zim/gui/pageview.py:6261
+#: zim/gui/pageview.py:6452 zim/gui/pageview.py:6479
 msgid "Bulle_t List"
 msgstr "Aufz_ählung"
 
-#. Menu item |
+#. Menu item | 
 #. Menu item,
-#: zim/gui/pageview.py:6239 zim/gui/pageview.py:6266
+#: zim/gui/pageview.py:6457 zim/gui/pageview.py:6484
 msgid "_Numbered List"
 msgstr "_Nummerierte Liste"
 
-#. Menu item |
+#. Menu item | 
 #. Menu item,
-#: zim/gui/pageview.py:6244 zim/gui/pageview.py:6271
+#: zim/gui/pageview.py:6462 zim/gui/pageview.py:6489
 msgid "Checkbo_x List"
 msgstr "Ankreu_zliste"
 
 #. Menu item
-#: zim/gui/pageview.py:6280
+#: zim/gui/pageview.py:6498
 msgid "Text From _File..."
 msgstr "Text aus _Datei..."
 
 #. Menu item
-#: zim/gui/pageview.py:6324
+#: zim/gui/pageview.py:6542
 msgid "_Link..."
 msgstr "_Link..."
 
 #. message when no file templates are found in ~/Templates
-#: zim/gui/pageview.py:6353
+#: zim/gui/pageview.py:6571
 msgid "No templates installed"
 msgstr "Keine Vorlagen installiert"
 
 #. Menu item in "Insert > New File Attachment" submenu
-#: zim/gui/pageview.py:6402
+#: zim/gui/pageview.py:6620
 msgid "File _Templates..."
 msgstr "Datei_vorlagen ..."
 
 #. Text in a question dialog for creating a folder, %s is the folder path
-#: zim/gui/pageview.py:6416
+#: zim/gui/pageview.py:6634
 #, python-format
 msgid ""
 "The folder\n"
@@ -1200,382 +1149,447 @@ msgstr ""
 "Soll er jetzt angelegt werden?"
 
 #. Menu item
-#: zim/gui/pageview.py:6425
+#: zim/gui/pageview.py:6643
 msgid "_Clear Formatting"
 msgstr "_Formatierung entfernen"
 
 #. Menu item
-#: zim/gui/pageview.py:6530
+#: zim/gui/pageview.py:6752
 msgid "_Find..."
 msgstr "_Suchen…"
 
 #. Menu item
-#: zim/gui/pageview.py:6551
+#: zim/gui/pageview.py:6773
 msgid "Find Ne_xt"
 msgstr "_Weitersuchen"
 
 #. Menu item
-#: zim/gui/pageview.py:6557
+#: zim/gui/pageview.py:6779
 msgid "Find Pre_vious"
 msgstr "_Rückwärts suchen"
 
 #. Menu item
-#: zim/gui/pageview.py:6563
+#: zim/gui/pageview.py:6785
 msgid "_Replace..."
 msgstr "_Ersetzen…"
 
 #. Menu item
-#: zim/gui/pageview.py:6570
+#: zim/gui/pageview.py:6792
 msgid "Word Count..."
 msgstr "Wortanzahl..."
 
 #. Menu item
-#: zim/gui/pageview.py:6575
+#: zim/gui/pageview.py:6797
 msgid "_Zoom In"
 msgstr "Ver_größern"
 
 #. Menu item
-#: zim/gui/pageview.py:6580
+#: zim/gui/pageview.py:6802
 msgid "Zoom _Out"
 msgstr "Ver_kleinern"
 
 #. Menu item to reset zoom
-#: zim/gui/pageview.py:6608
+#: zim/gui/pageview.py:6830
 msgid "_Normal Size"
 msgstr "_Standardgröße"
 
+#: zim/gui/pageview.py:6878
+#, fuzzy
+#| msgid "Format"
+msgid "_Format"
+msgstr "Format"
+
 #. Dialog title
-#: zim/gui/pageview.py:6695
+#: zim/gui/pageview.py:7063
 msgid "Insert Date and Time"
 msgstr "Datum und Uhrzeit einfügen"
 
-#. expander label in "insert date" dialog
-#: zim/gui/pageview.py:6727
-msgid "_Calendar"
-msgstr "_Kalender"
+#. label in "insert date" dialog | 
+#. Column header Task List dialog | 
+#. Column header versions dialog
+#: zim/gui/pageview.py:7079 zim/plugins/tasklist/gui.py:486
+#: zim/plugins/versioncontrol/__init__.py:1069
+msgid "Date"
+msgstr "Datum"
 
 #. check box in InsertDate dialog
-#: zim/gui/pageview.py:6741
+#: zim/gui/pageview.py:7109
 msgid "_Link to date"
 msgstr "Ver_linke datum"
 
 #. Dialog title
-#: zim/gui/pageview.py:6835
+#: zim/gui/pageview.py:7202
 msgid "Insert Image"
 msgstr "Bild einfügen"
 
 #. checkbox in the "Insert Image" dialog
-#: zim/gui/pageview.py:6848
+#: zim/gui/pageview.py:7215
 msgid "Attach image first"
 msgstr "Bild zuerst anhängen"
 
 #. Error message when trying to insert a not supported file as image
-#: zim/gui/pageview.py:6864
+#: zim/gui/pageview.py:7231
 #, python-format
 msgid "File type not supported: %s"
 msgstr "Dateiformat wird nicht unterstützt: %s"
 
 #. Dialog title
-#: zim/gui/pageview.py:6889 zim/gui/uiactions.py:773
+#: zim/gui/pageview.py:7256
 msgid "Attach File"
 msgstr "Datei anhängen"
 
 #. Error dialog - %s is the full page name
-#: zim/gui/pageview.py:6899 zim/gui/uiactions.py:782
+#: zim/gui/pageview.py:7263
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
 msgstr "Seite \"%s\" hat kein Verzeichnis für Anhänge"
 
-#. checkbox in the "Attach File" dialog
-#: zim/gui/pageview.py:6904
-msgid "Insert images as link"
-msgstr "Bild als Link einfügen"
+#. Dialog title
+#: zim/gui/pageview.py:7323
+msgid "File Exists"
+msgstr "Datei exisiert"
+
+#. Dialog text in 'new filename' dialog
+#: zim/gui/pageview.py:7324
+#, python-format
+msgid ""
+"A file with the name <b>\"%s\"</b> already exists.\n"
+"You can use another name or overwrite the existing file."
+msgstr ""
+"Eine Datei mit dem Namen <b>\"%s\"</b> existiert bereits,\n"
+"Sie können einen anderen Namen vorschlagen oder die bestehende Datei "
+"überschreiben."
+
+#. Input label
+#: zim/gui/pageview.py:7333
+msgid "Filename"
+msgstr "Dateiname"
+
+#. Button label
+#: zim/gui/pageview.py:7342 zim/gui/widgets.py:1069 zim/gui/widgets.py:1093
+msgid "_Browse"
+msgstr "_Durchsuchen"
+
+#. Button label
+#: zim/gui/pageview.py:7347
+msgid "Overwrite"
+msgstr "Überschreiben"
+
+#. Button label
+#: zim/gui/pageview.py:7352 zim/gui/widgets.py:85
+msgid "_OK"
+msgstr "_OK"
 
 #. Dialog title
-#: zim/gui/pageview.py:6925
+#: zim/gui/pageview.py:7390
 msgid "Edit Image"
 msgstr "Bild bearbeiten"
 
-#. Input in 'edit image' dialog
-#: zim/gui/pageview.py:6945
+#. Input in 'edit image' dialog | 
+#. Input label for the section to move a page to
+#: zim/gui/pageview.py:7410 zim/gui/uiactions.py:597
 msgid "Location"
 msgstr "Ort"
 
-#. Input in 'edit image' dialog |
+#. Input in 'edit image' dialog | 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:6946 zim/gui/pageview.py:7088
+#: zim/gui/pageview.py:7411 zim/gui/pageview.py:7553
 msgid "Link to"
 msgstr "Verknüpfen mit"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:6947
+#: zim/gui/pageview.py:7412
 msgid "Width"
 msgstr "Breite"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:6948
+#: zim/gui/pageview.py:7413
 msgid "Height"
 msgstr "Höhe"
 
 #. Button in 'edit image' dialog
-#: zim/gui/pageview.py:6956
+#: zim/gui/pageview.py:7421
 msgid "_Reset Size"
 msgstr "Größe zu_rücksetzen"
 
 #. Dialog title
-#: zim/gui/pageview.py:7053
+#: zim/gui/pageview.py:7518
 msgid "Insert Text From File"
 msgstr "Text aus Datei einfügen"
 
 #. Dialog title
-#: zim/gui/pageview.py:7080
+#: zim/gui/pageview.py:7545
 msgid "Edit Link"
 msgstr "Verknüpfung bearbeiten"
 
 #. Dialog title
-#: zim/gui/pageview.py:7082
+#: zim/gui/pageview.py:7547
 msgid "Insert Link"
 msgstr "Verknüpfung einfügen"
 
 #. Dialog button
-#: zim/gui/pageview.py:7084
+#: zim/gui/pageview.py:7549
 msgid "_Link"
 msgstr "_Verknüpfung erstellen"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:7089
+#: zim/gui/pageview.py:7554
 msgid "Text"
 msgstr "Text"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:7192
+#: zim/gui/pageview.py:7657
 msgid "_Next"
 msgstr "_Nächstes"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:7198
+#: zim/gui/pageview.py:7663
 msgid "_Previous"
 msgstr "_Vorheriges"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7204
+#: zim/gui/pageview.py:7669
 msgid "Match _case"
 msgstr "Groß-/Kleinschreibung"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7209
+#: zim/gui/pageview.py:7674
 msgid "Whole _word"
 msgstr "Ganzes _Wort"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7214
+#: zim/gui/pageview.py:7679
 msgid "_Regular expression"
 msgstr "_Regulärer Ausdruck"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7219
+#: zim/gui/pageview.py:7684
 msgid "_Highlight"
 msgstr "_Hervorheben"
 
 #. label for input in find bar on bottom of page
-#: zim/gui/pageview.py:7308
+#: zim/gui/pageview.py:7770
 msgid "Find"
 msgstr "Suchen"
 
 #. Dialog title
-#: zim/gui/pageview.py:7354
+#: zim/gui/pageview.py:7816
 msgid "Find and Replace"
 msgstr "Suchen und Ersetzen"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:7364
+#: zim/gui/pageview.py:7826
 msgid "Find what"
 msgstr "Suche was"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:7374
+#: zim/gui/pageview.py:7836
 msgid "Replace with"
 msgstr "Ersetzen durch"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:7388
+#: zim/gui/pageview.py:7850
 msgid "_Replace"
 msgstr "_Ersetzen"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:7393
+#: zim/gui/pageview.py:7855
 msgid "Replace _All"
 msgstr "_Alles ersetzen"
 
 #. Dialog title
-#: zim/gui/pageview.py:7430
+#: zim/gui/pageview.py:7892
 msgid "Word Count"
 msgstr "Wortanzahl"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7473
+#: zim/gui/pageview.py:7935
 msgid "Paragraph"
 msgstr "Absatz"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7474
+#: zim/gui/pageview.py:7936
 msgid "Selection"
 msgstr "Auswahl"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7475
+#: zim/gui/pageview.py:7937
 msgid "Words"
 msgstr "Worte"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7476
+#: zim/gui/pageview.py:7938
 msgid "Lines"
 msgstr "Zeilen"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7477
+#: zim/gui/pageview.py:7939
 msgid "Characters"
 msgstr "Zeichen"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7478
+#: zim/gui/pageview.py:7940
 msgid "Characters excluding spaces"
 msgstr "Zeichen ohne Leerzeichen"
 
 #. Dialog title
-#: zim/gui/pageview.py:7521
+#: zim/gui/pageview.py:7983
 msgid "Move Text to Other Page"
 msgstr "Verschiebe Text auf andere Seite"
 
 #. Button label
-#: zim/gui/pageview.py:7522
+#: zim/gui/pageview.py:7984
 msgid "_Move"
 msgstr "_Verschieben"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:7538
+#: zim/gui/pageview.py:8000
 msgid "Move text to"
 msgstr "Verschieben nach"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:7539
+#: zim/gui/pageview.py:8001
 msgid "Leave link to new page"
 msgstr "Link zur neuen Seite einfügen"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:7540
+#: zim/gui/pageview.py:8002
 msgid "Open new page"
 msgstr "Neue Seite öffnen"
 
 #. Dialog title
-#: zim/gui/pageview.py:7585
+#: zim/gui/pageview.py:8047
 msgid "New File"
 msgstr "Neue Datei"
 
 #. Tab in preferences dialog
-#: zim/gui/preferencesdialog.py:29
+#: zim/gui/preferencesdialog.py:31
 msgid "Interface"
 msgstr "Erscheinungsbild"
 
 #. Tab in preferences dialog
-#: zim/gui/preferencesdialog.py:30
+#: zim/gui/preferencesdialog.py:32
 msgid "Editing"
 msgstr "Bearbeiten"
 
+#. warning message, %s is the current locale - e.g. "NL_nl"
+#: zim/gui/preferencesdialog.py:39
+#, python-format
+msgid ""
+"Your system encoding is set to %s, if you want support for special "
+"characters\n"
+"or see errors due to encoding, please ensure to configure your system to use "
+"\"UTF-8\""
+msgstr ""
+
 #. Dialog title
-#: zim/gui/preferencesdialog.py:36
+#: zim/gui/preferencesdialog.py:51
 msgid "Preferences"
 msgstr "Einstellungen"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:96
+#: zim/gui/preferencesdialog.py:113
+#, fuzzy
+#| msgid "_Keybindings"
+msgid "Key bindings"
+msgstr "_Tastenkombinationen"
+
+#. Heading in preferences dialog
+#: zim/gui/preferencesdialog.py:118
 msgid "Plugins"
 msgstr "Plugins"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:106
+#: zim/gui/preferencesdialog.py:128
 msgid "Applications"
 msgstr "Anwendungen"
 
 #. option in preferences dialog
-#: zim/gui/preferencesdialog.py:113
+#: zim/gui/preferencesdialog.py:135
 msgid "Use a custom font"
 msgstr "Eigene Schriftart benutzen"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:224
+#: zim/gui/preferencesdialog.py:246
 msgid "_More"
 msgstr "_Mehr"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:229
+#: zim/gui/preferencesdialog.py:251
 msgid "C_onfigure"
 msgstr "K_onfigurieren"
 
+#. Button in plugin tab
+#: zim/gui/preferencesdialog.py:256
+#, fuzzy
+#| msgid "Properties"
+msgid "_Properties"
+msgstr "Eigenschaften"
+
 #. button label
-#: zim/gui/preferencesdialog.py:244
+#: zim/gui/preferencesdialog.py:271
 msgid "Open plugins folder"
 msgstr "Öffne Plugin Ordner"
 
 #. label for button with URL
-#: zim/gui/preferencesdialog.py:253
+#: zim/gui/preferencesdialog.py:280
 msgid "Get more plugins online"
 msgstr "Weitere Plugins online holen"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:283
+#: zim/gui/preferencesdialog.py:310
 msgid "Dependencies"
 msgstr "Abhängigkeiten"
 
 #. label in plugin info in preferences dialog
-#: zim/gui/preferencesdialog.py:287
+#: zim/gui/preferencesdialog.py:314
 msgid "No dependencies"
 msgstr "Keine Vorraussetzungen"
 
 #. dependency is OK
-#: zim/gui/preferencesdialog.py:293
+#: zim/gui/preferencesdialog.py:320
 msgid "OK"
 msgstr "Ok"
 
 #. dependency failed
-#: zim/gui/preferencesdialog.py:295 zim/gui/preferencesdialog.py:298
+#: zim/gui/preferencesdialog.py:322 zim/gui/preferencesdialog.py:325
 msgid "Failed"
 msgstr "Nicht erfüllt"
 
 #. optional dependency
-#: zim/gui/preferencesdialog.py:299
+#: zim/gui/preferencesdialog.py:326
 msgid "Optional"
 msgstr "Optional"
 
-#. Heading in plugins tab of preferences dialog |
+#. Heading in plugins tab of preferences dialog | 
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:303 zim/plugins/versioncontrol/__init__.py:1070
+#: zim/gui/preferencesdialog.py:330 zim/plugins/versioncontrol/__init__.py:1070
 msgid "Author"
 msgstr "Autor"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:387
+#: zim/gui/preferencesdialog.py:421
 msgid "Enabled"
 msgstr "Aktiviert"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:390
+#: zim/gui/preferencesdialog.py:424
 msgid "Plugin"
 msgstr "Plugin"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:397
+#: zim/gui/preferencesdialog.py:431
 msgid "Configure Plugin"
 msgstr "Plugin einrichten"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:402
+#: zim/gui/preferencesdialog.py:436
 #, python-format
 msgid "Options for plugin %s"
 msgstr "Einstellungen für Plugin %s"
 
 #. info text in the preferences dialog
-#: zim/gui/preferencesdialog.py:420
+#: zim/gui/preferencesdialog.py:454
 msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
@@ -1584,9 +1598,32 @@ msgstr ""
 "siehe Abschnitt in den Eigenschaften des Notizbuchs"
 
 #. button in preferences dialog to change default text editor
-#: zim/gui/preferencesdialog.py:440
+#: zim/gui/preferencesdialog.py:474
 msgid "Set default text editor"
 msgstr "Vorgegebene Textbearbeitung festlegen"
+
+#. help text in preferences dialog for modifying keybindings
+#: zim/gui/preferencesdialog.py:503
+msgid ""
+"Key bindings can be changed by selecting the action in the list and pressing "
+"the new key binding.\n"
+"To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
+"</tt>."
+msgstr ""
+
+#. Column header for keybinding list
+#: zim/gui/preferencesdialog.py:521
+#, fuzzy
+#| msgid "Section"
+msgid "Action"
+msgstr "Abschnitt"
+
+#. Column header for keybinding list
+#: zim/gui/preferencesdialog.py:532
+#, fuzzy
+#| msgid "_Keybindings"
+msgid "Key Binding"
+msgstr "_Tastenkombinationen"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:17
@@ -1603,8 +1640,13 @@ msgstr "Startseite"
 msgid "Document Root"
 msgstr "Wurzelverzeichnis"
 
+#. label for properties dialog
+#: zim/gui/propertiesdialog.py:21
+msgid "Paste short relative link names"
+msgstr ""
+
 #. Dialog title
-#: zim/gui/propertiesdialog.py:28
+#: zim/gui/propertiesdialog.py:29
 msgid "Properties"
 msgstr "Eigenschaften"
 
@@ -1628,6 +1670,12 @@ msgstr "Gestern"
 msgid "Last Modified"
 msgstr "Zuletzt geändert"
 
+#. Dialog title | 
+#. input label
+#: zim/gui/searchdialog.py:25 zim/gui/searchdialog.py:33
+msgid "Search"
+msgstr "Suche"
+
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
@@ -1647,43 +1695,60 @@ msgstr ""
 msgid "Limit search to the current page and sub-pages"
 msgstr "Suche auf die aktuelle Seite und Unterseite(n) einschränken"
 
-#. Column header search dialog |
+#. Column header search dialog | 
 #. menu item
 #: zim/gui/searchdialog.py:147 zim/plugins/scoreeditor.py:68
 msgid "Score"
 msgstr "Bewertung"
 
 #. Window title
-#: zim/gui/server.py:47
+#: zim/gui/server.py:46
 msgid "Web Server"
 msgstr "Webserver"
 
 #. Status in web server gui
-#: zim/gui/server.py:55
+#: zim/gui/server.py:54
 msgid "Server not started"
 msgstr "Server wurde nicht gestartet"
 
 #. Checkbox in web server gui
-#: zim/gui/server.py:76
+#: zim/gui/server.py:75
 msgid "Allow public access"
 msgstr "Öffentlichen Zugriff erlauben"
 
+#. checkbox in dialog for starting webserver
+#: zim/gui/server.py:85
+msgid "Require authentication"
+msgstr ""
+
 #. Field in web server gui for HTTP port (e.g. port 80)
-#: zim/gui/server.py:94
+#: zim/gui/server.py:104
 msgid "Port"
 msgstr "Port"
 
+#. Field in web server gui
+#: zim/gui/server.py:110
+#, fuzzy
+#| msgid "Filename"
+msgid "Username"
+msgstr "Dateiname"
+
+#. Field in web server gui
+#: zim/gui/server.py:112
+msgid "Password"
+msgstr ""
+
 #. Status in web server gui
-#: zim/gui/server.py:158
+#: zim/gui/server.py:187
 msgid "Server started"
 msgstr "Server gestartet"
 
 #. Status in web server gui
-#: zim/gui/server.py:199
+#: zim/gui/server.py:228
 msgid "Server stopped"
 msgstr "Server gestoppt"
 
-#. Dialog title |
+#. Dialog title | 
 #. Section in dialog
 #: zim/gui/templateeditordialog.py:22 zim/gui/templateeditordialog.py:27
 msgid "Templates"
@@ -1700,199 +1765,198 @@ msgid "Copy Template"
 msgstr "Kopiere Vorlage"
 
 #. Menu item
-#: zim/gui/uiactions.py:91
+#: zim/gui/uiactions.py:95
 msgid "_New Page..."
 msgstr "_Neue Seite …"
 
 #. Menu item
-#: zim/gui/uiactions.py:102
+#: zim/gui/uiactions.py:106
 msgid "New S_ub Page..."
 msgstr "Neue Unter_seite..."
 
 #. Menu item
-#: zim/gui/uiactions.py:110
+#: zim/gui/uiactions.py:114
 msgid "_New Page Here..."
 msgstr "_Neue Seite an dieser Stelle..."
 
 #. Menu item
-#: zim/gui/uiactions.py:118
+#: zim/gui/uiactions.py:122
 msgid "_Open Another Notebook..."
 msgstr "Ein neues Notizbuch _öffnen..."
 
 #. Menu item
-#: zim/gui/uiactions.py:138
+#: zim/gui/uiactions.py:142
 msgid "_Import Page..."
 msgstr "Seite _importieren..."
 
 #. Menu item
-#: zim/gui/uiactions.py:156
+#: zim/gui/uiactions.py:160
 msgid "Save A _Copy..."
 msgstr "Eine _Kopie speichern..."
 
 #. Menu item
-#: zim/gui/uiactions.py:161
+#: zim/gui/uiactions.py:165
 msgid "E_xport..."
 msgstr "E_xportieren..."
 
 #. Menu item
-#: zim/gui/uiactions.py:168
+#: zim/gui/uiactions.py:172
 msgid "_Send To..."
 msgstr "_Senden an …"
 
 #. Menu item
-#: zim/gui/uiactions.py:181
-msgid "_Rename Page..."
+#: zim/gui/uiactions.py:185
+#, fuzzy
+#| msgid "_Rename Page..."
+msgid "_Rename or move Page..."
 msgstr "Seite _umbenennen..."
 
 #. Menu item
-#: zim/gui/uiactions.py:190
-msgid "_Move Page..."
-msgstr "Seite _verschieben..."
-
-#. Menu item
-#: zim/gui/uiactions.py:199
+#: zim/gui/uiactions.py:194
 msgid "_Delete Page"
 msgstr "Seite _löschen"
 
 #. Title of progressbar dialog
-#: zim/gui/uiactions.py:230 zim/gui/uiactions.py:760
+#: zim/gui/uiactions.py:225 zim/gui/uiactions.py:713
 msgid "Removing Links"
 msgstr "Links entfernen"
 
 #. Menu item
-#: zim/gui/uiactions.py:243
+#: zim/gui/uiactions.py:238
 msgid "Proper_ties"
 msgstr "_Eigenschaften"
 
-#. Menu item |
+#. Menu item | 
 #. menu item in tray icon menu
-#: zim/gui/uiactions.py:253 zim/plugins/trayicon.py:148
+#: zim/gui/uiactions.py:248 zim/plugins/trayicon.py:148
 msgid "_Quit"
 msgstr "_Beenden"
 
 #. Menu item
-#: zim/gui/uiactions.py:263
+#: zim/gui/uiactions.py:258
 msgid "Copy _Location"
 msgstr "Seiten_pfad kopieren"
 
 #. Menu item
-#: zim/gui/uiactions.py:269
+#: zim/gui/uiactions.py:264
 msgid "_Templates"
 msgstr "_Vorlagen"
 
 #. Menu item
-#: zim/gui/uiactions.py:275
+#: zim/gui/uiactions.py:270
 msgid "Pr_eferences"
 msgstr "_Einstellungen"
 
 #. Menu item
-#: zim/gui/uiactions.py:285
+#: zim/gui/uiactions.py:280
 msgid "_Search..."
 msgstr "Notizbuch durchsuchen..."
 
 #. Menu item for search a sub-set of the notebook
-#: zim/gui/uiactions.py:300
+#: zim/gui/uiactions.py:295
 msgid "Search this section"
 msgstr "Suche in diesem Abschnitt"
 
 #. Menu item
-#: zim/gui/uiactions.py:305
+#: zim/gui/uiactions.py:300
 msgid "Search _Backlinks..."
 msgstr "Suche nach _Rückverweisen..."
 
 #. Menu item
-#: zim/gui/uiactions.py:313
+#: zim/gui/uiactions.py:308
 msgid "Recent Changes..."
 msgstr "Letzte Änderungen..."
 
 #. Menu item
-#: zim/gui/uiactions.py:320
-msgid "Attach _File"
-msgstr "Datei an_hängen"
-
-#. Menu item
-#: zim/gui/uiactions.py:328
+#: zim/gui/uiactions.py:315
 msgid "Open Attachments _Folder"
 msgstr "_Anhangverzeichnis öffnen"
 
 #. Error message
-#: zim/gui/uiactions.py:333
+#: zim/gui/uiactions.py:320
 msgid "This page does not have an attachments folder"
 msgstr "Diese Seite hat kein Verzeichnis für Anhänge"
 
 #. Menu item
-#: zim/gui/uiactions.py:339
+#: zim/gui/uiactions.py:326
 msgid "Open _Notebook Folder"
 msgstr "_Notizbuchverzeichnis öffnen"
 
 #. Menu item
-#: zim/gui/uiactions.py:344
+#: zim/gui/uiactions.py:331
 msgid "Open _Document Root"
 msgstr "_Dokumentverzeichnis öffnen"
 
 #. Error message
-#: zim/gui/uiactions.py:350
+#: zim/gui/uiactions.py:337
 msgid "No document root defined for this notebook"
 msgstr "Für dieses Notizbuch ist kein Wurzelverzeichnis definiert"
 
 #. Menu item
-#: zim/gui/uiactions.py:356
+#: zim/gui/uiactions.py:343
 msgid "Edit _Source"
 msgstr "_Quelltext bearbeiten"
 
 #. Menu item
-#: zim/gui/uiactions.py:372
+#: zim/gui/uiactions.py:359
 msgid "Start _Web Server"
 msgstr "_Webserver starten"
 
+#. menu item
+#: zim/gui/uiactions.py:366
+#, fuzzy
+#| msgid "View _Log"
+msgid "View debug log"
+msgstr "_Protokoll anzeigen"
+
 #. Menu item
-#: zim/gui/uiactions.py:387
+#: zim/gui/uiactions.py:380
 msgid "Update Index"
 msgstr "Index aktualisieren"
 
 #. Menu item
-#: zim/gui/uiactions.py:420
+#: zim/gui/uiactions.py:413
 msgid "Custom _Tools"
 msgstr "Benu_tzerdefinierte Werkzeuge"
 
 #. Menu item
-#: zim/gui/uiactions.py:426
+#: zim/gui/uiactions.py:419
 msgid "_Contents"
 msgstr "_Inhalt"
 
 #. Menu item
-#: zim/gui/uiactions.py:437
+#: zim/gui/uiactions.py:430
 msgid "_FAQ"
 msgstr "_FAQ"
 
 #. Menu item
-#: zim/gui/uiactions.py:442
+#: zim/gui/uiactions.py:435
 msgid "_Keybindings"
 msgstr "_Tastenkombinationen"
 
 #. Menu item
-#: zim/gui/uiactions.py:447
+#: zim/gui/uiactions.py:440
 msgid "_Bugs"
 msgstr "_Fehlermeldungen"
 
 #. Menu item
-#: zim/gui/uiactions.py:452
+#: zim/gui/uiactions.py:445
 msgid "_About"
 msgstr "_Über"
 
 #. Dialog title
-#: zim/gui/uiactions.py:468
+#: zim/gui/uiactions.py:461
 #, python-format
 msgid "New Page in %s"
 msgstr "Neue Seite in %s"
 
 #. Dialog title
-#: zim/gui/uiactions.py:470
+#: zim/gui/uiactions.py:463
 msgid "New Page"
 msgstr "Neue Seite"
 
 #. Dialog text in 'new page' dialog
-#: zim/gui/uiactions.py:474
+#: zim/gui/uiactions.py:467
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
@@ -1902,89 +1966,74 @@ msgstr ""
 "Seite erzeugt."
 
 #. Input label
-#: zim/gui/uiactions.py:488
+#: zim/gui/uiactions.py:481
 msgid "Page Name"
 msgstr "Seitenname"
 
 #. Choice label
-#: zim/gui/uiactions.py:489
+#: zim/gui/uiactions.py:482
 msgid "Page Template"
 msgstr "Seiten Vorlage"
 
 #. Dialog title
-#: zim/gui/uiactions.py:524
+#: zim/gui/uiactions.py:517
 msgid "Import Page"
 msgstr "Seite importieren"
 
 #. File filter for '*.txt'
-#: zim/gui/uiactions.py:528
+#: zim/gui/uiactions.py:521
 msgid "Text Files"
 msgstr "Textdateien"
 
 #. Dialog title of file save dialog
-#: zim/gui/uiactions.py:557
+#: zim/gui/uiactions.py:550
 msgid "Save Copy"
 msgstr "Kopie speichern"
 
 #. Dialog title
-#: zim/gui/uiactions.py:581
-msgid "Rename Page"
+#: zim/gui/uiactions.py:574
+#, fuzzy
+#| msgid "Rename Page"
+msgid "Rename or Move Page"
 msgstr "Seite umbenennen"
 
-#. label in 'rename page' dialog - %s is the page name
-#: zim/gui/uiactions.py:586
+#. Heading in 'move page' dialog - %s is the page name
+#: zim/gui/uiactions.py:579
 #, python-format
 msgid "Rename page \"%s\""
 msgstr "Seite \"%s\" umbenennen"
 
 #. label in MovePage dialog - %i is number of backlinks
-#: zim/gui/uiactions.py:597 zim/gui/uiactions.py:659
+#: zim/gui/uiactions.py:590
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
 msgstr[0] "%i Link auf diese Seite werden angepasst"
 msgstr[1] "%i Links auf diese Seite werden angepasst"
 
-#. Option in the 'rename page' dialog
-#: zim/gui/uiactions.py:605
+#. option in 'move page' dialog
+#: zim/gui/uiactions.py:599
 msgid "Update the heading of this page"
 msgstr "Seitentitel wird angepasst"
 
 #. label for progress dialog
-#: zim/gui/uiactions.py:634 zim/gui/uiactions.py:686
+#: zim/gui/uiactions.py:634
 msgid "Updating Links"
 msgstr "Anpassen der Verknüpfungen"
 
 #. Dialog title
-#: zim/gui/uiactions.py:646
-msgid "Move Page"
-msgstr "Seite verschieben"
-
-#. Heading in 'move page' dialog - %s is the page name
-#: zim/gui/uiactions.py:650
-#, python-format
-msgid "Move page \"%s\""
-msgstr "Seite \"%s\" verschieben"
-
-#. Input label for the section to move a page to |
-#. input label
-#: zim/gui/uiactions.py:664 zim/plugins/journal.py:121
-msgid "Section"
-msgstr "Abschnitt"
-
-#. Dialog title
-#: zim/gui/uiactions.py:699
+#: zim/gui/uiactions.py:652
 msgid "Delete Page"
 msgstr "Seite löschen"
 
 #. Heading in 'delete page' dialog - %s is the page name
-#: zim/gui/uiactions.py:714
+#: zim/gui/uiactions.py:667
 #, python-format
 msgid "Delete page \"%s\"?"
 msgstr "Seite \"%s\" löschen?"
 
 #. Text in 'delete page' dialog - %s is the page name
-#: zim/gui/uiactions.py:716
+#: zim/gui/uiactions.py:669
 #, python-format
 msgid ""
 "Page \"%s\" and all of it's\n"
@@ -1994,56 +2043,20 @@ msgstr ""
 "und Anhänge werden gelöscht"
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
-#: zim/gui/uiactions.py:730
+#: zim/gui/uiactions.py:683
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
 msgstr[0] "%i Datei wird gelöscht"
 msgstr[1] "%i Dateien werden gelöscht"
 
-#. Dialog title
-#: zim/gui/uiactions.py:830
-msgid "File Exists"
-msgstr "Datei exisiert"
-
-#. Dialog text in 'new filename' dialog
-#: zim/gui/uiactions.py:831
-#, python-format
-msgid ""
-"A file with the name <b>\"%s\"</b> already exists.\n"
-"You can use another name or overwrite the existing file."
-msgstr ""
-"Eine Datei mit dem Namen <b>\"%s\"</b> existiert bereits,\n"
-"Sie können einen anderen Namen vorschlagen oder die bestehende Datei "
-"überschreiben."
-
-#. Input label
-#: zim/gui/uiactions.py:840
-msgid "Filename"
-msgstr "Dateiname"
-
-#. Button label
-#: zim/gui/uiactions.py:849 zim/gui/widgets.py:1054 zim/gui/widgets.py:1078
-msgid "_Browse"
-msgstr "_Durchsuchen"
-
-#. Button label
-#: zim/gui/uiactions.py:854
-msgid "Overwrite"
-msgstr "Überschreiben"
-
-#. Button label
-#: zim/gui/uiactions.py:859 zim/gui/widgets.py:85
-msgid "_OK"
-msgstr "_OK"
-
 #. General description of zim itself
-#: zim/gui/uiactions.py:903
+#: zim/gui/uiactions.py:732
 msgid "A desktop wiki"
 msgstr "Ein Desktop Wiki"
 
 #. This string needs to be translated with names of the translators for this language
-#: zim/gui/uiactions.py:911
+#: zim/gui/uiactions.py:740
 msgid "translator-credits"
 msgstr ""
 "Launchpad Contributions:\n"
@@ -2075,67 +2088,67 @@ msgstr ""
 "  zapyon https://launchpad.net/~zapyon"
 
 #. dialog title
-#: zim/gui/widgets.py:523 zim/gui/widgets.py:1600
+#: zim/gui/widgets.py:533 zim/gui/widgets.py:1615
 msgid "Select File"
 msgstr "Datei auswählen"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:651
+#: zim/gui/widgets.py:661
 msgid "Expand _All"
 msgstr "Alle _aufklappen"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:653
+#: zim/gui/widgets.py:663
 msgid "_Collapse All"
 msgstr "Alle ein_klappen"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1456
+#: zim/gui/widgets.py:1471
 msgid "Clear"
 msgstr "Leeren"
 
 #. dialog title
-#: zim/gui/widgets.py:1596
+#: zim/gui/widgets.py:1611
 msgid "Select Folder"
 msgstr "Verzeichnis auswählen"
 
 #. dialog title
-#: zim/gui/widgets.py:1598
+#: zim/gui/widgets.py:1613
 msgid "Select Image"
 msgstr "Bild auswählen"
 
 #. default text for empty page section selection
-#: zim/gui/widgets.py:1728
+#: zim/gui/widgets.py:1743
 msgid "<Top>"
 msgstr "<Oben>"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2031
+#: zim/gui/widgets.py:2055
 msgid "Left Side Pane"
 msgstr "Linker Fensterbereich"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2032
+#: zim/gui/widgets.py:2056
 msgid "Right Side Pane"
 msgstr "Rechter Fensterbereich"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2033
+#: zim/gui/widgets.py:2057
 msgid "Bottom Pane"
 msgstr "Unterer Fensterbereich"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2034
+#: zim/gui/widgets.py:2058
 msgid "Top Pane"
 msgstr "Oberer Fensterbereich"
 
 #. Menu item
-#: zim/gui/widgets.py:2632
+#: zim/gui/widgets.py:2686
 msgid "_All Panes"
 msgstr "_Alle Fensterbereiche"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3171
+#: zim/gui/widgets.py:3232
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2144,49 +2157,49 @@ msgstr ""
 "folgenden Textbox mit."
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3553
+#: zim/gui/widgets.py:3614
 msgid "All Files"
 msgstr "Alle Dateien"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3580
+#: zim/gui/widgets.py:3641
 msgid "Images"
 msgstr "Bilder"
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3676
+#: zim/gui/widgets.py:3737
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr "{count} von {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3698
+#: zim/gui/widgets.py:3759
 msgid "Log file"
 msgstr "Protokolldatei"
 
 #. Error verbose description
-#: zim/main/__init__.py:118
+#: zim/main/__init__.py:119
 msgid "Could not find the file or folder for this notebook"
 msgstr "Konnte für dieses Notizbuch keine Datei bzw. kein Verzeichnis finden"
 
 #. Error when looking up a notebook
-#: zim/main/__init__.py:151 zim/main/__init__.py:185
+#: zim/main/__init__.py:152 zim/main/__init__.py:186
 msgid "Please specify a notebook"
 msgstr "Bitte ein Notizbuch angeben"
 
 #. error message
-#: zim/main/__init__.py:158
+#: zim/main/__init__.py:159
 #, python-format
 msgid "Could not find notebook: %s"
 msgstr "Konnte Notizbuch %s nicht finden"
 
 #. error in export command
-#: zim/main/__init__.py:433
+#: zim/main/__init__.py:436
 msgid "Output location needed for export"
 msgstr "Für den Export wird ein Ausgabeziel benötigt"
 
 #. error message for export
-#: zim/main/__init__.py:442
+#: zim/main/__init__.py:445
 msgid ""
 "Output folder exists and not empty, specify \"--overwrite\" to force export"
 msgstr ""
@@ -2194,20 +2207,49 @@ msgstr ""
 "overwrite\" erzwungen werden"
 
 #. error message for export
-#: zim/main/__init__.py:446
+#: zim/main/__init__.py:449
 msgid "Output file exists, specify \"--overwrite\" to force export"
 msgstr ""
 "Ausgabedatei existiert, Export kann mit \"--overwrite\" erzwungen werden"
 
 #. error message for export
-#: zim/main/__init__.py:451
+#: zim/main/__init__.py:454
 msgid "Need output file to export MHTML"
 msgstr "Export von MHTML benötigt Ausgabedatei"
 
 #. error message for export
-#: zim/main/__init__.py:481
+#: zim/main/__init__.py:484
 msgid "Need output folder to export full notebook"
 msgstr "Export des gesamten Notizbuchs benötigt Ausgabeverzeichnis"
+
+#. Error explanation
+#: zim/newfs/local.py:43
+msgid ""
+"Cannot write this file. Probably this is due to the lenght\n"
+"of the file name, please try using a name with less\n"
+"than 255 characters"
+msgstr ""
+
+#. error message for filesystem limitations
+#: zim/newfs/local.py:49
+#, fuzzy, python-format
+#| msgid "File changed on disk: %s"
+msgid "File name too long: %s"
+msgstr "Die Datei wurde auf der Festplatte geändert: %s"
+
+#. Error explanation
+#: zim/newfs/local.py:54
+msgid ""
+"Cannot write this file. Probably this is due to the lenght\n"
+"of the file path, please try using a folder structure resulting in less\n"
+"than 4096 characters"
+msgstr ""
+
+#. error message for filesystem limitations
+#: zim/newfs/local.py:60
+#, python-format
+msgid "File path too long: %s"
+msgstr ""
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:420
@@ -2215,19 +2257,19 @@ msgid "Updating index"
 msgstr "Index wird aktualisiert"
 
 #. message for PageNotFoundError
-#: zim/notebook/notebook.py:120
+#: zim/notebook/notebook.py:124
 #, python-format
 msgid "No such page: %s"
 msgstr "Keine solche Seite: %s"
 
 #. message for PageNotAllowedError
-#: zim/notebook/notebook.py:124
+#: zim/notebook/notebook.py:128
 #, python-format
 msgid "Page not allowed: %s"
 msgstr "Seite nicht erlaubt: %s"
 
 #. description for PageNotAllowedError
-#: zim/notebook/notebook.py:125
+#: zim/notebook/notebook.py:129
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr ""
@@ -2235,24 +2277,24 @@ msgstr ""
 "nicht verwendet werden"
 
 #. message for PageExistsError
-#: zim/notebook/notebook.py:130
+#: zim/notebook/notebook.py:134
 #, python-format
 msgid "Page already exists: %s"
 msgstr "Seite existiert bereits: %s"
 
 #. error message for read-only pages
-#: zim/notebook/notebook.py:134
+#: zim/notebook/notebook.py:138
 #, python-format
 msgid "Can not modify page: %s"
 msgstr "Seite %s kann nicht geändert werden"
 
 #. placeholder for unknown file name
-#: zim/parser.py:274
+#: zim/parser.py:278
 msgid "<Unknown>"
 msgstr "<Unbekannt>"
 
 #. Extended error message while parsing a file, gives file name, line number and words where error occurred
-#: zim/parser.py:280
+#: zim/parser.py:284
 #, python-format
 msgid "Error in %(file)s at line %(line)i near \"%(snippet)s\""
 msgstr "Fehler in %(file)s in der Zeile %(line)i nahe bei \"%(snippet)s\""
@@ -2280,37 +2322,37 @@ msgid "_Arithmetic"
 msgstr "_Arithmetisch"
 
 #. unspecified value for file modification time
-#: zim/plugins/attachmentbrowser/filebrowser.py:365
+#: zim/plugins/attachmentbrowser/filebrowser.py:376
 msgid "Unknown"
 msgstr "Unbekannt"
 
 #. label for file type
-#: zim/plugins/attachmentbrowser/filebrowser.py:378
+#: zim/plugins/attachmentbrowser/filebrowser.py:389
 msgid "Type"
 msgstr "Dateityp"
 
 #. label for file size
-#: zim/plugins/attachmentbrowser/filebrowser.py:379
+#: zim/plugins/attachmentbrowser/filebrowser.py:390
 msgid "Size"
 msgstr "Größe"
 
 #. label for file modification date
-#: zim/plugins/attachmentbrowser/filebrowser.py:380
+#: zim/plugins/attachmentbrowser/filebrowser.py:391
 msgid "Modified"
 msgstr "Geändert"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser/filebrowser.py:416
+#: zim/plugins/attachmentbrowser/filebrowser.py:427
 msgid "_Move Here"
 msgstr "Hierher _verschieben"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser/filebrowser.py:420
+#: zim/plugins/attachmentbrowser/filebrowser.py:431
 msgid "_Copy Here"
 msgstr "Hierher _kopieren"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser/filebrowser.py:425
+#: zim/plugins/attachmentbrowser/filebrowser.py:436
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -2329,22 +2371,32 @@ msgstr ""
 "der aktuellen Seite in Form einer Symbolansicht\n"
 "unterhalb der aktuellen Seite.\n"
 
-#. option for plugin preferences |
+#. option for plugin preferences | 
 #. preferences option
 #: zim/plugins/attachmentbrowser/__init__.py:80 zim/plugins/backlinkpane.py:35
-#: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:59
-#: zim/plugins/tableofcontents.py:85 zim/plugins/tags.py:48
-#: zim/plugins/tasklist/__init__.py:54
+#: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:61
+#: zim/plugins/tableofcontents.py:116 zim/plugins/tags.py:49
+#: zim/plugins/tasklist/__init__.py:56
 msgid "Position in the window"
 msgstr "Position im Fenster"
 
+#. option for plugin preferences
+#: zim/plugins/attachmentbrowser/__init__.py:82
+msgid "Use thumbnails"
+msgstr ""
+
+#. option for plugin preferences
+#: zim/plugins/attachmentbrowser/__init__.py:84
+msgid "Support thumbnails for SVG"
+msgstr ""
+
 #. label for attachment browser pane
-#: zim/plugins/attachmentbrowser/__init__.py:123
+#: zim/plugins/attachmentbrowser/__init__.py:128
 msgid "Attachments"
 msgstr "Dateianhänge"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
-#: zim/plugins/attachmentbrowser/__init__.py:169
+#: zim/plugins/attachmentbrowser/__init__.py:180
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
@@ -2536,31 +2588,26 @@ msgstr "Menüleiste im Vollbildmodus verstecken"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:37
-msgid "Hide toolbar in fullscreen mode"
-msgstr "Werkzeugleiste im Vollbildmodus verstecken"
-
-#. plugin preference
-#: zim/plugins/distractionfree.py:38
 msgid "Hide statusbar in fullscreen mode"
 msgstr "Statusleiste im Vollbildmodus verstecken"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:39
+#: zim/plugins/distractionfree.py:38
 msgid "Maximum page width"
 msgstr "Maximale Seitenbreite"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:40
+#: zim/plugins/distractionfree.py:39
 msgid "Border width"
 msgstr "Rahmenbreite"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:41
+#: zim/plugins/distractionfree.py:40
 msgid "Text background color"
 msgstr "Farbe des Texthintergrunds"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:42
+#: zim/plugins/distractionfree.py:41
 msgid "Text foreground color"
 msgstr "Textfarbe"
 
@@ -2601,8 +2648,12 @@ msgstr ""
 "\n"
 "Dieses Plugin gehört zum Lieferumfang von zim.\n"
 
+#: zim/plugins/equationeditor.py:35
+msgid "Use font color for dark theme"
+msgstr ""
+
 #. menu item
-#: zim/plugins/equationeditor.py:44
+#: zim/plugins/equationeditor.py:49
 msgid "Equation"
 msgstr "Formel"
 
@@ -2677,7 +2728,7 @@ msgstr "Kann Ausdruck nichtz auswerten"
 msgid "Evaluate _Math"
 msgstr "_Mathematischen Ausdruck auswerten"
 
-#. plugin name |
+#. plugin name | 
 #. Dialog title
 #: zim/plugins/insertsymbol.py:25 zim/plugins/insertsymbol.py:130
 msgid "Insert Symbol"
@@ -2702,7 +2753,7 @@ msgstr ""
 msgid "Sy_mbol..."
 msgstr "Sy_mbol..."
 
-#. plugin name |
+#. plugin name | 
 #. side pane title
 #: zim/plugins/journal.py:97 zim/plugins/journal.py:332
 msgid "Journal"
@@ -2744,6 +2795,11 @@ msgstr "Jahr"
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
 msgstr "Tagebuch-Leiste ausblenden, wenn leer"
+
+#. input label
+#: zim/plugins/journal.py:121
+msgid "Section"
+msgstr "Abschnitt"
 
 #. preferences option, values will be "Day", "Month", ...
 #: zim/plugins/journal.py:122
@@ -2806,9 +2862,9 @@ msgstr "Zeile kopieren"
 msgid "_Remove Line"
 msgstr "Zeile löschen"
 
-#. plugin name |
+#. plugin name | 
 #. menu item
-#: zim/plugins/linkmap.py:29 zim/plugins/linkmap.py:114
+#: zim/plugins/linkmap.py:29 zim/plugins/linkmap.py:129
 msgid "Link Map"
 msgstr "Link-Struktur"
 
@@ -2829,18 +2885,53 @@ msgstr ""
 "\n"
 "Dieses Plugin gehört zum Lieferumfang von zim.\n"
 
+#. preferences option
+#: zim/plugins/linkmap.py:45
+msgid "Show linkmap button in headerbar"
+msgstr ""
+
 #. plugin name
-#: zim/plugins/pageindex/__init__.py:49
+#: zim/plugins/osx_menubar.py:72
+#, fuzzy
+#| msgid "Menubar"
+msgid "macOS Menubar"
+msgstr "Menüleiste"
+
+#. plugin description
+#: zim/plugins/osx_menubar.py:73
+#, fuzzy
+#| msgid ""
+#| "\t\tThis plugin provides bar for bookmarks.\n"
+#| "\t\t"
+msgid "This plugin provides a macOS menubar for zim."
+msgstr ""
+"\t\tDiese Erweiterung stellt eine Lesezeichenleiste zur Verfügung.\n"
+"\t\t"
+
+#. plugin name
+#: zim/plugins/pageindex/__init__.py:51
 msgid "Page Index"
 msgstr "Seitenverzeichnis"
 
 #. plugin description
-#: zim/plugins/pageindex/__init__.py:50
+#: zim/plugins/pageindex/__init__.py:52
 msgid "This plugin adds the page index pane to the main window.\n"
 msgstr "Dieses Plugin fügt dem Hauptfenster ein Seitenverzeichnis hinzu.\n"
 
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:63
+#, fuzzy
+#| msgid "Automatically saved version from zim"
+msgid "Automatically expand sections on open page"
+msgstr "Automatisch gespeicherte Version"
+
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:65
+msgid "Automatically collapse sections on close page"
+msgstr ""
+
 #. tab label for side pane
-#: zim/plugins/pageindex/__init__.py:111 data/templates/html/Default.html:52
+#: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
 #: data/templates/html/Default.html:54
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
@@ -2848,12 +2939,12 @@ msgid "Index"
 msgstr "Seiten"
 
 #. plugin name
-#: zim/plugins/pathbar.py:30
+#: zim/plugins/pathbar.py:40
 msgid "Path Bar"
 msgstr "Pfadleiste"
 
 #. plugin description
-#: zim/plugins/pathbar.py:31
+#: zim/plugins/pathbar.py:41
 msgid ""
 "This plugin adds a \"path bar\" to the top of the window.\n"
 "This \"path bar\" can show the notebook path for the current page,\n"
@@ -2865,32 +2956,32 @@ msgstr ""
 "kürzlich aufgerufene oder kürzlich bearbeitete Seiten.\n"
 
 #. Menu title
-#: zim/plugins/pathbar.py:72
+#: zim/plugins/pathbar.py:82
 msgid "P_athbar"
 msgstr "Pf_adleiste"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:73
+#: zim/plugins/pathbar.py:83
 msgid "_None"
 msgstr "_Nichts"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:74
+#: zim/plugins/pathbar.py:84
 msgid "_Recent pages"
 msgstr "_Zuletzt besuchte Seiten"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:75
+#: zim/plugins/pathbar.py:85
 msgid "Recently _Changed pages"
 msgstr "Zuletzt _geänderte Seiten"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:76
+#: zim/plugins/pathbar.py:86
 msgid "_History"
 msgstr "_Verlauf"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:77
+#: zim/plugins/pathbar.py:87
 msgid "_Page Hierarchy"
 msgstr "_Seiten Hierarchie"
 
@@ -2960,7 +3051,7 @@ msgid "Create a new page for each note"
 msgstr "Erstelle eine neue Seite für jede Notiz"
 
 #. text entry field
-#: zim/plugins/quicknote.py:250 zim/plugins/tableeditor.py:921
+#: zim/plugins/quicknote.py:250 zim/plugins/tableeditor.py:922
 msgid "Title"
 msgstr "Titel"
 
@@ -3001,14 +3092,14 @@ msgstr "Stets als Kopf eingefügt"
 msgid "Common include footer"
 msgstr "Stets als Fuß eingefügt"
 
-#. plugin name |
+#. plugin name | 
 #. dialog title
-#: zim/plugins/screenshot.py:94 zim/plugins/screenshot.py:161
+#: zim/plugins/screenshot.py:107 zim/plugins/screenshot.py:174
 msgid "Insert Screenshot"
 msgstr "Bildschirmfoto einfügen"
 
 #. plugin description
-#: zim/plugins/screenshot.py:95
+#: zim/plugins/screenshot.py:108
 msgid ""
 "This plugin  allows taking a screenshot and directly insert it\n"
 "in a zim page.\n"
@@ -3021,37 +3112,37 @@ msgstr ""
 "Dieses Plugin gehört zum Lieferumfang von zim.\n"
 
 #. plugin preference
-#: zim/plugins/screenshot.py:106
+#: zim/plugins/screenshot.py:119
 msgid "Screenshot Command"
 msgstr "Screenshot Befehl"
 
 #. menu item for insert screenshot plugin
-#: zim/plugins/screenshot.py:148
+#: zim/plugins/screenshot.py:161
 msgid "_Screenshot..."
 msgstr "_Bildschirmfoto …"
 
 #. option in 'insert screenshot' dialog
-#: zim/plugins/screenshot.py:166
+#: zim/plugins/screenshot.py:179
 msgid "Capture whole screen"
 msgstr "Ganzen Bildschirm aufnehmen"
 
 #. option in 'insert screenshot' dialog
-#: zim/plugins/screenshot.py:168
+#: zim/plugins/screenshot.py:181
 msgid "Select window or region"
 msgstr "Fenster oder Bereich auswählen"
 
 #. input in 'insert screenshot' dialog
-#: zim/plugins/screenshot.py:177
+#: zim/plugins/screenshot.py:190
 msgid "Delay"
 msgstr "Verzögerung"
 
 #. label behind timer
-#: zim/plugins/screenshot.py:183
+#: zim/plugins/screenshot.py:196
 msgid "seconds"
 msgstr "Sekunden"
 
 #. Error message in "insert screenshot" dialog, %s will be replaced by application name
-#: zim/plugins/screenshot.py:208
+#: zim/plugins/screenshot.py:221
 #, python-format
 msgid "Some error occurred while running \"%s\""
 msgstr "Ein Fehler trat bei der Bearbeitung von \"%s\" auf."
@@ -3077,12 +3168,12 @@ msgid "Sequence Diagram"
 msgstr "Sequenzdiagramm"
 
 #. plugin name
-#: zim/plugins/sourceview.py:51
+#: zim/plugins/sourceview.py:63
 msgid "Source View"
 msgstr "Quellcode-Ansicht"
 
 #. plugin description
-#: zim/plugins/sourceview.py:52
+#: zim/plugins/sourceview.py:64
 msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
@@ -3092,55 +3183,92 @@ msgstr ""
 "als eingebettete Widgets mit Syntax-Hervorhebung, Zeilennummern usw. "
 "angezeigt.\n"
 
+#. option value
+#: zim/plugins/sourceview.py:73
+#, fuzzy
+#| msgid "vertical lines"
+msgid "Never wrap lines"
+msgstr "Senkrechte Linien"
+
+#. option value
+#: zim/plugins/sourceview.py:74
+msgid "Try wrap at word boundaries or character"
+msgstr ""
+
+#. option value
+#: zim/plugins/sourceview.py:75
+msgid "Always wrap at character"
+msgstr ""
+
+#. option value
+#: zim/plugins/sourceview.py:76
+msgid "Always wrap at word boundaries"
+msgstr ""
+
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:62
+#: zim/plugins/sourceview.py:80
 msgid "Auto indenting"
 msgstr "Auto-Einrückung"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:64
+#: zim/plugins/sourceview.py:82
 msgid "Smart Home key"
 msgstr "Intelligente Home-Taste"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:66
+#: zim/plugins/sourceview.py:84
 msgid "Highlight current line"
 msgstr "Aktuelle Zeile hervorheben"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:68
+#: zim/plugins/sourceview.py:86
 msgid "Show right margin"
 msgstr "Rechten Rand anzeigen"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:70
+#: zim/plugins/sourceview.py:88
 msgid "Right margin position"
 msgstr "Position des rechten Randes"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:72
+#: zim/plugins/sourceview.py:90
 msgid "Tab width"
 msgstr "Tabulatorbreite"
 
+#. preference option for sourceview plugin
+#: zim/plugins/sourceview.py:92
+msgid "Text wrap mode"
+msgstr ""
+
+#. preference option for sourceview plugin
+#: zim/plugins/sourceview.py:94
+msgid "Theme"
+msgstr ""
+
 #. menu item
-#: zim/plugins/sourceview.py:86
+#: zim/plugins/sourceview.py:109
 msgid "Code Block"
 msgstr "Code-Block"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:254
+#: zim/plugins/sourceview.py:303
 msgid "Show Line Numbers"
 msgstr "Zeilennummern anzeigen"
 
 #. input label
-#: zim/plugins/sourceview.py:264 zim/plugins/sourceview.py:303
+#: zim/plugins/sourceview.py:313 zim/plugins/sourceview.py:354
 msgid "Syntax"
 msgstr "Syntax"
 
 #. dialog title
-#: zim/plugins/sourceview.py:281
+#: zim/plugins/sourceview.py:330
 msgid "Insert Code Block"
 msgstr "Code-Block einfügen"
+
+#. input checkbox
+#: zim/plugins/sourceview.py:366
+msgid "Display line numbers"
+msgstr ""
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3177,32 +3305,32 @@ msgstr ""
 "Dies könnte bedeuten, dass die richtigen Wörterbücher nicht installiert sind."
 
 #. alignment option
-#: zim/plugins/tableeditor.py:52 zim/plugins/tableeditor.py:862
+#: zim/plugins/tableeditor.py:53 zim/plugins/tableeditor.py:863
 msgid "Left"
 msgstr "Linksbündig"
 
 #. alignment option
-#: zim/plugins/tableeditor.py:53
+#: zim/plugins/tableeditor.py:54
 msgid "Center"
 msgstr "Zentriert"
 
 #. alignment option
-#: zim/plugins/tableeditor.py:54
+#: zim/plugins/tableeditor.py:55
 msgid "Right"
 msgstr "Rechtsbündig"
 
 #. alignment option
-#: zim/plugins/tableeditor.py:55
+#: zim/plugins/tableeditor.py:56
 msgid "Unspecified"
 msgstr "Nicht angegeben"
 
 #. plugin name
-#: zim/plugins/tableeditor.py:82
+#: zim/plugins/tableeditor.py:83
 msgid "Table Editor"
 msgstr "Tabellenbearbeitung"
 
 #. plugin description
-#: zim/plugins/tableeditor.py:83
+#: zim/plugins/tableeditor.py:84
 msgid ""
 "With this plugin you can embed a 'Table' into the wiki page. Tables will be "
 "shown as GTK TreeView widgets.\n"
@@ -3215,92 +3343,92 @@ msgstr ""
 "verschiedene Formate (z.B. HTML/LaTeX) umzuwandeln.\n"
 
 #. option value
-#: zim/plugins/tableeditor.py:92
+#: zim/plugins/tableeditor.py:93
 msgid "with lines"
 msgstr "mit Linien"
 
 #. option value
-#: zim/plugins/tableeditor.py:93
+#: zim/plugins/tableeditor.py:94
 msgid "no grid lines"
 msgstr "keine Gitternetzlinien"
 
 #. option value
-#: zim/plugins/tableeditor.py:94
+#: zim/plugins/tableeditor.py:95
 msgid "horizontal lines"
 msgstr "Horizontale Linien"
 
 #. option value
-#: zim/plugins/tableeditor.py:95
+#: zim/plugins/tableeditor.py:96
 msgid "vertical lines"
 msgstr "Senkrechte Linien"
 
 #. preference description
-#: zim/plugins/tableeditor.py:101
+#: zim/plugins/tableeditor.py:102
 msgid "Show helper toolbar"
 msgstr "Hilfe-Leiste anzeigen"
 
 #. preference description
-#: zim/plugins/tableeditor.py:104
+#: zim/plugins/tableeditor.py:105
 msgid "Grid lines"
 msgstr "Raster"
 
 #. menu item
-#: zim/plugins/tableeditor.py:154
+#: zim/plugins/tableeditor.py:155
 msgid "Table"
 msgstr "Tabelle"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:457 zim/plugins/tableeditor.py:613
+#: zim/plugins/tableeditor.py:458 zim/plugins/tableeditor.py:614
 msgid "Add row"
 msgstr "Zeile hinzufügen"
 
 #. tooltip on mouse hover
-#: zim/plugins/tableeditor.py:458
+#: zim/plugins/tableeditor.py:459
 msgid "Remove row"
 msgstr "Zeile entfernen"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:459 zim/plugins/tableeditor.py:615
+#: zim/plugins/tableeditor.py:460 zim/plugins/tableeditor.py:616
 msgid "Clone row"
 msgstr "Zeile duplizieren"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:461 zim/plugins/tableeditor.py:619
+#: zim/plugins/tableeditor.py:462 zim/plugins/tableeditor.py:620
 msgid "Row up"
 msgstr "Zeile hochschieben"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:462 zim/plugins/tableeditor.py:620
+#: zim/plugins/tableeditor.py:463 zim/plugins/tableeditor.py:621
 msgid "Row down"
 msgstr "Zeile runterschieben"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:464 zim/plugins/tableeditor.py:622
+#: zim/plugins/tableeditor.py:465 zim/plugins/tableeditor.py:623
 msgid "Change columns"
 msgstr "Spalten ändern"
 
 #. tooltip on mouse hover
-#: zim/plugins/tableeditor.py:466
+#: zim/plugins/tableeditor.py:467
 msgid "Open help"
 msgstr "Hilfe öffnen"
 
 #. menu item
-#: zim/plugins/tableeditor.py:614
+#: zim/plugins/tableeditor.py:615
 msgid "Delete row"
 msgstr "Zeile löschen"
 
 #. menu item
-#: zim/plugins/tableeditor.py:617
+#: zim/plugins/tableeditor.py:618
 msgid "Open cell content link"
 msgstr "Zellen-Inhaltslink öffnen"
 
 #. Popup dialog
-#: zim/plugins/tableeditor.py:680
+#: zim/plugins/tableeditor.py:681
 msgid ""
 "The table must consist of at least on row!\n"
 " No deletion done."
@@ -3309,32 +3437,32 @@ msgstr ""
 " Es wurde nichts gelöscht."
 
 #. Popup dialog
-#: zim/plugins/tableeditor.py:771 zim/plugins/tableeditor.py:1080
+#: zim/plugins/tableeditor.py:772 zim/plugins/tableeditor.py:1081
 msgid "Please select a row, before you push the button."
 msgstr "Bitte erst eine Zeile markieren, bevor die Taste gedrückt wird."
 
 #. Dialog title
-#: zim/plugins/tableeditor.py:858
+#: zim/plugins/tableeditor.py:859
 msgid "Insert Table"
 msgstr "Tabelle einfügen"
 
 #. Dialog title
-#: zim/plugins/tableeditor.py:858
+#: zim/plugins/tableeditor.py:859
 msgid "Edit Table"
 msgstr "Tabelle bearbeiten"
 
 #. Description of "Table-Insert" Dialog
-#: zim/plugins/tableeditor.py:867
+#: zim/plugins/tableeditor.py:868
 msgid "Managing table columns"
 msgstr "Tabellen-Spalten verwalten"
 
 #. Initial data for column title in table
-#: zim/plugins/tableeditor.py:897
+#: zim/plugins/tableeditor.py:898
 msgid "Column 1"
 msgstr "Spalte 1"
 
 #. table header
-#: zim/plugins/tableeditor.py:930
+#: zim/plugins/tableeditor.py:931
 msgid ""
 "Auto\n"
 "Wrap"
@@ -3343,42 +3471,42 @@ msgstr ""
 "Umbrechen"
 
 #. table header
-#: zim/plugins/tableeditor.py:940
+#: zim/plugins/tableeditor.py:941
 msgid "Align"
 msgstr "Ausrichten"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:967
+#: zim/plugins/tableeditor.py:968
 msgid "Add column"
 msgstr "Spalte hinzufügen"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:968
+#: zim/plugins/tableeditor.py:969
 msgid "Remove column"
 msgstr "Spalte entfernen"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:969
+#: zim/plugins/tableeditor.py:970
 msgid "Move column ahead"
 msgstr "Spalte nach oben bewegen"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:970
+#: zim/plugins/tableeditor.py:971
 msgid "Move column backward"
 msgstr "Spalte nach unten bewegen"
 
 #. popup dialog
-#: zim/plugins/tableeditor.py:1054
+#: zim/plugins/tableeditor.py:1055
 msgid "A table needs to have at least one column."
 msgstr "Eine Tabelle muss mindestens eine Spalte haben."
 
 #. plugin name
-#: zim/plugins/tableofcontents.py:71
+#: zim/plugins/tableofcontents.py:102
 msgid "Table of Contents"
 msgstr "Inhaltsverzeichnis"
 
 #. plugin description
-#: zim/plugins/tableofcontents.py:72
+#: zim/plugins/tableofcontents.py:103
 msgid ""
 "This plugin adds an extra widget showing a table of\n"
 "contents for the current page.\n"
@@ -3391,40 +3519,52 @@ msgstr ""
 "Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. option for plugin preferences
-#: zim/plugins/tableofcontents.py:87
+#: zim/plugins/tableofcontents.py:118
 msgid "Show ToC as floating widget instead of in sidepane"
 msgstr "Zeige Inhalt als schwebendes Widget statt in der Seitenleiste"
 
 #. option for plugin preferences
-#: zim/plugins/tableofcontents.py:89
+#: zim/plugins/tableofcontents.py:120
 msgid "Show the page title heading in the ToC"
 msgstr "Seitentitel im Inhaltsverzeichnis anzeigen"
 
+#. option for plugin preferences
+#: zim/plugins/tableofcontents.py:122
+#, fuzzy
+#| msgid "horizontal lines"
+msgid "Include horizontal lines in the ToC"
+msgstr "Horizontale Linien"
+
+#. option for plugin preferences
+#: zim/plugins/tableofcontents.py:124
+msgid "Set ToC fontsize"
+msgstr ""
+
 #. action to lower level of heading in the text
-#: zim/plugins/tableofcontents.py:271
+#: zim/plugins/tableofcontents.py:386
 msgid "Demote"
 msgstr "Herabstufen"
 
 #. action to raise level of heading in the text
-#: zim/plugins/tableofcontents.py:273
+#: zim/plugins/tableofcontents.py:388
 msgid "Promote"
 msgstr "Heraufstufen"
 
 #. widget label
-#: zim/plugins/tableofcontents.py:376 zim/plugins/tableofcontents.py:406
+#: zim/plugins/tableofcontents.py:482 zim/plugins/tableofcontents.py:512
 msgid "ToC"
 msgstr "Inhalt"
 
-#. plugin name |
-#. title for sidepane tab |
+#. plugin name | 
+#. title for sidepane tab | 
 #. Column header for tag list in Task List dialog
-#: zim/plugins/tags.py:38 zim/plugins/tags.py:82
-#: zim/plugins/tasklist/gui.py:245
+#: zim/plugins/tags.py:39 zim/plugins/tags.py:83
+#: zim/plugins/tasklist/gui.py:247
 msgid "Tags"
 msgstr "Tags"
 
 #. plugin description
-#: zim/plugins/tags.py:39
+#: zim/plugins/tags.py:40
 msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
@@ -3433,17 +3573,17 @@ msgstr ""
 "gefiltert werden kann.\n"
 
 #. menu option
-#: zim/plugins/tags.py:132
+#: zim/plugins/tags.py:133
 msgid "Show full page name"
 msgstr "Vollständigen Seitennamen anzeigen"
 
 #. menu option
-#: zim/plugins/tags.py:137
+#: zim/plugins/tags.py:138
 msgid "Sort pages by tags"
 msgstr "Sortiere Seiten nach Tags"
 
 #. Context menu item for tag cloud
-#: zim/plugins/tags.py:433
+#: zim/plugins/tags.py:442
 msgid "Sort alphabetically"
 msgstr "Alphabetisch sortieren"
 
@@ -3453,7 +3593,7 @@ msgid "Show Tasks as Flat List"
 msgstr "Aufgaben als flache Liste anzeigen"
 
 #. Checkbox in task list - this options hides tasks that are not yet started
-#: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:170
+#: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:172
 msgid "Only Show Active Tasks"
 msgstr "Nur aktive Aufgaben anzeigen"
 
@@ -3462,22 +3602,22 @@ msgstr "Nur aktive Aufgaben anzeigen"
 msgid "Tasks"
 msgstr "Aufgaben"
 
-#. label for filtering/searching tasks |
+#. label for filtering/searching tasks | 
 #. Input label
-#: zim/plugins/tasklist/gui.py:86 zim/plugins/tasklist/gui.py:154
+#: zim/plugins/tasklist/gui.py:88 zim/plugins/tasklist/gui.py:156
 msgid "Filter"
 msgstr "Filter"
 
-#. dialog title |
-#. plugin name |
+#. dialog title | 
+#. plugin name | 
 #. menu item
-#: zim/plugins/tasklist/gui.py:111 zim/plugins/tasklist/__init__.py:38
-#: zim/plugins/tasklist/__init__.py:156
+#: zim/plugins/tasklist/gui.py:113 zim/plugins/tasklist/__init__.py:38
+#: zim/plugins/tasklist/__init__.py:161
 msgid "Task List"
 msgstr "Aufgabenliste"
 
 #. Label for task List, %i is the number of tasks
-#: zim/plugins/tasklist/gui.py:183
+#: zim/plugins/tasklist/gui.py:185
 #, python-format
 msgid "%i open item"
 msgid_plural "%i open items"
@@ -3485,33 +3625,27 @@ msgstr[0] "%i offene Aufgabe"
 msgstr[1] "%i offene Aufgaben"
 
 #. "tag" for showing all tasks
-#: zim/plugins/tasklist/gui.py:309
+#: zim/plugins/tasklist/gui.py:311
 msgid "All Tasks"
 msgstr "Alle Aufgaben"
 
 #. label in tasklist plugins for tasks without a tag
-#: zim/plugins/tasklist/gui.py:319
+#: zim/plugins/tasklist/gui.py:321
 msgid "Untagged"
 msgstr "Ohne Tags"
 
 #. Column header Task List dialog
-#: zim/plugins/tasklist/gui.py:433
+#: zim/plugins/tasklist/gui.py:435
 msgid "Task"
 msgstr "Aufgabe"
 
-#. Column header Task List dialog |
-#. Column header versions dialog
-#: zim/plugins/tasklist/gui.py:484 zim/plugins/versioncontrol/__init__.py:1069
-msgid "Date"
-msgstr "Datum"
-
 #. start date for task
-#: zim/plugins/tasklist/gui.py:795
+#: zim/plugins/tasklist/gui.py:797
 msgid "Start"
 msgstr "Startzeit"
 
 #. due date for task
-#: zim/plugins/tasklist/gui.py:797
+#: zim/plugins/tasklist/gui.py:799
 msgid "Due"
 msgstr "Fällig am"
 
@@ -3532,61 +3666,75 @@ msgstr ""
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
+#, fuzzy
+#| msgid "Show tasklist in sidepane"
+msgid "Show tasklist button in headerbar"
+msgstr "Aufgabenliste in Seitenleiste anzeigen"
+
+#. preferences option
+#: zim/plugins/tasklist/__init__.py:54
 msgid "Show tasklist in sidepane"
 msgstr "Aufgabenliste in Seitenleiste anzeigen"
 
+#. preferences option
+#: zim/plugins/tasklist/__init__.py:58
+#, fuzzy
+#| msgid "Show tasklist in sidepane"
+msgid "Show due date in sidepane"
+msgstr "Aufgabenliste in Seitenleiste anzeigen"
+
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:60
+#: zim/plugins/tasklist/__init__.py:64
 msgid "Consider all checkboxes as tasks"
 msgstr "Alle Ankreuzfelder als Aufgaben interpretieren"
 
 #. label for plugin preferences dialog - labels are e.g. "FIXME", "TODO"
-#: zim/plugins/tasklist/__init__.py:62
+#: zim/plugins/tasklist/__init__.py:66
 msgid "Labels marking tasks"
 msgstr "Kennzeichnungen für Aufgaben"
 
 #. label for preference with multiple options
-#: zim/plugins/tasklist/__init__.py:64
+#: zim/plugins/tasklist/__init__.py:68
 msgid "Use date from journal pages"
 msgstr "Datum aus Journal-Seiten verwenden"
 
 #. choice for "Use date from journal pages"
-#: zim/plugins/tasklist/__init__.py:65
+#: zim/plugins/tasklist/__init__.py:69
 msgid "do not use"
 msgstr "Nicht benutzen"
 
 #. choice for "Use date from journal pages"
-#: zim/plugins/tasklist/__init__.py:66
+#: zim/plugins/tasklist/__init__.py:70
 msgid "as start date for tasks"
 msgstr "als Startzeit für Aufgaben"
 
 #. choice for "Use date from journal pages"
-#: zim/plugins/tasklist/__init__.py:67
+#: zim/plugins/tasklist/__init__.py:71
 msgid "as due date for tasks"
 msgstr "als Fälligkeitsdatum für Aufgaben"
 
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
-#: zim/plugins/tasklist/__init__.py:69
+#: zim/plugins/tasklist/__init__.py:73
 msgid "Section(s) to index"
 msgstr "Abschnitt(e) indizieren"
 
 #. Notebook sections to exclude when searching for tasks - default is none
-#: zim/plugins/tasklist/__init__.py:71
+#: zim/plugins/tasklist/__init__.py:75
 msgid "Section(s) to ignore"
 msgstr "Abschnitte ignorieren"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:76
+#: zim/plugins/tasklist/__init__.py:80
 msgid "Tags for non-actionable tasks"
 msgstr "Tags für Aufgaben, die keine Aktion erfordern"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:78
+#: zim/plugins/tasklist/__init__.py:82
 msgid "Turn page name into tags for task items"
 msgstr "Seitenname in Tags für die Aufgabenliste umwandeln"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:80
+#: zim/plugins/tasklist/__init__.py:84
 msgid "Flag tasks due on Monday or Tuesday before the weekend"
 msgstr ""
 "Aufgaben, die am Montag oder Dienstag fällig sind, schon vor dem Wochenende "
@@ -3641,7 +3789,7 @@ msgstr "_Weitere …"
 msgid "Notebooks"
 msgstr "Notizbücher"
 
-#. tooltip for tray icon |
+#. tooltip for tray icon | 
 #. short description of zim
 #: zim/plugins/trayicon.py:257 zim/plugins/zeitgeist-logger.py:48
 msgid "Zim Desktop Wiki"
@@ -3890,6 +4038,84 @@ msgstr "Rückverweise:"
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
 msgstr "Anhänge:"
+
+#~ msgid "Show in the toolbar"
+#~ msgstr "Erscheint in Werkzeugleiste"
+
+#~ msgid "_Toolbar"
+#~ msgstr "_Werkzeugleiste"
+
+#~ msgid "Icons _And Text"
+#~ msgstr "Symbole _und Text"
+
+#~ msgid "_Icons Only"
+#~ msgstr "Nur _Symbole"
+
+#~ msgid "_Text Only"
+#~ msgstr "Nur _Text"
+
+#~ msgid "_Large Icons"
+#~ msgstr "_Große Symbole"
+
+#~ msgid "_Small Icons"
+#~ msgstr "_Kleine Symbole"
+
+#~ msgid "_Tiny Icons"
+#~ msgstr "_Winzige Symbole"
+
+#~ msgid "Search Pages..."
+#~ msgstr "Seiten durchsuchen..."
+
+#~ msgid "Heading 1"
+#~ msgstr "Überschrift 1"
+
+#~ msgid "Heading 2"
+#~ msgstr "Überschrift 2"
+
+#~ msgid "Heading 3"
+#~ msgstr "Überschrift 3"
+
+#~ msgid "Heading 4"
+#~ msgstr "Überschrift 4"
+
+#~ msgid "Heading 5"
+#~ msgstr "Überschrift 5"
+
+#~ msgid "Strong"
+#~ msgstr "Fett"
+
+#~ msgid "Emphasis"
+#~ msgstr "Kursiv"
+
+#~ msgid "Mark"
+#~ msgstr "Markiert"
+
+#~ msgid "Strike"
+#~ msgstr "Durchgestrichen"
+
+#~ msgid "Verbatim"
+#~ msgstr "Vorformatiert"
+
+#~ msgid "_Calendar"
+#~ msgstr "_Kalender"
+
+#~ msgid "Insert images as link"
+#~ msgstr "Bild als Link einfügen"
+
+#~ msgid "_Move Page..."
+#~ msgstr "Seite _verschieben..."
+
+#~ msgid "Attach _File"
+#~ msgstr "Datei an_hängen"
+
+#~ msgid "Move Page"
+#~ msgstr "Seite verschieben"
+
+#~ msgid "Move page \"%s\""
+#~ msgstr "Seite \"%s\" verschieben"
+
+#~ msgid "Hide toolbar in fullscreen mode"
+#~ msgstr "Werkzeugleiste im Vollbildmodus verstecken"
 
 #~ msgid "File browser"
 #~ msgstr "Dateibrowser"

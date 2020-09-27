@@ -6,11 +6,12 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
-"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2019-05-09 20:40+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-09-22 20:58+0200\n"
 "PO-Revision-Date: 2019-06-01 17:12+0000\n"
 "Last-Translator: samson <Unknown>\n"
 "Language-Team: Amharic <am@li.org>\n"
+"Language: am\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,13 +20,13 @@ msgstr ""
 "X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
-#: zim/applications.py:87
+#: zim/applications.py:85
 #, python-format
 msgid "Failed to run application: %s"
 msgstr "መተግበሪያውን ማስኬድ አልተቻለም: %s"
 
 #. Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
-#: zim/applications.py:90
+#: zim/applications.py:88
 #, python-format
 msgid ""
 "%(cmd)s\n"
@@ -35,19 +36,19 @@ msgstr ""
 "returned non-zero exit status %(code)i"
 
 #. error when application failed to start
-#: zim/applications.py:365
+#: zim/applications.py:361
 #, python-format
 msgid "Failed running: %s"
 msgstr "ማስኬድ አልተቻለም: %s"
 
-#. label for default webbrowser |
+#. label for default webbrowser | 
 #. label for default application
-#: zim/applications.py:386 zim/applications.py:429 zim/gui/applications.py:1013
+#: zim/applications.py:382 zim/applications.py:425 zim/gui/applications.py:1013
 msgid "Default"
 msgstr "ነባር"
 
 #. Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
-#: zim/datetimetz.py:95
+#: zim/datetimetz.py:98
 msgid "calendar:week_start:0"
 msgstr "ቀን መቁጠሪያ:ሳምንት_መጀመሪያ:0"
 
@@ -56,45 +57,45 @@ msgstr "ቀን መቁጠሪያ:ሳምንት_መጀመሪያ:0"
 msgid "Looks like you found a bug"
 msgstr "እርስዎ ችግር ያገኙ ይመስላል"
 
-#. message for FileNotFoundError |
+#. message for FileNotFoundError | 
 #. Error message in template lookup
-#: zim/fs.py:272 zim/templates/__init__.py:124
+#: zim/fs.py:261 zim/templates/__init__.py:124
 #, python-format
 msgid "No such file: %s"
 msgstr "እንደዚህ አይነት ፋይል የለም: %s"
 
 #. message for FileUnicodeError (%s is the file name)
-#: zim/fs.py:284 zim/newfs/base.py:64
+#: zim/fs.py:273 zim/newfs/base.py:64
 #, python-format
 msgid "Could not read: %s"
 msgstr "ማንበብ አልተቻለም: %s"
 
 #. message for FileUnicodeError
-#: zim/fs.py:286 zim/newfs/base.py:66
+#: zim/fs.py:275 zim/newfs/base.py:66
 msgid "This usually means the file contains invalid characters"
 msgstr "ይህ ማለት ፋይሉ ዋጋ የ ሌላቸው ባህሪዎች ይዟል ማለት ነው"
 
-#. label for detailed error |
+#. label for detailed error | 
 #. section for version details in "save version" dialog
-#: zim/fs.py:288 zim/newfs/base.py:68
+#: zim/fs.py:277 zim/newfs/base.py:68
 #: zim/plugins/versioncontrol/__init__.py:776
 msgid "Details"
 msgstr "ዝርዝሮች"
 
 #. Error message
-#: zim/fs.py:1178
+#: zim/fs.py:1167
 #, python-format
 msgid "File is not writable: %s"
 msgstr "ፋይሉ ላይ መጻፍ አይቻልም: %s"
 
 #. error message
-#: zim/fs.py:1250
+#: zim/fs.py:1239
 #, python-format
 msgid "File changed on disk: %s"
 msgstr "ፋይል በ ዲስኩ ላይ ተቀይሯል: %s"
 
 #. Heading in a question dialog for creating a folder
-#: zim/gui/applications.py:500 zim/gui/pageview.py:6414
+#: zim/gui/applications.py:500 zim/gui/pageview.py:6632
 msgid "Create folder?"
 msgstr "ፎልደር ልፍጠር?"
 
@@ -164,7 +165,7 @@ msgstr ""
 msgid "Configure Applications"
 msgstr "መተግበሪያ ማሰናጃ"
 
-#. Button for adding a new application to the 'open with' menu |
+#. Button for adding a new application to the 'open with' menu | 
 #. Dialog title
 #: zim/gui/applications.py:1017 zim/gui/applications.py:1125
 msgid "Add Application"
@@ -175,26 +176,26 @@ msgstr "መተግበሪያ መጨመሪያ"
 msgid "System Default"
 msgstr "ነባር የ ስርአቱ"
 
-#. Field in 'custom command' dialog |
-#. Input in "Edit Custom Tool" dialog |
-#. input field in 'Add Notebook' dialog |
-#. input for new file name |
-#. Heading in plugins tab of preferences dialog |
-#. label for properties dialog |
-#. Input label for the new name when copying a template |
-#. Input label in the 'rename page' dialog for the new name |
+#. Field in 'custom command' dialog | 
+#. Input in "Edit Custom Tool" dialog | 
+#. input field in 'Add Notebook' dialog | 
+#. input for new file name | 
+#. Heading in plugins tab of preferences dialog | 
+#. label for properties dialog | 
+#. Input label for the new name when copying a template | 
+#. Input label in the 'rename page' dialog for the new name | 
 #. label for file name
-#: zim/gui/applications.py:1129 zim/gui/customtools.py:651
-#: zim/gui/notebookdialog.py:421 zim/gui/pageview.py:7587
-#: zim/gui/preferencesdialog.py:279 zim/gui/propertiesdialog.py:16
-#: zim/gui/templateeditordialog.py:158 zim/gui/uiactions.py:603
-#: zim/plugins/attachmentbrowser/filebrowser.py:377
+#: zim/gui/applications.py:1129 zim/gui/customtools.py:644
+#: zim/gui/notebookdialog.py:421 zim/gui/pageview.py:8049
+#: zim/gui/preferencesdialog.py:306 zim/gui/propertiesdialog.py:16
+#: zim/gui/templateeditordialog.py:158 zim/gui/uiactions.py:595
+#: zim/plugins/attachmentbrowser/filebrowser.py:388
 msgid "Name"
 msgstr "ስም"
 
-#. Field in 'custom command' dialog |
+#. Field in 'custom command' dialog | 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/applications.py:1130 zim/gui/customtools.py:653
+#: zim/gui/applications.py:1130 zim/gui/customtools.py:646
 msgid "Command"
 msgstr "ትእዛዝ"
 
@@ -210,12 +211,12 @@ msgid "Could not find executable \"%s\""
 msgstr "ሊፈጸም የሚቻል አልተገኘም \"%s\""
 
 #. Dialog title
-#: zim/gui/customtools.py:510
+#: zim/gui/customtools.py:503
 msgid "Custom Tools"
 msgstr "መሳሪያዎች ማስተካከያ"
 
 #. help text in "Custom Tools" dialog
-#: zim/gui/customtools.py:515
+#: zim/gui/customtools.py:508
 msgid ""
 "You can configure custom tools that will appear\n"
 "in the tool menu and in the tool bar or context menus."
@@ -224,39 +225,34 @@ msgstr ""
 "በ መሳሪያዎች ዝርዝር ላይ እና በ እቃ መደርደሪያ ላይ ወይንም በ ይዞታዎች ዝርዝር ውስጥ"
 
 #. Dialog title
-#: zim/gui/customtools.py:631
+#: zim/gui/customtools.py:624
 msgid "Edit Custom Tool"
 msgstr "መሳሪያዎች ማስተካከያ ማረሚያ"
 
-#. Input in "Edit Custom Tool" dialog |
+#. Input in "Edit Custom Tool" dialog | 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/customtools.py:652 zim/gui/preferencesdialog.py:281
+#: zim/gui/customtools.py:645 zim/gui/preferencesdialog.py:308
 msgid "Description"
 msgstr "መግለጫ"
 
-#. Input in "Edit Custom Tool" dialog |
+#. Input in "Edit Custom Tool" dialog | 
 #. label for properties dialog
-#: zim/gui/customtools.py:667 zim/gui/propertiesdialog.py:19
+#: zim/gui/customtools.py:660 zim/gui/propertiesdialog.py:19
 msgid "Icon"
 msgstr "ምልክት"
 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:676
+#: zim/gui/customtools.py:669
 msgid "Command does not modify data"
 msgstr "ትእዛዝ ዳታ ማሻሻል አይችልም"
 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:677
+#: zim/gui/customtools.py:670
 msgid "Output should replace current selection"
 msgstr "የ አሁኑን ምርጫ ውጤቱ ይቀይረዋል"
 
-#. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:678
-msgid "Show in the toolbar"
-msgstr "በ እቃ መደርደሪያ ላይ ማሳያ"
-
 #. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
-#: zim/gui/customtools.py:686
+#: zim/gui/customtools.py:679
 msgid ""
 "The following parameters will be substituted\n"
 "in the command when it is executed:\n"
@@ -328,7 +324,7 @@ msgstr ""
 msgid "Select the pages to export"
 msgstr "የሚላኩትን ገጾች ይምረጡ"
 
-#. Option in export dialog to export complete notebook |
+#. Option in export dialog to export complete notebook | 
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:173 zim/plugins/versioncontrol/__init__.py:824
 msgid "Complete _notebook"
@@ -339,16 +335,16 @@ msgstr "ሙሉ _ማስታወሻ ደብተር"
 msgid "Single _page"
 msgstr "ነጠላ _ገጽ"
 
-#. Input field in export dialog |
-#. label in word count dialog |
-#. Column header |
-#. Column header search dialog |
-#. Column header Task List dialog |
+#. Input field in export dialog | 
+#. label in word count dialog | 
+#. Column header | 
+#. Column header search dialog | 
+#. Column header Task List dialog | 
 #. page label
-#: zim/gui/exportdialog.py:181 zim/gui/pageview.py:7472
+#: zim/gui/exportdialog.py:181 zim/gui/pageview.py:7934
 #: zim/gui/recentchangesdialog.py:59 zim/gui/searchdialog.py:146
-#: zim/plugins/quicknote.py:247 zim/plugins/tasklist/gui.py:493
-#: zim/plugins/tasklist/gui.py:799
+#: zim/plugins/quicknote.py:247 zim/plugins/tasklist/gui.py:495
+#: zim/plugins/tasklist/gui.py:801
 msgid "Page"
 msgstr "ገጽ"
 
@@ -367,14 +363,15 @@ msgstr "የ መላኪያ አቀራረብ ይምረጡ"
 msgid "Other..."
 msgstr "ሌላ…"
 
-#. Input label in the export dialog |
+#. Input label in the export dialog | 
 #. label in "insert date" dialog
-#: zim/gui/exportdialog.py:223 zim/gui/pageview.py:6709
+#: zim/gui/exportdialog.py:223 zim/gui/pageview.py:7093
 msgid "Format"
 msgstr "አቀራረብ"
 
-#. Input label in the export dialog
-#: zim/gui/exportdialog.py:224
+#. Input label in the export dialog | 
+#. Field in web server gui for webpage template
+#: zim/gui/exportdialog.py:224 zim/gui/server.py:106
 msgid "Template"
 msgstr "ቲምፕሌት"
 
@@ -394,61 +391,61 @@ msgid "Get more templates online"
 msgstr "ተጨማሪ ቴምፕሌቶች በ መስመር ላይ ያግኙ"
 
 #. title of step in export dialog
-#: zim/gui/exportdialog.py:311
+#: zim/gui/exportdialog.py:310
 msgid "Select the output file or folder"
 msgstr "ይምረጡ የ ፋይል ወይንም የ ፎልደር ውጤት"
 
 #. Label for option in export dialog
-#: zim/gui/exportdialog.py:317
+#: zim/gui/exportdialog.py:316
 msgid "Export each page to a separate file"
 msgstr "እያንዳንዱን ገጽ ወደ የተለያየ ፋይል መላኪያ"
 
 #. Label for option in export dialog
-#: zim/gui/exportdialog.py:319
+#: zim/gui/exportdialog.py:318
 msgid "Export all pages to a single file"
 msgstr "ሁሉንም ገጾች ወደ ነጠላ ፋይል መላኪያ"
 
 #. Label for folder selection in export dialog
-#: zim/gui/exportdialog.py:322
+#: zim/gui/exportdialog.py:321
 msgid "Output folder"
 msgstr "የ ፎልደር ውጤት"
 
 #. Label for setting a name for the index of exported pages
-#: zim/gui/exportdialog.py:324
+#: zim/gui/exportdialog.py:323
 msgid "Index page"
 msgstr "የ ማውጫ ገጽ"
 
 #. Label for file selection in export dialog
-#: zim/gui/exportdialog.py:327
+#: zim/gui/exportdialog.py:326
 msgid "Output file"
 msgstr "የ ፋይል ውጤት"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:416
+#: zim/gui/exportdialog.py:415
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
 msgstr "%(n_error)i ስህተቶች እና %(n_warning)i ማስጠንቀቂያዎች ተፈጥረዋል: መግቢያውን ይመልከቱ"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:419
+#: zim/gui/exportdialog.py:418
 #, python-format
 msgid "%i errors occurred, see log"
 msgstr "%i ስህተት ተፈጥሯል: መግቢያውን ይመልከቱ"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:422
+#: zim/gui/exportdialog.py:421
 #, python-format
 msgid "%i warnings occurred, see log"
 msgstr "%i ማስጠንቀቂያ ተፈጥሯል: መግቢያውን ይመልከቱ"
 
 #. label in export dialog
-#: zim/gui/exportdialog.py:427
+#: zim/gui/exportdialog.py:426
 msgid "Export completed"
 msgstr "መላኪያው ጨርሷል"
 
-#. button in export dialog |
+#. button in export dialog | 
 #. button in e.g. equation editor dialog
-#: zim/gui/exportdialog.py:430 zim/plugins/base/imagegenerator.py:323
+#: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:323
 msgid "View _Log"
 msgstr "_መግቢያ መመልከቻ"
 
@@ -480,236 +477,212 @@ msgid "Unkown Image type"
 msgstr "ያልታወቀ የ ምስል አይነት"
 
 #. Menu title
-#: zim/gui/mainwindow.py:49
+#: zim/gui/mainwindow.py:43
 msgid "_File"
 msgstr "_ፋይል"
 
-#. Menu title |
+#. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:50 zim/gui/pageview.py:6746
+#: zim/gui/mainwindow.py:44 zim/gui/pageview.py:7114
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "_ማረሚያ"
 
-#. Menu title |
+#. Menu title | 
 #. button label
-#: zim/gui/mainwindow.py:51 zim/gui/templateeditordialog.py:43
+#: zim/gui/mainwindow.py:45 zim/gui/templateeditordialog.py:43
 msgid "_View"
 msgstr "_መመልከቻ"
 
-#. Menu title |
+#. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:52 zim/gui/pageview.py:6696
+#: zim/gui/mainwindow.py:46 zim/gui/pageview.py:6905 zim/gui/pageview.py:7064
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "_ማስገቢያ"
 
 #. Menu title
-#: zim/gui/mainwindow.py:53
+#: zim/gui/mainwindow.py:47
 msgid "_Search"
 msgstr "_መፈለጊያ"
 
 #. Menu title
-#: zim/gui/mainwindow.py:54
+#: zim/gui/mainwindow.py:48
 msgid "For_mat"
 msgstr "አቀራ_ረብ"
 
 #. Menu title
-#: zim/gui/mainwindow.py:55
+#: zim/gui/mainwindow.py:49
 msgid "_Tools"
 msgstr "_መሳሪያዎች"
 
 #. Menu title
-#: zim/gui/mainwindow.py:56
+#: zim/gui/mainwindow.py:50
 msgid "_Go"
 msgstr "_መሄጃ"
 
-#. Menu title |
+#. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:2868
+#: zim/gui/mainwindow.py:51 zim/gui/widgets.py:2926
 msgid "_Help"
 msgstr "_እርዳታ"
 
-#. Menu title |
-#. Menu item
-#: zim/gui/mainwindow.py:58 zim/gui/mainwindow.py:425
-msgid "_Toolbar"
-msgstr "_እቃ መደርደሪያ"
-
 #. Menu title
-#: zim/gui/mainwindow.py:59
+#: zim/gui/mainwindow.py:52
 msgid "_Checkbox"
 msgstr "_ምልክት ማድረጊያ ሳጥን"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
-#: zim/gui/mainwindow.py:65
+#: zim/gui/mainwindow.py:58
 #, python-format
 msgid "Use %s to switch to the side pane"
 msgstr "ይጠቀሙ %s የ ጎን ክፍል ለ መቀየር"
 
 #. Option in the preferences dialog
-#: zim/gui/mainwindow.py:69
+#: zim/gui/mainwindow.py:62
 msgid "Remove links when deleting pages"
 msgstr "አገናኛ ማስወገጃ ገጾች በሚጠፉ ጊዜ"
 
 #. Option in the preferences dialog
-#: zim/gui/mainwindow.py:71
+#: zim/gui/mainwindow.py:64
 msgid "Always use last cursor position when opening a page"
 msgstr "ገጽ በሚከፈት ጊዜ ሁል ጊዜ በ መጠቆሚያው መጨረሻ ቦታ መጀመሪያ"
 
-#. Menu item |
+#. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:334 zim/gui/widgets.py:2832
+#: zim/gui/mainwindow.py:339 zim/gui/widgets.py:2887
 msgid "_Close"
 msgstr "_መዝጊያ"
 
 #. page status in statusbar
-#: zim/gui/mainwindow.py:370
+#: zim/gui/mainwindow.py:380
 msgid "readonly"
 msgstr "ለ ንባብ ብቻ"
 
 #. label for View->Menubar menu item
-#: zim/gui/mainwindow.py:412
+#: zim/gui/mainwindow.py:422
 msgid "Menubar"
 msgstr "ዝርዝር መደርደሪያ"
 
 #. Menu item
-#: zim/gui/mainwindow.py:442
+#: zim/gui/mainwindow.py:435
 msgid "_Statusbar"
 msgstr "_ሁኔታዎች መደርደሪያ"
 
 #. Menu item
-#: zim/gui/mainwindow.py:454
+#: zim/gui/mainwindow.py:447
 msgid "_Fullscreen"
 msgstr "በ _ሙሉ መመልከቻ ዘዴ"
 
 #. Menu item
-#: zim/gui/mainwindow.py:472
+#: zim/gui/mainwindow.py:465
 msgid "_Side Panes"
 msgstr "የ _ጎን ክፍሎች"
 
-#. Menu item
-#: zim/gui/mainwindow.py:522
-msgid "Icons _And Text"
-msgstr "ምልክቶች እና ጽሁፍ"
-
-#. Menu item
-#: zim/gui/mainwindow.py:523
-msgid "_Icons Only"
-msgstr "_ምልክቶች ብቻ"
-
-#. Menu item
-#: zim/gui/mainwindow.py:524
-msgid "_Text Only"
-msgstr "_ጽሁፍ ብቻ"
-
-#. Menu item
-#: zim/gui/mainwindow.py:546
-msgid "_Large Icons"
-msgstr "_ትልቅ ምልክት"
-
-#. Menu item
-#: zim/gui/mainwindow.py:547
-msgid "_Small Icons"
-msgstr "_ትንሽ ምልክት"
-
-#. Menu item
-#: zim/gui/mainwindow.py:548
-msgid "_Tiny Icons"
-msgstr "በጣም _ትንሽ ምልክት"
-
 #. menu item
-#: zim/gui/mainwindow.py:568
+#: zim/gui/mainwindow.py:513 zim/gui/mainwindow.py:932
 msgid "Notebook _Editable"
 msgstr "_ሊታረም የሚችል ማስታወሻ ደብተር"
 
-#. Dialog title |
-#. input label
-#: zim/gui/mainwindow.py:656 zim/gui/searchdialog.py:25
-#: zim/gui/searchdialog.py:33
-msgid "Search"
-msgstr "መፈለጊያ"
-
-#. label in search entry
-#: zim/gui/mainwindow.py:659
-msgid "Search Pages..."
-msgstr "መፈለጊያ ገጾች..."
+#. menu item
+#: zim/gui/mainwindow.py:513 zim/gui/mainwindow.py:932
+#, fuzzy
+#| msgid "Notebook _Editable"
+msgid "Toggle editable"
+msgstr "_ሊታረም የሚችል ማስታወሻ ደብተር"
 
 #. Menu item
-#: zim/gui/mainwindow.py:817
+#: zim/gui/mainwindow.py:727
 msgid "_Jump To..."
 msgstr "_መዝለያ ወደ..."
 
-#. Menu item |
+#. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:822 zim/gui/widgets.py:3742
+#: zim/gui/mainwindow.py:732 zim/gui/widgets.py:3803
 msgid "_Back"
 msgstr "_ወደ ኋላ"
 
-#. Menu item |
+#: zim/gui/mainwindow.py:734
+msgid "Go back"
+msgstr ""
+
+#. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:834 zim/gui/widgets.py:3746
+#: zim/gui/mainwindow.py:745 zim/gui/widgets.py:3807
 msgid "_Forward"
 msgstr "_ወደ ፊት"
 
+#: zim/gui/mainwindow.py:747
+#, fuzzy
+#| msgid "_Forward"
+msgid "Go forward"
+msgstr "_ወደ ፊት"
+
 #. Menu item
-#: zim/gui/mainwindow.py:845
+#: zim/gui/mainwindow.py:757
 msgid "_Parent"
 msgstr "_ወላጅ"
 
 #. Menu item
-#: zim/gui/mainwindow.py:854
+#: zim/gui/mainwindow.py:766
 msgid "_Child"
 msgstr "_ልጅ"
 
 #. Menu item
-#: zim/gui/mainwindow.py:870
+#: zim/gui/mainwindow.py:782
 msgid "_Previous in index"
 msgstr "_ቀደም ያለው በ ማውጫ ውስጥ"
 
 #. Menu item
-#: zim/gui/mainwindow.py:879
+#: zim/gui/mainwindow.py:791
 msgid "_Next in index"
 msgstr "የ_ሚቀጥለው በ ማውጫ ውስጥ"
 
 #. Menu item
-#: zim/gui/mainwindow.py:888
+#: zim/gui/mainwindow.py:800
 msgid "_Home"
 msgstr "_ቤት"
 
 #. Menu item
-#: zim/gui/mainwindow.py:893
+#: zim/gui/mainwindow.py:800
+msgid "Go to home page"
+msgstr ""
+
+#. Menu item
+#: zim/gui/mainwindow.py:805
 msgid "_Reload"
 msgstr "_እንደገና መጫኛ"
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/mainwindow.py:922
-#, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
+#: zim/gui/mainwindow.py:834
+#, fuzzy, python-format
+#| msgid "%i _Backlink..."
+#| msgid_plural "%i _Backlinks..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
 msgstr[0] "%i የ  _ዌብ ምንጭ..."
 msgstr[1] "%i የ  _ዌብ ምንጮች..."
 
 #. Dialog title
-#: zim/gui/mainwindow.py:976
+#: zim/gui/mainwindow.py:958
 msgid "Jump to"
 msgstr "መዝለያ ወደ"
 
 #. Button label
-#: zim/gui/mainwindow.py:977
+#: zim/gui/mainwindow.py:959
 msgid "_Jump"
 msgstr "_መዝለያ"
 
 #. Label for page input
-#: zim/gui/mainwindow.py:982
+#: zim/gui/mainwindow.py:964
 msgid "Jump to Page"
 msgstr "መዝለያ ወደ ገጽ"
 
-#. Column heading in 'open notebook' dialog |
-#. Field in web server gui |
+#. Column heading in 'open notebook' dialog | 
+#. Field in web server gui | 
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:191 zim/gui/propertiesdialog.py:50
-#: zim/gui/server.py:92 zim/plugins/quicknote.py:222
+#: zim/gui/notebookdialog.py:191 zim/gui/propertiesdialog.py:56
+#: zim/gui/server.py:102 zim/plugins/quicknote.py:222
 msgid "Notebook"
 msgstr "ማስታወሻ ደብተር"
 
@@ -758,122 +731,12 @@ msgstr ""
 "እንዲሁም ቀደም ብሎ የ ነበረ የ ዚም ማስታወሻ ደብተር ፎልደር መጠቀም ይችላሉ\n"
 
 #. Menu title
-#: zim/gui/pageview.py:150
+#: zim/gui/pageview.py:156
 msgid "New _Attachment"
 msgstr "አዲስ _ማያያዣ"
 
-#. Menu item
-#: zim/gui/pageview.py:155
-msgid "Heading _1"
-msgstr "ራስጌ _1"
-
-#. Menu item
-#: zim/gui/pageview.py:155
-msgid "Heading 1"
-msgstr "ራስጌ 1"
-
-#. Menu item
-#: zim/gui/pageview.py:156
-msgid "Heading _2"
-msgstr "ራስጌ _2"
-
-#. Menu item
-#: zim/gui/pageview.py:156
-msgid "Heading 2"
-msgstr "ራስጌ 2"
-
-#. Menu item
-#: zim/gui/pageview.py:157
-msgid "Heading _3"
-msgstr "ራስጌ _3"
-
-#. Menu item
-#: zim/gui/pageview.py:157
-msgid "Heading 3"
-msgstr "ራስጌ 3"
-
-#. Menu item
-#: zim/gui/pageview.py:158
-msgid "Heading _4"
-msgstr "ራስጌ _4"
-
-#. Menu item
-#: zim/gui/pageview.py:158
-msgid "Heading 4"
-msgstr "ራስጌ 4"
-
-#. Menu item
-#: zim/gui/pageview.py:159
-msgid "Heading _5"
-msgstr "ራስጌ _5"
-
-#. Menu item
-#: zim/gui/pageview.py:159
-msgid "Heading 5"
-msgstr "ራስጌ 5"
-
-#. Menu item
-#: zim/gui/pageview.py:160 zim/gui/pageview.py:171
-msgid "_Strong"
-msgstr "_ጠንካራ"
-
-#. Menu item
-#: zim/gui/pageview.py:160 zim/gui/pageview.py:171
-msgid "Strong"
-msgstr "ጠንካራ"
-
-#. Menu item
-#: zim/gui/pageview.py:161 zim/gui/pageview.py:172
-msgid "_Emphasis"
-msgstr "_ማጋነኛ"
-
-#. Menu item
-#: zim/gui/pageview.py:161 zim/gui/pageview.py:172
-msgid "Emphasis"
-msgstr "ማጋነኛ"
-
-#. Menu item
-#: zim/gui/pageview.py:162 zim/gui/pageview.py:173
-msgid "_Mark"
-msgstr "_ምልክት"
-
-#. Menu item
-#: zim/gui/pageview.py:162 zim/gui/pageview.py:173
-msgid "Mark"
-msgstr "ምልክት"
-
-#. Menu item
-#: zim/gui/pageview.py:163 zim/gui/pageview.py:174
-msgid "_Strike"
-msgstr "_መሰረዣ"
-
-#. Menu item
-#: zim/gui/pageview.py:163 zim/gui/pageview.py:174
-msgid "Strike"
-msgstr "መሰረዣ"
-
-#. Menu item
-#: zim/gui/pageview.py:164
-msgid "_Subscript"
-msgstr "በ ትንንሽ ፊደል _ዝቅ ብሎ መጻፊያ"
-
-#. Menu item
-#: zim/gui/pageview.py:165
-msgid "_Superscript"
-msgstr "በ ትንንሽ ፊደል _ከፍ ብሎ መጻፊያ"
-
-#. Menu item
-#: zim/gui/pageview.py:166
-msgid "_Verbatim"
-msgstr "_ቃል በ ቃል"
-
-#. Menu item
-#: zim/gui/pageview.py:166
-msgid "Verbatim"
-msgstr "ቃል በ ቃል"
-
 #. option in preferences dialog
-#: zim/gui/pageview.py:181
+#: zim/gui/pageview.py:163
 msgid ""
 "Use the <Enter> key to follow links\n"
 "(If disabled you can still use <Alt><Enter>)"
@@ -882,27 +745,27 @@ msgstr ""
 "(ከ ተሰናከለ እርስዎ መጠቀም ይችላሉ <Alt><Enter>)"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:184
+#: zim/gui/pageview.py:166
 msgid "Show the cursor also for pages that can not be edited"
 msgstr "መታረም ለማይችሉ ገጾች እንዲሁም መጠቆሚያውን ማሳያ"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:187
+#: zim/gui/pageview.py:169
 msgid "Automatically turn \"CamelCase\" words into links"
 msgstr "ራሱ በራሱ ያበራል \"ቃሎች ማያያዣ\" ወደ ቃላቶች አገናኝ"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:190
+#: zim/gui/pageview.py:172
 msgid "Automatically turn file paths into links"
 msgstr "ራሱ በራሱ የ ፋይል መንገዶችን ወደ አገናኝ ይቀይራል"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:193
+#: zim/gui/pageview.py:175
 msgid "Automatically select the current word when you apply formatting"
 msgstr "ራሱ በራሱ ይመርጣል የ አሁኑን ቃል እርስዎ አቀራረብ ሲፈጽሙ"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:196
+#: zim/gui/pageview.py:178
 msgid ""
 "Unindent on <BackSpace>\n"
 "(If disabled you can still use <Shift><Tab>)"
@@ -911,43 +774,43 @@ msgstr ""
 "(ከ ተሰናከለ እርስዎ መጠቀም ይችላሉ <Shift><Tab>)"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:199
+#: zim/gui/pageview.py:181
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:202
+#: zim/gui/pageview.py:184
 msgid "(Un-)Indenting a list item also change any sub-items"
 msgstr "(አለ-)ማስረግ ዝርዝር እቃዎችን እንዲሁም ይቀይራል ማንኛውንም ንዑስ-እቃዎችን"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:205
+#: zim/gui/pageview.py:187
 msgid "Checking a checkbox also change any sub-items"
 msgstr "ምልክት ማድረጊያ ሳጥኖች መመርመር እንዲሁም ይቀይራል ማንኛውንም ንዑስ-እቃዎች"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:208
+#: zim/gui/pageview.py:190
 msgid "Reformat wiki markup on the fly"
 msgstr "እንደገና ማቅረብ በ ዊኪ ላይ ወዲያውኑ ይጨምራል"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:211
+#: zim/gui/pageview.py:193
 msgid "Default format for copying text to the clipboard"
 msgstr "ነባር አቀራረብ ጽሁፍ ኮፒ ለማድረግ ወደ ቁራጭ ሰሌዳ"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:214
+#: zim/gui/pageview.py:196
 msgid "Folder with templates for attachment files"
 msgstr "ፎልደር ከ ቴምፕሌቶች ጋር ፋይሎች ለ ማያያዣ"
 
 #. Heading of error dialog
-#: zim/gui/pageview.py:4873
+#: zim/gui/pageview.py:5054
 #, python-format
 msgid "Could not save page: %s"
 msgstr "ገጹን ማስቀመጥ አልተቻለም: %s"
 
 #. text in error dialog when saving page failed
-#: zim/gui/pageview.py:4877
+#: zim/gui/pageview.py:5058
 msgid ""
 "To continue you can save a copy of this page or discard\n"
 "any changes. If you save a copy changes will be also\n"
@@ -958,226 +821,313 @@ msgstr ""
 "ነገር ግን በኋላ እርስዎ ኮፒውን እንደ ነበር መመለስ ይችላሉ"
 
 #. Button label
-#: zim/gui/pageview.py:4896 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:858
+#: zim/gui/pageview.py:5077 zim/gui/pageview.py:7351 zim/gui/searchdialog.py:42
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
 msgstr "_መሰረዣ"
 
 #. Button in error dialog
-#: zim/gui/pageview.py:4901
+#: zim/gui/pageview.py:5082
 msgid "_Discard Changes"
 msgstr "ለውጦችን _ማስወገጃ"
 
 #. Button in error dialog
-#: zim/gui/pageview.py:4906
+#: zim/gui/pageview.py:5087
 msgid "_Save Copy"
 msgstr "ኮፒ _ማስቀመጫ"
 
+#. Menu item
+#: zim/gui/pageview.py:5312
+msgid "Heading _1"
+msgstr "ራስጌ _1"
+
+#. Menu item
+#: zim/gui/pageview.py:5313
+msgid "Heading _2"
+msgstr "ራስጌ _2"
+
+#. Menu item
+#: zim/gui/pageview.py:5314
+msgid "Heading _3"
+msgstr "ራስጌ _3"
+
+#. Menu item
+#: zim/gui/pageview.py:5315
+msgid "Heading _4"
+msgstr "ራስጌ _4"
+
+#. Menu item
+#: zim/gui/pageview.py:5316
+msgid "Heading _5"
+msgstr "ራስጌ _5"
+
+#. Menu item
+#: zim/gui/pageview.py:5317 zim/gui/pageview.py:5332
+msgid "_Strong"
+msgstr "_ጠንካራ"
+
+#. Menu item
+#: zim/gui/pageview.py:5318 zim/gui/pageview.py:5333
+msgid "_Emphasis"
+msgstr "_ማጋነኛ"
+
+#. Menu item
+#: zim/gui/pageview.py:5319 zim/gui/pageview.py:5334
+msgid "_Mark"
+msgstr "_ምልክት"
+
+#. Menu item
+#: zim/gui/pageview.py:5320 zim/gui/pageview.py:5335
+msgid "_Strike"
+msgstr "_መሰረዣ"
+
+#. Menu item
+#: zim/gui/pageview.py:5321
+msgid "_Subscript"
+msgstr "በ ትንንሽ ፊደል _ዝቅ ብሎ መጻፊያ"
+
+#. Menu item
+#: zim/gui/pageview.py:5322
+msgid "_Superscript"
+msgstr "በ ትንንሽ ፊደል _ከፍ ብሎ መጻፊያ"
+
+#. Menu item
+#: zim/gui/pageview.py:5323 zim/gui/pageview.py:5336
+msgid "_Verbatim"
+msgstr "_ቃል በ ቃል"
+
+#: zim/gui/pageview.py:5337
+#, fuzzy
+#| msgid "_Subscript"
+msgid "Su_bscript"
+msgstr "በ ትንንሽ ፊደል _ዝቅ ብሎ መጻፊያ"
+
+#: zim/gui/pageview.py:5338
+#, fuzzy
+#| msgid "_Superscript"
+msgid "Su_perscript"
+msgstr "በ ትንንሽ ፊደል _ከፍ ብሎ መጻፊያ"
+
 #. error when unknown interwiki link is clicked
-#: zim/gui/pageview.py:5792
+#: zim/gui/pageview.py:5985
 #, python-format
 msgid "No such wiki defined: %s"
 msgstr "እንዲህ ያለ ዊኪ አልተገለጸም: %s"
 
 #. menu item for context menu of editor
-#: zim/gui/pageview.py:5885
+#: zim/gui/pageview.py:6078
 msgid "Copy _As..."
 msgstr "ኮፒ ማድረጊያ _እንደ..."
 
 #. Context menu item for pageview to move selected text to new/other page
-#: zim/gui/pageview.py:5892
+#: zim/gui/pageview.py:6085
 msgid "Move Selected Text..."
 msgstr "የ ተመረጠውን ጽሁፍ ማንቀሳቀሻ..."
 
 #. Menu item
-#: zim/gui/pageview.py:5940 zim/gui/pageview.py:6172
+#: zim/gui/pageview.py:6133 zim/gui/pageview.py:6367
 msgid "_Remove Link"
 msgstr "አገናኝ _ማስወገጃ"
 
 #. menu item in context menu for image
-#: zim/gui/pageview.py:5947
+#: zim/gui/pageview.py:6140
 msgid "_Edit Properties"
 msgstr "ባህሪዎች _ማረሚያ"
 
 #. menu item in context menu
-#: zim/gui/pageview.py:5949
+#: zim/gui/pageview.py:6142
 msgid "_Edit Link"
 msgstr "አገናኝ _ማረሚያ"
 
 #. context menu item
-#: zim/gui/pageview.py:5969 zim/gui/pageview.py:5975 zim/gui/pageview.py:5982
+#: zim/gui/pageview.py:6162 zim/gui/pageview.py:6168 zim/gui/pageview.py:6175
 msgid "Copy _Link"
 msgstr "_አገናኝ ኮፒ ማድረጊያ"
 
 #. context menu item
-#: zim/gui/pageview.py:5979
+#: zim/gui/pageview.py:6172
 msgid "Copy Email Address"
 msgstr "ኢሜይል አድራሻን ኮፒ ማድረጊያ"
 
 #. menu item to open containing folder of files
-#: zim/gui/pageview.py:5990
+#: zim/gui/pageview.py:6183
 msgid "Open Folder"
 msgstr "ፎልደር መክፈቻ"
 
-#. menu item for sub menu with applications |
+#. menu item for sub menu with applications | 
 #. menu item
-#: zim/gui/pageview.py:5999 zim/gui/pageview.py:6010
-#: zim/plugins/attachmentbrowser/filebrowser.py:336
+#: zim/gui/pageview.py:6192 zim/gui/pageview.py:6203
+#: zim/plugins/attachmentbrowser/filebrowser.py:347
 msgid "Open With..."
 msgstr "መክፈቻ በ..."
 
-#. menu item to open a link |
+#. menu item to open a link | 
 #. Menu item
-#: zim/gui/pageview.py:6020 zim/gui/uiactions.py:143
+#: zim/gui/pageview.py:6213 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:105
 msgid "Open in New _Window"
 msgstr "በ አዲስ መስኮት መክፈቻ"
 
-#. menu item to open a link or file |
-#. Button label |
+#. menu item to open a link or file | 
+#. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview.py:6030 zim/gui/widgets.py:3420
-#: zim/plugins/attachmentbrowser/filebrowser.py:343
+#: zim/gui/pageview.py:6223 zim/gui/widgets.py:3481
+#: zim/plugins/attachmentbrowser/filebrowser.py:354
 msgid "_Open"
 msgstr "_መክፈቻ"
 
 #. popup menu menuitem
-#: zim/gui/pageview.py:6047
+#: zim/gui/pageview.py:6240
 msgid "Check Checkbox '>'"
 msgstr "ምልክት ማድረጊያ ሳጥን ውስጥ '>'"
 
 #. popup menu menuitem
-#: zim/gui/pageview.py:6048
+#: zim/gui/pageview.py:6241
 msgid "Check Checkbox 'X'"
 msgstr "ምልክት ማድረጊያ ሳጥን ውስጥ 'X'"
 
 #. popup menu menuitem
-#: zim/gui/pageview.py:6049
+#: zim/gui/pageview.py:6242
 msgid "Check Checkbox 'V'"
 msgstr "ምልክት ማድረጊያ ሳጥን ውስጥ 'V'"
 
-#. popup menu menuitem |
+#. popup menu menuitem | 
 #. Menu item
-#: zim/gui/pageview.py:6050 zim/gui/pageview.py:6101
+#: zim/gui/pageview.py:6243 zim/gui/pageview.py:6296
 msgid "Un-check Checkbox"
 msgstr "ከ ምልክት ማድረጊያ ሳጥን ውስጥ ምልክት-ማጥፊያ"
 
-#. Menu item |
-#. Button label |
+#. Menu item | 
+#. Button label | 
 #. button label
-#: zim/gui/pageview.py:6059 zim/gui/widgets.py:3422
+#: zim/gui/pageview.py:6252 zim/gui/widgets.py:3483
 #: zim/plugins/versioncontrol/__init__.py:756
 msgid "_Save"
 msgstr "_ማሰቀመጫ"
 
 #. Menu item
-#: zim/gui/pageview.py:6069
+#: zim/gui/pageview.py:6262
 msgid "_Undo"
 msgstr "_መተው"
 
 #. Menu item
-#: zim/gui/pageview.py:6075
+#: zim/gui/pageview.py:6269
 msgid "_Redo"
 msgstr "_እንደገና መስሪያ"
 
 #. Menu item
-#: zim/gui/pageview.py:6081
+#: zim/gui/pageview.py:6276
 msgid "Cu_t"
 msgstr "መቁረ_ጫ"
 
-#. Menu item |
-#. Button label |
+#. Menu item | 
+#. Button label | 
 #. menu label
-#: zim/gui/pageview.py:6086 zim/gui/templateeditordialog.py:46
-#: zim/plugins/tasklist/gui.py:771
+#: zim/gui/pageview.py:6281 zim/gui/templateeditordialog.py:46
+#: zim/plugins/tasklist/gui.py:773
 msgid "_Copy"
 msgstr "_ኮፒ"
 
 #. Menu item
-#: zim/gui/pageview.py:6091
+#: zim/gui/pageview.py:6286
 msgid "_Paste"
 msgstr "_መለጠፊያ"
 
 #. Menu item
-#: zim/gui/pageview.py:6096
+#: zim/gui/pageview.py:6291
 msgid "_Delete"
 msgstr "_ማጥፊያ"
 
 #. Menu item
-#: zim/gui/pageview.py:6107
+#: zim/gui/pageview.py:6302
 msgid "Toggle Checkbox 'V'"
 msgstr "ምልክት ማድረጊያ መቀያየሪያ 'V'"
 
 #. Menu item
-#: zim/gui/pageview.py:6116
+#: zim/gui/pageview.py:6311
 msgid "Toggle Checkbox 'X'"
 msgstr "ምልክት ማድረጊያ መቀያየሪያ 'X'"
 
 #. Menu item
-#: zim/gui/pageview.py:6125
+#: zim/gui/pageview.py:6320
 msgid "Toggle Checkbox '>'"
 msgstr "ምልክት ማድረጊያ ሳጥን መቀያየሪያ '>'"
 
 #. Menu item
-#: zim/gui/pageview.py:6134
+#: zim/gui/pageview.py:6329
 msgid "_Edit Link or Object..."
 msgstr "አገናኝ ወይንም እቃ _ማረሚያ..."
 
+#: zim/gui/pageview.py:6385
+#, fuzzy
+#| msgid "Copy _Link"
+msgid "Copy Line"
+msgstr "_አገናኝ ኮፒ ማድረጊያ"
+
 #. Menu item
-#: zim/gui/pageview.py:6190
-msgid "_Date and Time..."
+#: zim/gui/pageview.py:6401
+#, fuzzy
+#| msgid "_Date and Time..."
+msgid "Date and Time..."
 msgstr "_ቀን እና ሰአት..."
 
 #. Menu item for Insert menu
-#: zim/gui/pageview.py:6205
+#: zim/gui/pageview.py:6416
 msgid "Horizontal _Line"
 msgstr "የ አግድም _መስመር"
 
 #. Menu item
-#: zim/gui/pageview.py:6217
+#: zim/gui/pageview.py:6428
 msgid "_Image..."
 msgstr "_ምስል..."
 
-#. Menu item |
+#. Menu item
+#: zim/gui/pageview.py:6435
+#, fuzzy
+#| msgid "Attachments"
+msgid "_Attachment..."
+msgstr "ማያያዣ"
+
+#. Menu item | 
 #. Menu item,
-#: zim/gui/pageview.py:6234 zim/gui/pageview.py:6261
+#: zim/gui/pageview.py:6452 zim/gui/pageview.py:6479
 msgid "Bulle_t List"
 msgstr "የ ነጥ_ብ ዝርዝር"
 
-#. Menu item |
+#. Menu item | 
 #. Menu item,
-#: zim/gui/pageview.py:6239 zim/gui/pageview.py:6266
+#: zim/gui/pageview.py:6457 zim/gui/pageview.py:6484
 msgid "_Numbered List"
 msgstr "_ቁጥር መስጫ ዝርዝር"
 
-#. Menu item |
+#. Menu item | 
 #. Menu item,
-#: zim/gui/pageview.py:6244 zim/gui/pageview.py:6271
+#: zim/gui/pageview.py:6462 zim/gui/pageview.py:6489
 msgid "Checkbo_x List"
 msgstr "ምልክት ማድረጊያ ሳጥ+ን ዝርዝር"
 
 #. Menu item
-#: zim/gui/pageview.py:6280
+#: zim/gui/pageview.py:6498
 msgid "Text From _File..."
 msgstr "ጽሁፍ ከ _ፋይል..."
 
 #. Menu item
-#: zim/gui/pageview.py:6324
+#: zim/gui/pageview.py:6542
 msgid "_Link..."
 msgstr "_አገናኝ..."
 
 #. message when no file templates are found in ~/Templates
-#: zim/gui/pageview.py:6353
+#: zim/gui/pageview.py:6571
 msgid "No templates installed"
 msgstr "ምንም ቴምፕሌቶች አልተገጠሙም"
 
 #. Menu item in "Insert > New File Attachment" submenu
-#: zim/gui/pageview.py:6402
+#: zim/gui/pageview.py:6620
 msgid "File _Templates..."
 msgstr "ፋይል _ቴምፕሌቶች..."
 
 #. Text in a question dialog for creating a folder, %s is the folder path
-#: zim/gui/pageview.py:6416
+#: zim/gui/pageview.py:6634
 #, python-format
 msgid ""
 "The folder\n"
@@ -1191,382 +1141,446 @@ msgstr ""
 "እርስዎ አሁን መፍጠር ይፈልጋሉ?"
 
 #. Menu item
-#: zim/gui/pageview.py:6425
+#: zim/gui/pageview.py:6643
 msgid "_Clear Formatting"
 msgstr "አቀራረብ ማጽጃ"
 
 #. Menu item
-#: zim/gui/pageview.py:6530
+#: zim/gui/pageview.py:6752
 msgid "_Find..."
 msgstr "_መፈለጊያ..."
 
 #. Menu item
-#: zim/gui/pageview.py:6551
+#: zim/gui/pageview.py:6773
 msgid "Find Ne_xt"
 msgstr "የ _ሚቀጥለውን መፈለጊያ"
 
 #. Menu item
-#: zim/gui/pageview.py:6557
+#: zim/gui/pageview.py:6779
 msgid "Find Pre_vious"
 msgstr "ቀደም_ያለውን መፈለጊያ"
 
 #. Menu item
-#: zim/gui/pageview.py:6563
+#: zim/gui/pageview.py:6785
 msgid "_Replace..."
 msgstr "_መቀየሪያ..."
 
 #. Menu item
-#: zim/gui/pageview.py:6570
+#: zim/gui/pageview.py:6792
 msgid "Word Count..."
 msgstr "ቃላት መቁጠሪያ..."
 
 #. Menu item
-#: zim/gui/pageview.py:6575
+#: zim/gui/pageview.py:6797
 msgid "_Zoom In"
 msgstr "በቅርብ ማሳያ"
 
 #. Menu item
-#: zim/gui/pageview.py:6580
+#: zim/gui/pageview.py:6802
 msgid "Zoom _Out"
 msgstr "በርቀት ማሳያ"
 
 #. Menu item to reset zoom
-#: zim/gui/pageview.py:6608
+#: zim/gui/pageview.py:6830
 msgid "_Normal Size"
 msgstr "_መደበኛ መጠን"
 
+#: zim/gui/pageview.py:6878
+#, fuzzy
+#| msgid "Format"
+msgid "_Format"
+msgstr "አቀራረብ"
+
 #. Dialog title
-#: zim/gui/pageview.py:6695
+#: zim/gui/pageview.py:7063
 msgid "Insert Date and Time"
 msgstr "ቀን እና ሰአት ማስገቢያ"
 
-#. expander label in "insert date" dialog
-#: zim/gui/pageview.py:6727
-msgid "_Calendar"
-msgstr "_ቀን መቁጠሪያ"
+#. label in "insert date" dialog | 
+#. Column header Task List dialog | 
+#. Column header versions dialog
+#: zim/gui/pageview.py:7079 zim/plugins/tasklist/gui.py:486
+#: zim/plugins/versioncontrol/__init__.py:1069
+msgid "Date"
+msgstr "ቀን"
 
 #. check box in InsertDate dialog
-#: zim/gui/pageview.py:6741
+#: zim/gui/pageview.py:7109
 msgid "_Link to date"
 msgstr "ከ ቀን ጋር አገናኝ"
 
 #. Dialog title
-#: zim/gui/pageview.py:6835
+#: zim/gui/pageview.py:7202
 msgid "Insert Image"
 msgstr "ምስል ማስገቢያ"
 
 #. checkbox in the "Insert Image" dialog
-#: zim/gui/pageview.py:6848
+#: zim/gui/pageview.py:7215
 msgid "Attach image first"
 msgstr "በ መጀመሪያ ምስል ማያያዣ"
 
 #. Error message when trying to insert a not supported file as image
-#: zim/gui/pageview.py:6864
+#: zim/gui/pageview.py:7231
 #, python-format
 msgid "File type not supported: %s"
 msgstr "ፋይሉ የ ተደገፈ አይነት አይደለም: %s"
 
 #. Dialog title
-#: zim/gui/pageview.py:6889 zim/gui/uiactions.py:773
+#: zim/gui/pageview.py:7256
 msgid "Attach File"
 msgstr "ፋይል ማያያዣ"
 
 #. Error dialog - %s is the full page name
-#: zim/gui/pageview.py:6899 zim/gui/uiactions.py:782
+#: zim/gui/pageview.py:7263
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
 msgstr "ይህ ገጽ \"%s\" የሚያያዙ ፎልደሮች የሉትም"
 
-#. checkbox in the "Attach File" dialog
-#: zim/gui/pageview.py:6904
-msgid "Insert images as link"
-msgstr "ምስሎች እንደ አገናኝ ማስገቢያ"
+#. Dialog title
+#: zim/gui/pageview.py:7323
+msgid "File Exists"
+msgstr "ፋይሉ ቀደም ሲል ነበር"
+
+#. Dialog text in 'new filename' dialog
+#: zim/gui/pageview.py:7324
+#, python-format
+msgid ""
+"A file with the name <b>\"%s\"</b> already exists.\n"
+"You can use another name or overwrite the existing file."
+msgstr ""
+"ፋይክ በዚህ ስም <b>\"%s\"</b> ቀደም ብሎ ነበር\n"
+"እርስዎ አዲስ ስም ማስገባት ይችላሉ ወይንም በ ነበረው ፋይል ላይ ደርቦ ይጽፍበታል"
+
+#. Input label
+#: zim/gui/pageview.py:7333
+msgid "Filename"
+msgstr "የ ፋይል ስም"
+
+#. Button label
+#: zim/gui/pageview.py:7342 zim/gui/widgets.py:1069 zim/gui/widgets.py:1093
+msgid "_Browse"
+msgstr "_መቃኛ"
+
+#. Button label
+#: zim/gui/pageview.py:7347
+msgid "Overwrite"
+msgstr "በ ላዩ ላይ መጻፊያ"
+
+#. Button label
+#: zim/gui/pageview.py:7352 zim/gui/widgets.py:85
+msgid "_OK"
+msgstr "_እሺ"
 
 #. Dialog title
-#: zim/gui/pageview.py:6925
+#: zim/gui/pageview.py:7390
 msgid "Edit Image"
 msgstr "ምስል ማረሚያ"
 
-#. Input in 'edit image' dialog
-#: zim/gui/pageview.py:6945
+#. Input in 'edit image' dialog | 
+#. Input label for the section to move a page to
+#: zim/gui/pageview.py:7410 zim/gui/uiactions.py:597
 msgid "Location"
 msgstr "አካባቢ"
 
-#. Input in 'edit image' dialog |
+#. Input in 'edit image' dialog | 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:6946 zim/gui/pageview.py:7088
+#: zim/gui/pageview.py:7411 zim/gui/pageview.py:7553
 msgid "Link to"
 msgstr "አገናኝ ወደ"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:6947
+#: zim/gui/pageview.py:7412
 msgid "Width"
 msgstr "ስፋት"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:6948
+#: zim/gui/pageview.py:7413
 msgid "Height"
 msgstr "እርዝመት"
 
 #. Button in 'edit image' dialog
-#: zim/gui/pageview.py:6956
+#: zim/gui/pageview.py:7421
 msgid "_Reset Size"
 msgstr "መጠን _እንደገና ማሰናጃ"
 
 #. Dialog title
-#: zim/gui/pageview.py:7053
+#: zim/gui/pageview.py:7518
 msgid "Insert Text From File"
 msgstr "ጽሁፍ ከ ፋይል ውስጥ ማስገቢያ"
 
 #. Dialog title
-#: zim/gui/pageview.py:7080
+#: zim/gui/pageview.py:7545
 msgid "Edit Link"
 msgstr "አገናኝ ማረሚያ"
 
 #. Dialog title
-#: zim/gui/pageview.py:7082
+#: zim/gui/pageview.py:7547
 msgid "Insert Link"
 msgstr "አገናኝ ማስገቢያ"
 
 #. Dialog button
-#: zim/gui/pageview.py:7084
+#: zim/gui/pageview.py:7549
 msgid "_Link"
 msgstr "_አገናኝ"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:7089
+#: zim/gui/pageview.py:7554
 msgid "Text"
 msgstr "ጽሁፍ"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:7192
+#: zim/gui/pageview.py:7657
 msgid "_Next"
 msgstr "_ይቀጥሉ"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:7198
+#: zim/gui/pageview.py:7663
 msgid "_Previous"
 msgstr "_ቀደም ያለው"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7204
+#: zim/gui/pageview.py:7669
 msgid "Match _case"
 msgstr "_ጉዳይ ማመሳሰያ"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7209
+#: zim/gui/pageview.py:7674
 msgid "Whole _word"
 msgstr "ጠቅላላ _ቃል"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7214
+#: zim/gui/pageview.py:7679
 msgid "_Regular expression"
 msgstr "_መደበኛ መግለጫ"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:7219
+#: zim/gui/pageview.py:7684
 msgid "_Highlight"
 msgstr "_ማድመቂያ"
 
 #. label for input in find bar on bottom of page
-#: zim/gui/pageview.py:7308
+#: zim/gui/pageview.py:7770
 msgid "Find"
 msgstr "መፈለጊያ"
 
 #. Dialog title
-#: zim/gui/pageview.py:7354
+#: zim/gui/pageview.py:7816
 msgid "Find and Replace"
 msgstr "መፈለጊያ እና መቀየሪያ"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:7364
+#: zim/gui/pageview.py:7826
 msgid "Find what"
 msgstr "ምን ልፈልግ"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:7374
+#: zim/gui/pageview.py:7836
 msgid "Replace with"
 msgstr "መቀየሪያ በ"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:7388
+#: zim/gui/pageview.py:7850
 msgid "_Replace"
 msgstr "_መቀየሪያ"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:7393
+#: zim/gui/pageview.py:7855
 msgid "Replace _All"
 msgstr "ሁሉንም _መቀየሪያ"
 
 #. Dialog title
-#: zim/gui/pageview.py:7430
+#: zim/gui/pageview.py:7892
 msgid "Word Count"
 msgstr "ቃል መቁጠሪያ"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7473
+#: zim/gui/pageview.py:7935
 msgid "Paragraph"
 msgstr "አንቀጽ"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7474
+#: zim/gui/pageview.py:7936
 msgid "Selection"
 msgstr "ምርጫ"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7475
+#: zim/gui/pageview.py:7937
 msgid "Words"
 msgstr "ቃላት"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7476
+#: zim/gui/pageview.py:7938
 msgid "Lines"
 msgstr "መስመሮች"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7477
+#: zim/gui/pageview.py:7939
 msgid "Characters"
 msgstr "ባህሪዎች"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:7478
+#: zim/gui/pageview.py:7940
 msgid "Characters excluding spaces"
 msgstr "ባህሪዎች ክፍተት አያካትቱም"
 
 #. Dialog title
-#: zim/gui/pageview.py:7521
+#: zim/gui/pageview.py:7983
 msgid "Move Text to Other Page"
 msgstr "ጽሁፍ ወደ ሌላ ገጽ ማንቀሳቀሻ"
 
 #. Button label
-#: zim/gui/pageview.py:7522
+#: zim/gui/pageview.py:7984
 msgid "_Move"
 msgstr "_ማንቀሳቀሻ"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:7538
+#: zim/gui/pageview.py:8000
 msgid "Move text to"
 msgstr "ጽሁፍ ማንቀሳቀሻ ወደ"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:7539
+#: zim/gui/pageview.py:8001
 msgid "Leave link to new page"
 msgstr "አዲስ ገጽ ወደ አገናኝ መተው"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:7540
+#: zim/gui/pageview.py:8002
 msgid "Open new page"
 msgstr "አዲስ ገጽ መክፈቻ"
 
 #. Dialog title
-#: zim/gui/pageview.py:7585
+#: zim/gui/pageview.py:8047
 msgid "New File"
 msgstr "አዲስ ፋይል"
 
 #. Tab in preferences dialog
-#: zim/gui/preferencesdialog.py:29
+#: zim/gui/preferencesdialog.py:31
 msgid "Interface"
 msgstr "ግንኙነት"
 
 #. Tab in preferences dialog
-#: zim/gui/preferencesdialog.py:30
+#: zim/gui/preferencesdialog.py:32
 msgid "Editing"
 msgstr "በ ማረም ላይ"
 
+#. warning message, %s is the current locale - e.g. "NL_nl"
+#: zim/gui/preferencesdialog.py:39
+#, python-format
+msgid ""
+"Your system encoding is set to %s, if you want support for special "
+"characters\n"
+"or see errors due to encoding, please ensure to configure your system to use "
+"\"UTF-8\""
+msgstr ""
+
 #. Dialog title
-#: zim/gui/preferencesdialog.py:36
+#: zim/gui/preferencesdialog.py:51
 msgid "Preferences"
 msgstr "ምርጫዎች"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:96
+#: zim/gui/preferencesdialog.py:113
+#, fuzzy
+#| msgid "_Keybindings"
+msgid "Key bindings"
+msgstr "_ቁልፍ ማጣመሪያ"
+
+#. Heading in preferences dialog
+#: zim/gui/preferencesdialog.py:118
 msgid "Plugins"
 msgstr "ተሰኪዎች"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:106
+#: zim/gui/preferencesdialog.py:128
 msgid "Applications"
 msgstr "መተግበሪያ"
 
 #. option in preferences dialog
-#: zim/gui/preferencesdialog.py:113
+#: zim/gui/preferencesdialog.py:135
 msgid "Use a custom font"
 msgstr "ፊደል ማስተካከያ መጠቀሚያ"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:224
+#: zim/gui/preferencesdialog.py:246
 msgid "_More"
 msgstr "_ተጨማሪ"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:229
+#: zim/gui/preferencesdialog.py:251
 msgid "C_onfigure"
 msgstr "ማ_ዋቀሪያ"
 
+#. Button in plugin tab
+#: zim/gui/preferencesdialog.py:256
+#, fuzzy
+#| msgid "Properties"
+msgid "_Properties"
+msgstr "ባህሪዎች"
+
 #. button label
-#: zim/gui/preferencesdialog.py:244
+#: zim/gui/preferencesdialog.py:271
 msgid "Open plugins folder"
 msgstr "የ ተሰኪ ፎልደር መክፈቻ"
 
 #. label for button with URL
-#: zim/gui/preferencesdialog.py:253
+#: zim/gui/preferencesdialog.py:280
 msgid "Get more plugins online"
 msgstr "ተጨማሪ ተሰኪዎች በ መስመር ላይ ያግኙ"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:283
+#: zim/gui/preferencesdialog.py:310
 msgid "Dependencies"
 msgstr "ጥገኞች"
 
 #. label in plugin info in preferences dialog
-#: zim/gui/preferencesdialog.py:287
+#: zim/gui/preferencesdialog.py:314
 msgid "No dependencies"
 msgstr "ጥገኞች የሉም"
 
 #. dependency is OK
-#: zim/gui/preferencesdialog.py:293
+#: zim/gui/preferencesdialog.py:320
 msgid "OK"
 msgstr "እሺ"
 
 #. dependency failed
-#: zim/gui/preferencesdialog.py:295 zim/gui/preferencesdialog.py:298
+#: zim/gui/preferencesdialog.py:322 zim/gui/preferencesdialog.py:325
 msgid "Failed"
 msgstr "ወድቋል"
 
 #. optional dependency
-#: zim/gui/preferencesdialog.py:299
+#: zim/gui/preferencesdialog.py:326
 msgid "Optional"
 msgstr "በ ምርጫ"
 
-#. Heading in plugins tab of preferences dialog |
+#. Heading in plugins tab of preferences dialog | 
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:303 zim/plugins/versioncontrol/__init__.py:1070
+#: zim/gui/preferencesdialog.py:330 zim/plugins/versioncontrol/__init__.py:1070
 msgid "Author"
 msgstr "ደራሲ"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:387
+#: zim/gui/preferencesdialog.py:421
 msgid "Enabled"
 msgstr "ተችሏል"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:390
+#: zim/gui/preferencesdialog.py:424
 msgid "Plugin"
 msgstr "ተሰኪ"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:397
+#: zim/gui/preferencesdialog.py:431
 msgid "Configure Plugin"
 msgstr "ተሰኪ ማሰናጃ"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:402
+#: zim/gui/preferencesdialog.py:436
 #, python-format
 msgid "Options for plugin %s"
 msgstr "ምርጫ ለ ተሰኪ %s"
 
 #. info text in the preferences dialog
-#: zim/gui/preferencesdialog.py:420
+#: zim/gui/preferencesdialog.py:454
 msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
@@ -1575,9 +1589,32 @@ msgstr ""
 "የ ማስታወሻ ደብተር ባህሪ ንግግር ይመልከቱ:"
 
 #. button in preferences dialog to change default text editor
-#: zim/gui/preferencesdialog.py:440
+#: zim/gui/preferencesdialog.py:474
 msgid "Set default text editor"
 msgstr "ነባር የ ጽሁፍ ማረሚያ ማሰናጃ"
+
+#. help text in preferences dialog for modifying keybindings
+#: zim/gui/preferencesdialog.py:503
+msgid ""
+"Key bindings can be changed by selecting the action in the list and pressing "
+"the new key binding.\n"
+"To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
+"</tt>."
+msgstr ""
+
+#. Column header for keybinding list
+#: zim/gui/preferencesdialog.py:521
+#, fuzzy
+#| msgid "Section"
+msgid "Action"
+msgstr "ክፍል"
+
+#. Column header for keybinding list
+#: zim/gui/preferencesdialog.py:532
+#, fuzzy
+#| msgid "_Keybindings"
+msgid "Key Binding"
+msgstr "_ቁልፍ ማጣመሪያ"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:17
@@ -1594,8 +1631,13 @@ msgstr "የ ገጽ ቤት"
 msgid "Document Root"
 msgstr "የ ሰነድ Root"
 
+#. label for properties dialog
+#: zim/gui/propertiesdialog.py:21
+msgid "Paste short relative link names"
+msgstr ""
+
 #. Dialog title
-#: zim/gui/propertiesdialog.py:28
+#: zim/gui/propertiesdialog.py:29
 msgid "Properties"
 msgstr "ባህሪዎች"
 
@@ -1619,6 +1661,12 @@ msgstr "ትናንትና"
 msgid "Last Modified"
 msgstr "መጨረሻ የተሻሻለው"
 
+#. Dialog title | 
+#. input label
+#: zim/gui/searchdialog.py:25 zim/gui/searchdialog.py:33
+msgid "Search"
+msgstr "መፈለጊያ"
+
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
@@ -1638,43 +1686,60 @@ msgstr ""
 msgid "Limit search to the current page and sub-pages"
 msgstr "ፍለጋውን መወሰኛ ወደ አሁኑ ገጽ እና ወደ ንዑስ-ገጾች ውስጥ"
 
-#. Column header search dialog |
+#. Column header search dialog | 
 #. menu item
 #: zim/gui/searchdialog.py:147 zim/plugins/scoreeditor.py:68
 msgid "Score"
 msgstr "ነጥብ"
 
 #. Window title
-#: zim/gui/server.py:47
+#: zim/gui/server.py:46
 msgid "Web Server"
 msgstr "የ ዌብ ሰርቨር"
 
 #. Status in web server gui
-#: zim/gui/server.py:55
+#: zim/gui/server.py:54
 msgid "Server not started"
 msgstr "የ ዌብ ሰርቨር አልጀመረም"
 
 #. Checkbox in web server gui
-#: zim/gui/server.py:76
+#: zim/gui/server.py:75
 msgid "Allow public access"
 msgstr "ለ ሁሉም መድረሻ ፍቃድ መፍቀጃ"
 
+#. checkbox in dialog for starting webserver
+#: zim/gui/server.py:85
+msgid "Require authentication"
+msgstr ""
+
 #. Field in web server gui for HTTP port (e.g. port 80)
-#: zim/gui/server.py:94
+#: zim/gui/server.py:104
 msgid "Port"
 msgstr "ፖርት"
 
+#. Field in web server gui
+#: zim/gui/server.py:110
+#, fuzzy
+#| msgid "Filename"
+msgid "Username"
+msgstr "የ ፋይል ስም"
+
+#. Field in web server gui
+#: zim/gui/server.py:112
+msgid "Password"
+msgstr ""
+
 #. Status in web server gui
-#: zim/gui/server.py:158
+#: zim/gui/server.py:187
 msgid "Server started"
 msgstr "ሰርቨር ጀምሯል"
 
 #. Status in web server gui
-#: zim/gui/server.py:199
+#: zim/gui/server.py:228
 msgid "Server stopped"
 msgstr "ሰርቨር ተቋርጧል"
 
-#. Dialog title |
+#. Dialog title | 
 #. Section in dialog
 #: zim/gui/templateeditordialog.py:22 zim/gui/templateeditordialog.py:27
 msgid "Templates"
@@ -1691,199 +1756,198 @@ msgid "Copy Template"
 msgstr "ቴምፕሌት ኮፒ ማድረጊያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:91
+#: zim/gui/uiactions.py:95
 msgid "_New Page..."
 msgstr "_አዲስ ገጽ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:102
+#: zim/gui/uiactions.py:106
 msgid "New S_ub Page..."
 msgstr "አዲስ ን_ዑስ ገጽ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:110
+#: zim/gui/uiactions.py:114
 msgid "_New Page Here..."
 msgstr "_አዲስ ገጽ እዚህ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:118
+#: zim/gui/uiactions.py:122
 msgid "_Open Another Notebook..."
 msgstr "_መክፈቻ ሌላ የ ማስታወሻ ደብተር..."
 
 #. Menu item
-#: zim/gui/uiactions.py:138
+#: zim/gui/uiactions.py:142
 msgid "_Import Page..."
 msgstr "ገጽ _ማምጫ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:156
+#: zim/gui/uiactions.py:160
 msgid "Save A _Copy..."
 msgstr "_ኮፒ ማስቀመጫ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:161
+#: zim/gui/uiactions.py:165
 msgid "E_xport..."
 msgstr "መ_ላኪያ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:168
+#: zim/gui/uiactions.py:172
 msgid "_Send To..."
 msgstr "_መላኪያ ወደ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:181
-msgid "_Rename Page..."
+#: zim/gui/uiactions.py:185
+#, fuzzy
+#| msgid "_Rename Page..."
+msgid "_Rename or move Page..."
 msgstr "ገጽ _እንደገና መሰየሚያ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:190
-msgid "_Move Page..."
-msgstr "ገጽ _ማንቀሳቀሻ..."
-
-#. Menu item
-#: zim/gui/uiactions.py:199
+#: zim/gui/uiactions.py:194
 msgid "_Delete Page"
 msgstr "ገጽ _ማጥፊያ"
 
 #. Title of progressbar dialog
-#: zim/gui/uiactions.py:230 zim/gui/uiactions.py:760
+#: zim/gui/uiactions.py:225 zim/gui/uiactions.py:713
 msgid "Removing Links"
 msgstr "አገናኝ ማሰወገጃ"
 
 #. Menu item
-#: zim/gui/uiactions.py:243
+#: zim/gui/uiactions.py:238
 msgid "Proper_ties"
 msgstr "ባህሪ_ዎች"
 
-#. Menu item |
+#. Menu item | 
 #. menu item in tray icon menu
-#: zim/gui/uiactions.py:253 zim/plugins/trayicon.py:148
+#: zim/gui/uiactions.py:248 zim/plugins/trayicon.py:148
 msgid "_Quit"
 msgstr "_ማጥፊያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:263
+#: zim/gui/uiactions.py:258
 msgid "Copy _Location"
 msgstr "_አካባቢ ኮፒ ማድረጊያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:269
+#: zim/gui/uiactions.py:264
 msgid "_Templates"
 msgstr "_ቴምፕሌት"
 
 #. Menu item
-#: zim/gui/uiactions.py:275
+#: zim/gui/uiactions.py:270
 msgid "Pr_eferences"
 msgstr "ምር_ጫዎች"
 
 #. Menu item
-#: zim/gui/uiactions.py:285
+#: zim/gui/uiactions.py:280
 msgid "_Search..."
 msgstr "_መፈለጊያ..."
 
 #. Menu item for search a sub-set of the notebook
-#: zim/gui/uiactions.py:300
+#: zim/gui/uiactions.py:295
 msgid "Search this section"
 msgstr "በዚህ ክፍል ውስጥ መፈለጊያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:305
+#: zim/gui/uiactions.py:300
 msgid "Search _Backlinks..."
 msgstr "መፈለጊያ የ  _ዌብ ምንጭ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:313
+#: zim/gui/uiactions.py:308
 msgid "Recent Changes..."
 msgstr "በ ቅርብ የ ተቀየሩ..."
 
 #. Menu item
-#: zim/gui/uiactions.py:320
-msgid "Attach _File"
-msgstr "_ፋይል ማያያዣ"
-
-#. Menu item
-#: zim/gui/uiactions.py:328
+#: zim/gui/uiactions.py:315
 msgid "Open Attachments _Folder"
 msgstr "መክፈቻ ማያያዣ _ፎልደር"
 
 #. Error message
-#: zim/gui/uiactions.py:333
+#: zim/gui/uiactions.py:320
 msgid "This page does not have an attachments folder"
 msgstr "ይህ ገጽ ማያያዣ ፎልደር የለውም"
 
 #. Menu item
-#: zim/gui/uiactions.py:339
+#: zim/gui/uiactions.py:326
 msgid "Open _Notebook Folder"
 msgstr "መክፈቻ የ _ማስታወሻ ደበተር ፎልደር"
 
 #. Menu item
-#: zim/gui/uiactions.py:344
+#: zim/gui/uiactions.py:331
 msgid "Open _Document Root"
 msgstr "መክፈቻ የ _ሰነድ Root"
 
 #. Error message
-#: zim/gui/uiactions.py:350
+#: zim/gui/uiactions.py:337
 msgid "No document root defined for this notebook"
 msgstr "ለዚህ ማስታወሻ ደብተር ምንም የ ሰነድ ምንጭ አልተገኘም:"
 
 #. Menu item
-#: zim/gui/uiactions.py:356
+#: zim/gui/uiactions.py:343
 msgid "Edit _Source"
 msgstr "_ምንጩን ማረሚያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:372
+#: zim/gui/uiactions.py:359
 msgid "Start _Web Server"
 msgstr "የ _ዌብ ሰርቨር ማስጀመሪያ"
 
+#. menu item
+#: zim/gui/uiactions.py:366
+#, fuzzy
+#| msgid "View _Log"
+msgid "View debug log"
+msgstr "_መግቢያ መመልከቻ"
+
 #. Menu item
-#: zim/gui/uiactions.py:387
+#: zim/gui/uiactions.py:380
 msgid "Update Index"
 msgstr "ማውጫ ማሻሻያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:420
+#: zim/gui/uiactions.py:413
 msgid "Custom _Tools"
 msgstr "_መሳሪያዎች ማስተካከያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:426
+#: zim/gui/uiactions.py:419
 msgid "_Contents"
 msgstr "_ይዞታዎች"
 
 #. Menu item
-#: zim/gui/uiactions.py:437
+#: zim/gui/uiactions.py:430
 msgid "_FAQ"
 msgstr "_ብዙ ጊዜ የሚጠየቁ"
 
 #. Menu item
-#: zim/gui/uiactions.py:442
+#: zim/gui/uiactions.py:435
 msgid "_Keybindings"
 msgstr "_ቁልፍ ማጣመሪያ"
 
 #. Menu item
-#: zim/gui/uiactions.py:447
+#: zim/gui/uiactions.py:440
 msgid "_Bugs"
 msgstr "_ችግር"
 
 #. Menu item
-#: zim/gui/uiactions.py:452
+#: zim/gui/uiactions.py:445
 msgid "_About"
 msgstr "_ስለ"
 
 #. Dialog title
-#: zim/gui/uiactions.py:468
+#: zim/gui/uiactions.py:461
 #, python-format
 msgid "New Page in %s"
 msgstr "አዲስ ገጽ በ %s"
 
 #. Dialog title
-#: zim/gui/uiactions.py:470
+#: zim/gui/uiactions.py:463
 msgid "New Page"
 msgstr "አዲስ ገጽ"
 
 #. Dialog text in 'new page' dialog
-#: zim/gui/uiactions.py:474
+#: zim/gui/uiactions.py:467
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
@@ -1892,89 +1956,74 @@ msgstr ""
 "ራሱ በራሱ እንዲሁም አዲስ ገጽ ይፈጥራል"
 
 #. Input label
-#: zim/gui/uiactions.py:488
+#: zim/gui/uiactions.py:481
 msgid "Page Name"
 msgstr "የ ገጽ ስም"
 
 #. Choice label
-#: zim/gui/uiactions.py:489
+#: zim/gui/uiactions.py:482
 msgid "Page Template"
 msgstr "የ ገጽ ቴምፕለት"
 
 #. Dialog title
-#: zim/gui/uiactions.py:524
+#: zim/gui/uiactions.py:517
 msgid "Import Page"
 msgstr "ገጽ ማምጫ"
 
 #. File filter for '*.txt'
-#: zim/gui/uiactions.py:528
+#: zim/gui/uiactions.py:521
 msgid "Text Files"
 msgstr "የ ጽሁፍ ፋይሎች"
 
 #. Dialog title of file save dialog
-#: zim/gui/uiactions.py:557
+#: zim/gui/uiactions.py:550
 msgid "Save Copy"
 msgstr "ኮፒ ማስቀመጫ"
 
 #. Dialog title
-#: zim/gui/uiactions.py:581
-msgid "Rename Page"
+#: zim/gui/uiactions.py:574
+#, fuzzy
+#| msgid "Rename Page"
+msgid "Rename or Move Page"
 msgstr "ገጽ እንደገና መሰየሚያ"
 
-#. label in 'rename page' dialog - %s is the page name
-#: zim/gui/uiactions.py:586
+#. Heading in 'move page' dialog - %s is the page name
+#: zim/gui/uiactions.py:579
 #, python-format
 msgid "Rename page \"%s\""
 msgstr "ገጽ እንደገና መሰየሚያ \"%s\""
 
 #. label in MovePage dialog - %i is number of backlinks
-#: zim/gui/uiactions.py:597 zim/gui/uiactions.py:659
+#: zim/gui/uiactions.py:590
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
 msgstr[0] "ማሻሻያ %i ገጽ ማገናኛ ወደዚህ ገጽ"
 msgstr[1] "ማሻሻያ %i ገጾች ማገናኛ ወደዚህ ገጽ"
 
-#. Option in the 'rename page' dialog
-#: zim/gui/uiactions.py:605
+#. option in 'move page' dialog
+#: zim/gui/uiactions.py:599
 msgid "Update the heading of this page"
 msgstr "የዚህን ገጽ ራስጌዎች ማሻሻያ"
 
 #. label for progress dialog
-#: zim/gui/uiactions.py:634 zim/gui/uiactions.py:686
+#: zim/gui/uiactions.py:634
 msgid "Updating Links"
 msgstr "አገናኝ በ ማሻሻል ላይ"
 
 #. Dialog title
-#: zim/gui/uiactions.py:646
-msgid "Move Page"
-msgstr "ገጽ ማንቀሳቀሻ"
-
-#. Heading in 'move page' dialog - %s is the page name
-#: zim/gui/uiactions.py:650
-#, python-format
-msgid "Move page \"%s\""
-msgstr "ገጽ ማንቀሳቀሻ \"%s\""
-
-#. Input label for the section to move a page to |
-#. input label
-#: zim/gui/uiactions.py:664 zim/plugins/journal.py:121
-msgid "Section"
-msgstr "ክፍል"
-
-#. Dialog title
-#: zim/gui/uiactions.py:699
+#: zim/gui/uiactions.py:652
 msgid "Delete Page"
 msgstr "ገጽ ማጥፊያ"
 
 #. Heading in 'delete page' dialog - %s is the page name
-#: zim/gui/uiactions.py:714
+#: zim/gui/uiactions.py:667
 #, python-format
 msgid "Delete page \"%s\"?"
 msgstr "ገጹን ላጥፋው \"%s\"?"
 
 #. Text in 'delete page' dialog - %s is the page name
-#: zim/gui/uiactions.py:716
+#: zim/gui/uiactions.py:669
 #, python-format
 msgid ""
 "Page \"%s\" and all of it's\n"
@@ -1984,55 +2033,20 @@ msgstr ""
 "ንዑስ-ገጾች እና ማያያዣዎች በ ሙሉ ይጠፋሉ"
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
-#: zim/gui/uiactions.py:730
+#: zim/gui/uiactions.py:683
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
 msgstr[0] "%i ፋይሉ ይጠፋል"
 msgstr[1] "%i ፋይሎቹ በ ሙሉ ይጠፋሉ"
 
-#. Dialog title
-#: zim/gui/uiactions.py:830
-msgid "File Exists"
-msgstr "ፋይሉ ቀደም ሲል ነበር"
-
-#. Dialog text in 'new filename' dialog
-#: zim/gui/uiactions.py:831
-#, python-format
-msgid ""
-"A file with the name <b>\"%s\"</b> already exists.\n"
-"You can use another name or overwrite the existing file."
-msgstr ""
-"ፋይክ በዚህ ስም <b>\"%s\"</b> ቀደም ብሎ ነበር\n"
-"እርስዎ አዲስ ስም ማስገባት ይችላሉ ወይንም በ ነበረው ፋይል ላይ ደርቦ ይጽፍበታል"
-
-#. Input label
-#: zim/gui/uiactions.py:840
-msgid "Filename"
-msgstr "የ ፋይል ስም"
-
-#. Button label
-#: zim/gui/uiactions.py:849 zim/gui/widgets.py:1054 zim/gui/widgets.py:1078
-msgid "_Browse"
-msgstr "_መቃኛ"
-
-#. Button label
-#: zim/gui/uiactions.py:854
-msgid "Overwrite"
-msgstr "በ ላዩ ላይ መጻፊያ"
-
-#. Button label
-#: zim/gui/uiactions.py:859 zim/gui/widgets.py:85
-msgid "_OK"
-msgstr "_እሺ"
-
 #. General description of zim itself
-#: zim/gui/uiactions.py:903
+#: zim/gui/uiactions.py:732
 msgid "A desktop wiki"
 msgstr "የ ዴስክቶፕ ዊኪ"
 
 #. This string needs to be translated with names of the translators for this language
-#: zim/gui/uiactions.py:911
+#: zim/gui/uiactions.py:740
 msgid "translator-credits"
 msgstr ""
 "Launchpad Contributions:\n"
@@ -2040,67 +2054,67 @@ msgstr ""
 "  samson https://launchpad.net/~sambelet"
 
 #. dialog title
-#: zim/gui/widgets.py:523 zim/gui/widgets.py:1600
+#: zim/gui/widgets.py:533 zim/gui/widgets.py:1615
 msgid "Select File"
 msgstr "ፋይል ይምረጡ"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:651
+#: zim/gui/widgets.py:661
 msgid "Expand _All"
 msgstr "_ሁሉንም ማስፊያ"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:653
+#: zim/gui/widgets.py:663
 msgid "_Collapse All"
 msgstr "ሁሉንም _ማሳነሻ"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1456
+#: zim/gui/widgets.py:1471
 msgid "Clear"
 msgstr "ማጽጃ"
 
 #. dialog title
-#: zim/gui/widgets.py:1596
+#: zim/gui/widgets.py:1611
 msgid "Select Folder"
 msgstr "ፎልደር ይምረጡ"
 
 #. dialog title
-#: zim/gui/widgets.py:1598
+#: zim/gui/widgets.py:1613
 msgid "Select Image"
 msgstr "ምስል ይምረጡ"
 
 #. default text for empty page section selection
-#: zim/gui/widgets.py:1728
+#: zim/gui/widgets.py:1743
 msgid "<Top>"
 msgstr "<ከ ላይ>"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2031
+#: zim/gui/widgets.py:2055
 msgid "Left Side Pane"
 msgstr "በ ግራ ጎን ክፍል ውስጥ"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2032
+#: zim/gui/widgets.py:2056
 msgid "Right Side Pane"
 msgstr "በ ቀኝ ጎን ክፍል ውስጥ"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2033
+#: zim/gui/widgets.py:2057
 msgid "Bottom Pane"
 msgstr "ከ ታች በ ክፍሉ ውስጥ"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2034
+#: zim/gui/widgets.py:2058
 msgid "Top Pane"
 msgstr "ከ ላይ በ ክፍሉ ውስጥ"
 
 #. Menu item
-#: zim/gui/widgets.py:2632
+#: zim/gui/widgets.py:2686
 msgid "_All Panes"
 msgstr "በ _ሁሉም ክፍሎች ውስጥ"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3171
+#: zim/gui/widgets.py:3232
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2109,67 +2123,96 @@ msgstr ""
 "ከ ታች በኩል ከሚገኘው የ ጽሁፍ ሳጥን ውስጥ"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3553
+#: zim/gui/widgets.py:3614
 msgid "All Files"
 msgstr "ሁሉንም ፋይሎች"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3580
+#: zim/gui/widgets.py:3641
 msgid "Images"
 msgstr "ምስሎች"
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3676
+#: zim/gui/widgets.py:3737
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr "{count} ከ {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3698
+#: zim/gui/widgets.py:3759
 msgid "Log file"
 msgstr "የ ፋይል መግቢያ"
 
 #. Error verbose description
-#: zim/main/__init__.py:118
+#: zim/main/__init__.py:119
 msgid "Could not find the file or folder for this notebook"
 msgstr "ፋይል ወይንም ፎልደር ለዚህ ማስታወሻ ደብተር ማግኘት አልተቻለም"
 
 #. Error when looking up a notebook
-#: zim/main/__init__.py:151 zim/main/__init__.py:185
+#: zim/main/__init__.py:152 zim/main/__init__.py:186
 msgid "Please specify a notebook"
 msgstr "እባክዎን የ ማስታወሻ ደብተር ይወስኑ"
 
 #. error message
-#: zim/main/__init__.py:158
+#: zim/main/__init__.py:159
 #, python-format
 msgid "Could not find notebook: %s"
 msgstr "ማስታወሻ ደብተር ማግኘት አልተቻለም: %s"
 
 #. error in export command
-#: zim/main/__init__.py:433
+#: zim/main/__init__.py:436
 msgid "Output location needed for export"
 msgstr "ለ መላኪያ የ ውጤት አካባቢ ያስፈልጋል"
 
 #. error message for export
-#: zim/main/__init__.py:442
+#: zim/main/__init__.py:445
 msgid ""
 "Output folder exists and not empty, specify \"--overwrite\" to force export"
 msgstr "የ ውጤት ፎልደር ወጥቷል እና ባዶ አይደለም: ይወስኑ \"--በላዩ ላይ ደርቦ መጻፊያ\" መላኩን ለማስገደድ"
 
 #. error message for export
-#: zim/main/__init__.py:446
+#: zim/main/__init__.py:449
 msgid "Output file exists, specify \"--overwrite\" to force export"
 msgstr "የ ውጤት ፋይል ወጥቷል: ይወስኑ \"--በላዩ ላይ ደርቦ መጻፊያ\" መላኩን ለማስገደድ"
 
 #. error message for export
-#: zim/main/__init__.py:451
+#: zim/main/__init__.py:454
 msgid "Need output file to export MHTML"
 msgstr "የ MHTML ለ መላክ ውጤት ያስፈልጋል"
 
 #. error message for export
-#: zim/main/__init__.py:481
+#: zim/main/__init__.py:484
 msgid "Need output folder to export full notebook"
 msgstr "የ ውጤት ፎልደር ያስፈልጋል ለ መላክ ሙሉ የ ማስታወሻ ደብተር"
+
+#. Error explanation
+#: zim/newfs/local.py:43
+msgid ""
+"Cannot write this file. Probably this is due to the lenght\n"
+"of the file name, please try using a name with less\n"
+"than 255 characters"
+msgstr ""
+
+#. error message for filesystem limitations
+#: zim/newfs/local.py:49
+#, fuzzy, python-format
+#| msgid "File changed on disk: %s"
+msgid "File name too long: %s"
+msgstr "ፋይል በ ዲስኩ ላይ ተቀይሯል: %s"
+
+#. Error explanation
+#: zim/newfs/local.py:54
+msgid ""
+"Cannot write this file. Probably this is due to the lenght\n"
+"of the file path, please try using a folder structure resulting in less\n"
+"than 4096 characters"
+msgstr ""
+
+#. error message for filesystem limitations
+#: zim/newfs/local.py:60
+#, python-format
+msgid "File path too long: %s"
+msgstr ""
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:420
@@ -2177,42 +2220,42 @@ msgid "Updating index"
 msgstr "ማውጫ ማሻሻያ"
 
 #. message for PageNotFoundError
-#: zim/notebook/notebook.py:120
+#: zim/notebook/notebook.py:124
 #, python-format
 msgid "No such page: %s"
 msgstr "ይህ ገጽ የለም: %s"
 
 #. message for PageNotAllowedError
-#: zim/notebook/notebook.py:124
+#: zim/notebook/notebook.py:128
 #, python-format
 msgid "Page not allowed: %s"
 msgstr "ይህ ገጽ አይፈቀድም: %s"
 
 #. description for PageNotAllowedError
-#: zim/notebook/notebook.py:125
+#: zim/notebook/notebook.py:129
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr "ይህን የ ገጽ ስም መጠቀም አይችሉም በ ቴክኒካል ገደብ ምክንያት በ ማጠራቀሚያ ውስጥ"
 
 #. message for PageExistsError
-#: zim/notebook/notebook.py:130
+#: zim/notebook/notebook.py:134
 #, python-format
 msgid "Page already exists: %s"
 msgstr "ይህ ገጽ ቀደም ብሎ ነበር: %s"
 
 #. error message for read-only pages
-#: zim/notebook/notebook.py:134
+#: zim/notebook/notebook.py:138
 #, python-format
 msgid "Can not modify page: %s"
 msgstr "ይህን ገጽ ማሻሻል አይቻልም: %s"
 
 #. placeholder for unknown file name
-#: zim/parser.py:274
+#: zim/parser.py:278
 msgid "<Unknown>"
 msgstr "<ያልታወቀ>"
 
 #. Extended error message while parsing a file, gives file name, line number and words where error occurred
-#: zim/parser.py:280
+#: zim/parser.py:284
 #, python-format
 msgid "Error in %(file)s at line %(line)i near \"%(snippet)s\""
 msgstr "ስህተት በ %(file)s መስመር %(line)i አጠገብ \"%(snippet)s\""
@@ -2239,37 +2282,37 @@ msgid "_Arithmetic"
 msgstr "_ሒሳብ"
 
 #. unspecified value for file modification time
-#: zim/plugins/attachmentbrowser/filebrowser.py:365
+#: zim/plugins/attachmentbrowser/filebrowser.py:376
 msgid "Unknown"
 msgstr "ያልታወቀ"
 
 #. label for file type
-#: zim/plugins/attachmentbrowser/filebrowser.py:378
+#: zim/plugins/attachmentbrowser/filebrowser.py:389
 msgid "Type"
 msgstr "አይነት"
 
 #. label for file size
-#: zim/plugins/attachmentbrowser/filebrowser.py:379
+#: zim/plugins/attachmentbrowser/filebrowser.py:390
 msgid "Size"
 msgstr "መጠን"
 
 #. label for file modification date
-#: zim/plugins/attachmentbrowser/filebrowser.py:380
+#: zim/plugins/attachmentbrowser/filebrowser.py:391
 msgid "Modified"
 msgstr "ተሻሽሏል"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser/filebrowser.py:416
+#: zim/plugins/attachmentbrowser/filebrowser.py:427
 msgid "_Move Here"
 msgstr "ወደ እዚህ _ማንቀሳቀሻ"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser/filebrowser.py:420
+#: zim/plugins/attachmentbrowser/filebrowser.py:431
 msgid "_Copy Here"
 msgstr "ወደ እዚህ _ኮፒ ማድረጊያ"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser/filebrowser.py:425
+#: zim/plugins/attachmentbrowser/filebrowser.py:436
 msgid "Cancel"
 msgstr "መሰረዣ"
 
@@ -2287,22 +2330,32 @@ msgstr ""
 "ይህ ተሰኪ የሚያሳየው የ ማያያዣ ፎልደር ነው ለ አሁኑ ገጽ እንደ \n"
 "ምልክት መመልከቻ ከ ታች በኩል\n"
 
-#. option for plugin preferences |
+#. option for plugin preferences | 
 #. preferences option
 #: zim/plugins/attachmentbrowser/__init__.py:80 zim/plugins/backlinkpane.py:35
-#: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:59
-#: zim/plugins/tableofcontents.py:85 zim/plugins/tags.py:48
-#: zim/plugins/tasklist/__init__.py:54
+#: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:61
+#: zim/plugins/tableofcontents.py:116 zim/plugins/tags.py:49
+#: zim/plugins/tasklist/__init__.py:56
 msgid "Position in the window"
 msgstr "በ መስኮት ውስጥ ቦታው"
 
+#. option for plugin preferences
+#: zim/plugins/attachmentbrowser/__init__.py:82
+msgid "Use thumbnails"
+msgstr ""
+
+#. option for plugin preferences
+#: zim/plugins/attachmentbrowser/__init__.py:84
+msgid "Support thumbnails for SVG"
+msgstr ""
+
 #. label for attachment browser pane
-#: zim/plugins/attachmentbrowser/__init__.py:123
+#: zim/plugins/attachmentbrowser/__init__.py:128
 msgid "Attachments"
 msgstr "ማያያዣ"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
-#: zim/plugins/attachmentbrowser/__init__.py:169
+#: zim/plugins/attachmentbrowser/__init__.py:180
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
@@ -2493,31 +2546,26 @@ msgstr "በ ሙሉ መመልከቻ ዘዴ ውስጥ ዝርዝር መደርደሪ
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:37
-msgid "Hide toolbar in fullscreen mode"
-msgstr "በ ሙሉ መመልከቻ ዘዴ ውስጥ እቃ መደርደሪያ መደበቂያ"
-
-#. plugin preference
-#: zim/plugins/distractionfree.py:38
 msgid "Hide statusbar in fullscreen mode"
 msgstr "በ ሙሉ መመልከቻ ዘዴ ውስጥ ሁኔታ መደርደሪያ መደቂያ"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:39
+#: zim/plugins/distractionfree.py:38
 msgid "Maximum page width"
 msgstr "ከፍተኛው የ ገጽ ስፋት"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:40
+#: zim/plugins/distractionfree.py:39
 msgid "Border width"
 msgstr "የ ድንበር ስፋት"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:41
+#: zim/plugins/distractionfree.py:40
 msgid "Text background color"
 msgstr "የ ጽሁፍ መደብ ቀለም"
 
 #. plugin preference
-#: zim/plugins/distractionfree.py:42
+#: zim/plugins/distractionfree.py:41
 msgid "Text foreground color"
 msgstr "የ ጽሁፍ ፊት ለ ፊት ቀለም"
 
@@ -2558,8 +2606,12 @@ msgstr ""
 "\n"
 "ይህ ዋናው ተሰኪ ነው ከ ዚም ጋር አብሮ የሚመጣው\n"
 
+#: zim/plugins/equationeditor.py:35
+msgid "Use font color for dark theme"
+msgstr ""
+
 #. menu item
-#: zim/plugins/equationeditor.py:44
+#: zim/plugins/equationeditor.py:49
 msgid "Equation"
 msgstr "ስሌት"
 
@@ -2630,7 +2682,7 @@ msgstr "መግለጫውን መተንተን አልተቻለም"
 msgid "Evaluate _Math"
 msgstr "_ሂሳብ መገምገሚያ"
 
-#. plugin name |
+#. plugin name | 
 #. Dialog title
 #: zim/plugins/insertsymbol.py:25 zim/plugins/insertsymbol.py:130
 msgid "Insert Symbol"
@@ -2654,7 +2706,7 @@ msgstr ""
 msgid "Sy_mbol..."
 msgstr "ምል_ክት..."
 
-#. plugin name |
+#. plugin name | 
 #. side pane title
 #: zim/plugins/journal.py:97 zim/plugins/journal.py:332
 msgid "Journal"
@@ -2695,6 +2747,11 @@ msgstr "አመት"
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
 msgstr "የ ጽሁፍ ክፍል ባዶ ከሆነ መደበቂያ"
+
+#. input label
+#: zim/plugins/journal.py:121
+msgid "Section"
+msgstr "ክፍል"
 
 #. preferences option, values will be "Day", "Month", ...
 #: zim/plugins/journal.py:122
@@ -2757,9 +2814,9 @@ msgstr "መስመር _ማባዣ"
 msgid "_Remove Line"
 msgstr "መስመር _ማስወገጃ"
 
-#. plugin name |
+#. plugin name | 
 #. menu item
-#: zim/plugins/linkmap.py:29 zim/plugins/linkmap.py:114
+#: zim/plugins/linkmap.py:29 zim/plugins/linkmap.py:129
 msgid "Link Map"
 msgstr "ካርታ አገናኝ"
 
@@ -2780,18 +2837,53 @@ msgstr ""
 "\n"
 "ይህ ዋናው ተሰኪ ነው ከ ዚም ጋር አብሮ የሚመጣው\n"
 
+#. preferences option
+#: zim/plugins/linkmap.py:45
+msgid "Show linkmap button in headerbar"
+msgstr ""
+
 #. plugin name
-#: zim/plugins/pageindex/__init__.py:49
+#: zim/plugins/osx_menubar.py:72
+#, fuzzy
+#| msgid "Menubar"
+msgid "macOS Menubar"
+msgstr "ዝርዝር መደርደሪያ"
+
+#. plugin description
+#: zim/plugins/osx_menubar.py:73
+#, fuzzy
+#| msgid ""
+#| "\t\tThis plugin provides bar for bookmarks.\n"
+#| "\t\t"
+msgid "This plugin provides a macOS menubar for zim."
+msgstr ""
+"\t\tይህ ተሰኪ የሚያቀርበው የ ምልክት ማደረጊያ መደርደሪያ ነው\n"
+"\t\t"
+
+#. plugin name
+#: zim/plugins/pageindex/__init__.py:51
 msgid "Page Index"
 msgstr "የ ገጽ ማውጫ"
 
 #. plugin description
-#: zim/plugins/pageindex/__init__.py:50
+#: zim/plugins/pageindex/__init__.py:52
 msgid "This plugin adds the page index pane to the main window.\n"
 msgstr "ይህ ተሰኪ የሚጨምረው የ ገጽ ማውጫ ነው: በ ዋናው መስኮት ላይ:\n"
 
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:63
+#, fuzzy
+#| msgid "Automatically saved version from zim"
+msgid "Automatically expand sections on open page"
+msgstr "ራሱ በራሱ ማስቀመጫ እትም ከ ዚም ውስጥ"
+
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:65
+msgid "Automatically collapse sections on close page"
+msgstr ""
+
 #. tab label for side pane
-#: zim/plugins/pageindex/__init__.py:111 data/templates/html/Default.html:52
+#: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
 #: data/templates/html/Default.html:54
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
@@ -2799,12 +2891,12 @@ msgid "Index"
 msgstr "ማውጫ"
 
 #. plugin name
-#: zim/plugins/pathbar.py:30
+#: zim/plugins/pathbar.py:40
 msgid "Path Bar"
 msgstr "መንገድ መደርደሪያ"
 
 #. plugin description
-#: zim/plugins/pathbar.py:31
+#: zim/plugins/pathbar.py:41
 msgid ""
 "This plugin adds a \"path bar\" to the top of the window.\n"
 "This \"path bar\" can show the notebook path for the current page,\n"
@@ -2812,32 +2904,32 @@ msgid ""
 msgstr ""
 
 #. Menu title
-#: zim/plugins/pathbar.py:72
+#: zim/plugins/pathbar.py:82
 msgid "P_athbar"
 msgstr "መ_ንገድ መደርደሪያ"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:73
+#: zim/plugins/pathbar.py:83
 msgid "_None"
 msgstr "_ምንም"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:74
+#: zim/plugins/pathbar.py:84
 msgid "_Recent pages"
 msgstr "የ _ቅርብ ጊዜ ገጾች"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:75
+#: zim/plugins/pathbar.py:85
 msgid "Recently _Changed pages"
 msgstr "በ ቅርብ ጊዜ የ _ተቀየሩ ገጾች"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:76
+#: zim/plugins/pathbar.py:86
 msgid "_History"
 msgstr "_ታሪክ"
 
 #. Menu option for View->Pathbar
-#: zim/plugins/pathbar.py:77
+#: zim/plugins/pathbar.py:87
 msgid "_Page Hierarchy"
 msgstr "የ _ገጽ ቅደም ተከተል"
 
@@ -2908,7 +3000,7 @@ msgid "Create a new page for each note"
 msgstr "ለ እያንዳንዱ ማስታወሻ አዲስ ገጽ መፍጠሪያ"
 
 #. text entry field
-#: zim/plugins/quicknote.py:250 zim/plugins/tableeditor.py:921
+#: zim/plugins/quicknote.py:250 zim/plugins/tableeditor.py:922
 msgid "Title"
 msgstr "አርእስት"
 
@@ -2948,14 +3040,14 @@ msgstr "መደበኛ ራስጌ ማስገቢያ"
 msgid "Common include footer"
 msgstr "መደበኛ ግርጌ ማስገቢያ"
 
-#. plugin name |
+#. plugin name | 
 #. dialog title
-#: zim/plugins/screenshot.py:94 zim/plugins/screenshot.py:161
+#: zim/plugins/screenshot.py:107 zim/plugins/screenshot.py:174
 msgid "Insert Screenshot"
 msgstr "የ መመልከቻ ፎቶ ማስገቢያ"
 
 #. plugin description
-#: zim/plugins/screenshot.py:95
+#: zim/plugins/screenshot.py:108
 msgid ""
 "This plugin  allows taking a screenshot and directly insert it\n"
 "in a zim page.\n"
@@ -2968,37 +3060,37 @@ msgstr ""
 "ይህ ዋናው ተሰኪ ነው ከ ዚም ጋር አብሮ የሚመጣው\n"
 
 #. plugin preference
-#: zim/plugins/screenshot.py:106
+#: zim/plugins/screenshot.py:119
 msgid "Screenshot Command"
 msgstr "የ መመልከቻ ፎቶ ትእዛዝ"
 
 #. menu item for insert screenshot plugin
-#: zim/plugins/screenshot.py:148
+#: zim/plugins/screenshot.py:161
 msgid "_Screenshot..."
 msgstr "የ _መመልከቻ ፎቶ..."
 
 #. option in 'insert screenshot' dialog
-#: zim/plugins/screenshot.py:166
+#: zim/plugins/screenshot.py:179
 msgid "Capture whole screen"
 msgstr "ጠቅላላ መመልከቻውን ፎቶ ማንሻ"
 
 #. option in 'insert screenshot' dialog
-#: zim/plugins/screenshot.py:168
+#: zim/plugins/screenshot.py:181
 msgid "Select window or region"
 msgstr "መስኮት ወይንም አካባቢ ይምረጡ"
 
 #. input in 'insert screenshot' dialog
-#: zim/plugins/screenshot.py:177
+#: zim/plugins/screenshot.py:190
 msgid "Delay"
 msgstr "ማዘግያ"
 
 #. label behind timer
-#: zim/plugins/screenshot.py:183
+#: zim/plugins/screenshot.py:196
 msgid "seconds"
 msgstr "ሴኮንዶች"
 
 #. Error message in "insert screenshot" dialog, %s will be replaced by application name
-#: zim/plugins/screenshot.py:208
+#: zim/plugins/screenshot.py:221
 #, python-format
 msgid "Some error occurred while running \"%s\""
 msgstr "በ ማስኬድ ላይ እንዳለ ስህተት ተፈጥሯል \"%s\""
@@ -3023,66 +3115,103 @@ msgid "Sequence Diagram"
 msgstr "የ ንድፍ ቅደም ተከተል"
 
 #. plugin name
-#: zim/plugins/sourceview.py:51
+#: zim/plugins/sourceview.py:63
 msgid "Source View"
 msgstr "ምንጭ መመልከቻ"
 
 #. plugin description
-#: zim/plugins/sourceview.py:52
+#: zim/plugins/sourceview.py:64
 msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
 
+#. option value
+#: zim/plugins/sourceview.py:73
+#, fuzzy
+#| msgid "vertical lines"
+msgid "Never wrap lines"
+msgstr "መስመር በ ቁመት"
+
+#. option value
+#: zim/plugins/sourceview.py:74
+msgid "Try wrap at word boundaries or character"
+msgstr ""
+
+#. option value
+#: zim/plugins/sourceview.py:75
+msgid "Always wrap at character"
+msgstr ""
+
+#. option value
+#: zim/plugins/sourceview.py:76
+msgid "Always wrap at word boundaries"
+msgstr ""
+
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:62
+#: zim/plugins/sourceview.py:80
 msgid "Auto indenting"
 msgstr "በራሱ ማስረጊያ"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:64
+#: zim/plugins/sourceview.py:82
 msgid "Smart Home key"
 msgstr "የ ቤት ቁልፍ"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:66
+#: zim/plugins/sourceview.py:84
 msgid "Highlight current line"
 msgstr "የ አሁኑን መስመር ማድመቂያ"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:68
+#: zim/plugins/sourceview.py:86
 msgid "Show right margin"
 msgstr "የ ቀኝ መስመር ማሳያ"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:70
+#: zim/plugins/sourceview.py:88
 msgid "Right margin position"
 msgstr "የ ቀኝ መስመር ቦታ"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:72
+#: zim/plugins/sourceview.py:90
 msgid "Tab width"
 msgstr "የ ማስረጊያ ስፋት"
 
+#. preference option for sourceview plugin
+#: zim/plugins/sourceview.py:92
+msgid "Text wrap mode"
+msgstr ""
+
+#. preference option for sourceview plugin
+#: zim/plugins/sourceview.py:94
+msgid "Theme"
+msgstr ""
+
 #. menu item
-#: zim/plugins/sourceview.py:86
+#: zim/plugins/sourceview.py:109
 msgid "Code Block"
 msgstr "ኮድ መከለከያ"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:254
+#: zim/plugins/sourceview.py:303
 msgid "Show Line Numbers"
 msgstr "የ መስመር ቁጥር ማሳያ"
 
 #. input label
-#: zim/plugins/sourceview.py:264 zim/plugins/sourceview.py:303
+#: zim/plugins/sourceview.py:313 zim/plugins/sourceview.py:354
 msgid "Syntax"
 msgstr "አገባብ"
 
 #. dialog title
-#: zim/plugins/sourceview.py:281
+#: zim/plugins/sourceview.py:330
 msgid "Insert Code Block"
 msgstr "ኮድ መከለከያ ማስገቢያ"
+
+#. input checkbox
+#: zim/plugins/sourceview.py:366
+msgid "Display line numbers"
+msgstr ""
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3120,32 +3249,32 @@ msgstr ""
 "መዝገበ ቃላት አልገጠሙም ማለት ነው"
 
 #. alignment option
-#: zim/plugins/tableeditor.py:52 zim/plugins/tableeditor.py:862
+#: zim/plugins/tableeditor.py:53 zim/plugins/tableeditor.py:863
 msgid "Left"
 msgstr "በ ግራ"
 
 #. alignment option
-#: zim/plugins/tableeditor.py:53
+#: zim/plugins/tableeditor.py:54
 msgid "Center"
 msgstr "መሀከል"
 
 #. alignment option
-#: zim/plugins/tableeditor.py:54
+#: zim/plugins/tableeditor.py:55
 msgid "Right"
 msgstr "በ ቀኝ"
 
 #. alignment option
-#: zim/plugins/tableeditor.py:55
+#: zim/plugins/tableeditor.py:56
 msgid "Unspecified"
 msgstr "ያልተገለጸ"
 
 #. plugin name
-#: zim/plugins/tableeditor.py:82
+#: zim/plugins/tableeditor.py:83
 msgid "Table Editor"
 msgstr "ሰንጠረዥ ማረሚያ"
 
 #. plugin description
-#: zim/plugins/tableeditor.py:83
+#: zim/plugins/tableeditor.py:84
 msgid ""
 "With this plugin you can embed a 'Table' into the wiki page. Tables will be "
 "shown as GTK TreeView widgets.\n"
@@ -3157,92 +3286,92 @@ msgstr ""
 "ወደ ተለያዩ አቀራረብ ለ መላክ (ይህም ማለት HTML/LaTeX) የ ገጽታ ማሰናጃ ይፈጽማል\n"
 
 #. option value
-#: zim/plugins/tableeditor.py:92
+#: zim/plugins/tableeditor.py:93
 msgid "with lines"
 msgstr "ከ መስመሮች ጋር"
 
 #. option value
-#: zim/plugins/tableeditor.py:93
+#: zim/plugins/tableeditor.py:94
 msgid "no grid lines"
 msgstr "መጋጠሚያ መስመር የለም"
 
 #. option value
-#: zim/plugins/tableeditor.py:94
+#: zim/plugins/tableeditor.py:95
 msgid "horizontal lines"
 msgstr "መስመር በ አግድም"
 
 #. option value
-#: zim/plugins/tableeditor.py:95
+#: zim/plugins/tableeditor.py:96
 msgid "vertical lines"
 msgstr "መስመር በ ቁመት"
 
 #. preference description
-#: zim/plugins/tableeditor.py:101
+#: zim/plugins/tableeditor.py:102
 msgid "Show helper toolbar"
 msgstr "የ እርዳታ እቃ መደርደሪያ ማሳያ"
 
 #. preference description
-#: zim/plugins/tableeditor.py:104
+#: zim/plugins/tableeditor.py:105
 msgid "Grid lines"
 msgstr "መጋጠሚያ መስመር"
 
 #. menu item
-#: zim/plugins/tableeditor.py:154
+#: zim/plugins/tableeditor.py:155
 msgid "Table"
 msgstr "ሰንጠረዥ"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:457 zim/plugins/tableeditor.py:613
+#: zim/plugins/tableeditor.py:458 zim/plugins/tableeditor.py:614
 msgid "Add row"
 msgstr "ረድፍ መጨመሪያ"
 
 #. tooltip on mouse hover
-#: zim/plugins/tableeditor.py:458
+#: zim/plugins/tableeditor.py:459
 msgid "Remove row"
 msgstr "ረድፍ ማስወገጃ"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:459 zim/plugins/tableeditor.py:615
+#: zim/plugins/tableeditor.py:460 zim/plugins/tableeditor.py:616
 msgid "Clone row"
 msgstr "ረድፍ ማባዣ"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:461 zim/plugins/tableeditor.py:619
+#: zim/plugins/tableeditor.py:462 zim/plugins/tableeditor.py:620
 msgid "Row up"
 msgstr "ረድፍ ከ ላይ"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:462 zim/plugins/tableeditor.py:620
+#: zim/plugins/tableeditor.py:463 zim/plugins/tableeditor.py:621
 msgid "Row down"
 msgstr "ረድፍ ከ ታች"
 
-#. tooltip on mouse hover |
+#. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:464 zim/plugins/tableeditor.py:622
+#: zim/plugins/tableeditor.py:465 zim/plugins/tableeditor.py:623
 msgid "Change columns"
 msgstr "አምድ መቀየሪያ"
 
 #. tooltip on mouse hover
-#: zim/plugins/tableeditor.py:466
+#: zim/plugins/tableeditor.py:467
 msgid "Open help"
 msgstr "እርዳታ መክፈቻ"
 
 #. menu item
-#: zim/plugins/tableeditor.py:614
+#: zim/plugins/tableeditor.py:615
 msgid "Delete row"
 msgstr "ረድፍ ማጥፊያ"
 
 #. menu item
-#: zim/plugins/tableeditor.py:617
+#: zim/plugins/tableeditor.py:618
 msgid "Open cell content link"
 msgstr "የ ክፍል ይዞታ አገናኝ ማሳያ"
 
 #. Popup dialog
-#: zim/plugins/tableeditor.py:680
+#: zim/plugins/tableeditor.py:681
 msgid ""
 "The table must consist of at least on row!\n"
 " No deletion done."
@@ -3251,32 +3380,32 @@ msgstr ""
 " ምንም ማጥፋት አልተካሄደም"
 
 #. Popup dialog
-#: zim/plugins/tableeditor.py:771 zim/plugins/tableeditor.py:1080
+#: zim/plugins/tableeditor.py:772 zim/plugins/tableeditor.py:1081
 msgid "Please select a row, before you push the button."
 msgstr "እባክዎን ራድፍ ይምረጡ: እርስዎ ቁልፉን ከ መጫንዎት በፊት"
 
 #. Dialog title
-#: zim/plugins/tableeditor.py:858
+#: zim/plugins/tableeditor.py:859
 msgid "Insert Table"
 msgstr "ሰንጠረዥ ማስገቢያ"
 
 #. Dialog title
-#: zim/plugins/tableeditor.py:858
+#: zim/plugins/tableeditor.py:859
 msgid "Edit Table"
 msgstr "ሰንጠረዥ ማረሚያ"
 
 #. Description of "Table-Insert" Dialog
-#: zim/plugins/tableeditor.py:867
+#: zim/plugins/tableeditor.py:868
 msgid "Managing table columns"
 msgstr "የ ሰንጠረዥ አምዶች አስተዳዳሪ"
 
 #. Initial data for column title in table
-#: zim/plugins/tableeditor.py:897
+#: zim/plugins/tableeditor.py:898
 msgid "Column 1"
 msgstr "አምድ 1"
 
 #. table header
-#: zim/plugins/tableeditor.py:930
+#: zim/plugins/tableeditor.py:931
 msgid ""
 "Auto\n"
 "Wrap"
@@ -3285,42 +3414,42 @@ msgstr ""
 "መጠቅለያ"
 
 #. table header
-#: zim/plugins/tableeditor.py:940
+#: zim/plugins/tableeditor.py:941
 msgid "Align"
 msgstr "ማሰለፊያ"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:967
+#: zim/plugins/tableeditor.py:968
 msgid "Add column"
 msgstr "አምድ መጨመሪያ"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:968
+#: zim/plugins/tableeditor.py:969
 msgid "Remove column"
 msgstr "አምድ ማስወገጃ"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:969
+#: zim/plugins/tableeditor.py:970
 msgid "Move column ahead"
 msgstr "አምድ ማንቀሳቀሻ"
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:970
+#: zim/plugins/tableeditor.py:971
 msgid "Move column backward"
 msgstr "አምድ ወደ ኋላ ማንቀሳቀሻ"
 
 #. popup dialog
-#: zim/plugins/tableeditor.py:1054
+#: zim/plugins/tableeditor.py:1055
 msgid "A table needs to have at least one column."
 msgstr "ሰንጠረዥ ቢያንስ አንድ አምድ ያስፈልገዋል"
 
 #. plugin name
-#: zim/plugins/tableofcontents.py:71
+#: zim/plugins/tableofcontents.py:102
 msgid "Table of Contents"
 msgstr "የ ሰንጠረዥ ይዞታዎች"
 
 #. plugin description
-#: zim/plugins/tableofcontents.py:72
+#: zim/plugins/tableofcontents.py:103
 msgid ""
 "This plugin adds an extra widget showing a table of\n"
 "contents for the current page.\n"
@@ -3333,57 +3462,69 @@ msgstr ""
 "ይህ ዋናው ተሰኪ ነው ከ ዚም ጋር አብሮ የሚመጣው\n"
 
 #. option for plugin preferences
-#: zim/plugins/tableofcontents.py:87
+#: zim/plugins/tableofcontents.py:118
 msgid "Show ToC as floating widget instead of in sidepane"
 msgstr "የ ሰንጠረዥ ማውጫ ማሳያ እንደ ተንሳፋፊ ዊጄቶች ከ ጎን ክፍል ይልቅ"
 
 #. option for plugin preferences
-#: zim/plugins/tableofcontents.py:89
+#: zim/plugins/tableofcontents.py:120
 msgid "Show the page title heading in the ToC"
 msgstr "የ ገጽ አርእስት ራስጌ በ ሰንጠረዥ ማውጫ ውስጥ ማሳያ"
 
+#. option for plugin preferences
+#: zim/plugins/tableofcontents.py:122
+#, fuzzy
+#| msgid "horizontal lines"
+msgid "Include horizontal lines in the ToC"
+msgstr "መስመር በ አግድም"
+
+#. option for plugin preferences
+#: zim/plugins/tableofcontents.py:124
+msgid "Set ToC fontsize"
+msgstr ""
+
 #. action to lower level of heading in the text
-#: zim/plugins/tableofcontents.py:271
+#: zim/plugins/tableofcontents.py:386
 msgid "Demote"
 msgstr "ዝቅ ማድረጊያ"
 
 #. action to raise level of heading in the text
-#: zim/plugins/tableofcontents.py:273
+#: zim/plugins/tableofcontents.py:388
 msgid "Promote"
 msgstr "ከፍ ማድረጊያ"
 
 #. widget label
-#: zim/plugins/tableofcontents.py:376 zim/plugins/tableofcontents.py:406
+#: zim/plugins/tableofcontents.py:482 zim/plugins/tableofcontents.py:512
 msgid "ToC"
 msgstr "የ ሰንጠረዥ ማውጫ"
 
-#. plugin name |
-#. title for sidepane tab |
+#. plugin name | 
+#. title for sidepane tab | 
 #. Column header for tag list in Task List dialog
-#: zim/plugins/tags.py:38 zim/plugins/tags.py:82
-#: zim/plugins/tasklist/gui.py:245
+#: zim/plugins/tags.py:39 zim/plugins/tags.py:83
+#: zim/plugins/tasklist/gui.py:247
 msgid "Tags"
 msgstr "ቁራጭ"
 
 #. plugin description
-#: zim/plugins/tags.py:39
+#: zim/plugins/tags.py:40
 msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
 msgstr "ይህ ተሰኪ የሚያቀርበው የ ገጽ ማውጫ ነው ለ ተጣሩ በ መምረጥ የ tags in a cloud\n"
 
 #. menu option
-#: zim/plugins/tags.py:132
+#: zim/plugins/tags.py:133
 msgid "Show full page name"
 msgstr "የ ገጽ ሙሉ ስም ማሳያ"
 
 #. menu option
-#: zim/plugins/tags.py:137
+#: zim/plugins/tags.py:138
 msgid "Sort pages by tags"
 msgstr "ገጾችን በ ምልክት መለያ"
 
 #. Context menu item for tag cloud
-#: zim/plugins/tags.py:433
+#: zim/plugins/tags.py:442
 msgid "Sort alphabetically"
 msgstr "በ ፊደል ቅደም ተከተል መለያ"
 
@@ -3393,7 +3534,7 @@ msgid "Show Tasks as Flat List"
 msgstr "ስራዎችን እንደ መደበኛ ዝርዝር ማሳያ"
 
 #. Checkbox in task list - this options hides tasks that are not yet started
-#: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:170
+#: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:172
 msgid "Only Show Active Tasks"
 msgstr "ንቁ ስራዎችን ብቻ ማሳያ"
 
@@ -3402,22 +3543,22 @@ msgstr "ንቁ ስራዎችን ብቻ ማሳያ"
 msgid "Tasks"
 msgstr "ስራዎች"
 
-#. label for filtering/searching tasks |
+#. label for filtering/searching tasks | 
 #. Input label
-#: zim/plugins/tasklist/gui.py:86 zim/plugins/tasklist/gui.py:154
+#: zim/plugins/tasklist/gui.py:88 zim/plugins/tasklist/gui.py:156
 msgid "Filter"
 msgstr "ማጣሪያ"
 
-#. dialog title |
-#. plugin name |
+#. dialog title | 
+#. plugin name | 
 #. menu item
-#: zim/plugins/tasklist/gui.py:111 zim/plugins/tasklist/__init__.py:38
-#: zim/plugins/tasklist/__init__.py:156
+#: zim/plugins/tasklist/gui.py:113 zim/plugins/tasklist/__init__.py:38
+#: zim/plugins/tasklist/__init__.py:161
 msgid "Task List"
 msgstr "የ ስራ ዝርዝር"
 
 #. Label for task List, %i is the number of tasks
-#: zim/plugins/tasklist/gui.py:183
+#: zim/plugins/tasklist/gui.py:185
 #, python-format
 msgid "%i open item"
 msgid_plural "%i open items"
@@ -3425,33 +3566,27 @@ msgstr[0] "%i እቃ መክፈቻ"
 msgstr[1] "%i እቃዎች መክፈቻ"
 
 #. "tag" for showing all tasks
-#: zim/plugins/tasklist/gui.py:309
+#: zim/plugins/tasklist/gui.py:311
 msgid "All Tasks"
 msgstr "ሁሉንም ስራዎች"
 
 #. label in tasklist plugins for tasks without a tag
-#: zim/plugins/tasklist/gui.py:319
+#: zim/plugins/tasklist/gui.py:321
 msgid "Untagged"
 msgstr "ምልክት ያልተደረገበት"
 
 #. Column header Task List dialog
-#: zim/plugins/tasklist/gui.py:433
+#: zim/plugins/tasklist/gui.py:435
 msgid "Task"
 msgstr "ስራ"
 
-#. Column header Task List dialog |
-#. Column header versions dialog
-#: zim/plugins/tasklist/gui.py:484 zim/plugins/versioncontrol/__init__.py:1069
-msgid "Date"
-msgstr "ቀን"
-
 #. start date for task
-#: zim/plugins/tasklist/gui.py:795
+#: zim/plugins/tasklist/gui.py:797
 msgid "Start"
 msgstr "ማስጀመሪያ"
 
 #. due date for task
-#: zim/plugins/tasklist/gui.py:797
+#: zim/plugins/tasklist/gui.py:799
 msgid "Due"
 msgstr "ማስረከቢያ"
 
@@ -3472,61 +3607,75 @@ msgstr ""
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
+#, fuzzy
+#| msgid "Show tasklist in sidepane"
+msgid "Show tasklist button in headerbar"
+msgstr "የ ስራ ዝርዝር በ ጎን ክፍል ውስጥ ማሳያ"
+
+#. preferences option
+#: zim/plugins/tasklist/__init__.py:54
 msgid "Show tasklist in sidepane"
 msgstr "የ ስራ ዝርዝር በ ጎን ክፍል ውስጥ ማሳያ"
 
+#. preferences option
+#: zim/plugins/tasklist/__init__.py:58
+#, fuzzy
+#| msgid "Show tasklist in sidepane"
+msgid "Show due date in sidepane"
+msgstr "የ ስራ ዝርዝር በ ጎን ክፍል ውስጥ ማሳያ"
+
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:60
+#: zim/plugins/tasklist/__init__.py:64
 msgid "Consider all checkboxes as tasks"
 msgstr "ሁሉም ምልክት የ ተደረገባቸውን እንደ ስራ መውሰጃ"
 
 #. label for plugin preferences dialog - labels are e.g. "FIXME", "TODO"
-#: zim/plugins/tasklist/__init__.py:62
+#: zim/plugins/tasklist/__init__.py:66
 msgid "Labels marking tasks"
 msgstr "ስራዎችን ምልክት ማድረጊያ"
 
 #. label for preference with multiple options
-#: zim/plugins/tasklist/__init__.py:64
+#: zim/plugins/tasklist/__init__.py:68
 msgid "Use date from journal pages"
 msgstr "ከ ማስታወሻ ገጽ ውስጥ ቀን ይጠቀሙ"
 
 #. choice for "Use date from journal pages"
-#: zim/plugins/tasklist/__init__.py:65
+#: zim/plugins/tasklist/__init__.py:69
 msgid "do not use"
 msgstr "አትጠቀም"
 
 #. choice for "Use date from journal pages"
-#: zim/plugins/tasklist/__init__.py:66
+#: zim/plugins/tasklist/__init__.py:70
 msgid "as start date for tasks"
 msgstr "የ መጀመሪያ ቀን ለ ስራ"
 
 #. choice for "Use date from journal pages"
-#: zim/plugins/tasklist/__init__.py:67
+#: zim/plugins/tasklist/__init__.py:71
 msgid "as due date for tasks"
 msgstr "የ መጨረሻ ቀን ለ ስራ"
 
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
-#: zim/plugins/tasklist/__init__.py:69
+#: zim/plugins/tasklist/__init__.py:73
 msgid "Section(s) to index"
 msgstr "ለ ማውጫ ክፍል(ሎች)"
 
 #. Notebook sections to exclude when searching for tasks - default is none
-#: zim/plugins/tasklist/__init__.py:71
+#: zim/plugins/tasklist/__init__.py:75
 msgid "Section(s) to ignore"
 msgstr "የሚተው ክፍል(ሎች)"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:76
+#: zim/plugins/tasklist/__init__.py:80
 msgid "Tags for non-actionable tasks"
 msgstr "ምልክት ማድረጊያ ምንም-ሊሰሩ ለማይችሉ ስራዎች"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:78
+#: zim/plugins/tasklist/__init__.py:82
 msgid "Turn page name into tags for task items"
 msgstr "የ ገጽ ስም ወደ ስራ እቃዎች ምልክት መቀየሪያ"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist/__init__.py:80
+#: zim/plugins/tasklist/__init__.py:84
 msgid "Flag tasks due on Monday or Tuesday before the weekend"
 msgstr "ማስረከቢያው ቀን የ ደረሰውን ስራ ከ ሳምንቱ መጨረሻ በፊት ያሳያል"
 
@@ -3579,7 +3728,7 @@ msgstr "_ሌላ..."
 msgid "Notebooks"
 msgstr "ማስታወሻ ደብተሮች"
 
-#. tooltip for tray icon |
+#. tooltip for tray icon | 
 #. short description of zim
 #: zim/plugins/trayicon.py:257 zim/plugins/zeitgeist-logger.py:48
 msgid "Zim Desktop Wiki"
@@ -3825,6 +3974,84 @@ msgstr "አገናኞች:"
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
 msgstr "ማያያዣዎች:"
+
+#~ msgid "Show in the toolbar"
+#~ msgstr "በ እቃ መደርደሪያ ላይ ማሳያ"
+
+#~ msgid "_Toolbar"
+#~ msgstr "_እቃ መደርደሪያ"
+
+#~ msgid "Icons _And Text"
+#~ msgstr "ምልክቶች እና ጽሁፍ"
+
+#~ msgid "_Icons Only"
+#~ msgstr "_ምልክቶች ብቻ"
+
+#~ msgid "_Text Only"
+#~ msgstr "_ጽሁፍ ብቻ"
+
+#~ msgid "_Large Icons"
+#~ msgstr "_ትልቅ ምልክት"
+
+#~ msgid "_Small Icons"
+#~ msgstr "_ትንሽ ምልክት"
+
+#~ msgid "_Tiny Icons"
+#~ msgstr "በጣም _ትንሽ ምልክት"
+
+#~ msgid "Search Pages..."
+#~ msgstr "መፈለጊያ ገጾች..."
+
+#~ msgid "Heading 1"
+#~ msgstr "ራስጌ 1"
+
+#~ msgid "Heading 2"
+#~ msgstr "ራስጌ 2"
+
+#~ msgid "Heading 3"
+#~ msgstr "ራስጌ 3"
+
+#~ msgid "Heading 4"
+#~ msgstr "ራስጌ 4"
+
+#~ msgid "Heading 5"
+#~ msgstr "ራስጌ 5"
+
+#~ msgid "Strong"
+#~ msgstr "ጠንካራ"
+
+#~ msgid "Emphasis"
+#~ msgstr "ማጋነኛ"
+
+#~ msgid "Mark"
+#~ msgstr "ምልክት"
+
+#~ msgid "Strike"
+#~ msgstr "መሰረዣ"
+
+#~ msgid "Verbatim"
+#~ msgstr "ቃል በ ቃል"
+
+#~ msgid "_Calendar"
+#~ msgstr "_ቀን መቁጠሪያ"
+
+#~ msgid "Insert images as link"
+#~ msgstr "ምስሎች እንደ አገናኝ ማስገቢያ"
+
+#~ msgid "_Move Page..."
+#~ msgstr "ገጽ _ማንቀሳቀሻ..."
+
+#~ msgid "Attach _File"
+#~ msgstr "_ፋይል ማያያዣ"
+
+#~ msgid "Move Page"
+#~ msgstr "ገጽ ማንቀሳቀሻ"
+
+#~ msgid "Move page \"%s\""
+#~ msgstr "ገጽ ማንቀሳቀሻ \"%s\""
+
+#~ msgid "Hide toolbar in fullscreen mode"
+#~ msgstr "በ ሙሉ መመልከቻ ዘዴ ውስጥ እቃ መደርደሪያ መደበቂያ"
 
 #~ msgid "Calendar"
 #~ msgstr "ቀን መቁጠሪያ"
