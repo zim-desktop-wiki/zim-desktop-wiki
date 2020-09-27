@@ -539,15 +539,16 @@ class Folder(FSObjectBase):
 
 xdgmime = None
 mimetypes = None
-try:
-	import xdg.Mime as xdgmime
-except ImportError:
-	if os.name != 'nt':
-		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
-	else:
-		pass # Ignore this error on Windows; doesn't come with xdg.Mime
+if os.name == 'nt':
+	# On windows even if xdg is installed, the database is not (always)
+	# well initialized, so always fallback to mimetypes
 	import mimetypes
-
+else:
+	try:
+		import xdg.Mime as xdgmime
+	except ImportError:
+		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+		import mimetypes
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
@@ -639,13 +640,12 @@ class File(FSObjectBase):
 			else:
 				mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
 				if encoding == 'gzip':
-					return 'application/x-gzip'
+					mimetype = 'application/x-gzip'
 				elif encoding == 'bzip2':
-					return 'application/x-bzip2'
+					mimetype = 'application/x-bzip2'
 				elif encoding == 'compress':
-					return 'application/x-compress'
-				else:
-					self._mimetype = mimetype or 'application/octet-stream'
+					mimetype = 'application/x-compress'
+				self._mimetype = mimetype or 'application/octet-stream'
 
 		return self._mimetype
 
