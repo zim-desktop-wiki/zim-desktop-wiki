@@ -18,6 +18,7 @@ import os
 import logging
 from gi.repository import Gtk
 from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import GdkPixbuf
 
 import zim.fs
@@ -162,7 +163,7 @@ def get_mime_icon(file, size):
 					logger.debug('Missing icons in icon theme: %s', names)
 					_last_warning_missing_icon = names
 				return None
-		except GObject.GError:
+		except (GObject.GError, GLib.Error):
 			logger.exception('Could not load icon for file: %s', file)
 			return None
 	else:

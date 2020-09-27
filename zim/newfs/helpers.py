@@ -6,6 +6,7 @@
 try:
 	from gi.repository import Gio
 	from gi.repository import GObject
+	from gi.repository import GLib
 except ImportError:
 	Gio = None
 
@@ -76,16 +77,19 @@ class TrashHelper(object):
 			f = Gio.File.new_for_uri(file.uri)
 			try:
 				ok = f.trash()
-			except GObject.GError as error:
-				if error.code == Gio.IOErrorEnum.CANCELLED \
-				or (os.name == 'nt' and error.code == 0):
-					# code 0 observed on windows for cancel
-					logger.info('Trash operation cancelled')
-					raise TrashCancelledError('Trashing cancelled')
-				elif error.code == Gio.IOErrorEnum.NOT_SUPPORTED:
-					raise TrashNotSupportedError('Trashing failed')
-				else:
-					raise error
+			except (GObject.GError, GLib.Error) as error:
+				if hasattr(error, 'code'):
+					if error.code == Gio.IOErrorEnum.CANCELLED \
+					or (os.name == 'nt' and error.code == 0):
+						# code 0 observed on windows for cancel
+						logger.info('Trash operation cancelled')
+						raise TrashCancelledError('Trashing cancelled')
+					elif error.code == Gio.IOErrorEnum.NOT_SUPPORTED:
+						raise TrashNotSupportedError('Trashing failed')
+
+				# else
+				logger.exception('Exception while thrashing')
+				raise TrashNotSupportedError('Trashing failed with exception')
 			else:
 				if not ok:
 					raise TrashNotSupportedError('Trashing failed')
