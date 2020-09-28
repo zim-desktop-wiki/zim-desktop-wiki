@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-07-24 08:10+0200\n"
-"PO-Revision-Date: 2020-09-24 20:40+0000\n"
+"PO-Revision-Date: 2020-09-29 19:06+0000\n"
 "Last-Translator: Helder Guerreiro <helder@paxjulia.org>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/zim/master/pt/"
 ">\n"
@@ -691,13 +691,11 @@ msgstr "_Recarregar"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:943
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Ligação de Entrada..."
-msgstr[1] "%i _Ligações de Entrada..."
+msgstr[0] "%i _Ligação de Entrada"
+msgstr[1] "%i _Ligações de Entrada"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1003
@@ -1152,10 +1150,8 @@ msgstr "_Imagem..."
 
 #. Menu item
 #: zim/gui/pageview.py:6426
-#, fuzzy
-#| msgid "Attachments"
 msgid "_Attachment..."
-msgstr "Anexos"
+msgstr "_Anexos…"
 
 #. Menu item | 
 #. Menu item,
@@ -1535,6 +1531,9 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
+"A codificação do seu sistema é %s, se deseja suportar caracteres especiais\n"
+"ou está a ver erros devido à codificação, certifique-se que configura o seu "
+"sistema para usar \"UTF-8\""
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1543,10 +1542,8 @@ msgstr "Preferências"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:112
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key bindings"
-msgstr "Atalhos de _teclas"
+msgstr "Teclas de atalho"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:117
@@ -1657,20 +1654,20 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"As teclas de atalho podem ser mudadas seleccionando a acção na lista e "
+"teclando o novo atalho.\n"
+"Para desactivar uma tecla de atalho, seleccione-a na lista e use "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:508
-#, fuzzy
-#| msgid "Section"
 msgid "Action"
-msgstr "Secção"
+msgstr "Acção"
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:519
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key Binding"
-msgstr "Atalhos de _teclas"
+msgstr "Teclas de atalho"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:17
@@ -1755,7 +1752,7 @@ msgstr "Permitir acesso público"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr ""
+msgstr "Autenticação necessária"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1764,15 +1761,13 @@ msgstr "Porta"
 
 #. Field in web server gui
 #: zim/gui/server.py:110
-#, fuzzy
-#| msgid "Filename"
 msgid "Username"
-msgstr "Nome do Ficheiro"
+msgstr "Nome do Utilizador"
 
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "Palavra Passe"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -1842,10 +1837,8 @@ msgstr "_Enviar Para..."
 
 #. Menu item
 #: zim/gui/uiactions.py:185
-#, fuzzy
-#| msgid "_Rename Page..."
 msgid "_Rename or move Page..."
-msgstr "_Renomear Página..."
+msgstr "_Renomear ou mover Página..."
 
 #. Menu item
 #: zim/gui/uiactions.py:194
@@ -1940,10 +1933,8 @@ msgstr "Iniciar Servidor _Web"
 
 #. menu item
 #: zim/gui/uiactions.py:366
-#, fuzzy
-#| msgid "View _Log"
 msgid "View debug log"
-msgstr "Ver R_egisto"
+msgstr "Ver R_egisto de debug"
 
 #. Menu item
 #: zim/gui/uiactions.py:380
@@ -2027,10 +2018,8 @@ msgstr "Gravar cópia"
 
 #. Dialog title
 #: zim/gui/uiactions.py:574
-#, fuzzy
-#| msgid "Rename Page"
 msgid "Rename or Move Page"
-msgstr "Renomear Página"
+msgstr "Renomear ou Mover Página"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/uiactions.py:579
@@ -2250,13 +2239,15 @@ msgid ""
 "of the file name, please try using a name with less\n"
 "than 255 characters"
 msgstr ""
+"Não posso salvar este ficheiro. Provavelmente isto é devido ao comprimento\n"
+"do nome do ficheiro, por favor use um nome com menos\n"
+"de 255 caracteres"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
-#, fuzzy, python-format
-#| msgid "File changed on disk: %s"
+#, python-format
 msgid "File name too long: %s"
-msgstr "O ficheiro %s foi alterado no disco"
+msgstr "O nome do ficheiro é demasiado longo: %s"
 
 #. Error explanation
 #: zim/newfs/local.py:54
@@ -2265,12 +2256,17 @@ msgid ""
 "of the file path, please try using a folder structure resulting in less\n"
 "than 4096 characters"
 msgstr ""
+"Não posso escrever para este ficheiro. Provavelmente isto é devido ao "
+"comprimento\n"
+"do caminho do ficheiro, por favor use uma estrutura de pastas de onde "
+"resulte\n"
+"um comprimento menor do que 4096 caracteres"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
 #, python-format
 msgid "File path too long: %s"
-msgstr ""
+msgstr "Caminho do ficheiro demasiado longo: %s"
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:420
@@ -2402,12 +2398,12 @@ msgstr "Posição na janela"
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:82
 msgid "Use thumbnails"
-msgstr ""
+msgstr "Usar miniaturas"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
 msgid "Support thumbnails for SVG"
-msgstr ""
+msgstr "Suporte de miniaturas para SVG"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:128
@@ -2903,21 +2899,13 @@ msgstr ""
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:72
-#, fuzzy
-#| msgid "Menubar"
 msgid "macOS Menubar"
-msgstr "Barra de menu"
+msgstr "Barra de menu macOS"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:73
-#, fuzzy
-#| msgid ""
-#| "\t\tThis plugin provides bar for bookmarks.\n"
-#| "\t\t"
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
-"\t\tEsta extensão fornece uma barra para os marcadores.\n"
-"\t\t"
+msgstr "Esta extensão fornece um menu tipo macOS para o zim."
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
@@ -2932,15 +2920,13 @@ msgstr ""
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
-#, fuzzy
-#| msgid "Automatically saved version from zim"
 msgid "Automatically expand sections on open page"
-msgstr "Versão automaticamente guardada pelo Zim"
+msgstr "Expandir automaticamente as secções numa página aberta"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65
 msgid "Automatically collapse sections on close page"
-msgstr ""
+msgstr "Colapsar automaticamente as secções quando se fecha a página"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -3197,25 +3183,23 @@ msgstr ""
 
 #. option value
 #: zim/plugins/sourceview.py:73
-#, fuzzy
-#| msgid "vertical lines"
 msgid "Never wrap lines"
-msgstr "linhas verticais"
+msgstr "Nunca corte linhas"
 
 #. option value
 #: zim/plugins/sourceview.py:74
 msgid "Try wrap at word boundaries or character"
-msgstr ""
+msgstr "Tente cortar as linhas nos limites das palavras ou caracteres"
 
 #. option value
 #: zim/plugins/sourceview.py:75
 msgid "Always wrap at character"
-msgstr ""
+msgstr "Corte sempre as linhas ao carácter"
 
 #. option value
 #: zim/plugins/sourceview.py:76
 msgid "Always wrap at word boundaries"
-msgstr ""
+msgstr "Corte sempre as linhas no limite das palavras"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:80
@@ -3250,12 +3234,12 @@ msgstr "largura da tabulação"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:92
 msgid "Text wrap mode"
-msgstr ""
+msgstr "Modo de corte de linhas"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:94
 msgid "Theme"
-msgstr ""
+msgstr "Tema"
 
 #. menu item
 #: zim/plugins/sourceview.py:109
@@ -3280,7 +3264,7 @@ msgstr "Inserir Bloco de Código"
 #. input checkbox
 #: zim/plugins/sourceview.py:359
 msgid "Display line numbers"
-msgstr ""
+msgstr "Exibir número de linhas"
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3543,15 +3527,13 @@ msgstr "Mostra o título da página na TdC"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:122
-#, fuzzy
-#| msgid "horizontal lines"
 msgid "Include horizontal lines in the ToC"
-msgstr "linhas horizontais"
+msgstr "Incluir linhas horizontais no índice"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
 msgid "Set ToC fontsize"
-msgstr ""
+msgstr "Tamanho da fonte do índice"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:386
@@ -3685,10 +3667,8 @@ msgstr "Mostrar lista de tarefas na barra lateral"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:56
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show due date in sidepane"
-msgstr "Mostrar lista de tarefas na barra lateral"
+msgstr "Mostrar data de conclusão na barra lateral"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:62
