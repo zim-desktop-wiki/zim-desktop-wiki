@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 Creation-Date: Unknown
 
 ====== Config Files ======
@@ -73,6 +73,9 @@ See [[http://docs.python.org/library/time.html%23time.strftime|this link]] for d
 
 ==== Automount config file ====
 The config file ''$XDG_CONFIG_HOME/zim/automount.conf'' can be used to configure mount commands for specific notebook paths. See [[Automount]] for details.
+
+==== Environ.ini config file ====
+The config file ''environ.ini'' can be used to modify environment parameters before any of the zim modules are loaded. See [[Portable Install]] for details.
 
 ==== GUI style config file ====
 Zim has certain defaults on how to display styles. For example it displays links as blue text without underline. To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.

@@ -54,7 +54,7 @@ a = Analysis( # noqa
         'zim.plugins.versioncontrol'
     ],
     hookspath=[],
-    runtime_hooks=['src/hook-data.py'],
+    runtime_hooks=[],
     excludes=['lib2to3', 'tcl', 'tk',
               '_tkinter', 'tkinter', 'Tkinter'],
     win_no_prefer_redirects=False,

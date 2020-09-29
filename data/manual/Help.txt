@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 Creation-Date: Wed, 08 Jul 2009 20:28:15 +0200
 
 ====== Help ======
@@ -31,6 +31,7 @@ Configuration
 * [[+Properties|Properties]]
 * [[+Templates|Templates]]
 * [[+Automount|Automount]]
+* [[+Portable Install|Portable Install]]
 * [[+Config Files|Config Files]]
 * [[+Default Applications|Default Applications]]
 
