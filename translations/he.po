@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-09-22 20:58+0200\n"
-"PO-Revision-Date: 2018-11-25 16:22+0000\n"
-"Last-Translator: Yaron <sh.yaron@gmail.com>\n"
-"Language-Team: Hebrew <he@li.org>\n"
+"PO-Revision-Date: 2020-09-30 11:40+0000\n"
+"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
+"Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Weblate 4.3-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:85
@@ -73,7 +73,7 @@ msgstr "לא ניתן לקרוא: %s‏"
 #. message for FileUnicodeError
 #: zim/fs.py:275 zim/newfs/base.py:66
 msgid "This usually means the file contains invalid characters"
-msgstr "בדרך הכלל זאת אומרת שהקובץ קלט כולל תוים בלתי חוקיים.‏"
+msgstr "בדרך כלל המשמעות היא שקובץ הקלט כולל תווים שגויים"
 
 #. label for detailed error | 
 #. section for version details in "save version" dialog
@@ -86,18 +86,18 @@ msgstr "פרטים"
 #: zim/fs.py:1167
 #, python-format
 msgid "File is not writable: %s"
-msgstr "‏קובץ אין ניתן לכתיבה: %s"
+msgstr "הקובץ אינו פתוח לכתיבה: %s"
 
 #. error message
 #: zim/fs.py:1239
 #, python-format
 msgid "File changed on disk: %s"
-msgstr "קובץ בקונן השתנה: %s"
+msgstr "הקובץ השתנה בכונן: %s"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/applications.py:500 zim/gui/pageview.py:6632
 msgid "Create folder?"
-msgstr "האם ליצור תיקייה?"
+msgstr "ליצור תיקייה?"
 
 #. Text in a question dialog for creating a folder, %s will be the folder base name
 #: zim/gui/applications.py:502
@@ -106,6 +106,8 @@ msgid ""
 "The folder \"%s\" does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
+"התיקייה „%s” אינה קיימת עדיין.\n"
+"ליצור אותה כעת?"
 
 #. error when external application fails
 #: zim/gui/applications.py:567 zim/gui/applications.py:641
@@ -125,8 +127,7 @@ msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
 msgstr ""
-"קובץ זה נערך על ידיך ביישום חיצוני. באפשרותך לסגור את תיבת דו־שיח זו עם "
-"הסיום."
+"קובץ זה נערך על ידיך ביישום חיצוני. באפשרותך לסגור את תיבת דו־שיח זו עם הסיום"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:923
@@ -136,7 +137,7 @@ msgstr "התאם אישית..."
 #. message when no applications in "Open With" menu
 #: zim/gui/applications.py:949
 msgid "No Applications Found"
-msgstr "לא נמצאו יישומים מתאימות."
+msgstr "לא נמצאו יישומים"
 
 #. menu item to open a file with an application, %s is the app name
 #: zim/gui/applications.py:979
@@ -156,7 +157,9 @@ msgstr "הגדר יישום לפתוח קישורים מסוג: %s"
 msgid ""
 "Configure an application to open files\n"
 "of type \"%s\""
-msgstr "הגדר יישום לפתוח קבצים מסוג: %s"
+msgstr ""
+"הגדרת יישום לפתיחת קבצים\n"
+"מסוג: %s"
 
 #. Dialog title
 #: zim/gui/applications.py:1003
@@ -532,7 +535,7 @@ msgstr "יש להסיר קישורים בעת מחיקת דפים"
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:64
 msgid "Always use last cursor position when opening a page"
-msgstr "השאיר סמן במקום האחרון שלו בפתיחת דפים."
+msgstr "תמיד להשתמש במיקום הסמן האחרון בעת פתיחת דף"
 
 #. Menu item | 
 #. Button label
@@ -901,7 +904,7 @@ msgstr "לא מוגדר כזה ויקי: %s"
 #. menu item for context menu of editor
 #: zim/gui/pageview.py:6078
 msgid "Copy _As..."
-msgstr "העתק כ־"
+msgstr "ה_עתקה בתור…"
 
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:6085
@@ -1118,7 +1121,11 @@ msgid ""
 "%s\n"
 "does not yet exist.\n"
 "Do you want to create it now?"
-msgstr "תיקיית %s אינו קיים. האם ברצונך ליצור אותו כעת?"
+msgstr ""
+"התיקייה\n"
+"%s\n"
+"אינה קיימת.\n"
+"ליצור אותה כעת?"
 
 #. Menu item
 #: zim/gui/pageview.py:6643
@@ -1228,7 +1235,8 @@ msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
 "You can use another name or overwrite the existing file."
 msgstr ""
-"קובץ בשם <b>\"%s\"</b> כבר קיים. ניתן לבחור שם אחר או לשכתב את הקובץ הקיים."
+"כבר קיים קובץ בשם <b>”%s„</b>.\n"
+"ניתן לבחור שם אחר או לשכתב את הקובץ הקיים."
 
 #. Input label
 #: zim/gui/pageview.py:7333
@@ -2349,9 +2357,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מוסיף רשימת דפים המקרים אל דף הנוכחי.\n"
+"תוסף זה מוסיף וידג׳ט נוסף המציג רשימת דפים\n"
+"שמקשרים לדף הנוכחי.\n"
 "\n"
-"תוסף זה הוא תוסף מרכזי המגיע עם צים.\n"
+"זה תוסף ליבה המתלווה ל־zim.\n"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:62
@@ -2489,7 +2498,6 @@ msgid ""
 msgstr ""
 "תוסף זה מהווה עורך תרשימים ל־GraphViz מבוסס zim.\n"
 "\n"
-"\n"
 "זהו תוסף המהווה חלק מהליבה של zim.\n"
 
 #. menu item
@@ -2570,7 +2578,6 @@ msgid ""
 "This is a core plugin shipping with zim.\n"
 msgstr ""
 "תוסף זה מספק עורך משוואות עבור zim על בסיס latex.\n"
-"\n"
 "\n"
 "זהו תוסף המהווה חלק מהליבה של zim.\n"
 
@@ -3641,8 +3648,8 @@ msgid ""
 "Classic trayicon,\n"
 "do not use new style status icon on Ubuntu"
 msgstr ""
-"סמל דיווח קלסי.\n"
-"אין להשתמש בסמל בסגנון חדש באובונטו."
+"סמל מערכת קלסי,\n"
+"לא להשתמש בסמל בסגנון חדש באובונטו."
 
 #. preferences option
 #: zim/plugins/trayicon.py:86
