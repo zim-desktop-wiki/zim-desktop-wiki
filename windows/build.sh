@@ -165,7 +165,7 @@ source "${__venv_dir}/bin/activate"
 info "Initializing virtual environment ..."
 
 python -m pip install -U pip
-pip install PyGObject xdg pyinstaller
+pip install PyGObject pyinstaller==3.6 # Fix pyinstaller version, latest has bug
 
 info "Checking virtual environment ..."
 

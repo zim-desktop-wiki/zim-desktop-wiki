@@ -20,7 +20,8 @@ a = Analysis( # noqa
     datas=[
         ('../build/venv/share', 'share'),
         ('../../zim/plugins', 'share/zim/plugins'),
-    ],
+        (posix2win('/mingw64/lib/girepository-1.0/HarfBuzz-0.0.typelib'), 'gi_typelibs'), # Imported automatically with latest pyinstaller, but hardcoded as part of bug workaround
+   ],
     hiddenimports=[
         'zim.plugins.arithmetic',
         'zim.plugins.attachmentbrowser',
