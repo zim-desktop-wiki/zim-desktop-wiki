@@ -344,21 +344,22 @@ class TestZimScript(tests.TestCase):
 		init_environment = globals['init_environment']
 
 		# Test missing file is silent, and no chance to data dir
+		os.environ['XDG_DATA_DIRS'] = 'TEST'
 		init_environment(folder.path)
-		self.assertEqual(os.environ['XDG_DATA_DIRS'], orig_environ['XDG_DATA_DIRS'])
+		self.assertEqual(os.environ['XDG_DATA_DIRS'], 'TEST')
 
 		# Test with existing data dir
 		data_dir = folder.folder('share')
 		data_dir.touch()
 		init_environment(folder.path)
-		self.assertEqual(os.environ['XDG_DATA_DIRS'], orig_environ['XDG_DATA_DIRS'] + os.pathsep + data_dir.path)
+		self.assertEqual(os.environ['XDG_DATA_DIRS'], 'TEST' + os.pathsep + os.path.normpath(data_dir.path))
 
 		# Setup file
 		file = folder.file('environ.ini')
 		file.write(
 			'[Environment]\n'
 			'MYHOME=../home\n'
-			'MYPATH=$PATH' + os.pathsep + './bin\n'
+			'MYPATH=${PATH}' + os.pathsep + './bin\n'
 		)
 		# write tmp file
 		# 	- abs path
@@ -367,5 +368,5 @@ class TestZimScript(tests.TestCase):
 
 		# Test with file in place
 		init_environment(folder.path)
-		self.assertEqual(os.environ['MYHOME'], folder.parent().folder('home').path)
-		self.assertEqual(os.environ['MYPATH'], os.environ['PATH'] + os.pathsep + folder.folder('bin').path)
+		self.assertEqual(os.environ['MYHOME'], os.path.normpath(folder.parent().folder('home').path))
+		self.assertEqual(os.environ['MYPATH'], os.environ['PATH'] + os.pathsep + os.path.normpath(folder.folder('bin').path))

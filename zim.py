@@ -21,14 +21,15 @@ def init_environment(installdir):
 	env_config_file = os.path.join(installdir, 'environ.ini')
 	if os.path.exists(env_config_file):
 		import configparser
-		env_config = configparser.ConfigParser()
+		env_config = configparser.ConfigParser(allow_no_value=True, interpolation=configparser.ExtendedInterpolation())
 		env_config.optionxform = lambda option: option # make parser case sensitive
+		env_config['DEFAULT'].update((k, v.replace('$', '$$')) for k, v in os.environ.items()) # set default values for interpolating parameters
 		env_config.read(env_config_file)
 		for k, v in env_config['Environment'].items():
 			os.environ[k] = _parse_environment_param(v, installdir)
 
 	# Set data dir specific for windows installer
-	data_dir = os.path.join(installdir, "share")
+	data_dir = os.path.normpath(os.path.join(installdir, "share"))
 	if os.path.exists(data_dir):
 		dirs = os.environ.get("XDG_DATA_DIRS")
 		if dirs:
@@ -44,10 +45,7 @@ def _parse_environment_param(value, installdir):
 	for part in value.split(os.pathsep):
 		if re.match(r'^\.\.?[/\\]', part): # ./ ../ .\ ..\
 			parts.append(os.path.normpath(installdir + '/' + part))
-		elif re.match(r'^\$\w+$', part):
-			parts.append(os.environ.get(part[1:], ''))
 		else:
-			print('no match', part)
 			parts.append(part)
 
 	return os.pathsep.join(parts)
