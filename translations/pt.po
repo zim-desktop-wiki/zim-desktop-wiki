@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-07-24 08:10+0200\n"
-"PO-Revision-Date: 2020-10-02 22:40+0000\n"
+"PO-Revision-Date: 2020-10-04 22:13+0000\n"
 "Last-Translator: ssantos <ssantos@web.de>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/zim/master/pt/"
 ">\n"
@@ -557,7 +557,7 @@ msgstr "Use %s para alternar para o painel lateral"
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:71
 msgid "Remove links when deleting pages"
-msgstr "Remover ligações ao excluir páginas"
+msgstr "Remover ligações ao apagar páginas"
 
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:73
@@ -2609,7 +2609,7 @@ msgstr "Esconder barra de ferramentas no modo ecrã completo"
 #. plugin preference
 #: zim/plugins/distractionfree.py:38
 msgid "Hide statusbar in fullscreen mode"
-msgstr "Esconder a barra de status no modo ecrã completo"
+msgstr "Esconder a barra de estado no modo ecrã completo"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:39
@@ -3753,8 +3753,8 @@ msgid ""
 "Classic trayicon,\n"
 "do not use new style status icon on Ubuntu"
 msgstr ""
-"ícone da bandeja clássico,\n"
-"não use o novo estilo de ícone de status no Ubuntu"
+"Ícone da bandeja clássico,\n"
+"não use o novo estilo de ícone de estado no Ubuntu"
 
 #. preferences option
 #: zim/plugins/trayicon.py:86
