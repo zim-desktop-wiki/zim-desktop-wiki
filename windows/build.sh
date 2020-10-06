@@ -208,4 +208,4 @@ info "Building Zim installer ..."
 (cd "${__dist_dir}" && makensis -NOCD -DVERSION="${__zim_ver}" "${__dir}/src/zim-installer.nsi")
 
 info "Finished successfully."
-info "Setup file is at: ${__dist_dir}/zim-desktop-wiki-${__zim_ver}-setup.exe"
+info "Setup file is at: ${__dist_dir}/zim-desktop-wiki-${__zim_ver}-setup-w64_x86.exe"
