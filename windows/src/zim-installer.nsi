@@ -177,6 +177,8 @@ Section "-Main program" SecProgramFiles
         WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\zim.exe" "" "$INST_BIN"
 
         CreateShortCut "$SMPROGRAMS\${APPNAME}.lnk" "$INST_BIN"
+    ${Else}
+	File /oname=environ.ini ..\..\src\environ-portable.ini
     ${EndIf}
 
 SectionEnd
