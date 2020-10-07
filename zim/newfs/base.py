@@ -195,20 +195,22 @@ else:
 
 
 def _os_expanduser(path):
+	# Force usage of $HOME (especially on windows) instead of default logic
+	# in os.path.expanduser
+	# This depends on us setting HOME correctly based on USERPROFILE or similar
 	assert path.startswith('~')
-	path = os.path.expanduser(path)
-
-	if path.startswith('~'):
-		# expansion failed - do a simple fallback
-		home = os.environ['HOME']
-		parts = path.replace('\\', '/').strip('/').split('/')
-		if parts[0] == '~':
-			path = SEP.join([home] + parts[1:])
-		else: # ~user
-			dir = os.path.dirname(home) # /home or similar ?
-			path = SEP.join([dir, parts[0][1:]] + parts[1:])
-
-	return path
+	home = os.environ['HOME']
+	parts = path.replace('\\', '/').strip('/').split('/')
+	if parts[0] == '~':
+		return SEP.join([home] + parts[1:])
+	else: # ~user
+		path = os.path.expanduser(path)
+		if path.startswith('~'):
+			# fallback
+			homedir = os.path.dirname(home)
+			return SEP.join([homedir, parts[0][1:]] + parts[1:])
+		else:
+			return path
 
 
 class FilePath(object):
