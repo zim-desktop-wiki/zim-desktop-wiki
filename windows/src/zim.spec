@@ -1,70 +1,52 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import os.path
-import subprocess
+import os
 import sys
+import re
+import subprocess
 
 block_cipher = None
-binaries = []
 
-if sys.platform == "win32":
-    posix2win = lambda cyg_path: subprocess.check_output(["cygpath", "-w", cyg_path]).strip(b"\n").decode()
+assert sys.platform == "win32", 'TODO: port spec file for other platforms'
 
-    binaries.append((posix2win('/mingw64/bin/gspawn-win64-helper'), '.'))
-    binaries.append((posix2win('/mingw64/bin/gspawn-win64-helper-console'), '.'))
+posix2win = lambda cyg_path: subprocess.check_output(["cygpath", "-w", cyg_path]).strip(b"\n").decode()
 
-a = Analysis( # noqa
-    ['../build/venv/bin/zim_launch.py'],
-    pathex=['../build'],
-    binaries=binaries,
-    datas=[
-        ('../build/venv/share', 'share'),
-        ('../../zim/plugins', 'share/zim/plugins'),
-        (posix2win('/mingw64/lib/girepository-1.0/HarfBuzz-0.0.typelib'), 'gi_typelibs'), # Imported automatically with latest pyinstaller, but hardcoded as part of bug workaround
-   ],
-    hiddenimports=[
-        'zim.plugins.arithmetic',
-        'zim.plugins.attachmentbrowser',
-        'zim.plugins.backlinkpane',
-        'zim.plugins.base',
-        'zim.plugins.bookmarksbar',
-        'zim.plugins.diagrameditor',
-        'zim.plugins.ditaeditor',
-        'zim.plugins.equationeditor',
-        'zim.plugins.gnu_r_ploteditor',
-        'zim.plugins.gnuplot_ploteditor',
-        'zim.plugins.inlinecalculator',
-        'zim.plugins.insertsymbol',
-        'zim.plugins.journal',
-        'zim.plugins.linesorter',
-        'zim.plugins.linkmap',
-        'zim.plugins.pageindex',
-        'zim.plugins.pathbar',
-        'zim.plugins.printtobrowser',
-        'zim.plugins.quicknote',
-        'zim.plugins.scoreeditor',
-        'zim.plugins.screenshot',
-        'zim.plugins.sequencediagrameditor',
-        'zim.plugins.sourceview',
-        'zim.plugins.spell',
-        'zim.plugins.tableeditor',
-        'zim.plugins.tableofcontents',
-        'zim.plugins.tags',
-        'zim.plugins.tasklist',
-        'zim.plugins.trayicon',
-        'zim.plugins.versioncontrol'
-    ],
-    hookspath=[],
-    runtime_hooks=[],
-    excludes=['lib2to3', 'tcl', 'tk',
-              '_tkinter', 'tkinter', 'Tkinter'],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
-    noarchive=False)
 
-# Filter icons
-include_icons = {
+def list_modules(path, prefix):
+    modules = []
+    for name in os.listdir(path):
+        if name.endswith('.py') and not name.startswith('_'):
+            modules.append(prefix + '.' + name[:-3])
+        elif not '.' in name and not name.startswith('_'):
+            modules.append(prefix + '.' + name) # folder
+
+    assert len(modules) > 0, 'Did not find any modules in %s ?' % path
+    return modules
+
+hiddenimports = \
+    list_modules('../zim/formats', 'zim.formats') + \
+    list_modules('../zim/plugins', 'zim.plugins')
+
+def find_potential_icons(path):
+    # Will capture much more strings than just icon names, but that is OK,
+    # we match them against actual icons in the theme when filtering, so the
+    # noise drops out
+    names = set()
+    for dirpath, dirnames, filenames in os.walk(path):
+        for filename in filenames:
+            if filename.endswith('.py'):
+                code = open(dirpath + '/' + filename).read()
+                for match in re.findall('[\'"]\w+(?:-\w+)+[\'"]', code):
+                    names.add(match[1:-1])
+
+    assert len(names) > 0, 'Did not find any potential icon names in %s ?' % path
+    return names
+
+icon_names = find_potential_icons('../zim')
+icon_names.update({
+    # Hardcoded names for Gtk.STOCK_... constants (deprecated)
+    # and icons that are used by the Gtk toolkit directly
+    # below */places/* is whitelisted as well to ensure file dialogs look ok
     'dialog-information',
     'dialog-warning',
     'document-open',
@@ -102,7 +84,29 @@ include_icons = {
     'pan-end-symbolic',
     'pan-down-symbolic',
     'pan-up-symbolic',
-}
+})
+
+a = Analysis( # noqa
+    ['../build/venv/bin/zim_launch.py'],
+    pathex=['../build'],
+    binaries=[
+        (posix2win('/mingw64/bin/gspawn-win64-helper'), '.'),
+        (posix2win('/mingw64/bin/gspawn-win64-helper-console'), '.'),
+    ],
+    datas=[
+        ('../build/venv/share', 'share'),
+        ('../../zim/plugins', 'share/zim/plugins'),
+        (posix2win('/mingw64/lib/girepository-1.0/HarfBuzz-0.0.typelib'), 'gi_typelibs'), # Imported automatically with latest pyinstaller, but hardcoded as part of bug workaround
+    ],
+    hiddenimports=hiddenimports,
+    hookspath=[],
+    runtime_hooks=['src/hook-data.py'],
+    excludes=['lib2to3', 'tcl', 'tk',
+              '_tkinter', 'tkinter', 'Tkinter'],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False)
 
 
 # Determine existing translations
@@ -117,7 +121,8 @@ translations = set(translations)
 # Filter data resources
 def keepdata(x):
     if x[0].startswith('share/icons/Adwaita'):
-        return os.path.splitext(os.path.basename(x[0]))[0] in include_icons
+        return ('/places' in x[0]) \
+            or (os.path.splitext(os.path.basename(x[0]))[0] in icon_names)
     elif x[0].startswith('share/locale'):
         dirs = os.path.normpath(x[0]).split(os.path.sep)
         return (len(dirs) < 3) or (dirs[2] in translations)
