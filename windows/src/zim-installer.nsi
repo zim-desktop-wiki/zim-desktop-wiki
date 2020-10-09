@@ -9,7 +9,7 @@
 
 ; Main Install settings
 Name "${APPNAMEANDVERSION}"
-OutFile "..\zim-desktop-wiki-${VERSION}-setup.exe"
+OutFile "..\zim-desktop-wiki-${VERSION}-setup-w64_x86.exe"
 RequestExecutionlevel highest
 SetCompressor /SOLID lzma
 
@@ -82,7 +82,7 @@ ${Else}
 ${EndIf}
 
 ${If} $InstDir == ""
-    ; User did not use /D to specify a directory, 
+    ; User did not use /D to specify a directory,
     ; we need to set a default based on the install mode
     StrCpy $InstDir $0
 ${EndIf}
@@ -213,7 +213,7 @@ Section "Create registry keys and uninstaller" SecUninstall
     ${EndIf}
 
     WriteUninstaller "$INSTDIR\uninstall.exe"
-    
+
 SectionEnd
 
 
