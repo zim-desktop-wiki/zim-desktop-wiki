@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-09-22 20:58+0200\n"
-"PO-Revision-Date: 2019-05-17 09:02+0000\n"
+"PO-Revision-Date: 2020-10-10 14:26+0000\n"
 "Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
-"Language-Team: Dutch <nl@li.org>\n"
+"Language-Team: Dutch <https://hosted.weblate.org/projects/zim/develop/nl/>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:85
@@ -127,8 +127,8 @@ msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
 msgstr ""
-"U hebt een bestand in een andere applicatie geopend om te bewerken. Deze "
-"dialoog kan gesloten worden als u klaar bent met dit bestand."
+"U heeft een bestand in een andere applicatie geopend om te bewerken. Deze "
+"dialoog kan gesloten worden als u klaar bent met dit bestand"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:923
@@ -718,7 +718,7 @@ msgstr "Notitieboek Toevoegen"
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:406
 msgid "Please select a name and a folder for the notebook."
-msgstr "Kies een naam en een map voor dit notitieboek"
+msgstr "Kies een naam en een map voor dit notitieboek."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:422
@@ -929,7 +929,7 @@ msgstr "Kopiëren _Als..."
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:6085
 msgid "Move Selected Text..."
-msgstr "Geselecteerde tekst verplaatsen"
+msgstr "Geselecteerde tekst verplaatsen..."
 
 #. Menu item
 #: zim/gui/pageview.py:6133 zim/gui/pageview.py:6367
@@ -1063,7 +1063,7 @@ msgstr "Check Checkbox '>'"
 #. Menu item
 #: zim/gui/pageview.py:6329
 msgid "_Edit Link or Object..."
-msgstr "Link of Object _Wijzigen"
+msgstr "Link of Object _Wijzigen..."
 
 #: zim/gui/pageview.py:6385
 #, fuzzy
@@ -1116,7 +1116,7 @@ msgstr "Checkbo_x Lijst"
 #. Menu item
 #: zim/gui/pageview.py:6498
 msgid "Text From _File..."
-msgstr "Tekst Uit _Bestand"
+msgstr "Tekst Uit _Bestand..."
 
 #. Menu item
 #: zim/gui/pageview.py:6542
@@ -1767,7 +1767,7 @@ msgstr "Sjabloon Kopiëren"
 #. Menu item
 #: zim/gui/uiactions.py:95
 msgid "_New Page..."
-msgstr "_Nieuwe Pagina"
+msgstr "_Nieuwe Pagina..."
 
 #. Menu item
 #: zim/gui/uiactions.py:106
@@ -1777,7 +1777,7 @@ msgstr "Nieuwe S_ub Pagina..."
 #. Menu item
 #: zim/gui/uiactions.py:114
 msgid "_New Page Here..."
-msgstr "_Nieuwe Pagina Hier"
+msgstr "_Nieuwe Pagina Hier..."
 
 #. Menu item
 #: zim/gui/uiactions.py:122
@@ -2040,7 +2040,7 @@ msgid ""
 msgstr ""
 "De pagina \"%s\" and alle\n"
 "subpagina's en bijgevoegde bestanden\n"
-"zullen worden verwijderd."
+"zullen worden verwijderd"
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:683
@@ -2165,7 +2165,7 @@ msgstr "Logboek"
 #. Error verbose description
 #: zim/main/__init__.py:119
 msgid "Could not find the file or folder for this notebook"
-msgstr "Map of bestand voor dit notitieboek niet gevonden."
+msgstr "Map of bestand voor dit notitieboek niet gevonden"
 
 #. Error when looking up a notebook
 #: zim/main/__init__.py:152 zim/main/__init__.py:186
@@ -2667,7 +2667,7 @@ msgstr "GNU R plot invoegen"
 #: zim/plugins/gnu_r_ploteditor.py:36
 msgid "This plugin provides a plot editor for zim based on GNU R.\n"
 msgstr ""
-"Deze plugin voegt de mogenlijkheid toe om plots te \n"
+"Deze plugin voegt de mogelijkheid toe om plots te \n"
 "gebruiken gebaseerd op GNU R.\n"
 
 #. menu item
@@ -2700,7 +2700,7 @@ msgstr ""
 "Deze invoegtoepassing kan eenvoudige wiskundige vergelijkingen \n"
 "in de tekst evalueren.\n"
 "\n"
-"Dit is een standaard  invoegtoepassing voor zim.\n"
+"Dit is een standaard invoegtoepassing voor zim.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:271
@@ -2734,7 +2734,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/insertsymbol.py:77
 msgid "Sy_mbol..."
-msgstr "Sy_mbool"
+msgstr "Sy_mbool..."
 
 #. plugin name | 
 #. side pane title
@@ -2936,7 +2936,7 @@ msgid ""
 "recent visited pages or recent edited pages.\n"
 msgstr ""
 "Deze plugin voegt een \"locatie balk\" toe aan de bovenkant \n"
-"van het window. Deze balk can de locatie van de huidige pagina \n"
+"van het window. Deze balk kan de locatie van de huidige pagina \n"
 "laten zien, maar ook recent bezochte paginas of recent gewijzigde \n"
 "paginas.\n"
 
@@ -2988,7 +2988,7 @@ msgid ""
 msgstr ""
 "Deze plugin stuurt de huidige pagina naar de \n"
 "webbrowser. Bij gebrek aan printer support\n"
-"in zim geeft dit de mogenlijkheid om de pagina \n"
+"in zim geeft dit de mogelijkheid om de pagina \n"
 "vanuit de browser te printen.\n"
 "\n"
 "Dit is een standaard plugin voor zim.\n"
@@ -3034,7 +3034,7 @@ msgstr "Pagina sectie"
 #. checkbox in Quick Note dialog
 #: zim/plugins/quicknote.py:249
 msgid "Create a new page for each note"
-msgstr "Maak  voor elke notitie een nieuwe pagina aan"
+msgstr "Maak voor elke notitie een nieuwe pagina aan"
 
 #. text entry field
 #: zim/plugins/quicknote.py:250 zim/plugins/tableeditor.py:922
@@ -3165,7 +3165,7 @@ msgid ""
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
 "Deze plugin maakt het mogelijk om \"Code blokken\" toe te voegen\n"
-"aan een pagine. Deze worden getoont met syntax highlighting,\n"
+"aan een pagina. Deze worden getoond met syntax highlighting,\n"
 "regel nummering etc.\n"
 
 #. option value
@@ -3270,7 +3270,7 @@ msgstr ""
 "Deze plugin voegt een spellingscontrole toe \n"
 "gebaseerd op gtkspell.\n"
 "\n"
-"Dit is een standaardplugin voor zim.\n"
+"Dit is een standaard plugin voor zim.\n"
 
 #. menu item
 #: zim/plugins/spell.py:128
@@ -3289,7 +3289,7 @@ msgid ""
 "dictionaries installed"
 msgstr ""
 "Dit kan betekenen dat de juiste\n"
-"woordenboeken niet zijn geïnstalleerd."
+"woordenboeken niet zijn geïnstalleerd"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:53 zim/plugins/tableeditor.py:863
@@ -3415,12 +3415,12 @@ msgstr "Open link in cell"
 msgid ""
 "The table must consist of at least on row!\n"
 " No deletion done."
-msgstr "Rij niet verwijderd, de tabel moet minimaal één rij bevatten"
+msgstr "Rij niet verwijderd, de tabel moet minimaal één rij bevatten."
 
 #. Popup dialog
 #: zim/plugins/tableeditor.py:772 zim/plugins/tableeditor.py:1081
 msgid "Please select a row, before you push the button."
-msgstr "Selecteer een rij"
+msgstr "Selecteer een rij."
 
 #. Dialog title
 #: zim/plugins/tableeditor.py:859
@@ -3739,7 +3739,7 @@ msgstr ""
 "\n"
 "Deze plugin vereist Gtk+ versie 2.10 of nieuwer.\n"
 "\n"
-"Dit is een standaardplugin voor zim.\n"
+"Dit is een standaard plugin voor zim.\n"
 
 #. preferences option
 #: zim/plugins/trayicon.py:85
@@ -3817,7 +3817,7 @@ msgstr "Automatisch opgeslagen versie van zim"
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:213
 msgid "S_ave Version..."
-msgstr "V_ersie Opslaan"
+msgstr "V_ersie Opslaan..."
 
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:230
@@ -3979,7 +3979,7 @@ msgstr "Log events in Zeitgeist"
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:33
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr "Stuur events naar de Zeitgeist service"
+msgstr "Stuur events naar de Zeitgeist service."
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:63
@@ -4012,7 +4012,7 @@ msgstr "Volgende"
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
 msgid "Backlinks:"
-msgstr "Referenties"
+msgstr "Referenties:"
 
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
