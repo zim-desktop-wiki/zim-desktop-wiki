@@ -8,16 +8,17 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-07-24 08:10+0200\n"
-"PO-Revision-Date: 2019-10-30 14:30+0000\n"
-"Last-Translator: Mukli Krisztián <Unknown>\n"
-"Language-Team: Zim <msv@titok.info>\n"
+"PO-Revision-Date: 2020-10-15 13:26+0000\n"
+"Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
+"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
+"\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
 #. Error message when external application failed, %s is the command
@@ -130,7 +131,7 @@ msgid ""
 "when you are done"
 msgstr ""
 "Egy fájlt egy külső alkalmazással szerkesztesz. Ezt az ablakot akkor zárd "
-"be, amikor kész vagy."
+"be, amikor kész vagy"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:923
@@ -753,7 +754,7 @@ msgstr "Jegyzetfüzet hozzáadása"
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:406
 msgid "Please select a name and a folder for the notebook."
-msgstr "Válassz nevet és mappát a jegyzetfüzethez"
+msgstr "Válassz nevet és mappát a jegyzetfüzethez."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:422
@@ -1133,7 +1134,7 @@ msgstr "Jelölőnégyzet beállítása '>'"
 #. Menu item
 #: zim/gui/pageview.py:6336
 msgid "_Edit Link or Object..."
-msgstr "_Hivatkozás/objektum szerkesztése"
+msgstr "_Hivatkozás/objektum szerkesztése..."
 
 #. Menu item
 #: zim/gui/pageview.py:6392
@@ -1188,12 +1189,12 @@ msgstr "_Hivatkozás..."
 #. message when no file templates are found in ~/Templates
 #: zim/gui/pageview.py:6562
 msgid "No templates installed"
-msgstr "Nincsenek telepített sablonok."
+msgstr "Nincsenek telepített sablonok"
 
 #. Menu item in "Insert > New File Attachment" submenu
 #: zim/gui/pageview.py:6611
 msgid "File _Templates..."
-msgstr "_Fájl sablonok"
+msgstr "_Fájl sablonok..."
 
 #. Text in a question dialog for creating a folder, %s is the folder path
 #: zim/gui/pageview.py:6625
@@ -1216,7 +1217,7 @@ msgstr "F_ormázás törlése"
 #. Menu item
 #: zim/gui/pageview.py:6739
 msgid "_Find..."
-msgstr "_Keresés a lapon"
+msgstr "_Keresés a lapon..."
 
 #. Menu item
 #: zim/gui/pageview.py:6760
@@ -1296,7 +1297,7 @@ msgstr "Fájl csatolása"
 #: zim/gui/pageview.py:7104
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr "A \"%s\" lapnak nincs mappája a csatolásokhoz."
+msgstr "A \"%s\" lapnak nincs mappája a csatolásokhoz"
 
 #. Dialog title
 #: zim/gui/pageview.py:7164
@@ -1722,8 +1723,8 @@ msgid ""
 "For advanced search you can use operators like\n"
 "AND, OR and NOT. See the help page for more details."
 msgstr ""
-"A kibővitett keresésben használhatók legyenek ilyen operátorok:\n"
-"AND, OR és NOT. Nézd meg a súgót a részletekért!"
+"A kibővített keresésben használhatók legyenek olyan operátorok, mint\n"
+"AND, OR és NOT. Nézd meg a súgót a részletekért."
 
 #. checkbox option in search dialog
 #: zim/gui/searchdialog.py:52
@@ -1817,7 +1818,7 @@ msgstr "Új oldal..."
 #. Menu item
 #: zim/gui/uiactions.py:122
 msgid "_Open Another Notebook..."
-msgstr "Jegyzetfüzet _megnyitása"
+msgstr "Jegyzetfüzet _megnyitása..."
 
 #. Menu item
 #: zim/gui/uiactions.py:142
@@ -1827,7 +1828,7 @@ msgstr "Lap _importálása..."
 #. Menu item
 #: zim/gui/uiactions.py:160
 msgid "Save A _Copy..."
-msgstr "Más_olat mentés"
+msgstr "Más_olat mentése..."
 
 #. Menu item
 #: zim/gui/uiactions.py:165
@@ -2072,14 +2073,16 @@ msgstr "\"%s\" lap törölhető?"
 msgid ""
 "Page \"%s\" and all of it's\n"
 "sub-pages and attachments will be deleted"
-msgstr "A \"%s\", minden alatta lévő lap,és ezek csatolásai törölve lesznek"
+msgstr ""
+"A(z) \"%s\" oldal és minden\n"
+"aloldalai, a csatolmányokkal együtt törölve lesznek"
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:683
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
-msgstr[0] "%i fáljt fogok törölni"
+msgstr[0] "%i fájlt fogok törölni"
 msgstr[1] "%i fáljt fogok törölni"
 
 #. General description of zim itself
@@ -2090,18 +2093,7 @@ msgstr "Egy asztali wiki"
 #. This string needs to be translated with names of the translators for this language
 #: zim/gui/uiactions.py:740
 msgid "translator-credits"
-msgstr ""
-"fordító-hitelesség\n"
-"\n"
-"Launchpad Contributions:\n"
-"  István Papp https://launchpad.net/~istpapp\n"
-"  Jaap Karssenberg https://launchpad.net/~jaap.karssenberg\n"
-"  Marton S. Viktor https://launchpad.net/~msv-titok\n"
-"  Mukli Krisztián https://launchpad.net/~krisztianmukli\n"
-"  Robert Roth https://launchpad.net/~evfool\n"
-"  SanskritFritz https://launchpad.net/~sanskritfritz+launchpad\n"
-"  bruce https://launchpad.net/~mano155\n"
-"  sipizoli https://launchpad.net/~zoltan-siposs"
+msgstr "Fordító: Mukli Krisztián"
 
 #. dialog title
 #: zim/gui/widgets.py:533 zim/gui/widgets.py:1615
@@ -2168,7 +2160,9 @@ msgstr "_Minden panel"
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
-msgstr "A hibajelentéshez kérjük csatold hozzá az alábbiakat"
+msgstr ""
+"Ha jelented ezt a hibát, kérlek csatold\n"
+"a hibajelentéshez az alábbiakat"
 
 #. Filter in open file dialog, shows all files (*)
 #: zim/gui/widgets.py:3614
@@ -2428,11 +2422,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Ez a kiegészítő megjelenít egy külön panelt\n"
-"ami azokat az oldalakat sorolja fel, ahol hivatkozás található\n"
-"az aktuális oldalra.\n"
+"Ez a kiegészítő megjelenít egy külön panelt ami azokat\n"
+"az oldalakat sorolja fel, ahol hivatkozás található az aktuális oldalra.\n"
 "\n"
-"Ez egy alapvető bővítmény, a Zim-mel együtt települt.\n"
+"Ez egy alapvető bővítmény, a Zimmel együtt települt.\n"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:62
@@ -2442,7 +2435,7 @@ msgstr "Visszacsatolások"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:261
 msgid "_Edit..."
-msgstr "_Szerkesztés"
+msgstr "_Szerkesztés..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:289
@@ -2491,7 +2484,7 @@ msgstr "Könyvjelzők mentése"
 #. preferences option
 #: zim/plugins/bookmarksbar.py:47
 msgid "Add new bookmarks to the beginning of the bar"
-msgstr "Új könyvjelző hozzáadása az eszköztár elejéhez."
+msgstr "Új könyvjelző hozzáadása az eszköztár elejéhez"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:99 zim/plugins/bookmarksbar.py:160
@@ -2724,6 +2717,8 @@ msgid ""
 msgstr ""
 "Ezzel a beépülőmodullal gyorsan ki lehet értékelni\n"
 "egyszerű matematikai kifejezéseket a Zim-ben.\n"
+"\n"
+"Ez a kiegészítő szerves része a Zim-nek.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:271
@@ -2833,8 +2828,9 @@ msgid ""
 "If the list is already sorted the order will be reversed\n"
 "(A-Z to Z-A).\n"
 msgstr ""
-"Ez a beépülőmodul sorbarendezi a kijelölt sorokat.\n"
-"Már rendezett sorokon fordított sorrendben teszi ugyanezt (A-Z, majd Z-A).\n"
+"Ez a beépülőmodul sorba rendezi a kijelölt sorokat.\n"
+"Már rendezett sorokon fordított sorrendben teszi ugyanezt\n"
+"(A-Z, majd Z-A).\n"
 
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:40
@@ -3107,7 +3103,8 @@ msgid ""
 msgstr ""
 "Ez a beépülőmodul lehetővé teszi, hogy közvetlenül\n"
 "beillesszünk egy képernyőképet egy Zim oldalba.\n"
-"Ez egy alapvető bővítmény, a Zimmel együtt került telepítésre.\n"
+"\n"
+"Ez a kiegészítő szerves része a Zimnek.\n"
 
 #. plugin preference
 #: zim/plugins/screenshot.py:119
@@ -3299,7 +3296,9 @@ msgstr "Nem lehet betölteni a helyesírás-ellenőrzőt"
 msgid ""
 "This could mean you don't have the proper\n"
 "dictionaries installed"
-msgstr "Talán a megfelelő szótárak nincsenek telepítve"
+msgstr ""
+"Talán a megfelelő szótárak \n"
+"nincsenek telepítve"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:52 zim/plugins/tableeditor.py:862
@@ -3518,8 +3517,7 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr ""
-"A tartalomjegyzéket nem oldalpanelként, hanem lebegő modulként mutatja."
+msgstr "A tartalomjegyzéket nem oldalpanelként, hanem lebegő modulként mutatja"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
@@ -3727,7 +3725,7 @@ msgstr "Az oldal neve legyen címke a feladatlista számára"
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:82
 msgid "Flag tasks due on Monday or Tuesday before the weekend"
-msgstr "A hétvége előtt megjelöli a hétfőn vagy kedden esedékes feladatokat."
+msgstr "A hétvége előtt megjelöli a hétfőn vagy kedden esedékes feladatokat"
 
 #. plugin name
 #: zim/plugins/trayicon.py:71
@@ -3756,8 +3754,8 @@ msgid ""
 "Classic trayicon,\n"
 "do not use new style status icon on Ubuntu"
 msgstr ""
-"Klasszikus értesítési ikon.\n"
-"Ne használj új típusú ikont Ubuntu alatt!"
+"Klasszikus értesítési ikon,\n"
+"nem használ új típusú ikont Ubuntu alatt"
 
 #. preferences option
 #: zim/plugins/trayicon.py:86
@@ -3767,7 +3765,7 @@ msgstr "Különböző ikon használata minden megnyitott jegyzetfüzethez"
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:132
 msgid "_Quick Note..."
-msgstr "_Gyors jegyzet"
+msgstr "_Gyors jegyzet..."
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:141
@@ -3828,7 +3826,7 @@ msgstr "Automatikusan mentve"
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:213
 msgid "S_ave Version..."
-msgstr "Változat _mentése"
+msgstr "Változat _mentése..."
 
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:230
@@ -3988,7 +3986,7 @@ msgstr "Események naplózása a Zeitgeisten keresztül"
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:33
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr "Az eseményeket a Zeitgeist démonnak továbbítja"
+msgstr "Az eseményeket a Zeitgeist démonnak továbbítja."
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:63
@@ -4021,7 +4019,7 @@ msgstr "Következõ"
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
 msgid "Backlinks:"
-msgstr "Visszacsatolások"
+msgstr "Visszacsatolások:"
 
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
