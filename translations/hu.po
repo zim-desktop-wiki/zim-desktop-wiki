@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-09-22 20:58+0200\n"
-"PO-Revision-Date: 2020-10-15 13:26+0000\n"
+"PO-Revision-Date: 2020-10-15 17:43+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
 "Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/develop/hu/"
 ">\n"
@@ -1065,7 +1065,7 @@ msgstr "Jelölőnégyzet beállítása '>'"
 #. Menu item
 #: zim/gui/pageview.py:6329
 msgid "_Edit Link or Object..."
-msgstr "_Hivatkozás/objektum szerkesztése..."
+msgstr "_Hivatkozás vagy objektum szerkesztése..."
 
 #: zim/gui/pageview.py:6385
 #, fuzzy
@@ -1242,7 +1242,7 @@ msgstr "Fájl csatolása"
 #: zim/gui/pageview.py:7263
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr "A \"%s\" lapnak nincs mappája a csatolásokhoz"
+msgstr "A \"%s\" lapnak nincs mappája a mellékletekhez"
 
 #. Dialog title
 #: zim/gui/pageview.py:7323
@@ -2369,8 +2369,8 @@ msgstr "Mellékletek"
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
-msgstr[0] "%i Melléklet"
-msgstr[1] "%i Melléklet"
+msgstr[0] "%i melléklet"
+msgstr[1] "%i melléklet"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -3484,7 +3484,7 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr "A tartalomjegyzéket nem oldalpanelként, hanem lebegő modulként mutatja"
+msgstr "A tartalomjegyzéket lebegő panelként mutatja"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
