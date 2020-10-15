@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-07-24 08:10+0200\n"
-"PO-Revision-Date: 2020-10-15 13:26+0000\n"
+"PO-Revision-Date: 2020-10-15 17:43+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
 "Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
 "\n"
@@ -695,13 +695,11 @@ msgstr "_Frissítés"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:943
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i _visszacsatolás..."
-msgstr[1] "%i _visszacsatolás..."
+msgstr[0] "%i _visszacsatolás"
+msgstr[1] "%i _visszacsatolás"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1003
@@ -1134,7 +1132,7 @@ msgstr "Jelölőnégyzet beállítása '>'"
 #. Menu item
 #: zim/gui/pageview.py:6336
 msgid "_Edit Link or Object..."
-msgstr "_Hivatkozás/objektum szerkesztése..."
+msgstr "_Hivatkozás vagy objektum szerkesztése..."
 
 #. Menu item
 #: zim/gui/pageview.py:6392
@@ -1153,10 +1151,8 @@ msgstr "_Kép..."
 
 #. Menu item
 #: zim/gui/pageview.py:6426
-#, fuzzy
-#| msgid "Attachments"
 msgid "_Attachment..."
-msgstr "Mellékletek"
+msgstr "Mellékletek..."
 
 #. Menu item | 
 #. Menu item,
@@ -1297,7 +1293,7 @@ msgstr "Fájl csatolása"
 #: zim/gui/pageview.py:7104
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr "A \"%s\" lapnak nincs mappája a csatolásokhoz"
+msgstr "A \"%s\" lapnak nincs mappája a mellékletekhez"
 
 #. Dialog title
 #: zim/gui/pageview.py:7164
@@ -1535,6 +1531,10 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
+"A rendszered karakterkódolása %s, ha speciális karaktereket is szeretnél "
+"használni\n"
+"vagy karakterkódolási hibákkal találkozol, akkor bizonyosodj meg róla, hogy "
+"a rendszered az \"UTF-8\" karakterkódolást használja"
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1543,8 +1543,6 @@ msgstr "Tulajdonságok"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:112
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key bindings"
 msgstr "_Billentyűkombinációk"
 
@@ -1657,18 +1655,18 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"A billentyűkombinációk megváltoztathatóak, ha kiválasztod a megfelelő "
+"műveletet a listából és lenyomod az új billentyűkombinációt.\n"
+"A billentyűkombináció törléséhez válasszad ki a listából és nyomd le a "
+"<tt>&lt;Backspace&gt;</tt> -t."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:508
-#, fuzzy
-#| msgid "Section"
 msgid "Action"
-msgstr "Szakasz"
+msgstr "Művelet"
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:519
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key Binding"
 msgstr "_Billentyűkombinációk"
 
@@ -1755,7 +1753,7 @@ msgstr "Publikus elérés engedélyezése"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr ""
+msgstr "Hitelesítés szükséges"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1764,15 +1762,13 @@ msgstr "Port"
 
 #. Field in web server gui
 #: zim/gui/server.py:110
-#, fuzzy
-#| msgid "Filename"
 msgid "Username"
-msgstr "Fájlnév"
+msgstr "Felhasználónév"
 
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "Jelszó"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -1842,10 +1838,8 @@ msgstr "Küldés le_vélben..."
 
 #. Menu item
 #: zim/gui/uiactions.py:185
-#, fuzzy
-#| msgid "_Rename Page..."
 msgid "_Rename or move Page..."
-msgstr "Lap át_nevezése..."
+msgstr "Lap át_nevezése vagy mozgatása..."
 
 #. Menu item
 #: zim/gui/uiactions.py:194
@@ -1940,10 +1934,8 @@ msgstr "_Web szerver indítása"
 
 #. menu item
 #: zim/gui/uiactions.py:366
-#, fuzzy
-#| msgid "View _Log"
 msgid "View debug log"
-msgstr "_Logok megtekintése"
+msgstr "Hibakeresési nap_ló megtekintése"
 
 #. Menu item
 #: zim/gui/uiactions.py:380
@@ -2027,10 +2019,8 @@ msgstr "Másolat mentése"
 
 #. Dialog title
 #: zim/gui/uiactions.py:574
-#, fuzzy
-#| msgid "Rename Page"
 msgid "Rename or Move Page"
-msgstr "Lap átnevezése"
+msgstr "Lap átnevezése vagy mozgatása"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/uiactions.py:579
@@ -2238,13 +2228,15 @@ msgid ""
 "of the file name, please try using a name with less\n"
 "than 255 characters"
 msgstr ""
+"Ez a fájl nem írható. Lehetséges, hogy ezt a fájlnév\n"
+"hossza okozza, próbálj meg olyan fájlnevet használni\n"
+"amely 255 karakternél rövidebb"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
-#, fuzzy, python-format
-#| msgid "File changed on disk: %s"
+#, python-format
 msgid "File name too long: %s"
-msgstr "Az alábbi fájl megváltozott: %s"
+msgstr "A fájlnév túl hosszú: %s"
 
 #. Error explanation
 #: zim/newfs/local.py:54
@@ -2253,12 +2245,15 @@ msgid ""
 "of the file path, please try using a folder structure resulting in less\n"
 "than 4096 characters"
 msgstr ""
+"Ez a fájl nem írható. Lehetséges, hogy ezt a fájl elérési\n"
+"útjának hossza okozza, próbálj meg olyan könyvtárstruktúrát használni\n"
+"amely 4096 karakternél rövidebb elérési utakat eredményez"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
 #, python-format
 msgid "File path too long: %s"
-msgstr ""
+msgstr "A fájl elérési útvonal túl hosszú: %s"
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:420
@@ -2389,12 +2384,12 @@ msgstr "Ablakon belüli pozíció"
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:82
 msgid "Use thumbnails"
-msgstr ""
+msgstr "Indexképek használata"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
 msgid "Support thumbnails for SVG"
-msgstr ""
+msgstr "SVG indexképek támogatása"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:128
@@ -2406,8 +2401,8 @@ msgstr "Mellékletek"
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
-msgstr[0] "%i Melléklet"
-msgstr[1] "%i Melléklet"
+msgstr[0] "%i melléklet"
+msgstr[1] "%i melléklet"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2887,21 +2882,13 @@ msgstr ""
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:72
-#, fuzzy
-#| msgid "Menubar"
 msgid "macOS Menubar"
-msgstr "Menüsáv"
+msgstr "macOS menüsáv"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:73
-#, fuzzy
-#| msgid ""
-#| "\t\tThis plugin provides bar for bookmarks.\n"
-#| "\t\t"
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
-"\t\tEz a kiegészítő megjeleníti a könyvjelzők eszköztárát.\n"
-"\t\t"
+msgstr "Ez a bővítmény egy macOS menüsort ad a zimhez."
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
@@ -2915,15 +2902,13 @@ msgstr "Ez a bővítmény hozzáadja az oldalindex panelt a főablakhoz.\n"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
-#, fuzzy
-#| msgid "Automatically saved version from zim"
 msgid "Automatically expand sections on open page"
-msgstr "Automatikusan mentve"
+msgstr "Automatikusan nyissa ki a szakaszokat a megnyitott lapon"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65
 msgid "Automatically collapse sections on close page"
-msgstr ""
+msgstr "Automatikusan zárja össze a szakaszokat a bezár lapon"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -3179,25 +3164,23 @@ msgstr ""
 
 #. option value
 #: zim/plugins/sourceview.py:73
-#, fuzzy
-#| msgid "vertical lines"
 msgid "Never wrap lines"
-msgstr "függőleges vonalak"
+msgstr "Sose törje meg a sorokat"
 
 #. option value
 #: zim/plugins/sourceview.py:74
 msgid "Try wrap at word boundaries or character"
-msgstr ""
+msgstr "Próbáljon meg a szavak határainál vagy karakternél törni"
 
 #. option value
 #: zim/plugins/sourceview.py:75
 msgid "Always wrap at character"
-msgstr ""
+msgstr "Mindig karakternél törjön"
 
 #. option value
 #: zim/plugins/sourceview.py:76
 msgid "Always wrap at word boundaries"
-msgstr ""
+msgstr "Mindig a szavak határainál törjön"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:80
@@ -3232,12 +3215,12 @@ msgstr "Tabulátor-szélesség"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:92
 msgid "Text wrap mode"
-msgstr ""
+msgstr "Sortörési mód"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:94
 msgid "Theme"
-msgstr ""
+msgstr "Téma"
 
 #. menu item
 #: zim/plugins/sourceview.py:109
@@ -3262,7 +3245,7 @@ msgstr "Kódblokk beillesztése"
 #. input checkbox
 #: zim/plugins/sourceview.py:359
 msgid "Display line numbers"
-msgstr ""
+msgstr "Sorok számának megjelenítése"
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3517,7 +3500,7 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr "A tartalomjegyzéket nem oldalpanelként, hanem lebegő modulként mutatja"
+msgstr "A tartalomjegyzéket lebegő panelként mutatja"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
@@ -3526,15 +3509,13 @@ msgstr "Oldal címének megjelenítése a tartalomjegyzékben"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:122
-#, fuzzy
-#| msgid "horizontal lines"
 msgid "Include horizontal lines in the ToC"
-msgstr "vízszintes vonalak"
+msgstr "Vízszintes vonalak megjelenítése a tartalomjegyzékben"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
 msgid "Set ToC fontsize"
-msgstr ""
+msgstr "Tartalomjegyzék betűméretének megadása"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:386
@@ -3667,10 +3648,8 @@ msgstr "Feladatlista mutatása oldalpanelként"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:56
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show due date in sidepane"
-msgstr "Feladatlista mutatása oldalpanelként"
+msgstr "Mutassa a határidőt az oldalpanelon"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:62
