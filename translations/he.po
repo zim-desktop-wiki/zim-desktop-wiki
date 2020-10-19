@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-09-22 20:58+0200\n"
-"PO-Revision-Date: 2020-09-30 11:40+0000\n"
+"PO-Revision-Date: 2020-10-20 06:26+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.3-dev\n"
+"X-Generator: Weblate 4.3.1-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -55,7 +55,7 @@ msgstr "calendar:week_start:0"
 #. generic error dialog
 #: zim/errors.py:46
 msgid "Looks like you found a bug"
-msgstr "כנראה שמצאת שגיאה בתכנית"
+msgstr "כנראה שמצאת תקלה בתכנית"
 
 #. message for FileNotFoundError | 
 #. Error message in template lookup
@@ -126,13 +126,12 @@ msgstr "קובץ בעריכה: %s"
 msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
-msgstr ""
-"קובץ זה נערך על ידיך ביישום חיצוני. באפשרותך לסגור את תיבת דו־שיח זו עם הסיום"
+msgstr "ערכת קובץ זה ביישום חיצוני. ניתן לסגור את תיבת דו־שיח זו עם הסיום"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:923
 msgid "Customize..."
-msgstr "התאם אישית..."
+msgstr "התאמה אישית…"
 
 #. message when no applications in "Open With" menu
 #: zim/gui/applications.py:949
@@ -209,7 +208,7 @@ msgstr "עשה כיישום בחירת מחדל"
 #: zim/gui/applications.py:1148
 #, python-format
 msgid "Could not find executable \"%s\""
-msgstr ""
+msgstr "לא ניתן למצוא את קובץ ההפעלה „%s”"
 
 #. Dialog title
 #: zim/gui/customtools.py:503
@@ -292,7 +291,7 @@ msgid ""
 "overwrite existing files. Do you want to continue?"
 msgstr ""
 "התיקייה כבר קיימת ויש בה תוכן, ייצוא תיקייה זו עלול לשכתב על קבצים קיימים. "
-"האם ברצונך להמשיך?"
+"להמשיך?"
 
 #. message heading
 #: zim/gui/exportdialog.py:155
@@ -306,7 +305,7 @@ msgid ""
 "Do you want to overwrite it?"
 msgstr ""
 "קובץ זה כבר קיים.\n"
-"האם ברצונך לשכתב עליו?"
+"לשכתב עליו?"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:167
@@ -350,7 +349,7 @@ msgstr "בחירת מבנה הפלט"
 #. Option in drop down menu to specify another file
 #: zim/gui/exportdialog.py:211
 msgid "Other..."
-msgstr "אחר..."
+msgstr "אחר…"
 
 #. Input label in the export dialog | 
 #. label in "insert date" dialog
@@ -387,12 +386,12 @@ msgstr "בחירת קובץ או תיקיית הפלט"
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:316
 msgid "Export each page to a separate file"
-msgstr ""
+msgstr "ייצוא כל עמוד לקובץ נפרד"
 
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:318
 msgid "Export all pages to a single file"
-msgstr ""
+msgstr "ייצוא כל העמודים לקובץ בודד"
 
 #. Label for folder selection in export dialog
 #: zim/gui/exportdialog.py:321
@@ -413,7 +412,7 @@ msgstr "קובץ פלט"
 #: zim/gui/exportdialog.py:415
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
-msgstr ""
+msgstr "אירעו %(n_error)i שגיאות ו־%(n_warning)i אזהרות, נא לעיין ברישום"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:418
@@ -583,7 +582,7 @@ msgstr "המחברת _ניתנת לעריכה"
 #. Menu item
 #: zim/gui/mainwindow.py:727
 msgid "_Jump To..."
-msgstr "_מעבר אל..."
+msgstr "_מעבר אל…"
 
 #. Menu item | 
 #. Button label
@@ -909,7 +908,7 @@ msgstr "ה_עתקה בתור…"
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:6085
 msgid "Move Selected Text..."
-msgstr "הזז טקסט נבחר..."
+msgstr "העברת טקסט נבחר…"
 
 #. Menu item
 #: zim/gui/pageview.py:6133 zim/gui/pageview.py:6367
@@ -919,12 +918,12 @@ msgstr "ה_סרת קישור"
 #. menu item in context menu for image
 #: zim/gui/pageview.py:6140
 msgid "_Edit Properties"
-msgstr "ערוך מאפיינים"
+msgstr "עריכת מאפיינים"
 
 #. menu item in context menu
 #: zim/gui/pageview.py:6142
 msgid "_Edit Link"
-msgstr "_עריכת הקישור"
+msgstr "_עריכת קישור"
 
 #. context menu item
 #: zim/gui/pageview.py:6162 zim/gui/pageview.py:6168 zim/gui/pageview.py:6175
@@ -934,7 +933,7 @@ msgstr "העתקת ה_קישור"
 #. context menu item
 #: zim/gui/pageview.py:6172
 msgid "Copy Email Address"
-msgstr "העתקת כתובת הדוא\"ל"
+msgstr "העתקת כתובת הדוא״ל"
 
 #. menu item to open containing folder of files
 #: zim/gui/pageview.py:6183
@@ -946,7 +945,7 @@ msgstr "פתיחת תיקייה"
 #: zim/gui/pageview.py:6192 zim/gui/pageview.py:6203
 #: zim/plugins/attachmentbrowser/filebrowser.py:347
 msgid "Open With..."
-msgstr "פתיחה באמצעות..."
+msgstr "פתיחה באמצעות…"
 
 #. menu item to open a link | 
 #. Menu item
@@ -966,23 +965,23 @@ msgstr "_פתיחה"
 #. popup menu menuitem
 #: zim/gui/pageview.py:6240
 msgid "Check Checkbox '>'"
-msgstr ""
+msgstr "סימון ‚<’ בתיבת הסימון"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:6241
 msgid "Check Checkbox 'X'"
-msgstr ""
+msgstr "סימון ‚X’ בתיבת הסימון"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:6242
 msgid "Check Checkbox 'V'"
-msgstr ""
+msgstr "סימון ‚V’ בתיבת הסימון"
 
 #. popup menu menuitem | 
 #. Menu item
 #: zim/gui/pageview.py:6243 zim/gui/pageview.py:6296
 msgid "Un-check Checkbox"
-msgstr ""
+msgstr "הסרת הסימון מתיבת הסימון"
 
 #. Menu item | 
 #. Button label | 
@@ -1000,7 +999,7 @@ msgstr "_ביטול"
 #. Menu item
 #: zim/gui/pageview.py:6269
 msgid "_Redo"
-msgstr "_ביצוע שוב"
+msgstr "ביצוע _חוזר"
 
 #. Menu item
 #: zim/gui/pageview.py:6276
@@ -1028,22 +1027,22 @@ msgstr "מ_חיקה"
 #. Menu item
 #: zim/gui/pageview.py:6302
 msgid "Toggle Checkbox 'V'"
-msgstr "החלפת מצב תיבת 'V'"
+msgstr "החלפת מצב תיבת סימון ‚V’"
 
 #. Menu item
 #: zim/gui/pageview.py:6311
 msgid "Toggle Checkbox 'X'"
-msgstr "החלפת מצב תיבת 'X'"
+msgstr "החלפת מצב תיבת סימון ‚X’"
 
 #. Menu item
 #: zim/gui/pageview.py:6320
 msgid "Toggle Checkbox '>'"
-msgstr ""
+msgstr "החלפת מצב תיבת סימון ‚>’"
 
 #. Menu item
 #: zim/gui/pageview.py:6329
 msgid "_Edit Link or Object..."
-msgstr "עריכת _קישור או פריט..."
+msgstr "עריכת _קישור או פריט…"
 
 #: zim/gui/pageview.py:6385
 #, fuzzy
@@ -1061,12 +1060,12 @@ msgstr "ת_אריך ושעה..."
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:6416
 msgid "Horizontal _Line"
-msgstr "קו א_נכי"
+msgstr "קו או_פקי"
 
 #. Menu item
 #: zim/gui/pageview.py:6428
 msgid "_Image..."
-msgstr "_תמונה..."
+msgstr "_תמונה…"
 
 #. Menu item
 #: zim/gui/pageview.py:6435
@@ -1085,7 +1084,7 @@ msgstr "רשימת ת_בליטים"
 #. Menu item,
 #: zim/gui/pageview.py:6457 zim/gui/pageview.py:6484
 msgid "_Numbered List"
-msgstr "רשימה ממוספרת"
+msgstr "רשימה ממו_ספרת"
 
 #. Menu item | 
 #. Menu item,
@@ -1096,12 +1095,12 @@ msgstr "רשימת תיבות _סימון"
 #. Menu item
 #: zim/gui/pageview.py:6498
 msgid "Text From _File..."
-msgstr "טקסט מ_קובץ..."
+msgstr "טקסט מ_קובץ…"
 
 #. Menu item
 #: zim/gui/pageview.py:6542
 msgid "_Link..."
-msgstr "ק_ישור..."
+msgstr "ק_ישור…"
 
 #. message when no file templates are found in ~/Templates
 #: zim/gui/pageview.py:6571
@@ -1111,7 +1110,7 @@ msgstr "לא מותקנות תבניות"
 #. Menu item in "Insert > New File Attachment" submenu
 #: zim/gui/pageview.py:6620
 msgid "File _Templates..."
-msgstr ""
+msgstr "_תבניות קבצים…"
 
 #. Text in a question dialog for creating a folder, %s is the folder path
 #: zim/gui/pageview.py:6634
@@ -1124,7 +1123,7 @@ msgid ""
 msgstr ""
 "התיקייה\n"
 "%s\n"
-"אינה קיימת.\n"
+"אינה קיימת עדיין.\n"
 "ליצור אותה כעת?"
 
 #. Menu item
@@ -1135,27 +1134,27 @@ msgstr "מחיקת ה_עיצוב"
 #. Menu item
 #: zim/gui/pageview.py:6752
 msgid "_Find..."
-msgstr "חי_פוש..."
+msgstr "אי_תור…"
 
 #. Menu item
 #: zim/gui/pageview.py:6773
 msgid "Find Ne_xt"
-msgstr "חיפוש _הבא"
+msgstr "איתור ה_בא"
 
 #. Menu item
 #: zim/gui/pageview.py:6779
 msgid "Find Pre_vious"
-msgstr "חיפוש _הקודם"
+msgstr "איתור ה_קודם"
 
 #. Menu item
 #: zim/gui/pageview.py:6785
 msgid "_Replace..."
-msgstr "הח_לפה..."
+msgstr "הח_לפה…"
 
 #. Menu item
 #: zim/gui/pageview.py:6792
 msgid "Word Count..."
-msgstr "ספירת מילים..."
+msgstr "ספירת מילים…"
 
 #. Menu item
 #: zim/gui/pageview.py:6797
@@ -1221,7 +1220,7 @@ msgstr "צירוף קובץ"
 #: zim/gui/pageview.py:7263
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr "לעמוד \"%s\" אין תיקייה לקבצים מצורפים"
+msgstr "לעמוד „%s” אין תיקייה לקבצים מצורפים"
 
 #. Dialog title
 #: zim/gui/pageview.py:7323
@@ -1348,22 +1347,22 @@ msgstr "ה_דגשה"
 #. label for input in find bar on bottom of page
 #: zim/gui/pageview.py:7770
 msgid "Find"
-msgstr "חיפוש"
+msgstr "איתור"
 
 #. Dialog title
 #: zim/gui/pageview.py:7816
 msgid "Find and Replace"
-msgstr "חיפוש והחלפה"
+msgstr "איתור והחלפה"
 
 #. input label in find & replace dialog
 #: zim/gui/pageview.py:7826
 msgid "Find what"
-msgstr "מה לחפש"
+msgstr "מה לאתר"
 
 #. input label in find & replace dialog
 #: zim/gui/pageview.py:7836
 msgid "Replace with"
-msgstr "החלפה עם"
+msgstr "להחליף עם"
 
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:7850
@@ -1373,7 +1372,7 @@ msgstr "ה_חלפה"
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:7855
 msgid "Replace _All"
-msgstr "החלפת ה_כול"
+msgstr "להחליף ה_כול"
 
 #. Dialog title
 #: zim/gui/pageview.py:7892
@@ -1408,7 +1407,7 @@ msgstr "תווים"
 #. label in word count dialog
 #: zim/gui/pageview.py:7940
 msgid "Characters excluding spaces"
-msgstr ""
+msgstr "תווים בלי רווחים"
 
 #. Dialog title
 #: zim/gui/pageview.py:7983
@@ -1418,12 +1417,12 @@ msgstr "הזז טקסט לדף אחר"
 #. Button label
 #: zim/gui/pageview.py:7984
 msgid "_Move"
-msgstr "_הזז"
+msgstr "ה_עברה"
 
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:8000
 msgid "Move text to"
-msgstr "העבר טקסט אל"
+msgstr "העברת טקסט אל"
 
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:8001
@@ -1433,7 +1432,7 @@ msgstr "השאר קישורית לדף חדש"
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:8002
 msgid "Open new page"
-msgstr "פתח בדף חדש"
+msgstr "פתיחת עמוד חדש"
 
 #. Dialog title
 #: zim/gui/pageview.py:8047
@@ -1443,7 +1442,7 @@ msgstr "קובץ חדש"
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:31
 msgid "Interface"
-msgstr "ממשק"
+msgstr "מנשק"
 
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:32
@@ -1572,6 +1571,8 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
+"לתוסף זה אין מאפיינים,\n"
+"נא לחפש בתיבת הדו־שיח של מאפייני המחברת"
 
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:474
@@ -1634,17 +1635,17 @@ msgstr "שינויים אחרונים"
 #. label for modified time
 #: zim/gui/recentchangesdialog.py:72
 msgid "Today"
-msgstr ""
+msgstr "היום"
 
 #. label for modified time
 #: zim/gui/recentchangesdialog.py:75
 msgid "Yesterday"
-msgstr ""
+msgstr "אתמול"
 
 #. Column header
 #: zim/gui/recentchangesdialog.py:88
 msgid "Last Modified"
-msgstr ""
+msgstr "שינוי אחרון"
 
 #. Dialog title | 
 #. input label
@@ -1655,7 +1656,7 @@ msgstr "חיפוש"
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
-msgstr ""
+msgstr "_איתור"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -1669,7 +1670,7 @@ msgstr ""
 #. checkbox option in search dialog
 #: zim/gui/searchdialog.py:52
 msgid "Limit search to the current page and sub-pages"
-msgstr ""
+msgstr "הגבלת החיפוש לעמוד הנוכחי ולתת־העמודים שלו"
 
 #. Column header search dialog | 
 #. menu item
@@ -1680,7 +1681,7 @@ msgstr "ניקוד"
 #. Window title
 #: zim/gui/server.py:46
 msgid "Web Server"
-msgstr ""
+msgstr "שרת אינטרנט"
 
 #. Status in web server gui
 #: zim/gui/server.py:54
@@ -1690,7 +1691,7 @@ msgstr "השרת לא הופעל"
 #. Checkbox in web server gui
 #: zim/gui/server.py:75
 msgid "Allow public access"
-msgstr ""
+msgstr "לאפשר גישה ציבורית"
 
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
@@ -1733,52 +1734,52 @@ msgstr "תבניות"
 #. button label
 #: zim/gui/templateeditordialog.py:59
 msgid "Browse"
-msgstr ""
+msgstr "עיון"
 
 #. Dialog title
 #: zim/gui/templateeditordialog.py:156
 msgid "Copy Template"
-msgstr "העתק טבנית"
+msgstr "העתקת תבנית"
 
 #. Menu item
 #: zim/gui/uiactions.py:95
 msgid "_New Page..."
-msgstr "_עמוד חדש..."
+msgstr "_עמוד חדש…"
 
 #. Menu item
 #: zim/gui/uiactions.py:106
 msgid "New S_ub Page..."
-msgstr "_תת־עמוד חדש..."
+msgstr "_תת־עמוד חדש…"
 
 #. Menu item
 #: zim/gui/uiactions.py:114
 msgid "_New Page Here..."
-msgstr ""
+msgstr "עמוד חדש _כאן…"
 
 #. Menu item
 #: zim/gui/uiactions.py:122
 msgid "_Open Another Notebook..."
-msgstr "פתיחת מחברת א_חרת..."
+msgstr "פתיחת מחברת א_חרת…"
 
 #. Menu item
 #: zim/gui/uiactions.py:142
 msgid "_Import Page..."
-msgstr "יי_בוא עמוד..."
+msgstr "יי_בוא עמוד…"
 
 #. Menu item
 #: zim/gui/uiactions.py:160
 msgid "Save A _Copy..."
-msgstr "שמירת _עותק..."
+msgstr "שמירת _עותק…"
 
 #. Menu item
 #: zim/gui/uiactions.py:165
 msgid "E_xport..."
-msgstr "יי_צוא..."
+msgstr "יי_צוא…"
 
 #. Menu item
 #: zim/gui/uiactions.py:172
 msgid "_Send To..."
-msgstr "ש_ליחה אל..."
+msgstr "ש_ליחה אל…"
 
 #. Menu item
 #: zim/gui/uiactions.py:185
@@ -1836,7 +1837,7 @@ msgstr "חיפוש בסעיף זה"
 #. Menu item
 #: zim/gui/uiactions.py:300
 msgid "Search _Backlinks..."
-msgstr "חיפוש קישורים _מפנים..."
+msgstr "חיפוש קישורים חוזרים…"
 
 #. Menu item
 #: zim/gui/uiactions.py:308
@@ -2347,7 +2348,7 @@ msgstr[1] ""
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
 msgid "BackLinks Pane"
-msgstr "לוח קישורי החזר"
+msgstr "לוח קישורים חוזרים"
 
 #. plugin description
 #: zim/plugins/backlinkpane.py:23
@@ -2365,7 +2366,7 @@ msgstr ""
 #. widget label
 #: zim/plugins/backlinkpane.py:62
 msgid "BackLinks"
-msgstr "קישורי החזר"
+msgstr "קישורים חוזרים"
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:261
@@ -2642,9 +2643,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מאפשר הערכה מהירה של ביטויים מתמטיים פשוטים ב־Zim.\n"
+"תוסף זה מאפשר הערכה מהירה של ביטויים מתמטיים\n"
+"פשוטים ב־zim.\n"
 "\n"
-"זהו תוסף מובנה ב־Zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:271
@@ -2670,10 +2672,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מוסיף את הדו־שיח 'הוספת סימן' כדי ומאפשר\n"
+"תוסף זה מוסיף את תיבת הדו־שיח ‚הוספת סימן’ ומאפשר\n"
 "תווים טיפוגרפיים המתעצבים מעצמם.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. menu item
 #: zim/plugins/insertsymbol.py:77
@@ -2684,7 +2686,7 @@ msgstr "_סימן..."
 #. side pane title
 #: zim/plugins/journal.py:97 zim/plugins/journal.py:332
 msgid "Journal"
-msgstr ""
+msgstr "יומן"
 
 #. plugin description
 #: zim/plugins/journal.py:98
@@ -2693,6 +2695,9 @@ msgid ""
 "with a page per day, week or month.\n"
 "Also adds a calendar widget to access these pages.\n"
 msgstr ""
+"תוסף זה הופך סעיף מהמחברת ליומן עם עמוד לכל יום,\n"
+"שבוע או חודש.\n"
+"מוסיף גם וידג׳ט לוח שנה כדי לגשת לעמודים האלו.\n"
 
 #. option value
 #: zim/plugins/journal.py:109
@@ -2717,7 +2722,7 @@ msgstr "שנה"
 #. preferences option
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
-msgstr ""
+msgstr "הסתרת לוח היומן אם ריק"
 
 #. input label
 #: zim/plugins/journal.py:121
@@ -2803,9 +2808,9 @@ msgid ""
 msgstr ""
 "תוסף זה מספק דו־שיח עם ייצוג גרפי של המבנה\n"
 "הקישורי של המחברת. ניתן להשתמש בו כמעין\n"
-"\"מיפוי מוח\" המציג את הקשר בין העמודים.\n"
+"„מפת מוח” המציגה את הקשר בין העמודים.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. preferences option
 #: zim/plugins/linkmap.py:45
@@ -2945,9 +2950,9 @@ msgid ""
 "This is a core plugin shipping with zim.\n"
 msgstr ""
 "תוסף זה מוסיף דו־שיח להוספה של טקסט או את תוכן\n"
-"לוח הגזירים לעמוד ויקי.\n"
+"לוח הגזירים לעמוד zim.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. menu item
 #: zim/plugins/quicknote.py:186
@@ -3016,9 +3021,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מאפשר צילום מסך מתוך Zim, וצירופו ישר לתוך דף Zim.\n"
+"תוסף זה מאפשר צילום מסך ישירות מתוך zim\n"
+"וצירופו ישר לתוך עמוד zim.\n"
 "\n"
-"זהו תוסף מובנה ל־Zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. plugin preference
 #: zim/plugins/screenshot.py:119
@@ -3376,22 +3382,22 @@ msgstr ""
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:969
 msgid "Remove column"
-msgstr ""
+msgstr "הסרת עמודה"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:970
 msgid "Move column ahead"
-msgstr ""
+msgstr "הסרת עמודה קדימה"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:971
 msgid "Move column backward"
-msgstr ""
+msgstr "הסרת עמודה אחורה"
 
 #. popup dialog
 #: zim/plugins/tableeditor.py:1055
 msgid "A table needs to have at least one column."
-msgstr ""
+msgstr "לטבלה חייבת להיות עמודה אחת לפחות."
 
 #. plugin name
 #: zim/plugins/tableofcontents.py:102
@@ -3406,8 +3412,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מוסיף תוכן עניינים לדף הנוכחי.\n"
-"תוסף זה הוא תוסף גרעין המסופק עם צים.\n"
+"תוסף זה מוסיף וידג׳ט נוסף המציג את\n"
+"תוכן העניינים של העמוד הנוכחי.\n"
+"\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
@@ -3545,12 +3553,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מוסיף דו־שיח המציג את כל המשימות\n"
-"הפתוחות במחברת זו. משימות פתוחות יכולות\n"
-"להיות תיבות סימון או פריטים המסומנים בתגיות\n"
-"כגון \"TODO\" או \"FIXME\".\n"
+"תוסף זה מוסיף תיבת דו־שיח המציגה את כל המשימות הפתוחות\n"
+"במחברת זו. משימות פתוחות יכולות להיות תיבות סימון או\n"
+"פריטים המסומנים בתגיות כגון „TODO” או „FIXME”.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
@@ -3580,7 +3587,7 @@ msgstr "תוויות לסימון משימות"
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:68
 msgid "Use date from journal pages"
-msgstr ""
+msgstr "להשתמש בתאריך מעמודי היומן"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:69
@@ -3649,7 +3656,7 @@ msgid ""
 "do not use new style status icon on Ubuntu"
 msgstr ""
 "סמל מערכת קלסי,\n"
-"לא להשתמש בסמל בסגנון חדש באובונטו."
+"לא להשתמש בסמל בסגנון חדש באובונטו"
 
 #. preferences option
 #: zim/plugins/trayicon.py:86
@@ -3869,50 +3876,50 @@ msgstr "מהדורה"
 #. plugin name
 #: zim/plugins/zeitgeist-logger.py:32
 msgid "Log events with Zeitgeist"
-msgstr ""
+msgstr "תיעוד אירועים עם Zeitgeist"
 
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:33
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr ""
+msgstr "דוחף אירועים לסוכן Zeitgeist."
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:63
 #, python-format
 msgid "Wiki page: %s"
-msgstr "דף: %s"
+msgstr "עמוד ויקי: %s"
 
 #. Error message in template lookup
 #: zim/templates/__init__.py:120
 #, python-format
 msgid "Could not find template \"%s\""
-msgstr ""
+msgstr "לא ניתן למצוא את התבנית „%s”"
 
 #: data/templates/wiki/Default.txt:2 data/templates/wiki/Journal.txt:22
 msgid "Created"
-msgstr ""
+msgstr "מועד יצירה"
 
 #: data/templates/html/Default.html:46 data/templates/html/Default.html:48
 #: data/templates/html/Default_with_index.html:55
 #: data/templates/html/Default_with_index.html:57
 msgid "Prev"
-msgstr ""
+msgstr "הקודם"
 
 #: data/templates/html/Default.html:58 data/templates/html/Default.html:60
 #: data/templates/html/Default_with_index.html:67
 #: data/templates/html/Default_with_index.html:69
 msgid "Next"
-msgstr ""
+msgstr "הבא"
 
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
 msgid "Backlinks:"
-msgstr ""
+msgstr "קישורים חוזרים:"
 
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
-msgstr ""
+msgstr "מצורפים:"
 
 #~ msgid "Show in the toolbar"
 #~ msgstr "הצגה בסרגל כלים"
