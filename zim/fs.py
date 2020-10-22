@@ -56,14 +56,16 @@ if not Gio:
 
 xdgmime = None
 mimetypes = None
-try:
-	import xdg.Mime as xdgmime
-except ImportError:
-	if os.name != 'nt':
-		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
-	else:
-		pass # Ignore this error on Windows; doesn't come with xdg.Mime
+if os.name == 'nt':
+	# On windows even if xdg is installed, the database is not (always)
+	# well initialized, so always fallback to mimetypes
 	import mimetypes
+else:
+	try:
+		import xdg.Mime as xdgmime
+	except ImportError:
+		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+		import mimetypes
 
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}

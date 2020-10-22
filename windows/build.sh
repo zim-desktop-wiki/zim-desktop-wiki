@@ -165,7 +165,7 @@ source "${__venv_dir}/bin/activate"
 info "Initializing virtual environment ..."
 
 python -m pip install -U pip
-pip install PyGObject xdg pyinstaller
+pip install PyGObject pyinstaller==3.6 # Fix pyinstaller version, latest has bug
 
 info "Checking virtual environment ..."
 
@@ -208,4 +208,4 @@ info "Building Zim installer ..."
 (cd "${__dist_dir}" && makensis -NOCD -DVERSION="${__zim_ver}" "${__dir}/src/zim-installer.nsi")
 
 info "Finished successfully."
-info "Setup file is at: ${__dist_dir}/zim-desktop-wiki-${__zim_ver}-setup.exe"
+info "Setup file is at: ${__dist_dir}/zim-desktop-wiki-${__zim_ver}-setup-w64_x86.exe"

@@ -1,5 +1,5 @@
 
-# Copyright 2012-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the base zim module.'''
 
@@ -317,3 +317,56 @@ class TestZimApplication(tests.TestCase):
 		self.assertEqual(app.notebooks, {n1, n2})
 		self.assertEqual(app.get_mainwindow(n1, _class=MockWindow), w1)
 		self.assertEqual(app.get_mainwindow(MockNotebook('foo'), _class=MockWindow), w1)
+
+
+import os
+
+class TestZimScript(tests.TestCase):
+
+	def testEnvironINI(self):
+		# Ensure restoring old environment
+		orig_environ = os.environ.copy()
+		def restore_environ():
+			os.environ.clear()
+			os.environ.update(orig_environ)
+		self.addCleanup(restore_environ)
+
+		# Setup tmp file
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		folder.touch()
+
+		# Import the script - which is not a module ...
+		globals = {}
+		scriptfile = 'zim.py'
+		with open(scriptfile) as f:
+			code = compile(f.read(), scriptfile, 'exec')
+			exec(code, globals)
+		init_environment = globals['init_environment']
+
+		# Test missing file is silent, and no chance to data dir
+		os.environ['XDG_DATA_DIRS'] = 'TEST'
+		init_environment(folder.path)
+		self.assertEqual(os.environ['XDG_DATA_DIRS'], 'TEST')
+
+		# Test with existing data dir
+		data_dir = folder.folder('share')
+		data_dir.touch()
+		init_environment(folder.path)
+		self.assertEqual(os.environ['XDG_DATA_DIRS'], 'TEST' + os.pathsep + os.path.normpath(data_dir.path))
+
+		# Setup file
+		file = folder.file('environ.ini')
+		file.write(
+			'[Environment]\n'
+			'MYHOME=../home\n'
+			'MYPATH=${PATH}' + os.pathsep + './bin\n'
+		)
+		# write tmp file
+		# 	- abs path
+		#   - rel path
+		#   - os.pathsep
+
+		# Test with file in place
+		init_environment(folder.path)
+		self.assertEqual(os.environ['MYHOME'], os.path.normpath(folder.parent().folder('home').path))
+		self.assertEqual(os.environ['MYPATH'], os.environ['PATH'] + os.pathsep + os.path.normpath(folder.folder('bin').path))

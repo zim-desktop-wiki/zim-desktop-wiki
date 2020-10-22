@@ -35,6 +35,20 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2020-10-09" version="0.73.3">
+      <description>
+        <ul>
+          <li>Fix missing export formats in windows installer</li>
+          <li>Add support for environ.ini at startup for portable install</li>
+          <li>Make trash function more robust for GLib.Error errors</li>
+          <li>Remove xdg import in windows for mimetyping</li>
+          <li>Fix regression with GdkPixbuf.PixbufRotation constants</li>
+          <li>Fix issues in parser under Python 3.9</li>
+          <li>Fix regression with pages with formatting in heading</li>
+          <li>Merge translations</li>
+        </ul>
+      </description>
+    </release>
     <release date="2020-07-24" version="0.73.2">
       <description>
         <ul>

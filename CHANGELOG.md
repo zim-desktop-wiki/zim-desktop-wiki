@@ -5,6 +5,16 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.73.3 - Fri 09 Oct 2020
+* Fix missing export formats in windows installer
+* Add support for environ.ini at startup for portable install
+* Make trash function more robust for GLib.Error errors
+* Remove xdg import in windows for mimetyping
+* Fix regression with GdkPixbuf.PixbufRotation constants
+* Fix issues in parser under Python 3.9
+* Fix regression with pages with formatting in heading
+* Merge translations
+
 ##  0.73.2 - Fri 24 Jul 2020
 * Add "show debug log" menu item
 * Add missing "triangle" icons for windows installer

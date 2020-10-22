@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from gi.repository import Gdk
 
@@ -609,7 +610,7 @@ class MainWindow(Window):
 		if self.notebook.icon:
 			try:
 				self.set_icon_from_file(self.notebook.icon)
-			except GObject.GError:
+			except (GObject.GError, GLib.Error):
 				logger.exception('Could not load icon %s', self.notebook.icon)
 
 	def on_link_enter(self, view, link):
@@ -879,7 +880,7 @@ class PageWindow(Window):
 		#if ui.notebook.icon:
 		#	try:
 		#		self.set_icon_from_file(ui.notebook.icon)
-		#	except GObject.GError:
+		#	except (GObject.GError, GLib.Error):
 		#		logger.exception('Could not load icon %s', ui.notebook.icon)
 
 		self.notebook = notebook

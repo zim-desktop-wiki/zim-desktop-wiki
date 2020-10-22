@@ -195,20 +195,22 @@ else:
 
 
 def _os_expanduser(path):
+	# Force usage of $HOME (especially on windows) instead of default logic
+	# in os.path.expanduser
+	# This depends on us setting HOME correctly based on USERPROFILE or similar
 	assert path.startswith('~')
-	path = os.path.expanduser(path)
-
-	if path.startswith('~'):
-		# expansion failed - do a simple fallback
-		home = os.environ['HOME']
-		parts = path.replace('\\', '/').strip('/').split('/')
-		if parts[0] == '~':
-			path = SEP.join([home] + parts[1:])
-		else: # ~user
-			dir = os.path.dirname(home) # /home or similar ?
-			path = SEP.join([dir, parts[0][1:]] + parts[1:])
-
-	return path
+	home = os.environ['HOME']
+	parts = path.replace('\\', '/').strip('/').split('/')
+	if parts[0] == '~':
+		return SEP.join([home] + parts[1:])
+	else: # ~user
+		path = os.path.expanduser(path)
+		if path.startswith('~'):
+			# fallback
+			homedir = os.path.dirname(home)
+			return SEP.join([homedir, parts[0][1:]] + parts[1:])
+		else:
+			return path
 
 
 class FilePath(object):
@@ -539,15 +541,16 @@ class Folder(FSObjectBase):
 
 xdgmime = None
 mimetypes = None
-try:
-	import xdg.Mime as xdgmime
-except ImportError:
-	if os.name != 'nt':
-		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
-	else:
-		pass # Ignore this error on Windows; doesn't come with xdg.Mime
+if os.name == 'nt':
+	# On windows even if xdg is installed, the database is not (always)
+	# well initialized, so always fallback to mimetypes
 	import mimetypes
-
+else:
+	try:
+		import xdg.Mime as xdgmime
+	except ImportError:
+		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+		import mimetypes
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
@@ -639,13 +642,12 @@ class File(FSObjectBase):
 			else:
 				mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
 				if encoding == 'gzip':
-					return 'application/x-gzip'
+					mimetype = 'application/x-gzip'
 				elif encoding == 'bzip2':
-					return 'application/x-bzip2'
+					mimetype = 'application/x-bzip2'
 				elif encoding == 'compress':
-					return 'application/x-compress'
-				else:
-					self._mimetype = mimetype or 'application/octet-stream'
+					mimetype = 'application/x-compress'
+				self._mimetype = mimetype or 'application/octet-stream'
 
 		return self._mimetype
 

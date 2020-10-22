@@ -14,6 +14,7 @@ import subprocess
 import locale
 
 from gi.repository import GObject
+from gi.repository import GLib
 
 import zim.fs
 import zim.errors
@@ -350,13 +351,13 @@ class Application(object):
 			try:
 				pid, stdin, stdout, stderr = \
 					GObject.spawn_async(argv, flags=flags, working_directory=cwd)
-			except GObject.GError:
+			except (GObject.GError, GLib.Error):
 				if _CAN_CALL_FLATPAK_HOST_COMMAND:
 					pid, stdin, stdout, stderr = \
 						GObject.spawn_async(_FLATPAK_HOSTCOMMAND_PREFIX + argv, flags=flags, working_directory=cwd)
 				else:
 					raise
-		except GObject.GError:
+		except (GObject.GError, GLib.Error):
 			from zim.gui.widgets import ErrorDialog
 			ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
 				#~ # T: error when application failed to start
