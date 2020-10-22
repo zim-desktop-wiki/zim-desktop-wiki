@@ -15,7 +15,7 @@ from zim.notebook import Path
 from zim.templates import get_template
 from zim.formats import get_dumper
 
-from zim.plugins.journal import JournalNotebookExtension, JournalPageViewExtension
+from zim.plugins.journal import JournalNotebookExtension, JournalNotebookViewExtension
 
 from tests.mainwindow import setUpMainWindow
 
@@ -117,7 +117,7 @@ class TestJournalPlugin(tests.TestCase):
 
 		plugin.preferences.changed() # make sure no errors are triggered
 
-		ext = find_extension(mainwindow.pageview, JournalPageViewExtension)
+		ext = find_extension(mainwindow.pageview, JournalNotebookViewExtension)
 		ext.go_page_today()
 		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
 

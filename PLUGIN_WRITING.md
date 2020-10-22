@@ -75,14 +75,23 @@ For example to add functionality to the `PageView` class, you must define a
 class derived from `PageViewExtension`.
 
 At the time of writing these extension base-classes are defined:
-  - `NotebookExtension`: for functions that act on signals of the notebook
+
+  - `NotebookExtension`: for functions that act on signals of the notebook. Use
+    this for extensions that work directly with the notebook data, or the index
+    database. Typically a separate extension would be defined within the same
+    plugin to add a UI that shows that data
   - `PageViewExtension`: for functions that add functionality to the editor
-    window, or want to add side panes next to the editor
+    window, or want to add side panes next to the editor. Use this for e.g. for
+    a side pane showing additional information or content for a specific page
+  - `NotebookExtension`: similar to a `PageViewExtension`, but these extensions
+    only load for the main window where the notebook can be navigated, not for
+    windows with a single page that cannot be changed. Use this for e.g.
+    for a side pane showing an index of a the notebook
   - `InsertedObjectTypeExtension`: special extension for plugins that want to
     define an object type (e.g. equation) that can be rendered in line in the
     text -- see also to `zim.plugins.base.imagegenerator` module
   - `MainWindowExtension`: for any other changes to the mainwindow that are not
-    handled by a `PageViewExtension`
+    handled by a `PageViewExtension` or a `NotebookExtension`
 
 When you define a subclass of such an extension class it will be loaded
 automatically by the plugin for each instance of the target component.
@@ -93,6 +102,11 @@ to signals and calling methods on the extended object.
 Apart from extensions there is one other class that will also be used
 automatically: Classes derived from the `Command` class are used to handle
 commandline arguments in the form "`zim --plugin yourplugin`".
+
+The class diagram below may help finding your way around the code and to
+identify where you want to extend the application.
+
+![](./class_diagram.png)
 
 
 ## Preferences and properties

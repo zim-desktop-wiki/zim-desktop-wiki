@@ -25,7 +25,7 @@ from zim.config import StringAllowEmpty
 from zim.signals import DelayedCallback
 from zim.notebook import NotebookExtension
 
-from zim.gui.pageview import PageViewExtension
+from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS
 
 from .indexer import TasksIndexer, TasksView
@@ -149,10 +149,10 @@ class TaskListNotebookExtension(NotebookExtension):
 		self.index.set_property(TasksIndexer.PLUGIN_NAME, None)
 
 
-class TaskListPageViewExtension(PageViewExtension):
+class TaskListNotebookViewExtension(NotebookViewExtension):
 
 	def __init__(self, plugin, pageview):
-		PageViewExtension.__init__(self, plugin, pageview)
+		NotebookViewExtension.__init__(self, plugin, pageview)
 		self._widget = None
 		self.currently_with_due = plugin.preferences['with_due']
 		self.on_preferences_changed(plugin.preferences)

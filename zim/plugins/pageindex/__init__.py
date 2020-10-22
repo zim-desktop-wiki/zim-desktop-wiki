@@ -19,7 +19,7 @@ from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, Index
 from zim.plugins import PluginClass
 from zim.actions import PRIMARY_MODIFIER_MASK
 
-from zim.gui.pageview import PageViewExtension
+from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
 	encode_markup_text, ErrorDialog, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
@@ -67,10 +67,10 @@ This plugin adds the page index pane to the main window.
 	)
 
 
-class PageIndexPageViewExtension(PageViewExtension):
+class PageIndexNotebookViewExtension(NotebookViewExtension):
 
 	def __init__(self, plugin, pageview):
-		PageViewExtension.__init__(self, plugin, pageview)
+		NotebookViewExtension.__init__(self, plugin, pageview)
 		index = pageview.notebook.index
 		model = PageTreeStore(index)
 		self.treeview = PageTreeView(pageview.notebook, self.navigation)

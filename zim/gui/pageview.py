@@ -5136,7 +5136,7 @@ from zim.gui.actionextension import ActionExtensionBase
 from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
 
 
-class PageViewExtension(ActionExtensionBase):
+class PageViewExtensionBase(ActionExtensionBase):
 	'''Base class for extensions that want to interact with the "page view",
 	which is the primary editor view of the application.
 
@@ -5219,6 +5219,13 @@ class PageViewExtension(ActionExtensionBase):
 		for name, action in get_actions(self):
 			if action.menuhints[0] == 'insert':
 				self._remove_insert_action(action)
+
+
+class PageViewExtension(PageViewExtensionBase):
+	'''Base class for extensions of the L{PageView},
+	see L{PageViewExtensionBase} for API documentation.
+	'''
+	pass
 
 
 class InsertedObjectPageviewManager(object):

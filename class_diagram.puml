@@ -1,0 +1,67 @@
+@startuml
+hide circle
+
+title
+Key classes making up the zim application
+With emphasis on plugin framework
+endtitle
+
+legend right
+Default asociation is "1"
+endlegend
+
+ZimApplication << singleton >>
+PluginManager << singleton >>
+ConfigManager << singleton >>
+
+MainWindow << extendable >>
+PageView << extendable >>
+NotebookView << extendable >>
+Notebook << extendable >>
+InsertedObjectTypeMap << extendable >>
+
+NotebookView <|-- PageView
+
+ZimApplication o-- "*" Notebook
+ZimApplication o-- "*" MainWindow
+ZimApplication *-- PluginManager
+ZimApplication *-- ConfigManager
+
+
+MainWindow o-- Notebook
+MainWindow *-- "*" NotebookView
+
+
+Notebook *-- "*" Page
+Page *-- "0..1" TextBuffer
+TextView "*" o-- TextBuffer
+PageView *-- TextView
+PageView o-- Page
+TextBuffer - UndoStack
+
+Notebook *-- FilesLayout
+Notebook *-- Index
+Page *-- File
+Page *-- Folder
+Page *-- Format
+
+
+PluginManager *-- "*" Plugin
+PluginManager *-- InsertedObjectTypeMap
+
+together {
+Plugin *-- "*" Extension
+Extension <|-- MainWindowExtension
+Extension <|-- PageViewExtension
+Extension <|-- NotebookViewExtension
+Extension <|-- NotebookExtension
+Extension <|-- InsertedObjectTypeExtension
+}
+
+MainWindow o-- "*" MainWindowExtension
+PageView o-- "*" PageViewExtension
+NotebookView o-- "*" NotebookViewExtension
+Notebook o-- "*" NotebookExtension
+InsertedObjectTypeMap o-- "*" InsertedObjectTypeExtension
+
+@enduml

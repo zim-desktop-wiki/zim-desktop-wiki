@@ -34,6 +34,7 @@ from zim.gui.customtools import CustomToolManagerUI
 from zim.gui.insertedobjects import InsertedObjectUI
 
 from zim.gui.pageview import PageView
+from zim.gui.notebookview import NotebookView
 
 from zim.plugins import ExtensionBase, extendable, PluginManager
 from zim.gui.actionextension import ActionExtensionBase
@@ -203,8 +204,8 @@ class MainWindow(Window):
 		self.menubar = self.uimanager.get_widget('/menubar')
 		self.add_bar(self.menubar)
 
-		self.pageview = PageView(self.notebook, self.navigation)
-		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
+		self.pageview = NotebookView(self.notebook, self.navigation)
+		self.connect_object('readonly-changed', NotebookView.set_readonly, self.pageview)
 		self.pageview.textview.connect('link-enter', self.on_link_enter)
 		self.pageview.textview.connect('link-leave', self.on_link_leave)
 		self.pageview.connect('link-caret-enter', self.on_link_caret_enter)
@@ -925,6 +926,9 @@ class PageWindow(Window):
 			self._save_uistate()
 
 		self.connect('delete-event', do_delete_event)
+
+		PluginManager.register_new_extendable(self.pageview)
+		self.pageview.grab_focus()
 
 	def _save_uistate(self):
 		self.uistate['windowsize'] = tuple(self.get_size())

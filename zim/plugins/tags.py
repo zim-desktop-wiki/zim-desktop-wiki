@@ -22,7 +22,7 @@ from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
 from zim.utils import natural_sort_key
 
-from zim.gui.pageview import PageViewExtension
+from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \
 	WindowSidePaneWidget
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
@@ -51,10 +51,10 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 	)
 
 
-class TagsPageViewExtension(PageViewExtension):
+class TagsNotebookViewExtension(NotebookViewExtension):
 
 	def __init__(self, plugin, pageview):
-		PageViewExtension.__init__(self, plugin, pageview)
+		NotebookViewExtension.__init__(self, plugin, pageview)
 
 		self.widget = TagsPluginWidget(
 			pageview.notebook,

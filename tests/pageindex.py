@@ -23,7 +23,7 @@ class TestPageIndexPlugin(tests.TestCase):
 	def setUp(self):
 		self.plugin = PluginManager.load_plugin('pageindex')
 		self.window = setUpMainWindow(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
-		self.extension = find_extension(self.window.pageview, PageIndexPageViewExtension)
+		self.extension = find_extension(self.window.pageview, PageIndexNotebookViewExtension)
 		assert self.extension is not None
 
 	def do_expandcollapse(self, autoexpand, autocollapse):

@@ -21,7 +21,7 @@ from zim.notebook import Path, NotebookExtension
 from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
 
-from zim.gui.pageview import PageViewExtension
+from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import ScrolledWindow, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
 
@@ -224,11 +224,11 @@ class JournalNotebookExtension(NotebookExtension):
 		}
 
 
-class JournalPageViewExtension(PageViewExtension):
+class JournalNotebookViewExtension(NotebookViewExtension):
 	'''Extension used to add calendar dialog to mainwindow'''
 
 	def __init__(self, plugin, pageview):
-		PageViewExtension.__init__(self, plugin, pageview)
+		NotebookViewExtension.__init__(self, plugin, pageview)
 
 		self.notebook = pageview.notebook
 		self.calendar_widget = CalendarWidget(plugin, self.notebook, self.navigation)
