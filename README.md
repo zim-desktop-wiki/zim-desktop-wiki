@@ -78,7 +78,7 @@ On Ubuntu or other debian derived systems, the following packages should be inst
 ### Windows
 
 On windows the "msys" environment can be used to install python3 with Gtk and
-run zim from source. See https://www.gtk.org/download/windows.php for detailed
+run zim from source. See https://www.gtk.org/docs/installations/windows/ for detailed
 instructions.
 
 Make sure to include the python bindings as well.
