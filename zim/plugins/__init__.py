@@ -704,7 +704,9 @@ class PluginClass(ConnectorMixin):
 			else:
 				key, type, label, default, check = pref
 
-			if type in ('int', 'choice'):
+			if label is None:
+				pass # Hidden options
+			elif type in ('int', 'choice'):
 				fields.append((key, type, label, check))
 			else:
 				fields.append((key, type, label))
