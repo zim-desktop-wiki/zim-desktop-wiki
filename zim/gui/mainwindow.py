@@ -296,6 +296,15 @@ class MainWindow(Window):
 		button = action.create_icon_button()
 		headerbar.pack_end(button)
 
+		def _change_style_on_toggle(button):
+			context = button.get_style_context()
+			if button.get_active():
+				context.remove_class("suggested-action")
+			else:
+				context.add_class("suggested-action")
+		_change_style_on_toggle(button)
+		button.connect('toggled', _change_style_on_toggle)
+
 		self.set_titlebar(headerbar)
 
 		# Do this last, else menu items show up in wrong place
@@ -873,6 +882,15 @@ class PageWindow(Window):
 		action = self.toggle_editable
 		button = action.create_icon_button()
 		headerbar.pack_end(button)
+
+		def _change_style_on_toggle(button):
+			context = button.get_style_context()
+			if button.get_active():
+				context.remove_class("suggested-action")
+			else:
+				context.add_class("suggested-action")
+		_change_style_on_toggle(button)
+		button.connect('toggled', _change_style_on_toggle)
 
 		self.set_titlebar(headerbar)
 
