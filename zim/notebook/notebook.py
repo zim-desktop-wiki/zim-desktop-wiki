@@ -1054,7 +1054,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		notebook_root = self.layout.root
 		document_root = LocalFolder(self.document_root.path) if self.document_root else None# XXX
 
-		rootdir = '/'
+		rootdir = SEP
 		mydir = '.' + SEP
 		updir = '..' + SEP
 
@@ -1078,7 +1078,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				parent = file.commonparent(attachments_dir)
 				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
-				up = 1 + uppath.count('/')
+				up = 1 + uppath.count(SEP)
 				return updir * up + downpath
 		else:
 			if document_root and notebook_root \
