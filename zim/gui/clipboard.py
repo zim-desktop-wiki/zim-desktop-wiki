@@ -223,7 +223,9 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 
 	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
-		return ParseTree().fromstring(selectiondata.get_data())
+		tree = ParseTree().fromstring(selectiondata.get_data())
+		tree.relative_images(notebook, path)
+		return tree
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
 		links = selectiondata.get_uris()
@@ -543,6 +545,7 @@ class ClipboardManager(object):
 		@param parsetree: the actual L{ParseTree} to be set on the clipboard
 		@keyword format: the format to use for pasting text, e.g. 'wiki' or 'plain'
 		'''
+		parsetree.resolve_images(notebook, path)
 		self.set_clipboard_data(
 			ParseTreeData(notebook, path, parsetree, format) )
 

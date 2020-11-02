@@ -469,6 +469,16 @@ class ParseTree(object):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
+	def relative_images(self, notebook=None, path=None):
+		'''Counterpart to resolve_images
+		'''
+		if notebook is not None:
+			for element in self._etree.iter('img'):
+				if '_src_file' in element.attrib:
+					filepath = element.attrib['_src_file']
+					element.attrib['src'] = notebook.relative_filepath(File(filepath), path)
+					element.attrib.pop('_src_file')
+
 	def unresolve_images(self):
 		'''Undo effect of L{resolve_images()}, mainly intended for
 		testing.
