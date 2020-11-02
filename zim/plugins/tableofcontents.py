@@ -324,7 +324,8 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		if tree is None:
 			model.clear()
 		else:
-			model.update(get_headings(tree, self.include_hr), self.show_h1)
+			if model is not None:
+				model.update(get_headings(tree, self.include_hr), self.show_h1)
 		self.emit('changed')
 
 	def on_heading_activated(self, treeview, path, column):
