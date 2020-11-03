@@ -3695,6 +3695,10 @@ class TextView(Gtk.TextView):
 		self.connect_after('size-allocate', self.__class__.on_size_allocate)
 		self.connect_after('motion-notify-event', self.__class__.on_motion_notify_event)
 
+		# Tooltips for images
+		self.props.has_tooltip = True
+		self.connect("query-tooltip", self.on_query_tooltip)
+
 	def set_buffer(self, buffer):
 		buffer.connect('insert-objectanchor', self.on_insert_object)
 		Gtk.TextView.set_buffer(self, buffer)
@@ -4520,6 +4524,20 @@ class TextView(Gtk.TextView):
 
 			buffer.update_editmode() # also updates indent tag
 
+	def on_query_tooltip(self, widget, x, y, keyboard_tip, tooltip):
+		# Handle tooltip query event
+		x,y = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
+		iter = strip_boolean_result(self.get_iter_at_location(x, y))
+		if iter is not None:
+			pixbuf = self._get_pixbuf_at_pointer(iter, (x, y))
+			if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'image':
+				data = pixbuf.zim_attrib.copy()
+				text = data['src']
+				if 'href' in data:
+					text += '\n<b>' + data['href'] + '</b>'
+				tooltip.set_markup(text)
+				return True
+		return False
 
 class UndoActionGroup(list):
 	'''Group of actions that should un-done or re-done in a single step
