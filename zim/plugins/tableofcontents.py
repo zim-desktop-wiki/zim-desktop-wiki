@@ -541,7 +541,7 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 			handler=DelayedCallback(10, self.update_size_and_position),
 				# Callback wrapper to prevent glitches for fast resizing of the window
 		)
-		self.connectto(self.tocwidget, 'changed', handler=self.update_size_and_position)
+		self.connectto(self.tocwidget, 'changed', handler=self.update_size_and_position_after_change)
 
 		self._event_box.show_all()
 
@@ -560,6 +560,10 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		self.tocwidget.set_visible(
 			not self.tocwidget.get_visible()
 		)
+		self.update_size_and_position()
+
+	def update_size_and_position_after_change(self, *a):
+		self.tocwidget.treeview.expand_all()
 		self.update_size_and_position()
 
 	def update_size_and_position(self, *a):
