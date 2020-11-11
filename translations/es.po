@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-07-24 08:10+0200\n"
-"PO-Revision-Date: 2019-07-09 13:36+0000\n"
-"Last-Translator: Roberto Michán Sánchez <Unknown>\n"
-"Language-Team: Spanish &lt;es@li.org&gt;\n"
+"PO-Revision-Date: 2020-11-12 17:28+0000\n"
+"Last-Translator: Vibo Lavida <vibo@firemail.cc>\n"
+"Language-Team: Spanish <https://hosted.weblate.org/projects/zim/master/es/>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.4-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:85
@@ -1534,6 +1534,10 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
+"La codificación actual de su sistema es %s, si desea compatibilidad con "
+"caracteres especiales\n"
+"o ve errores debido a la codificación, asegúrese de configurar su sistema "
+"para usar \"UTF-8\""
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1542,10 +1546,8 @@ msgstr "Preferencias"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:112
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key bindings"
-msgstr "_Atajos de teclado"
+msgstr "Atajos de teclado"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:117
@@ -1656,20 +1658,20 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"Los atajos de teclado se pueden cambiar seleccionando la acción en la lista "
+"y presionando la nueva combinación de teclas.\n"
+"Para deshabilitar una combinación de teclas, selecciónela en la lista y "
+"use<tt>&lt;Retroceso&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:508
-#, fuzzy
-#| msgid "Section"
 msgid "Action"
-msgstr "Sección"
+msgstr "Acción"
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:519
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key Binding"
-msgstr "_Atajos de teclado"
+msgstr "Atajo de teclado"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:17
@@ -1755,7 +1757,7 @@ msgstr "Permitir acceso público"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr ""
+msgstr "Exigir autenticación"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1764,15 +1766,13 @@ msgstr "Puerto"
 
 #. Field in web server gui
 #: zim/gui/server.py:110
-#, fuzzy
-#| msgid "Filename"
 msgid "Username"
-msgstr "Nombre del archivo"
+msgstr "Nombre de usuario"
 
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "Contraseña"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -1842,10 +1842,8 @@ msgstr "_Enviar a…"
 
 #. Menu item
 #: zim/gui/uiactions.py:185
-#, fuzzy
-#| msgid "_Rename Page..."
 msgid "_Rename or move Page..."
-msgstr "_Renombrar página..."
+msgstr "_Renombrar o mover página..."
 
 #. Menu item
 #: zim/gui/uiactions.py:194
@@ -1941,10 +1939,8 @@ msgstr "Arrancar _Servidor Web"
 
 #. menu item
 #: zim/gui/uiactions.py:366
-#, fuzzy
-#| msgid "View _Log"
 msgid "View debug log"
-msgstr "Ver _registro"
+msgstr "Ver registro de depuración"
 
 #. Menu item
 #: zim/gui/uiactions.py:380
@@ -2274,13 +2270,15 @@ msgid ""
 "of the file name, please try using a name with less\n"
 "than 255 characters"
 msgstr ""
+"No se puede escribir este archivo. Probablemente esto se deba a la longitud\n"
+"del nombre del archivo, intente usar un nombre con menos\n"
+"de 255 caracteres"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
-#, fuzzy, python-format
-#| msgid "File changed on disk: %s"
+#, python-format
 msgid "File name too long: %s"
-msgstr "%s de los archivos del disco han sido cambiados"
+msgstr "Nombre de archivo demasiado largo: %s"
 
 #. Error explanation
 #: zim/newfs/local.py:54
@@ -2289,12 +2287,16 @@ msgid ""
 "of the file path, please try using a folder structure resulting in less\n"
 "than 4096 characters"
 msgstr ""
+"No se puede escribir este archivo. Probablemente esto se deba a la longitud\n"
+"de la ruta del archivo, intente utilizar una estructura de carpetas que "
+"resulte en menos\n"
+"de 4096 caracteres"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
 #, python-format
 msgid "File path too long: %s"
-msgstr ""
+msgstr "Ruta de archivo demasiado larga: %s"
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:420
@@ -2425,7 +2427,7 @@ msgstr "Posición en la ventana"
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:82
 msgid "Use thumbnails"
-msgstr ""
+msgstr "Usar miniaturas"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
@@ -2923,21 +2925,13 @@ msgstr ""
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:72
-#, fuzzy
-#| msgid "Menubar"
 msgid "macOS Menubar"
-msgstr "Barra de menú"
+msgstr "barra de menú de macOS"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:73
-#, fuzzy
-#| msgid ""
-#| "\t\tThis plugin provides bar for bookmarks.\n"
-#| "\t\t"
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
-"\t\tEste complemento provee una barra para favoritos.\n"
-"\t\t"
+msgstr "Este complemento proporciona una barra de menú de macOS para zim."
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
@@ -2952,15 +2946,13 @@ msgstr ""
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
-#, fuzzy
-#| msgid "Automatically saved version from zim"
 msgid "Automatically expand sections on open page"
-msgstr "Versión guardada automáticamente desde zim"
+msgstr "Expandir automáticamente las secciones en la página abierta"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65
 msgid "Automatically collapse sections on close page"
-msgstr ""
+msgstr "Colapsar automáticamente las secciones al cerrar la página"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
