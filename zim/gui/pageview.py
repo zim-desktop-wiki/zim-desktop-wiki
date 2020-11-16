@@ -2133,7 +2133,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 			string, length = end_or_protect_tags(string, length)
 
-		elif string in CHARS_END_OF_WORD:
+		elif not self._insert_tree_in_progress and string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
 			# without this you can not insert text behind a link e.g. at the end of a line
 			links = list(filter(_is_link_tag, self._editmode_tags))
