@@ -223,7 +223,7 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 	def dump(self, builder, model):
 		headers, attrib, rows = model.get_object_data()
 		def append(tag, text):
-			builder.start(tag)
+			builder.start(tag, {})
 			builder.data(text)
 			builder.end(tag)
 
@@ -233,7 +233,7 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 			append(HEADDATA, header)
 		builder.end(HEADROW)
 		for row in rows:
-			builder.start(TABLEROW)
+			builder.start(TABLEROW, {})
 			for cell in row:
 				append(TABLEDATA, cell)
 			builder.end(TABLEROW)

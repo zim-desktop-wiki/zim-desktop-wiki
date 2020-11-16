@@ -2477,7 +2477,7 @@ class TextBuffer(Gtk.TextBuffer):
 						attrib = self.get_tag_data(iter)
 						if not attrib['name']:
 							t = '_ignore_'
-					builder.start(t, attrib)
+					builder.start(t, attrib or {})
 					open_tags.append((tag, t))
 					if t == 'li':
 						break
@@ -2525,7 +2525,7 @@ class TextBuffer(Gtk.TextBuffer):
 					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
-					builder.start('img', attrib)
+					builder.start('img', attrib or {})
 					builder.end('img')
 				else:
 					assert False, 'BUG: unknown pixbuf type'
@@ -6852,7 +6852,7 @@ class LineSeparatorAnchor(InsertedObjectAnchor):
 		return LineSeparator()
 
 	def dump(self, builder):
-		builder.start(LINE)
+		builder.start(LINE, {})
 		builder.data('-'*20) # FIXME: get rid of text here
 		builder.end(LINE)
 
