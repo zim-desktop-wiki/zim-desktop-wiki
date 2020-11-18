@@ -536,7 +536,7 @@ class Page(Path, SignalEmitter):
 		self.emit('storage-changed', False)
 
 	def check_source_changed(self):
-		self._check_source_etag()
+		return self._check_source_etag()
 
 	def _check_source_etag(self):
 		if (
@@ -544,16 +544,21 @@ class Page(Path, SignalEmitter):
 			and not self.source_file.verify_etag(self._last_etag)
 		) or (
 			not self._last_etag
-			and self._parsetree
+			and (self._parsetree or self._textbuffer)
 			and self.source_file.exists()
 		):
 			logger.info('Page changed on disk: %s', self.name)
 			self._last_etag = None
 			self._meta = None
-			self._parsetree = None
+			if self._textbuffer is not None:
+				self.reload_textbuffer()
+			else:
+				self._parsetree = None
+
 			self.emit('storage-changed', True)
+			return True
 		else:
-			pass # no check
+			return False
 
 	def exists(self):
 		'''C{True} when the page has either content or children'''

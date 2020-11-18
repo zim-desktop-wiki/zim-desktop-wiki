@@ -1210,6 +1210,44 @@ class TestPage(TestPath):
 		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
 		###
 
+	def testReloadOnChanged(self):
+		page = self.generator('Test')
+		file = page.source_file
+		tree = ParseTree().fromstring('<zim-tree>ABC\n</zim-tree>\n')
+
+		class MockTextBuffer(object):
+
+			def __init__(self):
+				self.parsetree = None
+				self.modified = False
+
+			def set_modified(self, modified):
+				self.modified = modified
+
+			def get_modified(self):
+				return self.modified
+
+			def connect(self, *a):
+				pass
+
+			def set_parsetree(self, parsetree):
+				self.parsetree = parsetree
+
+			def get_parsetree(self):
+				return self.parsetree
+
+		buffer = page.get_textbuffer(MockTextBuffer)
+
+		self.assertFalse(page.check_source_changed())
+		page.set_parsetree(tree)
+		self.assertEqual(page.dump('wiki'), ['ABC\n'])
+		self.assertFalse(page.check_source_changed())
+		file.write('DEF')
+		self.assertEqual(page.dump('wiki'), ['ABC\n'])
+		self.assertTrue(page.check_source_changed())
+		self.assertEqual(page.dump('wiki'), ['DEF\n'])
+		self.assertFalse(page.check_source_changed())
+
 
 class TestMovePageNewNotebook(tests.TestCase):
 
