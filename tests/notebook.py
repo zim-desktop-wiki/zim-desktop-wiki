@@ -954,7 +954,7 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 				[('B', 'C'), ('B', 'C:A1'), ('B', 'D')]
 			)
 		)
-		
+
 	def testMovePlaceholder(self):
 		self.movePage(
 			pre=(
@@ -1209,6 +1209,35 @@ class TestPage(TestPath):
 		self.assertEqual(lines[2][:13], 'Creation-Date')
 		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
 		###
+
+	def testReloadOnChanged(self):
+		page = self.generator('Test')
+		file = page.source_file
+		tree = ParseTree().fromstring('<zim-tree>ABC\n</zim-tree>\n')
+
+		class MockUIObject(object):
+
+			def __init__(self):
+				self.parsetree = None
+
+			def set_parsetree(self, parsetree):
+				self.parsetree = parsetree
+
+			def get_parsetree(self):
+				return self.parsetree
+
+		uiobject = MockUIObject()
+		page.set_ui_object(uiobject)
+
+		self.assertFalse(page.check_source_changed())
+		page.set_parsetree(tree)
+		self.assertEqual(page.dump('wiki'), ['ABC\n'])
+		self.assertFalse(page.check_source_changed())
+		file.write('DEF')
+		self.assertEqual(page.dump('wiki'), ['ABC\n'])
+		self.assertTrue(page.check_source_changed())
+		self.assertEqual(page.dump('wiki'), ['DEF\n'])
+		self.assertFalse(page.check_source_changed())
 
 
 class TestMovePageNewNotebook(tests.TestCase):

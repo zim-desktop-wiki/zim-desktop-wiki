@@ -506,7 +506,7 @@ class Page(Path, SignalEmitter):
 			self._meta = None
 
 	def check_source_changed(self):
-		self._check_source_etag()
+		return self._check_source_etag()
 
 	def _check_source_etag(self):
 		if (
@@ -514,16 +514,25 @@ class Page(Path, SignalEmitter):
 			and not self.source_file.verify_etag(self._last_etag)
 		) or (
 			not self._last_etag
-			and self._parsetree
+			and (self._parsetree or self._ui_object)
 			and self.source_file.exists()
 		):
 			logger.info('Page changed on disk: %s', self.name)
 			self._last_etag = None
 			self._meta = None
 			self._parsetree = None
+			if self._ui_object is not None:
+				obj = self._ui_object
+				self._ui_object = None
+				parsetree = self.get_parsetree()
+				self._ui_object = obj
+				self._parsetree = None
+				self._ui_object.set_parsetree(parsetree)
+
 			self.emit('page-changed', True)
+			return True
 		else:
-			pass # no check
+			return False
 
 	def exists(self):
 		'''C{True} when the page has either content or children'''
