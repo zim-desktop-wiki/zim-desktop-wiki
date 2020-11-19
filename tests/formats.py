@@ -693,6 +693,15 @@ hmmm
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
+	def testLinkWithFormatting(self):
+		text = '[[http://example.com| //Example// ]]' # spaces are crucial in this example - see issue #1306
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><link href="http://example.com"> <emphasis>Example</emphasis> </link>
+</p></zim-tree>'''
+		t = self.format.Parser().parse([text])
+		self.assertEqual(t.tostring(), xml)
+
 
 class TestGFMAutolinks(tests.TestCase):
 	# See https://github.github.com/gfm/#autolinks-extension-

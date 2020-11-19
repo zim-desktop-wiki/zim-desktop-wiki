@@ -5,6 +5,16 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.73.4 - Thu 19 Nov 2020
+* Fix issue with relative links on windows
+* Fix reload page after change in external editor
+* Fix regressions due to python3.9 change in ElementTree
+* Fix regression in nested format in link
+* Fix test failure in testing translations
+* Let versions control plugin initialize git repro to not quote non-ascii paths
+* Update markdown extension and mime-type
+* Merge translations
+
 ##  0.73.3 - Fri 09 Oct 2020
 * Fix missing export formats in windows installer
 * Add support for environ.ini at startup for portable install

@@ -83,8 +83,10 @@ class TranslationMessage(object):
 		if not wanted:
 			return True # no string format used
 
-		for msg in [self.msgid_plural] + self.msgstr:
-			if msg and not msg == '""':
+		for i, msg in enumerate(self.msgstr + [self.msgid_plural]):
+			if i == 0 and self.msgid_plural is not None and wanted == ['%i']:
+				pass # execption for "one" when counting stuff
+			elif msg and not msg == '""':
 				got = sorted(self._format_string_re.findall(msg))
 				if not got == wanted:
 					return False

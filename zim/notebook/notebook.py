@@ -1096,7 +1096,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				parent = file.commonparent(attachments_dir)
 				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
-				up = 1 + uppath.count('/')
+				up = 1 + uppath.replace('\\', '/').count('/')
 				return updir * up + downpath
 		else:
 			if document_root and notebook_root \

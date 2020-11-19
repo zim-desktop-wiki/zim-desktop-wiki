@@ -21,9 +21,8 @@ from zim.formats.plain import Dumper as TextDumper
 info = {
 	'name': 'markdown',
 	'desc': 'Markdown Text (pandoc)',
-	'mimetype': 'text/x-markdown',
-	'extension': 'markdown',
-		# No official file extension, but this is often used
+	'mimetype': 'text/markdown',
+	'extension': 'md', # Most common extention used on github.
 	'native': False,
 	'import': False,
 	'export': True,

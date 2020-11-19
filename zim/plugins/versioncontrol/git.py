@@ -131,6 +131,10 @@ class GITApplicationBackend(VCSApplicationBase):
 
 	def init_repo(self):
 		self.init()
+		# Configure git to not quote non-ascii filenames. By default,
+		# they are quoted as octal escapes, making it complicated to
+		# deal with page names in non-Latin scripts.
+		self.run(['config', 'core.quotepath', 'off'])
 		self.ignore(".zim/\n")
 		self.add('.') # add all existing files
 

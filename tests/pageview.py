@@ -948,15 +948,24 @@ C
 		)
 
 	def testNestedFormattingRoundtrip(self):
-			xml = '''\
+		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree><p>normal <strong>bold</strong> normal2
 normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
 normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
 normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis> </strike>normal2
 </p></zim-tree>'''
-			buffer = self.get_buffer(xml)
-			self.assertBufferEquals(buffer, xml)
+		buffer = self.get_buffer(xml)
+		self.assertBufferEquals(buffer, xml)
+
+	def testLinkWithFormatting(self):
+		#text = '[[http://example.com| //Example// ]]' # spaces are crucial in this example - see issue #1306
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><link href="http://example.com"> <emphasis>Example</emphasis> </link>
+</p></zim-tree>'''
+		buffer = self.get_buffer(xml)
+		self.assertBufferEquals(buffer, xml)
 
 	def testLinkWithoutTargetDirectEditable(self):
 		buffer = self.get_buffer('<p><link href="Test">Test</link>\n</p>', raw=False)

@@ -23,7 +23,7 @@ Zim has a lot of little features to make often performed routines quicker. Some 
 If you want to start a new page without linking to it you can popup the //Jump to..// dialog using "''<Ctrl>J''" and type the name of the page you want. The page you jump to does not have to exist, if it doesn't it will be created on the fly when you start editing. This routine can be used to make notes of thought unrelated to what you are working on when they popup in your mind. You can use "''<Alt>Left''" or the "Back" button to return to what you were doing.
 
 === Use CamelCase ===
-CamelCase is a way of to mark page names that is often used in wikis. The idea is that a page name always is a contraction of two words both starting with a capital (like for example the word "CamelCase"). The wiki recognizes these words and highlights them as links. Zim formats these CamelCase words as links on the fly when you type them. Thus you do not have to explicitly create links as long as you choose your page names to match this format.
+CamelCase is a way of marking page names that is often used in wikis. The idea is that a page name is always a contraction of two words both starting with a capital letter (for example the word "CamelCase"). The wiki recognizes these words and highlights them as links. Zim formats these CamelCase words as links on the fly when you type them. Thus you do not have to explicitly create links as long as you choose your page names to match this format.
 
 If you do not like CamelCase it can be turned off in the preferences menu (//Edit//->//Preferences//) under the "Editing" tab.
 

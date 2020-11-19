@@ -2125,7 +2125,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 			string, length = end_or_protect_tags(string, length)
 
-		elif string in CHARS_END_OF_WORD:
+		elif not self._insert_tree_in_progress and string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
 			# without this you can not insert text behind a link e.g. at the end of a line
 			links = list(filter(_is_link_tag, self._editmode_tags))
@@ -2472,7 +2472,7 @@ class TextBuffer(Gtk.TextBuffer):
 						attrib = self.get_tag_data(iter)
 						if not attrib['name']:
 							t = '_ignore_'
-					builder.start(t, attrib)
+					builder.start(t, attrib or {})
 					open_tags.append((tag, t))
 					if t == 'li':
 						break
@@ -2520,7 +2520,7 @@ class TextBuffer(Gtk.TextBuffer):
 					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
-					builder.start('img', attrib)
+					builder.start('img', attrib or {})
 					builder.end('img')
 				else:
 					assert False, 'BUG: unknown pixbuf type'
@@ -7018,7 +7018,7 @@ class LineSeparatorAnchor(InsertedObjectAnchor):
 		return LineSeparator()
 
 	def dump(self, builder):
-		builder.start(LINE)
+		builder.start(LINE, {})
 		builder.data('-'*20) # FIXME: get rid of text here
 		builder.end(LINE)
 
