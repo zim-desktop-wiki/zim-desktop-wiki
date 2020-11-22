@@ -616,6 +616,7 @@ class TextBuffer(Gtk.TextBuffer):
 		self.page = page
 		self._insert_tree_in_progress = False
 		self._deleted_editmode_mark = None
+		self._deleted_line_end = False
 		self._check_renumber = []
 		self._renumbering = False
 		self.user_action = UserActionContext(self)
@@ -2208,11 +2209,21 @@ class TextBuffer(Gtk.TextBuffer):
 		self._deleted_editmode_mark = self.create_mark(None, end, left_gravity=True)
 		self._deleted_editmode_mark.editmode_tags = self.iter_get_zim_tags(end)
 
+		# Also need to know whether range spanned multiple lines or not
+		self._deleted_line_end = start.get_line() != end.get_line()
+
 	def do_post_delete_range(self, start, end):
 		# Post handler to hook _do_lines_merged and do some logic
 		# when deleting bullets
 		# Note that 'start' and 'end' refer to the same postion here ...
 
+		was_list = (
+			not start.ends_line()
+			and any(t for t in start.get_tags() if _is_indent_tag(t) and t.zim_attrib.get('_bullet'))
+		)
+
+		# Do merging of tags regardless of whether we deleted a line end or not
+		# worst case some clean up of run-aways tags is done
 		if (
 			(
 				not start.starts_line()
@@ -2224,11 +2235,13 @@ class TextBuffer(Gtk.TextBuffer):
 		):
 			self._do_lines_merged(start)
 
-		bullet = self._get_bullet_at_iter(start)
-		if bullet is not None:
+		# For cleaning up bullets do check more, else we can delete sequences
+		# that look like a bullet but aren't - see issue #1328
+		bullet = self._get_bullet_at_iter(start) # Does not check start of line !
+		if self._deleted_line_end and bullet is not None:
 			if start.starts_line():
 				self._check_renumber.append(start.get_line())
-			else:
+			elif was_list:
 				# Clean up the redundant bullet
 				offset = start.get_offset()
 				bound = start.copy()
@@ -2240,6 +2253,8 @@ class TextBuffer(Gtk.TextBuffer):
 				# there is a crash here on some systems - see issue #766
 				start.assign(new)
 				end.assign(new)
+			else:
+				pass
 		elif start.starts_line():
 			indent_tags = list(filter(_is_indent_tag, start.get_tags()))
 			if indent_tags and indent_tags[0].zim_attrib['_bullet']:

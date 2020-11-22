@@ -631,8 +631,7 @@ C
 		buffer = TextBuffer(notebook, page)
 		buffer.set_parsetree(tree)
 
-		# Position at end of first lest item and delete end of line
-		buffer.place_cursor(buffer.get_iter_at_offset(9))
+		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
 		start = buffer.get_insert_iter()
 		end = start.copy()
 		end.forward_char()
@@ -644,6 +643,63 @@ C
 <zim-tree>
 <p><ul><li bullet="*">item 1item 2</li></ul></p>
 </zim-tree>''')
+
+	def testMergeLinesWithNotABulletWithoutNewline(self):
+		# See issue #1328, avoid accidental removal of something that looks
+		# like a bullet
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<ul><li>item 1 123. test</li></ul>
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tree)
+
+		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
+		start = buffer.get_insert_iter()
+		end = start.copy()
+		end.forward_char()
+		buffer.delete_interactive(start, end, True)
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul><li bullet="*">item 1123. test</li></ul></p>
+</zim-tree>''')
+
+	def testMergeLinesWithNotABulletAfterNewline(self):
+		# See issue #1328, avoid accidental removal of something that looks
+		# like a bullet
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<ul><li>item 1</li></ul>123. test
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tree)
+
+		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
+		start = buffer.get_insert_iter()
+		end = start.copy()
+		end.forward_char()
+		buffer.delete_interactive(start, end, True)
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul><li bullet="*">item 1123. test</li></ul></p></zim-tree>''')
 
 	def testFormatHeading(self):
 		buffer = self.get_buffer('foo bar\n')
