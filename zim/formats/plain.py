@@ -170,6 +170,10 @@ class Dumper(DumperClass):
 
 		return (bullet, ' ') + tuple(strings) + ('\n',)
 
+	def dump_anchor(self, tag, attrib, strings=None):
+		# TODO: what should be returned here?
+		return strings
+
 	def dump_link(self, tag, attrib, strings=None):
 		# Just plain text, either text of link, or link href
 		assert 'href' in attrib, \

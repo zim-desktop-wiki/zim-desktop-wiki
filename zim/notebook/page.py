@@ -331,18 +331,18 @@ HREF_REL_RELATIVE = 2
 
 class HRef(object):
 
-	__slots__ = ('rel', 'names')
+	__slots__ = ('rel', 'names', 'anchor')
 
 	@classmethod
 	def new_from_wiki_link(klass, href):
 		'''Constructor that constructs a L{HRef} object for a link as
-		writen in zim's wiki syntax.
+		written in zim's wiki syntax.
 		@param href: a string for the link
 		@returns: a L{HRef} object
 		@raises ValueError: when the string could not be parsed
 		(see L{Path.makeValidPageName()})
 
-		@note: This mehtod HRef class assumes the logic of our wiki links
+		@note: This method HRef class assumes the logic of our wiki links
 		for other formats, a separate constructor may be needed
 		'''
 		if href.startswith(':'):
@@ -352,30 +352,37 @@ class HRef(object):
 		else:
 			rel = HREF_REL_FLOATING
 
-		names = Path.makeValidPageName(href.lstrip('+'))
-			# Can raise ValueError if link would reduce to empty string
-		return klass(rel, names)
+		anchor = None
+		if '#' in href:
+			href, anchor = href.split('#', 1)
 
-	def __init__(self, rel, names):
+		names = Path.makeValidPageName(href.lstrip('+')) if href else ""
+
+		return klass(rel, names, anchor)
+
+	def __init__(self, rel, names, anchor=None):
 		self.rel = rel
 		self.names = names
+		self.anchor = anchor
 
 	def __str__(self):
 		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
-		return '<%s: %s %s>' % (self.__class__.__name__, rel, self.names)
+		return '<%s: %s %s %s>' % (self.__class__.__name__, rel, self.names, self.anchor)
 
 	def parts(self):
-		return self.names.split(':')
+		return self.names.split(':') if self.names else []
 
 	def to_wiki_link(self):
 		'''Returns href as text for wiki link'''
 		if self.rel == HREF_REL_ABSOLUTE:
-			return ":" + self.names.strip(':')
+			link = ":" + self.names.strip(':')
 		elif self.rel == HREF_REL_RELATIVE:
-			return "+" + self.names
+			link = "+" + self.names
 		else:
-			return self.names
-
+			link = self.names
+		if self.anchor:
+			link = f"{link}#{self.anchor}"
+		return link
 
 
 class SourceFile(zim.fs.File):
@@ -722,6 +729,17 @@ class Page(Path, SignalEmitter):
 				if not name in seen:
 					seen.add(name)
 					yield name.lstrip('@'), elt.attrib
+
+	def get_anchors(self):
+		'''Generator returning all the (explicit) anchors in the page content'''
+		tree = self.get_parsetree()
+		if tree:
+			seen = set()
+			for elt in tree.findall(zim.formats.ANCHOR):
+				name = elt.gettext()
+				if not name in seen:
+					seen.add(name)
+					yield name, elt.attrib
 
 	def get_title(self):
 		tree = self.get_parsetree()

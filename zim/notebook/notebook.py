@@ -29,7 +29,7 @@ from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
 from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
-from .index import IndexNotFoundError, LINK_DIR_BACKWARD
+from .index import IndexNotFoundError, LINK_DIR_BACKWARD, ROOT_PATH
 
 DATA_FORMAT_VERSION = (0, 4)
 
@@ -308,6 +308,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		self.connectto(self.properties, 'changed', self.on_properties_changed)
 		self.on_properties_changed(self.properties)
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.name)
 
 	@property
 	def uri(self):
@@ -796,6 +799,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			newhref = self.pages.create_link(source, target)
 
+		newhref.anchor = oldhref.anchor
+
 		text = newhref.to_wiki_link()
 		if elt.gettext() == elt.get('href'):
 			elt[:] = [text]
@@ -1021,6 +1026,15 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			else:
 				dir = Dir(self.layout.root.path) # XXX
 				return File((dir, filename))
+
+	def make_absolute_path(self, path):
+		"""Return an absolute path for the provided path object"""
+		assert isinstance(path, Path)
+		href = HRef.new_from_wiki_link(path.name)
+		path = self.pages.resolve_link(ROOT_PATH, href)
+		assert path and isinstance(path, Path)
+		path.name = ":" + path.name
+		return path
 
 	def relative_filepath(self, file, path=None):
 		'''Get a file path relative to the notebook or page

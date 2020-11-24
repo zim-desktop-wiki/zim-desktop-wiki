@@ -200,6 +200,13 @@ def canonical_name(name):
 		return name
 
 
+def heading_to_anchor(name):
+	"""Derive an anchor name from a heading"""
+	name = name.lower()
+	name = name.replace(' ', '-')
+	return re.sub(r'[^\w\-_]', '', name)
+
+
 def get_format(name):
 	'''Returns the module object for a specific format.'''
 	# If this method is removes, class names in formats/*.py can be made more explicit
@@ -335,24 +342,42 @@ class ParseTree(object):
 		self.visit(tb)
 		return iter(tb.tokens)
 
-	def iter_href(self):
+	def iter_href(self, include_page_local_links=False, include_anchors=False):
 		'''Generator for links in the text
 		@returns: yields a list of unique L{HRef} objects
 		'''
 		from zim.notebook.page import HRef # XXX
+
+		if not include_anchors:
+			include_page_local_links = False
+
 		seen = set()
 		for elt in itertools.chain(
 			self._etree.iter(LINK),
 			self._etree.iter(IMAGE)
 		):
 			href = elt.attrib.get('href')
-			if href and href not in seen:
-				seen.add(href)
-				if link_type(href) == 'page':
-					try:
-						yield HRef.new_from_wiki_link(href)
-					except ValueError:
-						pass
+			# only page links
+			if not href or link_type(href) != 'page':
+				continue
+			# convert href into object representation
+			try:
+				href_obj = HRef.new_from_wiki_link(href)
+			except ValueError:
+				continue
+			# skip page local links
+			if not include_page_local_links and not href_obj.names:
+				continue
+			# remove anchors?
+			if not include_anchors and href_obj.anchor:
+				href_obj.anchor = None
+				href = href_obj.to_wiki_link()
+			# already seen?
+			if href in seen:
+				continue
+			# first occurrence of this href
+			seen.add(href)
+			yield href_obj
 
 	def iter_tag_names(self):
 		'''Generator for tags in the page content
@@ -467,7 +492,36 @@ class ParseTree(object):
 		else:
 			for element in self._etree.iter('img'):
 				filepath = element.attrib['src']
-				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
+				element.attrib['_src_file'] = notebook.resolve_file(filepath, path)
+
+	def resolve_links(self, new_path):
+		logger.debug("resolving links for destination %s", new_path)
+		from zim.notebook.page import Path, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
+		for element in self._etree.iter('link'):
+			href = element.attrib['href']
+			# we only need to take care of page links
+			if not href or link_type(href) != 'page':
+				continue
+			href_obj = HRef.new_from_wiki_link(href)
+			if href_obj.rel == HREF_REL_ABSOLUTE or href_obj.rel == HREF_REL_FLOATING:
+				old_path = Path(href_obj.names)
+				if old_path == new_path:
+					href_obj.rel = HREF_REL_FLOATING
+					href_obj.names = ''
+				elif old_path.ischild(new_path):
+					href_obj.rel = HREF_REL_RELATIVE
+					href_obj.names = old_path.relname(new_path)
+				href_new = href_obj.to_wiki_link()
+				# remove leading colon
+				href_new = href_new.lstrip(':')
+				# href has changed?
+				if href == href_new:
+					continue
+				# assign new href
+				element.attrib['href'] = href_new
+				# adjust the link text accordingly?
+				if href == element.text:
+					element.text = href_new
 
 	def unresolve_images(self):
 		'''Undo effect of L{resolve_images()}, mainly intended for
@@ -1065,7 +1119,7 @@ class ParserClass(object):
 					break
 
 				k, v = option.split('=', 1)
-				if k in ('width', 'height', 'type', 'href'):
+				if k in ('id', 'width', 'height', 'type', 'href'):
 					if len(v) > 0:
 						value = url_decode(v, mode=URL_ENCODE_DATA)
 						attrib[str(k)] = value # str to avoid unicode key

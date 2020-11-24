@@ -4,6 +4,7 @@
 
 
 import logging
+import sqlite3
 
 logger = logging.getLogger('zim.notebook.index')
 
@@ -99,12 +100,17 @@ class LinksIndexer(IndexerBase):
 			(row['id'],)
 		)
 		for href in doc.iter_href():
+			assert href.parts()	# the iterator per default skips page local links
 			anchorkey = natural_sort_key(href.parts()[0])
-			self.db.execute(
-				'INSERT INTO links(source, target, rel, names, anchorkey, needscheck) '
-				'VALUES (?, ?, ?, ?, ?, ?)',
-				(row['id'], ROOT_ID, href.rel, href.names, anchorkey, 1)
-			)
+			try:
+				logger.debug("INSERT INTO links(%d, %d, %d, %s,...)", row['id'], ROOT_ID, href.rel, href.names)
+				self.db.execute(
+					'INSERT INTO links(source, target, rel, names, anchorkey, needscheck) '
+					'VALUES (?, ?, ?, ?, ?, ?)',
+					(row['id'], ROOT_ID, href.rel, href.names, anchorkey, 1)
+				)
+			except sqlite3.IntegrityError:
+				logger.exception('Integrity error when inserting link (%d,%d,%d,%s)', row['id'], ROOT_ID, href.rel, href.names)
 
 	def on_page_row_inserted(self, o, row):
 		# Placeholders for pages of the same name need to be

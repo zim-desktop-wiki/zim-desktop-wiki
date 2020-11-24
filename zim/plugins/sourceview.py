@@ -29,7 +29,7 @@ from zim.utils import WeakSet
 from zim.config import String, Boolean
 from zim.formats.html import html_encode
 
-from zim.gui.widgets import Dialog, ScrolledWindow
+from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
 from zim.gui.insertedobjects import TextViewWidget
 
 if GtkSource:
@@ -116,15 +116,19 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 	def __init__(self, plugin, objmap):
 		self._widgets = WeakSet()
 		self.preferences = plugin.preferences
-		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
+		super().__init__(plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def new_model_interactive(self, parent, notebook, page):
-		lang, linenumbers = InsertCodeBlockDialog(parent).run()
+		id, lang, linenumbers = InsertCodeBlockDialog(parent).run()
 		if lang is None:
 			raise ValueError # dialog cancelled
 		else:
-			attrib = self.parse_attrib({'lang': lang, 'linenumbers': linenumbers})
+			attrib = self.parse_attrib({
+				'id': id,
+				'lang': lang,
+				'linenumbers': linenumbers
+			})
 			return SourceViewBuffer(attrib, '')
 
 	def model_from_data(self, notebook, page, attrib, text):
@@ -173,6 +177,7 @@ else:
 class SourceViewBuffer(_bufferclass):
 
 	def __init__(self, attrib, text):
+		#logger.debug("SourceViewBuffer attrib=%r", attrib)
 		GtkSource.Buffer.__init__(self)
 		self.set_highlight_matching_brackets(True)
 		if attrib['lang']:
@@ -321,7 +326,8 @@ class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
-		self.result = (None, None)
+		self.result = (None, None, None)
+		self.uistate.define(id=String(None))
 		self.uistate.define(lang=String(None))
 		self.uistate.define(line_numbers=Boolean(True))
 		defaultlang = self.uistate['lang']
@@ -342,23 +348,31 @@ class InsertCodeBlockDialog(Dialog):
 				if LANGUAGES[lang] == defaultlang:
 					defaultiter = myiter
 
-		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-		hbox.set_spacing(5)
-		label = Gtk.Label(_('Syntax') +':') # T: input label
-		hbox.add(label)
+		grid = Gtk.Grid()
+		grid.set_column_spacing(5)
+		grid.set_row_spacing(5)
 
+		label = Gtk.Label(_('Syntax') + ':') # T: input label
+		grid.add(label)
 		combobox = Gtk.ComboBox.new_with_model(model)
 		renderer_text = Gtk.CellRendererText()
 		combobox.pack_start(renderer_text, True)
 		combobox.add_attribute(renderer_text, "text", 0)
 		if defaultiter is not None:
 			combobox.set_active_iter(defaultiter)
-		hbox.add(combobox)
 		self.combobox = combobox
-		self.vbox.add(hbox)
+		grid.attach(combobox, 1, 0, 1, 1)
+
+		label = Gtk.Label(_('Anchor') + ':')
+		grid.attach(label, 0, 1, 1, 1)
+		self.entry = InputEntry()
+		grid.attach(self.entry, 1, 1, 1, 1)
+
 		self.checkbox = Gtk.CheckButton(_('Display line numbers')) # T: input checkbox
 		self.checkbox.set_active(self.uistate['line_numbers'])
-		self.vbox.add(self.checkbox)
+		grid.attach(self.checkbox, 1, 2, 1, 1)
+
+		self.vbox.add(grid)
 
 	def do_response_ok(self):
 		model = self.combobox.get_model()
@@ -366,9 +380,10 @@ class InsertCodeBlockDialog(Dialog):
 
 		if iter is not None:
 			name = model[iter][0]
+			self.uistate['id'] = self.entry.get_text()
 			self.uistate['lang'] = LANGUAGES[name]
 			self.uistate['line_numbers'] = self.checkbox.get_active()
-			self.result = (self.uistate['lang'], self.uistate['line_numbers'])
+			self.result = (self.uistate['id'], self.uistate['lang'], self.uistate['line_numbers'])
 			return True
 		else:
 			return False # no syntax selected

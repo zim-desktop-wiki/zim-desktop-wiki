@@ -16,10 +16,10 @@ import logging
 
 from zim.fs import File, Dir, FS
 from zim.newfs import LocalFolder
-from zim.notebook import Path
+from zim.notebook import HRef, Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
-	FORMATTEDTEXT, IMAGE, LINK
+	FORMATTEDTEXT, IMAGE, LINK, TAG
 from zim.export.linker import StaticExportLinker
 
 
@@ -96,8 +96,9 @@ TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
 
 # All targets that we can convert to a parsetree, in order of choice
 PARSETREE_ACCEPT_TARGETS = (
-        PARSETREE_TARGET,
-        INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
+	PARSETREE_TARGET,
+	INTERNAL_PAGELIST_TARGET,
+	PAGELIST_TARGET,
 ) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print('ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES)
@@ -228,7 +229,10 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None, text_f
 
 	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
-		return ParseTree().fromstring(selectiondata.get_data())
+		tree = ParseTree().fromstring(selectiondata.get_data())
+		if path:
+			tree.resolve_links(path)  # adjust links to match the new location
+		return tree
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
 		links = selectiondata.get_uris()
@@ -316,14 +320,18 @@ def _link_tree(links, notebook, path):
 			builder.append(TAG, {'name': links[i][1:]}, links[i])
 		else:
 			if type == 'page':
+				anchor = None
+				if '#' in link:
+					link, anchor = link.split('#', 1)
 				target = Path(Path.makeValidPageName(link)) # Assume links are always absolute
 				href = notebook.pages.create_link(path, target)
+				href.anchor = anchor
 				link = href.to_wiki_link()
 			elif type == 'file':
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
 
-			builder.append(LINK, {'href': link}, link)
+			builder.append(LINK, {'href': link}, link)	# the link text is not available here!
 
 	builder.end(FORMATTEDTEXT)
 	tree = builder.get_parsetree()
@@ -452,7 +460,7 @@ class ParseTreeData(ClipboardData):
 			dumper = get_format('html').Dumper(
 				linker=StaticExportLinker(self.notebook, source=self.path))
 			html = ''.join(dumper.dump(self.parsetree))
-			return wrap_html(html, target=selectiondata.get_target().name())
+			return wrap_html(html, self.format)
 		elif targetid == TEXT_TARGET_ID:
 			if self.format in ('wiki', 'plain'):
 				dumper = get_format(self.format).Dumper()
@@ -467,20 +475,42 @@ class ParseTreeData(ClipboardData):
 
 class PageLinkData(ClipboardData):
 
-	targets = (INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET) + TEXT_TARGETS
+	targets = (PARSETREE_TARGET, INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET) + TEXT_TARGETS
 
-	def __init__(self, notebook, path):
-		self.notebookname = notebook.name
+	def __init__(self, notebook, path, anchor=None, text=None):
+		assert isinstance(path, Path)
+		self.notebook = notebook
 		self.path = path
+		self.anchor = anchor
+		self.text = text
 
 	def get_data_as(self, targetid):
 		if targetid == INTERNAL_PAGELIST_TARGET_ID:
-			return pack_urilist((self.path.name,))
+			link = self.path.name
+			if self.anchor:
+				link = f"{link}#{self.anchor}"
+			return pack_urilist((link,))
 		elif targetid == PAGELIST_TARGET_ID:
-			link = "%s?%s" % (self.notebookname, self.path.name)
+			link = "%s?%s" % (self.notebook.name, self.path.name)
+			if self.anchor:
+				link = f"{link}#{self.anchor}"
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:
-			return self.path.name
+			link = self.path.name
+			if self.anchor:
+				link = f"{link}#{self.anchor}"
+			return link
+		elif targetid == PARSETREE_TARGET_ID:
+			link = self.path.name
+			if self.anchor:
+				link = f"{link}#{self.anchor}"
+			text = self.text if self.text else link
+			builder = ParseTreeBuilder()
+			builder.start(FORMATTEDTEXT)
+			builder.append(LINK, {'href': link}, text)
+			builder.end(FORMATTEDTEXT)
+			tree = builder.get_parsetree()
+			return tree.tostring()
 		else:
 			raise ValueError('Unknown target id %i' % targetid)
 
@@ -619,13 +649,14 @@ class ClipboardManager(object):
 			logger.warn('Could not paste - no compatible data types on clipboard')
 			return None
 
-	def set_pagelink(self, notebook, path):
-		'''Copy a pagename to the clipboard. The pagename can be pasted by the
+	def set_pagelink(self, notebook, path, anchor=None, text=None):
+		'''Copy a page name to the clipboard. The page name can be pasted by the
 		user either as a link within zim or as text outside zim.
 		@param notebook: a L{Notebook} object
 		@param path: a L{Path} object
 		'''
-		self.set_clipboard_data(PageLinkData(notebook, path))
+		logger.debug("set_pagelink %r %r anchor=%s text=%s", notebook, path, anchor, text)
+		self.set_clipboard_data(PageLinkData(notebook, path, anchor, text))
 
 	def set_interwikilink(self, href, url):
 		'''Copy an interwiki link to the clipboard

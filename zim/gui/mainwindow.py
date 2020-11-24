@@ -745,7 +745,7 @@ class MainWindow(Window):
 				logger.debug("Unused mouse button %i", event.button)
 		#~ return Window.do_button_press_event(self, event)
 
-	def open_page(self, path):
+	def open_page(self, path, anchor=None):
 		'''Method to open a page in the mainwindow, and menu action for
 		the "jump to" menu item.
 
@@ -754,6 +754,7 @@ class MainWindow(Window):
 		fails). Check return value for success if you want to be sure.
 
 		@param path: a L{path} for the page to open.
+		@param anchor: name of an anchor (optional)
 		@raises PageNotFound: if C{path} can not be opened
 		@emits: page-changed
 		@returns: C{True} for success
@@ -765,8 +766,9 @@ class MainWindow(Window):
 			page = self.notebook.get_page(path) # can raise
 
 		if self.page and id(self.page) == id(page):
-			# XXX: Check ID to enable reload_page but catch all other
-			# redundant calls.
+			# XXX: Check ID to enable reload_page but catch all other redundant calls.
+			if anchor:
+				self.pageview.navigate_to_anchor(anchor)
 			return
 		elif self.page:
 			self.pageview.save_changes() # XXX - should connect to signal instead of call here
@@ -800,6 +802,9 @@ class MainWindow(Window):
 			cursor, _ = self.history.get_state(page)
 
 		self.pageview.set_page(page, cursor)
+
+		if anchor:
+			self.pageview.navigate_to_anchor(anchor)
 
 		self.emit('page-changed', page)
 
@@ -965,7 +970,7 @@ class BackLinksMenuButton(MenuButton):
 class PageWindow(Window):
 	'''Secondary window, showing a single page'''
 
-	def __init__(self, notebook, page, navigation):
+	def __init__(self, notebook, page, anchor, navigation):
 		Window.__init__(self)
 		self.navigation = navigation
 		self.notebook = notebook
@@ -988,12 +993,15 @@ class PageWindow(Window):
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 
-
 		def do_delete_event(*a):
 			logger.debug('Close PageWindow for %s', page)
 			self.uistate['windowsize'] = tuple(self.get_size())
 
 		self.connect('delete-event', do_delete_event)
+
+		if anchor:
+			self.pageview.navigate_to_anchor(anchor)
+
 
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.

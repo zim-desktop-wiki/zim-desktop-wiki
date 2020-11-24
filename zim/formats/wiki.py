@@ -49,6 +49,7 @@ bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
 number_bullet_re = re.compile('^(\d+|[a-zA-Z])\.$')
+
 def check_number_bullet(bullet):
 	'''If bullet is a numbered bullet this returns the number or letter,
 	C{None} otherwise
@@ -85,25 +86,28 @@ def _remove_indent(text, indent):
 # File paths cannot contain '\', '/', ':', '*', '?', '"', '<', '>', '|'
 # These are valid URL / path seperators: / \ : ? |
 # So restrict matching " < > and also '
+_url = r'''
+	(www\.|https?://|\w+://)			# autolink & autourl prefix
+	(?P<domain>([\w\-]+\.)+[\w\-]+)		# 2 or more domain sections
+	[^\s<]*								# any non-space char except "<"
+	'''
+_email = r'''
+	(mailto:)?
+	[\w\.\-_+]+@						# email prefix
+	([\w\-_]+\.)+[\w\-_]+				# email domain
+	'''
+_file = r'''
+	file:/+
+	[^\s"<>\']+
+	'''
+
 url_re = re.compile(
-	'\\b(?!__)(?P<url>'
-
-	'(www\.|https?://|\w+://)'			# autolink & autourl prefix
-	'(?P<domain>([\w\-]+\.)+[\w\-]+)' 	# 2 or more domain sections
-	'[^\s<]*'					# any non-space char except "<"
-
-	')|(?!__)(?P<email>'
-
-	'(mailto:)?'
-	'[\w\.\-_+]+@'				# email prefix
-	'([\w\-_]+\.)+[\w\-_]+'	# email domain
-
-	')|(?P<fileuri>'
-
-	'file:/+'
-	'[^\s"<>\']+'
-
-	')', re.U
+	f'''\\b
+	(?!__)(?P<url>{_url})     |
+	(?!__)(?P<email>{_email}) |
+	(?P<fileuri>{_file})
+	''',
+	re.VERBOSE
 )
 
 url_trailing_punctuation = ('?', '!', '.', ',', ':', '*', '_', '~')
@@ -209,13 +213,13 @@ class WikiParser(object):
 			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}', descent=descent)
 			| Rule(STRIKE, r'~~(?!~)(.+?)~~', descent=descent)
 			| Rule(VERBATIM, r"''(?!')(.+?)''")
-
 		)
 
 		descent = lambda *a: self.inline_parser(*a)
 		return (
 			Rule(LINK, my_url_re, process=self.parse_url)
 			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_link)
+			| Rule(ANCHOR, r'\{\{(\#\w[\w-]+|\w[\w-]+:\ .+)\}\}', process=self.parse_anchor)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(EMPHASIS, r'//(?!/)(.*?)(?<!:)//', descent=descent) # no ':' at the end (ex: 'http://')
@@ -317,7 +321,11 @@ class WikiParser(object):
 		text = text[i:].lstrip() + '\n'
 
 		builder.start(HEADING, {'level': level})
-		self.inline_parser(builder, text)
+		try:
+			self.inline_parser(builder, text)
+		except:
+			logger.warn('Could not parse heading: %s', text)
+			raise
 		builder.end(HEADING)
 
 
@@ -604,12 +612,21 @@ class WikiParser(object):
 
 	@staticmethod
 	def parse_tag(builder, text):
+		logger.debug("parse_tag %s", text)
 		builder.append(TAG, {'name': text[1:]}, text)
+
+	@staticmethod
+	def parse_anchor(builder, text, *a):
+		logger.debug("parse_anchor %s", text)
+		if ':' in text:
+			name, text = text.split(':', 1)
+		else:
+			name = text = text[1:]
+		builder.append(ANCHOR, {'name': name}, text.strip())
 
 	@staticmethod
 	def parse_line(builder, text):
 		builder.append(LINE)
-
 
 
 wikiparser = WikiParser() #: singleton instance
@@ -710,6 +727,12 @@ class Dumper(TextDumper):
 		strings.insert(0, tag + ' ')
 		strings.append(' ' + tag)
 		return strings
+
+	def dump_anchor(self, tag, attrib, strings=None):
+		if 'text' in attrib:
+			return ("{{", attrib['name'], ": ", attrib['text'], "}}")
+		else:
+			return ("{{#", attrib['name'], "}}")
 
 	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \

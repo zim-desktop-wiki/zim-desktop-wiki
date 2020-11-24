@@ -105,7 +105,7 @@ class TestExceptionHandler(tests.TestCase):
 
 			# Should log one error message with traceback
 			self.assertEqual(len(records), 1)
-			self.assertEqual(records[0].getMessage(), 'Test Error')
+			self.assertEqual(records[0].getMessage(), _('Test Error'))
 			self.assertEqual(records[0].levelno, logging.ERROR)
 			self.assertIsNotNone(records[0].exc_info)
 		else:
@@ -123,7 +123,7 @@ class TestExceptionHandler(tests.TestCase):
 
 			# Should log one error message with traceback
 			self.assertEqual(len(records), 1)
-			self.assertEqual(records[0].getMessage(), 'Looks like you found a bug')
+			self.assertEqual(records[0].getMessage(), _('Looks like you found a bug'))
 			self.assertEqual(records[0].levelno, logging.ERROR)
 			self.assertIsNotNone(records[0].exc_info)
 		else:

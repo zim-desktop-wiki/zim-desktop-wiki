@@ -229,6 +229,20 @@ some <b>bold</b> text
 		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
 		self.assertEqual(newtree.tostring(), wanted)
 
+	def testCopyPageLinkWithAnchorPasteAsParseTree(self):
+		page = self.notebook.get_page(Path('Test:wiki'))
+		Clipboard.set_pagelink(self.notebook, page, 'anchor')
+		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki#anchor">+wiki#anchor</link></zim-tree>'''
+		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
+		self.assertEqual(newtree.tostring(), wanted)
+
+	def testCopyPageLinkWithAnchorAndTextPasteAsParseTree(self):
+		page = self.notebook.get_page(Path('Test:wiki'))
+		Clipboard.set_pagelink(self.notebook, page, 'anchor', 'My anchor')
+		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki#anchor">My anchor</link></zim-tree>'''
+		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
+		self.assertEqual(newtree.tostring(), wanted)
+
 	def testCopyPageLinkPasteAsText(self):
 		page = self.notebook.get_page(Path('Test:wiki'))
 		Clipboard.set_pagelink(self.notebook, page)

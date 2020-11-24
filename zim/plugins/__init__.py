@@ -310,6 +310,7 @@ class InsertedObjectTypeMap(SignalEmitter):
 		@raises AssertionError: if another object already uses the same name
 		'''
 		key = objecttype.name.lower()
+		logger.debug('register_object: "%s"', key)
 		if key in self._objects:
 			raise AssertionError('InsertedObjectType "%s" already defined by %s' % (key, self._objects[key]))
 		else:
@@ -321,6 +322,7 @@ class InsertedObjectTypeMap(SignalEmitter):
 		@param objecttype: an object derived from L{InsertedObjectType}
 		'''
 		key = objecttype.name.lower()
+		logger.debug('unregister_object: "%s"', key)
 		if key in self._objects and self._objects[key] is objecttype:
 			self._objects.pop(key)
 			self.emit('changed')
