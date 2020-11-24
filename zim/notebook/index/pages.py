@@ -389,6 +389,11 @@ class PagesViewInternal(object):
 			# By default ignore link placeholders to avoid circular
 			# dependencies between links and placeholders
 			assert href.rel == HREF_REL_FLOATING
+
+			# link to anchor on current page
+			if not href.parts():
+				return (start, start_id, relnames + href.parts())
+
 			anchor_key = natural_sort_key(href.parts()[0])
 
 			if relnames:

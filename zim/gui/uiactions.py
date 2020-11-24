@@ -145,7 +145,7 @@ class UIActions(object):
 		ImportPageDialog(self.widget, self.navigation, self.notebook, self.page).run()
 
 	@action(_('Open in New _Window')) # T: Menu item
-	def open_new_window(self, page=None):
+	def open_new_window(self, page=None, anchor=None):
 		'''Menu action to open a page in a L{PageWindow}
 		@param page: the page L{Path}, deafults to current selected
 		'''
@@ -154,6 +154,7 @@ class UIActions(object):
 		PageWindow(
 			self.notebook,
 			page or self.page,
+			anchor,
 			self.navigation
 		).present()
 

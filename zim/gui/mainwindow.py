@@ -638,7 +638,7 @@ class MainWindow(WindowBaseMixin, Window):
 				logger.debug("Unused mouse button %i", event.button)
 		#~ return Window.do_button_press_event(self, event)
 
-	def open_page(self, path):
+	def open_page(self, path, anchor=None):
 		'''Method to open a page in the mainwindow, and menu action for
 		the "jump to" menu item.
 
@@ -647,6 +647,7 @@ class MainWindow(WindowBaseMixin, Window):
 		fails). Check return value for success if you want to be sure.
 
 		@param path: a L{path} for the page to open.
+		@param anchor: name of an anchor (optional)
 		@raises PageNotFound: if C{path} can not be opened
 		@emits: page-changed
 		@returns: C{True} for success
@@ -666,8 +667,9 @@ class MainWindow(WindowBaseMixin, Window):
 				return # user cancelled
 
 		if self.page and id(self.page) == id(page):
-			# XXX: Check ID to enable reload_page but catch all other
-			# redundant calls.
+			# XXX: Check ID to enable reload_page but catch all other redundant calls.
+			if anchor:
+				self.pageview.navigate_to_anchor(anchor)
 			return
 		elif self.page:
 			self.pageview.save_changes() # XXX - should connect to signal instead of call here
@@ -701,6 +703,9 @@ class MainWindow(WindowBaseMixin, Window):
 			cursor, x = self.history.get_state(page)
 
 		self.pageview.set_page(page, cursor)
+
+		if anchor:
+			self.pageview.navigate_to_anchor(anchor)
 
 		self.emit('page-changed', page)
 
@@ -876,7 +881,7 @@ class PageWindow(WindowBaseMixin, Window):
 		'readonly-changed': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
 	}
 
-	def __init__(self, notebook, page, navigation, editable=True):
+	def __init__(self, notebook, page, anchor, navigation, editable=True):
 		Window.__init__(self)
 		self.navigation = navigation
 		self.notebook = notebook
@@ -941,6 +946,8 @@ class PageWindow(WindowBaseMixin, Window):
 		self.connect('delete-event', do_delete_event)
 
 		PluginManager.register_new_extendable(self.pageview)
+		if anchor:
+			self.pageview.navigate_to_anchor(anchor)
 		self.pageview.grab_focus()
 
 	def _populate_headerbar(self, headerbar):

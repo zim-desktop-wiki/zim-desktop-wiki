@@ -269,6 +269,13 @@ def get_dumper(name, *arg, **kwarg):
 	return klass(*arg, **kwarg)
 
 
+def heading_to_anchor(name):
+	"""Derive an anchor name from a heading"""
+	name = name.lower()
+	name = name.replace(' ', '-')
+	return re.sub(r'[^\w\-_]', '', name)
+
+
 class ParseTree(object):
 	'''Wrapper for zim parse trees.'''
 
@@ -369,24 +376,39 @@ class ParseTree(object):
 		self.visit(tb)
 		return iter(tb.tokens)
 
-	def iter_href(self):
+	def iter_href(self, include_page_local_links=False, include_anchors=False):
 		'''Generator for links in the text
+		@param include_anchors: if C{False} remove the target location from the
+		link and only yield unique links to pages
 		@returns: yields a list of unique L{HRef} objects
 		'''
 		from zim.notebook.page import HRef # XXX
+
 		seen = set()
 		for elt in itertools.chain(
 			self._etree.iter(LINK),
 			self._etree.iter(IMAGE)
 		):
 			href = elt.attrib.get('href')
-			if href and href not in seen:
-				seen.add(href)
-				if link_type(href) == 'page':
-					try:
-						yield HRef.new_from_wiki_link(href)
-					except ValueError:
-						pass
+			if not href or link_type(href) != 'page':
+				continue
+
+			try:
+				href_obj = HRef.new_from_wiki_link(href)
+			except ValueError:
+				continue
+
+			if not include_anchors:
+				if not href_obj.names:
+					continue # internal link within same page
+				elif href_obj.anchor:
+					href_obj.anchor = None
+					href = href_obj.to_wiki_link()
+
+			if href in seen:
+				continue
+			seen.add(href)
+			yield href_obj
 
 	def iter_tag_names(self):
 		'''Generator for tags in the page content
@@ -501,7 +523,7 @@ class ParseTree(object):
 		else:
 			for element in self._etree.iter('img'):
 				filepath = element.attrib['src']
-				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
+				element.attrib['_src_file'] = notebook.resolve_file(filepath, path)
 
 	def unresolve_images(self):
 		'''Undo effect of L{resolve_images()}, mainly intended for
@@ -1100,7 +1122,7 @@ class ParserClass(object):
 					break
 
 				k, v = option.split('=', 1)
-				if k in ('width', 'height', 'type', 'href'):
+				if k in ('id', 'width', 'height', 'type', 'href'):
 					if len(v) > 0:
 						value = url_decode(v, mode=URL_ENCODE_DATA)
 						attrib[str(k)] = value # str to avoid unicode key

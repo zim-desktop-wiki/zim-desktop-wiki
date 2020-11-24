@@ -21,7 +21,7 @@ from zim.newfs import LocalFolder, LocalFile, SEP
 from zim.notebook import Path, HRef
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
-	FORMATTEDTEXT, IMAGE, LINK, OBJECT, VisitorSkip
+	FORMATTEDTEXT, IMAGE, LINK, TAG, OBJECT, VisitorSkip
 from zim.export.linker import StaticExportLinker
 from zim.plugins.base.imagegenerator import copy_imagegenerator_src_files
 
@@ -93,10 +93,8 @@ TEXT_TARGETS = tuple(
 TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
 
 # All targets that we can convert to a parsetree, in order of choice
-PARSETREE_ACCEPT_TARGETS = (
-        PARSETREE_TARGET,
-        PAGELIST_TARGET,
-) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
+PARSETREE_ACCEPT_TARGETS = (PARSETREE_TARGET, PAGELIST_TARGET) \
+	+ IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print('ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES)
 
@@ -342,11 +340,17 @@ def _link_tree(links, notebook, path):
 		else:
 			name = None
 			if type == 'page':
+				anchor = None
+				if '#' in link:
+					link, anchor = link.split('#', 1)
 				target = Path(Path.makeValidPageName(link)) # Assume links are always absolute
 				href = notebook.pages.create_link(path, target)
+				href.anchor = anchor
 				link = href.to_wiki_link()
 				if notebook.config['Notebook']['short_relative_links']:
 					name = href.parts()[-1]
+					if anchor:
+						name += '#' + anchor
 			elif type == 'file':
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
@@ -378,7 +382,9 @@ def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_pat
 		if abs_href:
 			my_type = link_type(abs_href)
 			if my_type == 'page':
+				oldhref = HRef.new_from_wiki_link(node.get('href')) # *not* abs_href
 				new_href = src_interwiki + '?' + abs_href
+				new_href += '#' + oldhref.anchor if oldhref.anchor else ''
 			elif my_type == 'file':
 				# NOTE: no proper syntax for this type of link - just abs file link
 				#       should be improved - e.g. path:./file style links like in docuwiki
@@ -582,18 +588,13 @@ class ParseTreeData(ClipboardData):
 
 	def get_data_as(self, targetid):
 		if targetid == PARSETREE_TARGET_ID:
-			self.parsetree._set_root_attrib('notebook', self.notebook.interwiki)
-			self.parsetree._set_root_attrib('page', self.path.name)
-			self.parsetree.replace(
-				(LINK, IMAGE, OBJECT),
-				partial(_resolve_links_and_images, self.notebook, self.path)
-			)
+			_set_attributes_to_resolve_links(self.parsetree, self.notebook, self.path)
 			return self.parsetree.tostring()
 		elif targetid == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
 				linker=StaticExportLinker(self.notebook, source=self.path))
 			html = ''.join(dumper.dump(self.parsetree))
-			return wrap_html(html, target=selectiondata.get_target().name())
+			return wrap_html(html, self.format)
 		elif targetid == TEXT_TARGET_ID:
 			if self.format in ('wiki', 'plain'):
 				dumper = get_format(self.format).Dumper()
@@ -604,6 +605,15 @@ class ParseTreeData(ClipboardData):
 			return ''.join(dumper.dump(self.parsetree))
 		else:
 			raise ValueError('Unknown target id %i' % targetid)
+
+
+def _set_attributes_to_resolve_links(parsetree, notebook, path):
+	parsetree._set_root_attrib('notebook', notebook.interwiki)
+	parsetree._set_root_attrib('page', path.name)
+	parsetree.replace(
+		(LINK, IMAGE, OBJECT),
+		partial(_resolve_links_and_images, notebook, path)
+	)
 
 
 def _resolve_links_and_images(notebook, src_path, node):
@@ -635,18 +645,38 @@ def _resolve_links_and_images(notebook, src_path, node):
 
 class PageLinkData(ClipboardData):
 
-	targets = (PAGELIST_TARGET,) + TEXT_TARGETS
+	targets = (PARSETREE_TARGET, PAGELIST_TARGET) + TEXT_TARGETS
 
-	def __init__(self, notebook, path):
-		self.interwiki = notebook.interwiki
+	def __init__(self, notebook, path, anchor=None, text=None):
+		assert isinstance(path, Path)
+		self.notebook = notebook
 		self.path = path
+		self.anchor = anchor
+		self.text = text
 
 	def get_data_as(self, targetid):
 		if targetid == PAGELIST_TARGET_ID:
-			link = "%s?%s" % (self.interwiki, self.path.name)
+			link = "%s?%s" % (self.notebook.interwiki, self.path.name)
+			if self.anchor:
+				link = f"{link}#{self.anchor}"
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:
-			return self.path.name
+			link = self.path.name
+			if self.anchor:
+				link = f"{link}#{self.anchor}"
+			return link
+		elif targetid == PARSETREE_TARGET_ID:
+			link = self.path.name
+			if self.anchor:
+				link = f"{link}#{self.anchor}"
+			text = self.text if self.text else link
+			builder = ParseTreeBuilder()
+			builder.start(FORMATTEDTEXT)
+			builder.append(LINK, {'href': link}, text)
+			builder.end(FORMATTEDTEXT)
+			parsetree = builder.get_parsetree()
+			_set_attributes_to_resolve_links(parsetree, self.notebook, self.path)
+			return parsetree.tostring()
 		else:
 			raise ValueError('Unknown target id %i' % targetid)
 
@@ -785,13 +815,14 @@ class ClipboardManager(object):
 			logger.warn('Could not paste - no compatible data types on clipboard')
 			return None
 
-	def set_pagelink(self, notebook, path):
-		'''Copy a pagename to the clipboard. The pagename can be pasted by the
+	def set_pagelink(self, notebook, path, anchor=None, text=None):
+		'''Copy a page name to the clipboard. The page name can be pasted by the
 		user either as a link within zim or as text outside zim.
 		@param notebook: a L{Notebook} object
 		@param path: a L{Path} object
 		'''
-		self.set_clipboard_data(PageLinkData(notebook, path))
+		logger.debug("set_pagelink %r %r anchor=%s text=%s", notebook, path, anchor, text)
+		self.set_clipboard_data(PageLinkData(notebook, path, anchor, text))
 
 	def set_interwikilink(self, href, url):
 		'''Copy an interwiki link to the clipboard

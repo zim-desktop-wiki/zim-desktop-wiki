@@ -57,6 +57,8 @@ External links like http://nongnu.org and foo@bar.org are also supported
 
 Tags: @foo @bar
 
+Anchors: {{id: foo}}  [[#foo]]  [[page#foo]]
+
 
 === head 4 ===
 

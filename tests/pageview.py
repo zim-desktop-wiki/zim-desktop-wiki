@@ -1,11 +1,10 @@
-
 # Copyright 2009-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-
-
 import tests
-
+import logging
 import os
+
+logger = logging.getLogger('tests.pageview')
 
 from zim.fs import File, Dir
 from zim.newfs import LocalFile, LocalFolder
@@ -618,6 +617,13 @@ C
 		buffer.toggle_textstyle('code')
 		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
 
+	def testToggleTextStyleCodeOverAnchor(self):
+		buffer = TextBuffer(None, None)
+		self.set_buffer(buffer, 'foo <anchor name="test">test</anchor> bar')
+		buffer.select_line(0)
+		buffer.toggle_textstyle('code')
+		self.assertBufferEquals(buffer, '<code>foo test bar</code>')
+
 	def testMergeLinesWithBullet(self):
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -728,6 +734,48 @@ C
 		self.assertBufferEquals(buffer, '<h level="2" /><h level="2">1. foo bar</h>\n')
 				# FIXME: first <h level="2" /> should not be there, but does not seem to affect user behavior
 				#        maybe removed by refactoring serialization
+
+	def testFindAnchor(self):
+		buffer = self.get_buffer()
+		self.assertIsNone(buffer.find_anchor('test'))
+		# explicit anchor
+		buffer = self.get_buffer('Some text <anchor name="test">test</anchor>\n')
+		self.assertIsNotNone(buffer.find_anchor('test'))
+		# explicit anchor with text
+		buffer = self.get_buffer('Some text <anchor name="test">a real test</anchor>\n')
+		self.assertIsNotNone(buffer.find_anchor('test'))
+
+	def testFindImageAnchor(self):
+		file = File('./data/zim.png')
+		notebook = tests.MockObject()
+		notebook.mock_method('resolve_file', file)
+		notebook.mock_method('relative_filepath', './data/zim.png')
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.insert_image_at_cursor(file, "https://en.wikipedia.org/wiki/File:Zim_globe.svg", width="48", id="image:globe")
+		self.assertIsNotNone(buffer.find_anchor('image:globe'))
+
+	def testFindObjectAnchor(self):
+		buffer = self.get_buffer(
+			'<object id="code:1" lang="python3" linenumbers="True" type="code">import unittest\n'
+			'\n'
+			'class MyTests(unittest.TestCase):\n'
+			'  def test_1():\n'
+			'    pass\n'
+			'</object>\n'
+		)
+		self.assertIsNotNone(buffer.find_anchor('code:1'))
+
+	def testFindImplicitAnchor(self):
+		# basic case
+		buffer = self.get_buffer('<h level="1">Title</h>\n')
+		self.assertIsNotNone(buffer.find_anchor('title'))
+		# with blanks
+		buffer = self.get_buffer('<h level="2">foo bar</h>\n')
+		self.assertIsNotNone(buffer.find_anchor('foo-bar'))
+		# with styled text
+		buffer = self.get_buffer('<h level="2"><code>foo</code> bar</h>\n')
+		self.assertIsNotNone(buffer.find_anchor('foo-bar'))
 
 	def testReNumberList(self):
 		buffer = self.get_buffer(
@@ -1750,7 +1798,7 @@ Tja
 
 
 def press(widget, sequence):
-	#~ print('PRESS', sequence)
+	logger.debug('PRESS %s', sequence)
 	for key in sequence:
 		if isinstance(key, int):
 			keyval = int(key)
@@ -2356,6 +2404,24 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 	def testAutoFormatTag(self):
 		self.assertTyping('@test ', '<tag name="test">@test</tag> ')
 
+	def testAutoFormatAnchor(self):
+		self.assertTyping('##test ', '<anchor name="test">test</anchor> ')
+
+	def testAutoFormatAnchor2(self):
+		self.assertTyping('##case-1 ', '<anchor name="case-1">case-1</anchor> ')
+
+	def testAutoFormatAnchor3(self):
+		self.assertTyping('##case_2 ', '<anchor name="case_2">case_2</anchor> ')
+
+	def testAutoFormatAnchorLink(self):
+		self.assertTyping('#test ', '<link href="#test">test</link> ')
+
+	def testAutoFormatAnchorLink2(self):
+		self.assertTyping('#test-1 ', '<link href="#test-2">test-1</link> ')
+
+	def testAutoFormatAnchorLink2(self):
+		self.assertTyping('#test_2 ', '<link href="#test_2">test_2</link> ')
+
 	def testAutoFormatURL(self):
 		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
 
@@ -2573,7 +2639,13 @@ Baz
 			pageview.activate_link(href)
 			self.assertEqual(
 				pageview.navigation.mock_calls[-1],
-				('open_page', Path(href), {'new_window': False})
+				('open_page', Path(href), {'new_window': False, 'anchor': None})
+			)
+		for href, anchor in [('foo', 'sub-heading')]:
+			pageview.activate_link(f'{href}#{anchor}')
+			self.assertEqual(
+				pageview.navigation.mock_calls[-1],
+				('open_page', Path(href), {'new_window': False, 'anchor': anchor})
 			)
 
 		def check_zim_cmd(cmd, args):

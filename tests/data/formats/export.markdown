@@ -59,6 +59,8 @@ External links like <http://nongnu.org> and [foo@bar.org](mailto:foo@bar.org) ar
 
 Tags: @foo @bar
 
+Anchors: [id: foo]  [#foo](#foo)  [page#foo](page#foo)
+
 
 #### head 4
 

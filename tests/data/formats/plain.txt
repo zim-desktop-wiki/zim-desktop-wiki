@@ -57,6 +57,8 @@ Foo Bar
 
 Tags: @foo @bar
 
+Anchors: [id: foo]  #foo  page#foo
+
 
 head 4
 
