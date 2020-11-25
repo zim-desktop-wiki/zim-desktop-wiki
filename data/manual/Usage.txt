@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 Creation-Date: Fri, 13 Mar 2009 22:50:21 +0100
 
 ====== Usage ======
@@ -17,6 +17,7 @@ By use case:
 * [[+Daily Journal|Daily Journal]]
 * [[+Getting Things Done|Getting Things Done]]
 * [[+Creative Writing|Creative Writing]]
+* [[+Bullet Journal|Bullet Journal]]
 
 
 ===== Use cases: =====

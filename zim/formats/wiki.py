@@ -40,9 +40,9 @@ info = {
 }
 
 
-bullet_pattern = '(?:[\\*\u2022]|\\[[ \\*x>]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
+bullet_pattern = '(?:[\\*\u2022]|\\[[ \\*x><]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
-	# and '[ ]', '[*]', '[x]' or '[>]' for checkbox items
+	# and '[ ]', '[*]', '[x]', '[>]' or [<]' for checkbox items
 	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
 bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
@@ -180,6 +180,7 @@ class WikiParser(object):
 		'[x]': XCHECKED_BOX,
 		'[*]': CHECKED_BOX,
 		'[>]': MIGRATED_BOX,
+		'[<]': TRANSMIGRATED_BOX,
 		'*': BULLET,
 	}
 
@@ -665,6 +666,7 @@ class Dumper(TextDumper):
 		XCHECKED_BOX: '[x]',
 		CHECKED_BOX: '[*]',
 		MIGRATED_BOX: '[>]',
+		TRANSMIGRATED_BOX: '[<]',
 		BULLET: '*',
 	}
 

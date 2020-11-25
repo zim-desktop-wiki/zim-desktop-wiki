@@ -107,6 +107,7 @@ UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
 XCHECKED_BOX = 'xchecked-box'
 MIGRATED_BOX = 'migrated-box'
+TRANSMIGRATED_BOX = "transmigrated-box"
 BULLET = '*' # FIXME make this 'bullet'
 
 FORMATTEDTEXT = 'zim-tree'

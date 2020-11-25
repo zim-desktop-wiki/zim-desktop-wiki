@@ -52,6 +52,7 @@ class Dumper(TextDumper):
 		XCHECKED_BOX: '\\item[\\XBox]',
 		CHECKED_BOX: '\\item[\\CheckedBox]',
 		MIGRATED_BOX: '\\item[\\RIGHTarrow]',
+		TRANSMIGRATED_BOX: '\\item[\\LEFTarrow]',
 		BULLET: '\\item',
 	}
 

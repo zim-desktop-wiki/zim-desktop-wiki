@@ -67,6 +67,7 @@ class Dumper(DumperClass):
 		XCHECKED_BOX: '[x]',
 		CHECKED_BOX: '[*]',
 		MIGRATED_BOX: '[>]',
+		TRANSMIGRATED_BOX: '[<]',
 		BULLET: '*',
 	}
 
