@@ -657,6 +657,9 @@ class File(FSObjectBase):
 	def read(self):
 		raise NotImplementedError
 
+	def readline(self):
+		raise NotImplementedError
+
 	def readlines(self):
 		raise NotImplementedError
 

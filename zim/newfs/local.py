@@ -352,6 +352,21 @@ class LocalFile(LocalFSObjectBase, File):
 			else:
 				raise
 
+	def readline(self):
+		try:
+			with open(self.path, mode='r', encoding='UTF-8') as fh:
+				l = fh.readline()
+				return l.lstrip('\ufeff').replace('\x00', '')
+				# Strip unicode byte order mark
+				# And remove any NULL byte since they screw up parsing
+		except UnicodeDecodeError as err:
+			raise FileUnicodeError(self, err)
+		except IOError:
+			if not self.exists():
+				raise FileNotFoundError(self)
+			else:
+				raise
+
 	def readlines(self):
 		try:
 			with open(self.path, mode='r', encoding='UTF-8') as fh:

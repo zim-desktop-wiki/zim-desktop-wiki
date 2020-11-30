@@ -148,7 +148,8 @@ class PagesIndexer(IndexerBase):
 			return # nothing to do
 
 		row = self._select(pagename)
-		assert row is not None
+		if row is None:
+			return # not a source file after all (e.g. .txt attachment)
 
 		if row['source_file'] == filerow['id']:
 			if row['n_children'] > 0:
@@ -166,7 +167,7 @@ class PagesIndexer(IndexerBase):
 			else:
 				self.remove_page(pagename)
 		else:
-			raise NotImplemented # some conflict removed
+			pass # some conflict removed - or not a source file in the first place (.txt attachment)
 
 	def insert_page(self, pagename, file_id):
 		return self._insert_page(pagename, False, file_id)

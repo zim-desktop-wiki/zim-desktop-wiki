@@ -590,7 +590,10 @@ class TestExportCommand(tests.TestCase):
 	def testExport(self):
 		# Only test single page, just to show "run()" works
 		file = self.notebook.file('Foo/Bar.txt')
-		file.write('=== Foo\ntest 123\n')
+		file.write(
+			'Content-Type: text/x-zim-wiki\n\n'
+			'=== Foo\ntest 123\n'
+		)
 
 		output = self.tmpdir.file('output.html')
 

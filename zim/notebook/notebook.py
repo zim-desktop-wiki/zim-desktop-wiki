@@ -130,6 +130,16 @@ class PageNotAllowedError(PageNotFoundError):
 			# T: description for PageNotAllowedError
 
 
+class PageNotAvailableError(PageNotFoundError):
+	_msg = _('Page not available: %s') # T: message for PageNotAvailableError
+	description = _('This page name cannot be used due to a conflicting file in the storage')
+			# T: description for PageNotAvailableError
+
+	def __init__(self, path, file):
+		PageError.__init__(self, path)
+		self.file = file
+
+
 class PageExistsError(Error):
 	_msg = _('Page already exists: %s') # T: message for PageExistsError
 
@@ -435,6 +445,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			return page
 		else:
 			file, folder = self.layout.map_page(path)
+			if file.exists() and not self.layout.is_source_file(file):
+				raise PageNotAvailableError(path, file)
+
 			folder = self.layout.get_attachments_folder(path)
 			format = self.layout.get_format(file)
 			page = Page(path, False, file, folder, format)
