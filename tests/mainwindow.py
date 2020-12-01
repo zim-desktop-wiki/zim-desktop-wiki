@@ -160,13 +160,8 @@ class TestActions(tests.TestCase):
 
 	def testReloadPage(self):
 		window = setUpMainWindow(self.setUpNotebook(), path='A')
-
-		page1 = window.page
 		window.reload_page()
-		page2 = window.page
-		self.assertEqual(page1, Path('A'))
-		self.assertEqual(page2, Path('A'))
-		self.assertNotEqual(id(page1), id(page2))
+		# FIXME - what to test here?
 
 
 from gi.repository import Gtk

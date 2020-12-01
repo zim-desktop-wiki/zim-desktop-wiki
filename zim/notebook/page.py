@@ -410,12 +410,6 @@ class Page(Path, SignalEmitter):
 	@ivar modified: C{True} if the page was modified since the last
 	store. Will be reset by L{Notebook.store_page()}
 	@ivar readonly: C{True} when the page is read-only
-	@ivar valid: C{True} when this object is 'fresh' but C{False} e.g.
-	after flushing the notebook cache. Invalid Page objects can still
-	be used anywhere in the API where a L{Path} is needed, but not
-	for any function that actually requires a L{Page} object.
-	The way replace an invalid page object is by calling
-	C{notebook.get_page(invalid_page)}.
 
 	@signal: C{storage-changed (changed-on-disk)}: signal emitted on page
 	change. The argument "changed-on-disk" is C{True} when an external
@@ -434,7 +428,6 @@ class Page(Path, SignalEmitter):
 		self.haschildren = haschildren
 			# Note: this attribute is updated by the owning notebook
 			# when a child page is stored
-		self.valid = True
 		self._modified = False
 		self._change_counter = 0
 		self._parsetree = None
@@ -536,21 +529,23 @@ class Page(Path, SignalEmitter):
 		self.emit('storage-changed', False)
 
 	def check_source_changed(self):
-		return self._check_source_etag()
+		'''Checks for changes in the source file and load it if needed
 
-	def _check_source_etag(self):
+		If the page has a C{textbuffer} and it contains unsaved changes, this
+		method will not overwrite them and you'll get an error on next attempt
+		to save. To force overwrite see L{reload_textbuffer()}
+		'''
 		if (
 			self._last_etag
-			and not self.source_file.verify_etag(self._last_etag)
+			and not (self.source_file.exists() and self.source_file.verify_etag(self._last_etag))
 		) or (
 			not self._last_etag
-			and (self._parsetree or self._textbuffer)
 			and self.source_file.exists()
 		):
 			logger.info('Page changed on disk: %s', self.name)
 			self._last_etag = None
 			self._meta = None
-			if self._textbuffer is not None:
+			if self._textbuffer and not self._textbuffer.get_modified():
 				self.reload_textbuffer()
 			else:
 				self._parsetree = None
@@ -587,8 +582,6 @@ class Page(Path, SignalEmitter):
 
 		@returns: a L{zim.formats.ParseTree} object or C{None}
 		'''
-		assert self.valid, 'BUG: page object became invalid'
-
 		if self._textbuffer:
 			if self._textbuffer.get_modified() or self._parsetree is None:
 				self._parsetree = self._textbuffer.get_parsetree()
@@ -619,8 +612,6 @@ class Page(Path, SignalEmitter):
 		needs to be stored in the notebook to save this content
 		permanently. See L{Notebook.store_page()}.
 		'''
-		assert self.valid, 'BUG: page object became invalid'
-
 		if self.readonly:
 			raise PageReadOnlyError(self)
 
@@ -684,16 +675,21 @@ class Page(Path, SignalEmitter):
 		return self._textbuffer
 
 	def reload_textbuffer(self):
-		if self._textbuffer is None:
-			raise AssertionError('This method is only supported when a textbuffer is set')
+		'''Reload page content from source file and update the textbuffer if set
+
+			NOTE: this method overwrites any changes in the C{textbuffer} or
+			C{parsetree} that have not been saved to file !
+		'''
 		buffer = self._textbuffer
 		self._textbuffer = None
 		self._parsetree = None
-		tree = self.get_parsetree()
-		self._textbuffer = buffer
-		buffer.set_modified(False)
-		self.set_parsetree(tree)
-		self.set_modified(False)
+		if buffer is not None:
+			tree = self.get_parsetree()
+			self._textbuffer = buffer
+			buffer.set_modified(False)
+			self.set_parsetree(tree) # load new tree in buffer
+			self.set_modified(False)
+		# else do nothing - source will be read with next call to `get_parsetree()`
 
 	def dump(self, format, linker=None):
 		'''Get content in a specific format

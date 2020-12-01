@@ -252,12 +252,7 @@ class TestNotebook(tests.TestCase):
 
 		page1 = self.notebook.get_page(Path('Tree:foo'))
 		page2 = self.notebook.get_page(Path('Tree:foo'))
-		self.assertTrue(page1.valid)
 		self.assertTrue(id(page2) == id(page1)) # check usage of weakref
-		self.notebook.flush_page_cache(Path('Tree:foo'))
-		page3 = self.notebook.get_page(Path('Tree:foo'))
-		self.assertTrue(id(page3) != id(page1))
-		self.assertFalse(page1.valid)
 
 		page = self.notebook.get_page(Path('Test:foo'))
 		text = page.dump('plain')
@@ -271,14 +266,11 @@ class TestNotebook(tests.TestCase):
 		#~ self.assertFalse(re) # no return value
 		#~ self.assertEqual(page.dump('plain'), text) # object reverted
 		#~ self.assertFalse(page.modified)
-		self.notebook.flush_page_cache(page)
-		page = self.notebook.get_page(page) # new object
+
 		self.assertEqual(page.dump('plain'), text)
 		page.parse('plain', newtext)
 		self.assertEqual(page.dump('plain'), newtext)
 		self.notebook.store_page(page)
-		self.notebook.flush_page_cache(page)
-		page = self.notebook.get_page(page) # new object
 		self.assertEqual(page.dump('plain'), newtext)
 
 		# ensure storing empty tree works
@@ -433,8 +425,6 @@ class TestNotebook(tests.TestCase):
 			# If we get an error here because notebook resolves Test:Foo
 			# probably the index did not clean up placeholders correctly
 		self.assertTrue(page.hascontent)
-
-		self.assertFalse(copy.valid)
 
 	def testCaseSensitiveMove(self):
 		from zim.notebook.index import LINK_DIR_BACKWARD
@@ -1361,7 +1351,6 @@ class TestPageChangeFile(tests.TestCase):
 
 		page3 = notebook.get_page(Path('SomeOtherPage'))
 		self.assertIs(page3, page1)
-		self.assertTrue(page3.valid)
 		self.assertEqual(page3.dump('wiki'), ['Test 5 6 7 8\n'])
 
 

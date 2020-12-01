@@ -5773,7 +5773,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def on_insertedobjecttypemap_changed(self, *a):
 		self.save_changes()
-		self.page.reload_textbuffer()
+		self.page.reload_textbuffer() # HACK - should not need to reload whole page just to load objects
 
 	def set_readonly(self, readonly):
 		'''Set the widget read-only or not

@@ -321,6 +321,18 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.connectto(self.properties, 'changed', self.on_properties_changed)
 		self.on_properties_changed(self.properties)
 
+	def _reload_pages_in_cache(self, path):
+		p = path.name
+		ns = path.name + ':'
+		for name, page in self._page_cache.items():
+			if name == p or name.startswith(ns):
+				if page.modified:
+					logger.error('Page with unsaved changes in cache while modifying notebook')
+				else:
+					page.reload_textbuffer()
+					# "page.haschildren" may also have changed, will be updated
+					# by signal handlers for index
+
 	@property
 	def uri(self):
 		'''Returns a file:// uri for this notebook that can be opened by zim'''
@@ -416,11 +428,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		# As a special case, using an invalid page as the argument should
 		# return a valid page object.
 		assert isinstance(path, Path)
-		if path.name in self._page_cache \
-		and self._page_cache[path.name].valid:
+		if path.name in self._page_cache:
 			page = self._page_cache[path.name]
 			assert isinstance(page, Page)
-			page._check_source_etag()
+			page.check_source_changed()
 			return page
 		else:
 			file, folder = self.layout.map_page(path)
@@ -464,27 +475,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			page = self.get_page(path)
 		return page
 
-	@notebook_state
-	def flush_page_cache(self, path):
-		'''Flush the cache used by L{get_page()}
-
-		After this method calling L{get_page()} for C{path} or any of
-		its children will return a fresh page object. Be aware that the
-		old Page objects may still be around but will be flagged as
-		invalid and can no longer be used in the API.
-
-		@param path: a L{Path} object
-		'''
-		names = [path.name]
-		ns = path.name + ':'
-		names.extend(k for k in list(self._page_cache.keys()) if k.startswith(ns))
-		for name in names:
-			if name in self._page_cache:
-				page = self._page_cache[name]
-				assert not page.modified, 'BUG: Flushing page with unsaved changes'
-				page.valid = False
-				del self._page_cache[name]
-
 	def get_home_page(self):
 		'''Returns a L{Page} object for the home page'''
 		return self.get_page(self.config['Notebook']['home'])
@@ -497,7 +487,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: store-page before storing the page
 		@emits: stored-page on success
 		'''
-		assert page.valid, 'BUG: page object no longer valid'
 		logger.debug('Store page: %s', page)
 		self.emit('store-page', page)
 		page._store()
@@ -508,7 +497,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 	@notebook_state
 	def store_page_async(self, page, parsetree):
-		assert page.valid, 'BUG: page object no longer valid'
 		logger.debug('Store page in background: %s', page)
 		self.emit('store-page', page)
 		error = threading.Event()
@@ -590,7 +578,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		file, folder = self.layout.map_page(path)
 		if (file.exists() or folder.exists()):
 			self._move_file_and_folder(path, newpath)
-			self.flush_page_cache(path)
+			self._reload_pages_in_cache(path)
 			self.emit('moved-page', path, newpath)
 
 			if update_links:
@@ -945,7 +933,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		return re
 
 	def _deleted_page(self, path, update_links):
-		self.flush_page_cache(path)
+		self._reload_pages_in_cache(path)
 		path = Path(path.name)
 
 		if update_links:

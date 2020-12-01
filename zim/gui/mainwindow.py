@@ -659,10 +659,7 @@ class MainWindow(Window):
 		@returns: C{True} for success
 		'''
 		assert isinstance(path, Path)
-		if isinstance(path, Page) and path.valid:
-			page = path
-		else:
-			page = self.notebook.get_page(path) # can raise
+		page = self.notebook.get_page(path) # can raise
 
 		if self.page and id(self.page) == id(page):
 			# XXX: Check ID to enable reload_page but catch all other
@@ -818,12 +815,10 @@ class MainWindow(Window):
 		'''Menu action to reload the current page. Will first try
 		to save any unsaved changes, then reload the page from disk.
 		'''
-		# TODO: this is depending on behavior of open_page(), should be more robust
-		pos = self.pageview.get_cursor_pos()
-		self.pageview.save_changes() # XXX
-		self.notebook.flush_page_cache(self.page)
-		if self.open_page(self.notebook.get_page(self.page)):
-			self.pageview.set_cursor_pos(pos)
+		cursor = self.pageview.get_cursor_pos()
+		self.pageview.save_changes()
+		self.page.reload_textbuffer()
+		self.pageview.set_cursor_pos(cursor)
 
 
 class BackLinksMenuButton(MenuButton):
@@ -924,7 +919,7 @@ class PageWindow(Window):
 
 		# Close window when page is moved or deleted
 		def on_notebook_change(o, path, *a):
-			if path == self.page:
+			if path == self.page or self.page.ischild(path):
 				logger.debug('Close PageWindow for %s (page is gone)', self.page)
 				self._save_uistate()
 				self.destroy()
