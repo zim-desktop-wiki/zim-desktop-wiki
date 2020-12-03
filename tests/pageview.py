@@ -114,12 +114,17 @@ class TextBufferTestCaseMixin(object):
 	def get_buffer(self, input=None, raw=True):
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
 		if input is not None:
-			self.set_buffer(buffer, input, raw=raw)
-		return buffer
+			tree = self._get_tree(input, raw)
+		else:
+			tree = None
+		return TextBuffer(notebook, page, parsetree=tree)
 
 	def set_buffer(self, buffer, input, raw=True):
+		tree = self._get_tree(input, raw)
+		buffer.set_parsetree(tree)
+
+	def _get_tree(self, input, raw):
 		if isinstance(input, str):
 			if not input.startswith('<?xml'):
 				if raw:
@@ -131,8 +136,7 @@ class TextBufferTestCaseMixin(object):
 			raise NotImplementedError('Support tokens')
 		else:
 			tree = input
-
-		buffer.set_parsetree(tree)
+		return tree
 
 	def assertBufferEquals(self, buffer, wanted, raw=True):
 		if isinstance(wanted, (tuple, list)):
@@ -1070,6 +1074,22 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(tag, *bounds)
 		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag>\n</p>', raw=False)
+
+	def testAppendTree(self):
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p>new text</p>
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		buffer = self.get_buffer('Existing page\n')
+		self.assertBufferEquals(buffer, 'Existing page\n')
+		buffer.append_parsetree(tree)
+		self.assertBufferEquals(buffer, 'Existing page\n\nnew text\n')
+		buffer.undostack.undo()
+		self.assertBufferEquals(buffer, 'Existing page\n')
 
 
 class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):

@@ -637,11 +637,14 @@ class Page(Path, SignalEmitter):
 
 		@param tree: a L{zim.formats.ParseTree} object with content
 		'''
-		ourtree = self.get_parsetree()
-		if ourtree:
-			self.set_parsetree(ourtree + tree)
+		if self._textbuffer:
+			self._textbuffer.append_parsetree(tree)
 		else:
-			self.set_parsetree(tree)
+			ourtree = self.get_parsetree()
+			if ourtree:
+				self.set_parsetree(ourtree + tree)
+			else:
+				self.set_parsetree(tree)
 
 	def get_textbuffer(self, constructor=None):
 		'''Get a C{Gtk.TextBuffer} for the page
@@ -665,11 +668,7 @@ class Page(Path, SignalEmitter):
 				return None
 
 			tree = self.get_parsetree()
-			self._textbuffer = constructor()
-			if tree is not None:
-				self._textbuffer.set_parsetree(tree)
-				self._textbuffer.set_modified(False)
-
+			self._textbuffer = constructor(parsetree=tree)
 			self._textbuffer.connect('modified-changed', self.on_buffer_modified_changed)
 
 		return self._textbuffer

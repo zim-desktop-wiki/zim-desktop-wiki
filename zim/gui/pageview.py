@@ -477,12 +477,10 @@ class TextBuffer(Gtk.TextBuffer):
 	@ivar user_action: A L{UserActionContext} context manager
 	@ivar finder: A L{TextFinder} for this buffer
 
-	@signal: C{begin-insert-tree ()}:
-	Emitted at the begin of a complex insert
+	@signal: C{begin-insert-tree (interactive)}:
+	Emitted at the begin of a complex insert, c{interactive} is boolean flag
 	@signal: C{end-insert-tree ()}:
 	Emitted at the end of a complex insert
-	@signal: C{inserted-tree (start, end, tree, interactive)}:
-	Gives inserted tree after inserting it
 	@signal: C{textstyle-changed (style)}:
 	Emitted when textstyle at the cursor changes, gets the list of text styles or None.
 	@signal: C{link-clicked ()}:
@@ -506,9 +504,8 @@ class TextBuffer(Gtk.TextBuffer):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'insert-text': 'override',
-		'begin-insert-tree': (GObject.SignalFlags.RUN_LAST, None, ()),
+		'begin-insert-tree': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
 		'end-insert-tree': (GObject.SignalFlags.RUN_LAST, None, ()),
-		'inserted-tree': (GObject.SignalFlags.RUN_LAST, None, (object, object, object, object)),
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'undo-save-cursor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'insert-objectanchor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -583,11 +580,13 @@ class TextBuffer(Gtk.TextBuffer):
 		'rise': Integer(None),
 	} #: Valid properties for a style in tag_styles
 
-	def __init__(self, notebook, page):
+	def __init__(self, notebook, page, parsetree=None):
 		'''Constructor
 
 		@param notebook: a L{Notebook} object
 		@param page: a L{Page} object
+		@param parsetree: optional L{ParseTree} object, if given this will
+		initialize the buffer content *before* initializing the undostack
 		'''
 		GObject.GObject.__init__(self)
 		self.notebook = notebook
@@ -617,6 +616,11 @@ class TextBuffer(Gtk.TextBuffer):
 
 		self.connect('delete-range', self.__class__.do_pre_delete_range)
 		self.connect_after('delete-range', self.__class__.do_post_delete_range)
+
+		if parsetree is not None:
+			# Do this *before* initializing the undostack
+			self.set_parsetree(parsetree)
+			self.set_modified(False)
 
 		self.undostack = UndoStackManager(self)
 
@@ -706,6 +710,13 @@ class TextBuffer(Gtk.TextBuffer):
 		with self.tmp_cursor(iter):
 			self.insert_parsetree_at_cursor(tree, interactive)
 
+	def append_parsetree(self, tree, interactive=False):
+		'''Append a L{ParseTree} to the buffer
+
+		Like L{insert_parsetree()} but inserts at the end of the current buffer.
+		'''
+		self.insert_parsetree(self.get_end_iter(), tree, interactive)
+
 	def insert_parsetree_at_cursor(self, tree, interactive=False):
 		'''Insert a L{ParseTree} in the buffer
 
@@ -748,7 +759,7 @@ class TextBuffer(Gtk.TextBuffer):
 		# Actual insert
 		modified = self.get_modified()
 		try:
-			self.emit('begin-insert-tree')
+			self.emit('begin-insert-tree', interactive)
 			if root.text:
 				self.insert_at_cursor(root.text)
 			self._insert_element_children(root, raw=raw)
@@ -788,9 +799,8 @@ class TextBuffer(Gtk.TextBuffer):
 			startiter = self.get_iter_at_offset(startoffset)
 			enditer = self.get_iter_at_mark(self.get_insert())
 			self.emit('end-insert-tree')
-			self.emit('inserted-tree', startiter, enditer, tree, interactive)
 
-	def do_begin_insert_tree(self):
+	def do_begin_insert_tree(self, interactive):
 		self._insert_tree_in_progress = True
 
 	def do_end_insert_tree(self):
@@ -2376,7 +2386,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 		@returns: a L{ParseTree} object
 		'''
-		if self.showing_template:
+		if self.showing_template and not raw:
 			return None
 
 		if bounds is None:
@@ -4638,12 +4648,12 @@ class UndoStackManager:
 		self.insert_pending = False # whether we need to call flush insert or not
 		self.undo_count = 0 # number of undo steps that were done
 		self.block_count = 0 # number of times block() was called
+		self._insert_tree_start = None
 
 		self.recording_handlers = [] # handlers to be blocked when not recording
 		for signal, handler in (
 			('undo-save-cursor', self.do_save_cursor),
 			('insert-text', self.do_insert_text),
-			#~ ('inserted-tree', self.do_insert_tree), # TODO
 			('insert-pixbuf', self.do_insert_pixbuf),
 			('insert-child-anchor', self.do_insert_pixbuf),
 			('delete-range', self.do_delete_range),
@@ -4666,10 +4676,11 @@ class UndoStackManager:
 			self.recording_handlers.append(
 				self.buffer.connect(signal, self.do_change_tag, action))
 
-		#~ self.buffer.connect_object('begin-insert-tree',
-			#~ self.__class__.block, self)
-		#~ self.buffer.connect_object('end-insert-tree',
-			#~ self.__class__.unblock, self)
+		for signal, handler in (
+			('begin-insert-tree', self.do_begin_insert_tree),
+			('end-insert-tree', self.do_end_insert_tree),
+		):
+			self.buffer.connect_after(signal, handler)
 
 		#~ self.buffer.connect_object('edit-textstyle-changed',
 			#~ self.__class__._flush_if_typing, self)
@@ -4726,11 +4737,31 @@ class UndoStackManager:
 
 		self.interactive = False
 
-	#~ def do_inserted_tree(self, buffer, start, end, parsetree):
-		#~ if self.undo_count > 0: self._flush_redo_stack()
+	def do_begin_insert_tree(self, buffer, interactive):
+		if self.block_count == 0:
+			if self.undo_count > 0:
+				self.flush_redo_stack()
+			else:
+				if self.group:
+					self.stack.append(self.group)
+					self.group = UndoActionGroup()
+				if self.insert_pending:
+					self.flush_insert()
 
-		#~ start, end = start.get_offset(), end.get_offset()
-		#~ self.group.append((self.ACTION_INSERT, start, end, tree))
+			self._insert_tree_start = buffer.get_insert_iter().get_offset()
+		self.block()
+
+	def do_end_insert_tree(self, buffer):
+		self.unblock()
+		if self.block_count == 0:
+			start = self._insert_tree_start
+			start_iter = buffer.get_iter_at_offset(start)
+			end_iter = buffer.get_insert_iter()
+			end = end_iter.get_offset()
+			tree = self.buffer.get_parsetree((start_iter, end_iter), raw=True)
+			self.group.append((self.ACTION_INSERT, start, end, tree))
+			self.stack.append(self.group)
+			self.group = UndoActionGroup()
 
 	def do_insert_text(self, buffer, iter, text, length):
 		# Handle insert text event
@@ -5702,17 +5733,20 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 			self.emit('page-changed', self.page)
 
-	def _create_textbuffer(self):
+	def _create_textbuffer(self, parsetree=None):
 		# Callback for page.get_textbuffer
-		tree = self.page.get_parsetree()
-		buffer = TextBuffer(self.notebook, self.page)
+		buffer = TextBuffer(self.notebook, self.page, parsetree=parsetree)
 
-		if tree is None and not self.page.readonly or self.readonly:
+		readonly = self._readonly_set or self.notebook.readonly or self.page.readonly
+			# Do not use "self.readonly" here, may not yet be intialized
+		if parsetree is None and not readonly:
 			# HACK: using None value instead of "hascontent" to distinguish
 			# between a page without source and an existing empty page
-			tree = self.notebook.get_template(self.page)
-			buffer.set_parsetree(tree, showing_template=True)
+			parsetree = self.notebook.get_template(self.page)
+			buffer.set_parsetree(parsetree, showing_template=True)
 			buffer.set_modified(False)
+			# By setting this instead of providing to the TextBuffer constructor
+			# this template can be undone
 
 		return buffer
 

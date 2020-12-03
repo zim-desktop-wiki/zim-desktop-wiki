@@ -1207,8 +1207,8 @@ class TestPage(TestPath):
 
 		class MockTextBuffer(object):
 
-			def __init__(self):
-				self.parsetree = None
+			def __init__(self, parsetree):
+				self.parsetree = parsetree
 				self.modified = False
 
 			def set_modified(self, modified):
