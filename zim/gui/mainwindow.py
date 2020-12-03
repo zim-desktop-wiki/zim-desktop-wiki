@@ -186,7 +186,6 @@ class MainWindow(Window):
 		self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 		self.uistate.setdefault('windowmaximized', False)
 		self.uistate.setdefault('active_tabs', None, tuple)
-		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('readonly', False)
 
 		self.history = History(notebook, notebook.state)
@@ -207,31 +206,8 @@ class MainWindow(Window):
 
 		self.pageview = NotebookView(self.notebook, self.navigation)
 		self.connect_object('readonly-changed', NotebookView.set_readonly, self.pageview)
-		self.pageview.textview.connect('link-enter', self.on_link_enter)
-		self.pageview.textview.connect('link-leave', self.on_link_leave)
-		self.pageview.connect('link-caret-enter', self.on_link_caret_enter)
-		self.pageview.connect('link-caret-leave', self.on_link_caret_leave)
 
 		self.add(self.pageview)
-
-		# create statusbar
-		self.statusbar = Gtk.Statusbar()
-		self.statusbar.push(0, '<page>')
-		self.add_bar(self.statusbar, start=False)
-		self.statusbar.set_property('margin', 0)
-		self.statusbar.set_property('spacing', 0)
-
-		# and build the widget for backlinks
-		self.statusbar_backlinks_button = \
-			BackLinksMenuButton(self.notebook, self.open_page, status_bar_style=True)
-		frame = Gtk.Frame()
-		frame.set_shadow_type(Gtk.ShadowType.NONE)
-		self.statusbar.pack_end(Gtk.Separator(), False, True, 0)
-		self.statusbar.pack_end(frame, False, True, 0)
-		self.statusbar.pack_end(Gtk.Separator(), False, True, 0)
-		frame.add(self.statusbar_backlinks_button)
-
-		self.move_bottom_minimized_tabs_to_statusbar(self.statusbar)
 
 		self.do_preferences_changed()
 
@@ -380,18 +356,6 @@ class MainWindow(Window):
 
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
-	def do_update_statusbar(self, *a):
-		page = self.pageview.page
-		if not page:
-			return
-		label = page.name
-		if page.modified:
-			label += '*'
-		if self.notebook.readonly or page.readonly:
-			label += ' [' + _('readonly') + ']' # T: page status in statusbar
-		self.statusbar.pop(0)
-		self.statusbar.push(0, label)
-
 	def on_window_state_event(self, event):
 		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
 			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)
@@ -442,18 +406,6 @@ class MainWindow(Window):
 		else:
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
-
-	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
-	def toggle_statusbar(self, show):
-		'''Menu action to toggle the visibility of the status bar'''
-		if show:
-			self.statusbar.set_no_show_all(False)
-			self.statusbar.show()
-		else:
-			self.statusbar.hide()
-			self.statusbar.set_no_show_all(True)
-
-		self.uistate['show_statusbar'] = show
 
 	@toggle_action(_('_Fullscreen'), 'F11', icon='gtk-fullscreen', init=False) # T: Menu item
 	def toggle_fullscreen(self, show):
@@ -558,8 +510,6 @@ class MainWindow(Window):
 			if self.uistate['windowmaximized']:
 				self.maximize()
 
-		self.toggle_statusbar(self.uistate['show_statusbar'])
-
 		Window.init_uistate(self) # takes care of sidepane positions etc
 
 		self.toggle_fullscreen(self._set_fullscreen)
@@ -573,12 +523,6 @@ class MainWindow(Window):
 		# And hook to notebook properties
 		self.on_notebook_properties_changed(self.notebook.properties)
 		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
-
-		# Hook up the statusbar
-		self.connect('page-changed', self.do_update_statusbar)
-		self.connect('readonly-changed', self.do_update_statusbar)
-		self.pageview.connect('modified-changed', self.do_update_statusbar)
-		self.notebook.connect_after('stored-page', self.do_update_statusbar)
 
 		# Notify plugins
 		self.emit('init-uistate')
@@ -601,8 +545,6 @@ class MainWindow(Window):
 
 		Gtk.AccelMap.get().connect('changed', on_accel_map_changed)
 
-		self.do_update_statusbar()
-
 	def save_uistate(self):
 		if self.is_visible() and not self.isfullscreen:
 			self.uistate['windowpos'] = tuple(self.get_position())
@@ -621,18 +563,6 @@ class MainWindow(Window):
 				self.set_icon_from_file(self.notebook.icon)
 			except (GObject.GError, GLib.Error):
 				logger.exception('Could not load icon %s', self.notebook.icon)
-
-	def on_link_enter(self, view, link):
-		self.statusbar.push(1, 'Go to "%s"' % link['href'])
-
-	def on_link_leave(self, view, link):
-		self.statusbar.pop(1)
-
-	def on_link_caret_enter(self, view, link):
-		self.statusbar.push(2, 'Go to "%s"' % link['href'])
-
-	def on_link_caret_leave(self, view, link):
-		self.statusbar.pop(2)
 
 	def do_button_press_event(self, event):
 		## Try to capture buttons for navigation
@@ -706,14 +636,18 @@ class MainWindow(Window):
 		#TODO: set toggle_editable() insensitive when page is readonly
 		self.update_buttons_history()
 		self.update_buttons_hierarchy()
-		self.statusbar_backlinks_button.set_page(self.page)
 		self._update_window_title()
 
 	def _update_window_title(self):
-		if self.page:
-			self.set_title(self.page.name + ' - ' + self.notebook.name)
+		if self.notebook.readonly or (self.page and self.page.readonly):
+			readonly = ' [' + _('readonly') + ']' # T: page status for title bar
 		else:
-			self.set_title(self.notebook.name)
+			readonly = ''
+
+		if self.page:
+			self.set_title(self.page.name + ' - ' + self.notebook.name + readonly)
+		else:
+			self.set_title(self.notebook.name + readonly)
 
 	def do_page_info_changed(self, notebook, page):
 		if page == self.page:

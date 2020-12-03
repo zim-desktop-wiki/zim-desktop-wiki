@@ -50,7 +50,8 @@ from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
-	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result
+	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result, \
+	widget_set_css
 from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
@@ -5409,8 +5410,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	Emitted when textstyle at the cursor changes, gets the list of text styles or None.
 	@signal: C{activate-link (link, hints)}: emitted when a link is opened,
 	stops emission after the first handler returns C{True}
-	@signal: C{link-caret-enter (link)}: Emitted when the caret enters a link
-	@signal: C{link-caret-leave (link)}: Emitted when the caret leaves a link
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
@@ -5472,10 +5471,30 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._hack_hbox.add(self.swindow)
 		self._hack_label = Gtk.Label() # any widget would do I guess
 		self._hack_hbox.pack_end(self._hack_label, False, True, 1)
-		self.add(self._hack_hbox)
+
+		overlay = Gtk.Overlay()
+		overlay.add(self._hack_hbox)
+		self._overlay_label = Gtk.Label("TEST 123")
+		self._overlay_label.set_halign(Gtk.Align.START)
+		self._overlay_label.set_margin_start(12)
+		self._overlay_label.set_valign(Gtk.Align.END)
+		self._overlay_label.set_margin_bottom(5)
+		widget_set_css(self._overlay_label, 'overlay-label',
+			'background: rgba(0, 0, 0, 0.8); '
+			'padding: 3px 5px; border-radius: 3px; '
+			'color: #fff; '
+		) # Tried to make it look like tooltip - based on Adwaita css
+		self._overlay_label.set_no_show_all(True)
+		overlay.add_overlay(self._overlay_label)
+		overlay.set_overlay_pass_through(self._overlay_label, True)
+		self.add(overlay)
 
 		self.textview.connect_object('link-clicked', PageView.activate_link, self)
 		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
+		self.textview.connect('link-enter', self.on_link_enter)
+		self.textview.connect('link-leave', self.on_link_leave)
+		self.connect('link-caret-enter', self.on_link_enter)
+		self.connect('link-caret-leave', self.on_link_leave)
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.textview)
@@ -5662,6 +5681,21 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		window = self.get_toplevel()
 		if window and window != self:
 			window.connect('set-focus', set_actiongroup_sensitive)
+
+	def on_link_enter(self, view, link):
+		href = normalize_file_uris(link['href'])
+		if link_type(href) == 'page':
+			path = self.notebook.pages.resolve_link(
+				self.page, HRef.new_from_wiki_link(href)
+			)
+			self._overlay_label.set_text('Go to "%s"' % path.name)# T: tooltip text for links to pages
+		else:
+			self._overlay_label.set_text('Open "%s"' % href) # T: tooltip text for links to files/URLs etc.
+
+		self._overlay_label.show()
+
+	def on_link_leave(self, view, link):
+		self._overlay_label.hide()
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview
@@ -5988,7 +6022,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.actiongroup.get_action('edit_object').set_sensitive(False)
 			self.actiongroup.get_action('remove_link').set_sensitive(False)
 
-		# Sets statusbar if passing through a link
+		# Emit signal if passing through a link
 		link = buffer.get_link_data(iter)
 		if link:
 			if not self._caret_link:  # we enter link for the first time

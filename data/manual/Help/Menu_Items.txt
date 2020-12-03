@@ -38,13 +38,13 @@ Shows a list of saved versions and includes tools to compare versions.
 Only available if the [[Plugins:Version Control|Version Control plugin]] is enabled.
 
 **Export**
-Show the [[Export|export dialog]]. 
+Show the [[Export|export dialog]].
 
 **Print to Browser <Ctrl><P>**
 Export the current page to a temporary file and open it with the browser. This is a work around for the lack of printing support in zim. You can print the page from the browser, so pressing <ctrl><P> twice will print the current page.
 
 **Send To**
-Open a new email with the current page as the email text using your email application. 
+Open a new email with the current page as the email text using your email application.
 
 **Rename Page**
 Prompt for a new name for the current page. Optionally the page heading is also changed on the fly. Links to this page can be updated automatically.
@@ -109,12 +109,6 @@ Show the [[Preferences|preferences dialog]].
 **Notebook Editable**
 This toggle allows switching between editing and read-only mode. In read-only mode the notebook can not be modified. This feature is intended to prevent accidental edits while browsing pages.
 
-**Toolbar**
-Toggle the visibility of the toolbar.
-
-**Statusbar**
-Toggle the visibility of the statusbar.
-
 **Side Panes <F9>**
 Toggle the visibility of the side pane(s).
 
@@ -130,7 +124,7 @@ Toggle the pathbar visibility and style. Options are **None**, **Recent** **Page
 Toggle toolbar style, overriding the system defaults. The same submenu is available as a context menu on the toolbar itself.
 
 **Fullscreen <F11>**
-Toggle fullscreen display, mainly intended for small screens where it makes sense to use the whole screen for the editor. Visibility of the toolbar, pathbar and statusbar is configured separately for the fullscreen mode and the normal mode. 
+Toggle fullscreen display, mainly intended for small screens where it makes sense to use the whole screen for the editor.
 
 ( Users who really prefer to use the whole screen can even decide to hide the menubar in fullscreen mode. See the hidden option in the notebook state file. )
 
@@ -156,13 +150,13 @@ Reload the current page. This means the page is saved and then reloaded from sou
 ===== Insert =====
 
 **Date and Time <Ctrl><D>**
-Insert a date or a date and timestamp. If the [[Plugins:Journal|Journal plugin]] is enabled the date can be linked automatically to the journal page. 
+Insert a date or a date and timestamp. If the [[Plugins:Journal|Journal plugin]] is enabled the date can be linked automatically to the journal page.
 
 **Image**
 Insert an image.
 
 **Screenshot**
-Prompt with options to take a screenshot and insert it as an image. 
+Prompt with options to take a screenshot and insert it as an image.
 
 Only available if the [[Plugins:Insert Screenshot|Insert Screenshot plugin]] is enabled.
 

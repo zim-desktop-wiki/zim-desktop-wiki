@@ -153,7 +153,6 @@ Specific ones are:
 * zim-pageview: for the textview showing the page
 * zim-inserted-object: for objects that are inserted in the text; default is to render a small border line
 * zim-inserted-object-head: for the top bar of such an object; default is to render a small border line at the bottom
-* zim-statusbar-button: for styling buttons that are placed in the statusbar
 
 More names are documented in the manual page of specific plugins.
 

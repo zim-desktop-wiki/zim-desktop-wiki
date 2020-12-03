@@ -53,7 +53,6 @@
 		</menu>
 		<menu action='view_menu'>
 			<menuitem action='toggle_editable'/>
-			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_panes'/>
 			<menuitem action='show_all_panes'/>
 			<menuitem action='toggle_fullscreen'/>

@@ -185,12 +185,6 @@ class TestTogglingState(tests.TestCase):
 		window.toggle_menubar()
 		#self.assertTrue(window.uistate['show_menubar'])
 
-		self.assertTrue(window.uistate['show_statusbar'])
-		window.toggle_statusbar()
-		self.assertFalse(window.uistate['show_statusbar'])
-		window.toggle_statusbar()
-		self.assertTrue(window.uistate['show_statusbar'])
-
 		mywidget = MockSidePaneWidget()
 		mywidget.show_all()
 		window.add_tab('Test', mywidget, LEFT_PANE)
