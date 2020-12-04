@@ -26,7 +26,7 @@ Zim can be used to:
 ## Installing from a Package
 
 Most linux distributions include zim in their package repository. On debian and
-ubuntu to package is simply called "zim".
+ubuntu the package is simply called "zim".
 
 Debian/Ubuntu packages and a windows installer can be found via https://zim-wiki.org/downloads.html
 
