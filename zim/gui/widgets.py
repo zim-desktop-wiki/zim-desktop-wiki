@@ -2399,7 +2399,9 @@ class Window(Gtk.Window):
 		self._last_sidepane_focus = None
 
 		# Construct all the components
+		self._zim_window_overlay = Gtk.Overlay()
 		self._zim_window_main = Gtk.VBox() # contains bars & central hbox
+		self._zim_window_main.set_name('zim-window-main-box')
 
 		self._zim_window_central_hbox = Gtk.HBox() # contains left paned(right paned(central vbox))
 		self._zim_window_left_paned = HPaned()
@@ -2419,7 +2421,8 @@ class Window(Gtk.Window):
 		self._zim_window_bottom_minimized = HMinimizedTabs(self._zim_window_bottom_pane)
 
 		# put it all together ...
-		Gtk.Window.add(self, self._zim_window_main)
+		Gtk.Window.add(self, self._zim_window_overlay)
+		self._zim_window_overlay.add(self._zim_window_main)
 		self._zim_window_main.add(self._zim_window_central_hbox)
 		self._zim_window_central_hbox.pack_start(self._zim_window_left_minimized, False, True, 0)
 		self._zim_window_central_hbox.add(self._zim_window_left_paned)

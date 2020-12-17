@@ -64,11 +64,14 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			color: %s;
 			background-color: %s;
 		}
-		widget box box scrolledwindow{
+		#zim-window-main-box scrolledwindow{
 			border-style: none;
 			}
-		box {
+		#zim-window-main-box box {
 			background-color: %s;
+		}
+		#zim-window-main-box button box {
+			background-color: @bg_color;
 		}
 		''' % (self.preferences['textcolor'], self.preferences['basecolor'],self.preferences['basecolor'])
 		provider = Gtk.CssProvider()

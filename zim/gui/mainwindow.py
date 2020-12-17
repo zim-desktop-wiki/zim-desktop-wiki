@@ -121,8 +121,106 @@ class MainWindowExtension(ActionExtensionBase):
 		self.destroy()
 
 
+class WindowBaseMixin(object):
+	'''Common logic between MainWindow and PageWindow'''
+
+	def _init_fullscreen_headerbar(self):
+		self._in_fullscreen_eventbox = False
+		self._fullscreen_eventbox = Gtk.EventBox()
+		self._fullscreen_eventbox.set_valign(Gtk.Align.START)
+		self._fullscreen_eventbox.set_size_request(1, -1) # 1 pixel sensitive area on top of the screen
+		self._zim_window_overlay.add_overlay(self._fullscreen_eventbox)
+		self._fullscreen_revealer = Gtk.Revealer()
+		self._fullscreen_eventbox.add(self._fullscreen_revealer)
+		self._fullscreen_headerbar = Gtk.HeaderBar()
+		self._fullscreen_revealer.add(self._fullscreen_headerbar)
+
+		close_button = Gtk.Button()
+		close_button.set_image(Gtk.Image.new_from_icon_name('view-restore-symbolic',  Gtk.IconSize.BUTTON))
+		close_button.set_tooltip_text(_('Leave Fullscreen')) # T: button label for fullscreen window header
+		close_button.connect('clicked', lambda o: self.toggle_fullscreen(False))
+		self._fullscreen_headerbar.pack_end(close_button)
+
+		self._fullscreen_eventbox.show_all()
+		self._fullscreen_eventbox.set_no_show_all(True)
+		self._fullscreen_eventbox.hide()
+		self._fullscreen_eventbox.connect('enter-notify-event', self._on_fullscreen_eventbox_enter)
+		self._fullscreen_eventbox.connect('leave-notify-event', self._on_fullscreen_eventbox_leave)
+
+	def _on_fullscreen_eventbox_enter(self, *a):
+		self._in_fullscreen_eventbox = True
+		self._update_fullscreen_revealer()
+
+	def _on_fullscreen_eventbox_leave(self, *a):
+		self._in_fullscreen_eventbox = False
+		self._update_fullscreen_revealer()
+
+	def _update_fullscreen_revealer(self, *a):
+		# keep showing headerbar as long as any popup menu is open
+		show = self._in_fullscreen_eventbox or any(
+			c.get_active() for c in self._fullscreen_headerbar.get_children() if isinstance(c, Gtk.MenuButton)
+		)
+		self._fullscreen_revealer.set_reveal_child(show)
+
+	def _populate_headerbars(self):
+		for headerbar in (self._headerbar, self._fullscreen_headerbar):
+			self._populate_headerbar(headerbar)
+			headerbar.show_all()
+
+		for c in self._fullscreen_headerbar.get_children():
+			if isinstance(c, Gtk.MenuButton):
+				c.connect('toggled', self._update_fullscreen_revealer)
+
+	def set_title(self, text):
+		self._headerbar.set_title(text)
+		self._fullscreen_headerbar.set_title(text)
+
+	@toggle_action(_('_Fullscreen'), 'F11', icon='view-fullscreen-symbolic', init=False) # T: Menu item
+	def toggle_fullscreen(self, show):
+		'''Menu action to toggle the fullscreen state of the window'''
+		if show:
+			self.fullscreen()
+			self._fullscreen_eventbox.show()
+		else:
+			self._fullscreen_eventbox.hide()
+			self.unfullscreen()
+
+	@toggle_action(_('Notebook _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
+	def toggle_editable(self, editable):
+		'''Menu action to toggle the read-only state of the application
+		@emits: readonly-changed
+		'''
+		readonly = not editable
+		if readonly and self.page and self.page.modified:
+			# Save any modification now - will not be allowed after switch
+			self.pageview.save_changes()
+
+		for group in self.uimanager.get_action_groups():
+			for action in group.list_actions():
+				if hasattr(action, 'zim_readonly') \
+				and not action.zim_readonly:
+					action.set_sensitive(not readonly)
+
+		try:
+			self.uistate['readonly'] = readonly
+		except KeyError:
+			pass
+		self.emit('readonly-changed', readonly)
+
+	def _style_toggle_editable_button(self, button):
+		def _change_style_on_toggle(button):
+			context = button.get_style_context()
+			if button.get_active():
+				context.remove_class("suggested-action")
+			else:
+				context.add_class("suggested-action")
+		_change_style_on_toggle(button)
+		button.connect('toggled', _change_style_on_toggle)
+
+
+
 @extendable(MainWindowExtension)
-class MainWindow(Window):
+class MainWindow(WindowBaseMixin, Window):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -157,6 +255,7 @@ class MainWindow(Window):
 
 		self.maximized = False
 		self.isfullscreen = False
+		self._init_fullscreen_headerbar()
 		self.connect_after('window-state-event', self.__class__.on_window_state_event)
 
 		# Hidden setting to force the gtk bell off. Otherwise it
@@ -249,39 +348,11 @@ class MainWindow(Window):
 		self.uimanager.add_ui_from_string(data_file(fname).read())
 
 		# header Bar
-		headerbar = Gtk.HeaderBar()
-		headerbar.set_show_close_button(True)
+		self._headerbar = Gtk.HeaderBar()
+		self._headerbar.set_show_close_button(True)
+		self.set_titlebar(self._headerbar)
 
-		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-		for action in (
-			self.open_page_back,
-			self.open_page_home,
-			self.open_page_forward,
-		):
-			button = action.create_icon_button()
-			hbox.add(button)
-		context = hbox.get_style_context()
-		context.add_class("linked")
-		headerbar.pack_start(hbox)
-
-		action = self._uiactions.show_search
-		button = action.create_icon_button()
-		headerbar.pack_end(button)
-
-		action = self.toggle_editable
-		button = action.create_icon_button()
-		headerbar.pack_end(button)
-
-		def _change_style_on_toggle(button):
-			context = button.get_style_context()
-			if button.get_active():
-				context.remove_class("suggested-action")
-			else:
-				context.add_class("suggested-action")
-		_change_style_on_toggle(button)
-		button.connect('toggled', _change_style_on_toggle)
-
-		self.set_titlebar(headerbar)
+		self._populate_headerbars()
 
 		# Do this last, else menu items show up in wrong place
 		self._customtools = CustomToolManagerUI(self.uimanager, self.pageview)
@@ -322,6 +393,23 @@ class MainWindow(Window):
 		PluginManager.register_new_extendable(self.pageview)
 		self.pageview.grab_focus()
 
+	def _populate_headerbar(self, headerbar):
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		for action in (
+			self.open_page_back,
+			self.open_page_home,
+			self.open_page_forward,
+		):
+			hbox.add(action.create_icon_button())
+		context = hbox.get_style_context()
+		context.add_class("linked")
+		headerbar.pack_start(hbox)
+
+		headerbar.pack_end(self._uiactions.show_search.create_icon_button())
+
+		button = self.toggle_editable.create_icon_button()
+		self._style_toggle_editable_button(button)
+		headerbar.pack_end(button)
 
 	@action(_('_Close'), '<Primary>W') # T: Menu item
 	def close(self):
@@ -407,14 +495,6 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-	@toggle_action(_('_Fullscreen'), 'F11', icon='gtk-fullscreen', init=False) # T: Menu item
-	def toggle_fullscreen(self, show):
-		'''Menu action to toggle the fullscreen state of the window'''
-		if show:
-			self.fullscreen()
-		else:
-			self.unfullscreen()
-
 	def do_pane_state_changed(self, pane, *a):
 		if not hasattr(self, 'actiongroup') \
 		or self._block_toggle_panes:
@@ -472,25 +552,6 @@ class MainWindow(Window):
 			self._sidepane_autoclose = True
 
 		return True # stop
-
-	@toggle_action(_('Notebook _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
-	def toggle_editable(self, editable):
-		'''Menu action to toggle the read-only state of the application
-		@emits: readonly-changed
-		'''
-		readonly = not editable
-		if readonly and self.page and self.page.modified:
-			# Save any modification now - will not be allowed after switch
-			self.pageview.save_changes()
-
-		for group in self.uimanager.get_action_groups():
-			for action in group.list_actions():
-				if hasattr(action, 'zim_readonly') \
-				and not action.zim_readonly:
-					action.set_sensitive(not readonly)
-
-		self.uistate['readonly'] = readonly
-		self.emit('readonly-changed', readonly)
 
 	def init_uistate(self):
 		# Initialize all the uistate parameters
@@ -645,9 +706,11 @@ class MainWindow(Window):
 			readonly = ''
 
 		if self.page:
-			self.set_title(self.page.name + ' - ' + self.notebook.name + readonly)
+			title = self.page.name + ' - ' + self.notebook.name + readonly
 		else:
-			self.set_title(self.notebook.name + readonly)
+			title = self.notebook.name + readonly
+
+		self.set_title(title)
 
 	def do_page_info_changed(self, notebook, page):
 		if page == self.page:
@@ -792,7 +855,7 @@ class BackLinksMenuButton(MenuButton):
 		MenuButton.popup_menu(self, event)
 
 
-class PageWindow(Window):
+class PageWindow(WindowBaseMixin, Window):
 	'''Window to show a single page'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -805,23 +868,12 @@ class PageWindow(Window):
 		self.navigation = navigation
 		self.notebook = notebook
 
-		headerbar = Gtk.HeaderBar()
-		headerbar.set_show_close_button(True)
+		self._headerbar = Gtk.HeaderBar()
+		self._headerbar.set_show_close_button(True)
+		self.set_titlebar(self._headerbar)
 
-		action = self.toggle_editable
-		button = action.create_icon_button()
-		headerbar.pack_end(button)
-
-		def _change_style_on_toggle(button):
-			context = button.get_style_context()
-			if button.get_active():
-				context.remove_class("suggested-action")
-			else:
-				context.add_class("suggested-action")
-		_change_style_on_toggle(button)
-		button.connect('toggled', _change_style_on_toggle)
-
-		self.set_titlebar(headerbar)
+		self._init_fullscreen_headerbar()
+		self._populate_headerbars()
 
 		self.set_title(page.name)
 		#if ui.notebook.icon:
@@ -878,27 +930,16 @@ class PageWindow(Window):
 		PluginManager.register_new_extendable(self.pageview)
 		self.pageview.grab_focus()
 
+	def _populate_headerbar(self, headerbar):
+		if headerbar is self._headerbar:
+			headerbar.pack_end(self.toggle_fullscreen.create_icon_button()) # FIXME: should go in menu popover
+
+		button = self.toggle_editable.create_icon_button()
+		self._style_toggle_editable_button(button)
+		headerbar.pack_end(button)
+
 	def _save_uistate(self):
 		self.uistate['windowsize'] = tuple(self.get_size())
-
-	@toggle_action(_('Notebook _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
-	def toggle_editable(self, editable):
-		'''Menu action to toggle the read-only state of the application
-		@emits: readonly-changed
-		'''
-		readonly = not editable
-		if readonly and self.page and self.page.modified:
-			# Save any modification now - will not be allowed after switch
-			self.pageview.save_changes()
-
-		for group in self.uimanager.get_action_groups():
-			for action in group.list_actions():
-				if hasattr(action, 'zim_readonly') \
-				and not action.zim_readonly:
-					action.set_sensitive(not readonly)
-
-		#self.uistate['readonly'] = readonly
-		self.emit('readonly-changed', readonly)
 
 
 class OpenPageDialog(Dialog):
