@@ -46,6 +46,7 @@ from zim.actions import toggle_action
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.applications import open_folder_prompt_create
+from zim.gui.clipboard import Clipboard
 
 from zim.gui.widgets import BOTTOM_PANE, PANE_POSITIONS, \
 	IconButton, ScrolledWindow, \
@@ -154,6 +155,10 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 		refresh_button.connect('clicked', lambda o: self.on_refresh_button())
 		self.buttonbox.pack_start(refresh_button, False, True, 0)
 
+		copy_path_button = IconButton(Gtk.STOCK_COPY, relief=False)
+		copy_path_button.connect('clicked', lambda o: self.on_copy_path_button())
+		self.buttonbox.pack_start(copy_path_button, False, True, 0)
+
 		zoomin = IconButton(Gtk.STOCK_ZOOM_IN, relief=False)
 		zoomout = IconButton(Gtk.STOCK_ZOOM_OUT, relief=False)
 		zoomin.connect('clicked', lambda o: self.on_zoom_in())
@@ -199,6 +204,9 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 	def on_refresh_button(self):
 		self.iconview.refresh()
 		self.update_title()
+
+	def on_copy_path_button(self):
+		Clipboard.set_text(self.iconview.folder.path)
 
 	def on_zoom_in(self):
 		self.set_icon_size(
