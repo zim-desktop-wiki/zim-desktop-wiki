@@ -89,6 +89,8 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 			# T: preference option for sourceview plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
 			# T: preference option for sourceview plugin
+		('border_width', 'int', _('Border width'), 3, (1, 20)),
+			# T: preference option for sourceview plugin
 		('wrap_mode', 'choice', _('Text wrap mode'), WRAP_WORD_CHAR, (WRAP_NONE, WRAP_WORD_CHAR, WRAP_CHAR, WRAP_WORD)),
 			# T: preference option for sourceview plugin
 		('theme', 'choice', _('Theme'), STYLES[0] if STYLES else 'not found',
@@ -223,6 +225,7 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_tab_width(4)
 		self.view.set_show_line_numbers(self.buffer.object_attrib['linenumbers'])
 		self.view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+		self.view.set_border_width(3)
 
 		self.WRAP_MODE = {
 			WRAP_NONE: Gtk.WrapMode.NONE,
@@ -289,6 +292,7 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_right_margin_position(preferences['right_margin_position'])
 		self.view.set_show_right_margin(preferences['show_right_margin'])
 		self.view.set_tab_width(preferences['tab_width'])
+		self.view.set_border_width(preferences['border_width'])
 		self.view.set_wrap_mode(self.WRAP_MODE[preferences['wrap_mode']])
 
 	def on_attrib_changed(self, attrib):
