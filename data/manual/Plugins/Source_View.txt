@@ -24,4 +24,6 @@ If **Show right margin** is enabled, there is a margin drawn on the right to gui
 
 **Tab width** gives the width of a tab in spaces.
 
+**Border width** gives the width of the border around the code block in pixels
+
 **Theme** gives the name of the gtk theme in use for the syntax highlighting.
