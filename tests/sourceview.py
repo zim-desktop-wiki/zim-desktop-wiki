@@ -135,6 +135,10 @@ class TestSourceViewObject(tests.TestCase):
 		item.activate()
 		self.assertEqual(widget.buffer.get_language().get_name(), 'Python')
 
+		item = tests.gtk_get_menu_item(menu, _('Use highlightjs classes'))
+		item.activate()
+		self.assertEqual(widget.buffer.get_use_highlightjs(), True)
+
 	def testDumpHtml(self):
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -149,5 +153,23 @@ def foo(a, b):
 		#print('>>', html)
 		self.assertIn(
 			'<pre><code class="python">\ndef foo(a, b):\n\tprint "FOO", a &gt;= b\n\n</code></pre>',
+			''.join(html)
+		)
+
+	def testDumpHtml_WithHighlightClasses(self):
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><object lang="c-sharp" linenumbers="false" use_highlightjs="true" type="code">
+		public void AddContact(T contact)
+		{
+			Contacts.Add(contact);
+		}
+</object></zim-tree>'''
+		tree = ParseTree().fromstring(xml)
+		dumper = HtmlDumper(StubLinker())
+		html = dumper.dump(tree)
+		#print('>>', html)
+		self.assertIn(
+			'<div class="zim-object">\n<pre><code class="csharp">\n\t\tpublic void AddContact(T contact)\n\t\t{\n\t\t\tContacts.Add(contact);\n\t\t}\n</code></pre>\n</div>\n',
 			''.join(html)
 		)

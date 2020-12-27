@@ -37,7 +37,7 @@ if GtkSource:
 	lang_ids = lm.get_language_ids()
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
-	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
+	LANGUAGES_GTK = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
 
 	ssm = GtkSource.StyleSchemeManager()
 
@@ -51,11 +51,81 @@ if GtkSource:
 	if not STYLES:
 		logger.exception('Themes for the SourceView Plugin, normally in %s are not found', str(ssm.get_search_path()))
 else:
-	LANGUAGES = {}
+	LANGUAGES_GTK = {}
 #~ print LANGUAGES
 	STYLES = []
 # ~ print (STYLES)
 
+# This dictionary contains the mappings from GtkSource language ids
+# to highlightjs language ids. Most of these are the same mapping, but
+# some differences must be taken into account
+# TODO: test if toml:ini mapping is valid as ini:ini is (per highlightjs usage)
+LANGUAGE_MAPPINGS = {
+	'abnf': 'abnf',
+	'actionscript': 'actionscript',
+	'ada': 'ada',
+	'awk': 'awk',
+	'c': 'c',
+	'c-sharp': 'csharp',
+	'cpphdr': 'cpp',
+	'cmake': 'cmake',
+	'chdr': 'c',
+	'css': 'css',
+	'd': 'd',
+	'diff': 'diff',
+	'dtl': 'django',
+	'erlang': 'erlang',
+	'fsharp': 'fsharp',
+	'fortran': 'fortran',
+	'go': 'golang',
+	'groovy': 'groovy',
+	'haskell': 'haskell',
+	'haxe': 'haxe',
+	'html': 'html',
+	'ini': 'ini',
+	'java': 'java',
+	'js': 'javascript',
+	'json': 'json',
+	'julia': 'julia',
+	'kotlin': 'kotlin',
+	'latex': 'tex',
+	'less': 'less',
+	'lua': 'lua',
+	'makefile': 'makefile',
+	'markdown': 'markdown',
+	'matlab': 'matlab',
+	'maxima': 'maxima',
+	'nsis': 'nsis',
+	'objc': 'objectivec',
+	'ocaml': 'ocaml',
+	'glsl': 'glsl',
+	'pascal': 'pascal',
+	'perl': 'perl',
+	'php': 'php',
+	'powershell': 'powershell',
+	'prolog': 'prolog',
+	'proto': 'protobuf',
+	'python': 'python',
+	'python3': 'python',
+	'r': 'r',
+	'ruby': 'ruby',
+	'rust': 'rust',
+	'scala': 'scala',
+	'scheme': 'scheme',
+	'scilab': 'scilab',
+	'scss': 'scss',
+	'sh': 'shell',
+	'sql': 'sql',
+	'swift': 'swift',
+	'tcl': 'tcl',
+	'toml': 'ini',
+	'vala': 'vala',
+	'vbnet': 'vbnet',
+	'verilog': 'verilog',
+	'vhdl': 'vhdl',
+	'xml': 'xml',
+	'yaml': 'yaml',
+}
 
 class SourceViewPlugin(PluginClass):
 
@@ -93,7 +163,6 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 			# T: preference option for sourceview plugin
 		('theme', 'choice', _('Theme'), STYLES[0] if STYLES else 'not found',
 										STYLES if STYLES else ['not found']),
-			# T: preference option for sourceview plugin
 	)
 
 	@classmethod
@@ -111,6 +180,7 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 	object_attr = {
 		'lang': String(None),
 		'linenumbers': Boolean(True),
+		'use_highlightjs': Boolean(False),
 	}
 
 	def __init__(self, plugin, objmap):
@@ -120,11 +190,11 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def new_model_interactive(self, parent, notebook, page):
-		lang, linenumbers = InsertCodeBlockDialog(parent).run()
+		lang, linenumbers, use_highlightjs = InsertCodeBlockDialog(parent).run()
 		if lang is None:
 			raise ValueError # dialog cancelled
 		else:
-			attrib = self.parse_attrib({'lang': lang, 'linenumbers': linenumbers})
+			attrib = self.parse_attrib({'lang': lang, 'linenumbers': linenumbers, 'use_highlightjs': use_highlightjs})
 			return SourceViewBuffer(attrib, '')
 
 	def model_from_data(self, notebook, page, attrib, text):
@@ -144,20 +214,15 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 			widget.set_preferences(preferences)
 
 	def format_html(self, dumper, attrib, data):
-		# to use highlight.js add the following to your template:
-		#<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/styles/default.min.css">
-		#<script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/highlight.min.js"></script>
-		#<script>hljs.initHighlightingOnLoad();</script>
-		#Map GtkSourceView language ids match with Highlight.js language ids.
-		#http://packages.ubuntu.com/precise/all/libGtkSource.0-common/filelist
-		#http://highlightjs.readthedocs.io/en/latest/css-classes-reference.html
-		sh_map = {'dosbatch': 'dos'}
-		sh_lang = sh_map[attrib['lang']] if attrib['lang'] in sh_map else attrib['lang']
-		# TODO: some template instruction to be able to use other highlighters as well?
-		output = ['<pre><code class="%s">' % html_encode(sh_lang)] # for syntaxhigligther
-		#class="brush: language;" works with SyntaxHighlighter 2.0.278, 3 & 4
-		#output = ['<pre class="brush: %s;">' % html_encode(sh_lang)] # for syntaxhigligther
+		sh_lang = attrib['lang']
+		if attrib['use_highlightjs']:
+			# Map GtkSourceView language ids with Highlight.js language classes
+			# https://packages.ubuntu.com/groovy/libgtk-3-common
+			# https://github.com/highlightjs/highlight.js/blob/master/SUPPORTED_LANGUAGES.md
+			# Note that GtkSourceView language_ids are generated at runtime based on a library-dependant list of file definitions, so we assume it to be non-deterministic
+			sh_lang = LANGUAGE_MAPPINGS[attrib['lang']] if attrib['lang'] in LANGUAGE_MAPPINGS else 'plaintext'
 
+		output = ['<pre><code class="%s">' % html_encode(sh_lang)]
 		output.append(html_encode(data))
 		output.append('</code></pre>\n')
 
@@ -189,6 +254,13 @@ class SourceViewBuffer(_bufferclass):
 	def set_show_line_numbers(self, show_line_numbers):
 		self.object_attrib['linenumbers'] = show_line_numbers
 		self.emit('changed')
+
+	def set_use_highlightjs(self, use_highlightjs):
+		self.object_attrib['use_highlightjs'] = use_highlightjs
+		self.emit('changed')
+
+	def get_use_highlightjs(self):
+		return self.object_attrib['use_highlightjs']
 
 	def set_language(self, lang):
 		self.object_attrib['lang'] = lang
@@ -313,10 +385,10 @@ class SourceViewWidget(TextViewWidget):
 		item = Gtk.MenuItem.new_with_mnemonic(_('Syntax'))
 		item.set_sensitive(self.view.get_editable())
 		submenu = Gtk.Menu()
-		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
+		for lang in sorted(LANGUAGES_GTK, key=lambda k: k.lower()):
 			langitem = Gtk.MenuItem.new_with_mnemonic(lang)
 			langitem.connect('activate', activate_lang)
-			langitem.zim_sourceview_languageid = LANGUAGES[lang]
+			langitem.zim_sourceview_languageid = LANGUAGES_GTK[lang]
 			submenu.append(langitem)
 		item.set_submenu(submenu)
 		menu.prepend(item)
@@ -328,13 +400,14 @@ class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
-		self.result = (None, None)
+		self.result = (None, None, None)
 		self.uistate.define(lang=String(None))
 		self.uistate.define(line_numbers=Boolean(True))
+		self.uistate.define(use_highlightjs=Boolean(False))
 		defaultlang = self.uistate['lang']
 
 		menu = {}
-		for l in sorted(LANGUAGES, key=lambda k: k.lower()):
+		for l in sorted(LANGUAGES_GTK, key=lambda k: k.lower()):
 			key = l[0].upper()
 			if not key in menu:
 				menu[key] = []
@@ -346,7 +419,7 @@ class InsertCodeBlockDialog(Dialog):
 			iter = model.append(None, [key])
 			for lang in menu[key]:
 				myiter = model.append(iter, [lang])
-				if LANGUAGES[lang] == defaultlang:
+				if LANGUAGES_GTK[lang] == defaultlang:
 					defaultiter = myiter
 
 		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -363,9 +436,14 @@ class InsertCodeBlockDialog(Dialog):
 		hbox.add(combobox)
 		self.combobox = combobox
 		self.vbox.add(hbox)
-		self.checkbox = Gtk.CheckButton(_('Display line numbers')) # T: input checkbox
-		self.checkbox.set_active(self.uistate['line_numbers'])
-		self.vbox.add(self.checkbox)
+
+		self.ln_checkbox = Gtk.CheckButton(_('Display line numbers')) # T: input checkbox
+		self.ln_checkbox.set_active(self.uistate['line_numbers'])
+		self.vbox.add(self.ln_checkbox)
+
+		self.hl_checkbox = Gtk.CheckButton(_('Use highlightjs classes'))  # T: input checkbox
+		self.hl_checkbox.set_active(self.uistate['use_highlightjs'])
+		self.vbox.add(self.hl_checkbox)
 
 	def do_response_ok(self):
 		model = self.combobox.get_model()
@@ -373,9 +451,10 @@ class InsertCodeBlockDialog(Dialog):
 
 		if iter is not None:
 			name = model[iter][0]
-			self.uistate['lang'] = LANGUAGES[name]
-			self.uistate['line_numbers'] = self.checkbox.get_active()
-			self.result = (self.uistate['lang'], self.uistate['line_numbers'])
+			self.uistate['lang'] = LANGUAGES_GTK[name]
+			self.uistate['line_numbers'] = self.ln_checkbox.get_active()
+			self.uistate['use_highlightjs'] = self.hl_checkbox.get_active()
+			self.result = (self.uistate['lang'], self.uistate['line_numbers'], self.uistate['use_highlightjs'])
 			return True
 		else:
 			return False # no syntax selected
