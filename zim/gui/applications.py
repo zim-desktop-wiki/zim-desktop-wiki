@@ -489,6 +489,24 @@ def open_file(widget, file, mimetype=None, callback=None):
 		_open_with_filebrowser(widget, file, callback)
 
 
+def test_folder_prompt_create(widget, folder):
+	'''Test if a folder exists, and prompt to create it if it doesn't exist yet.
+	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}
+	@param folder: a L{Folder} object
+	@returns: True if the folder already exists or has been created, false otherwise
+	'''
+
+	if not folder.exists():
+            if QuestionDialog(widget, (
+                    _('Create folder?'),
+                            # T: Heading in a question dialog for creating a folder
+                    _('The folder "%s" does not yet exist.\nDo you want to create it now?') % folder.basename
+                            # T: Text in a question dialog for creating a folder, %s will be the folder base name
+            )).run():
+                    folder.touch()
+
+	return folder.exists()
+
 def open_folder_prompt_create(widget, folder):
 	'''Open a folder and prompts to create it if it doesn't exist yet.
 	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}

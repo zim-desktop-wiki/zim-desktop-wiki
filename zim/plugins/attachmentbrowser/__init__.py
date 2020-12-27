@@ -45,7 +45,7 @@ from zim.plugins import PluginClass
 from zim.actions import toggle_action
 
 from zim.gui.pageview import PageViewExtension
-from zim.gui.applications import open_folder_prompt_create
+from zim.gui.applications import open_folder_prompt_create, test_folder_prompt_create
 from zim.gui.clipboard import Clipboard
 
 from zim.gui.widgets import BOTTOM_PANE, PANE_POSITIONS, \
@@ -206,7 +206,8 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 		self.update_title()
 
 	def on_copy_path_button(self):
-		Clipboard.set_text(self.iconview.folder.path)
+            if test_folder_prompt_create(self, self.iconview.folder):
+                    Clipboard.set_text(self.iconview.folder.path)
 
 	def on_zoom_in(self):
 		self.set_icon_size(
