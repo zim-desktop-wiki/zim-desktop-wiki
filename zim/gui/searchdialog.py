@@ -30,9 +30,11 @@ class SearchDialog(Dialog):
 
 		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False, True, 0)
-		hbox.pack_start(Gtk.Label(_('Search') + ': '), False, True, 0) # T: input label
+		search_label = Gtk.Label.new_with_mnemonic(_('_Search') + ': ')
+		hbox.pack_start(search_label, False, True, 0) # T: input label
 		self.query_entry = InputEntry()
 		hbox.add(self.query_entry)
+		search_label.set_mnemonic_widget(self.query_entry)
 		self.search_button = Gtk.Button.new_with_mnemonic(_('_Find')) # T: Button label
 		hbox.pack_start(self.search_button, False, True, 0)
 
@@ -49,7 +51,7 @@ class SearchDialog(Dialog):
 		) # T: help text for the search dialog
 		self.query_entry.set_tooltip_text(help_text)
 
-		self.namespacecheckbox = Gtk.CheckButton.new_with_mnemonic(_('Limit search to the current page and sub-pages'))
+		self.namespacecheckbox = Gtk.CheckButton.new_with_mnemonic(_('_Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
 		if page is not None:
 			self.vbox.pack_start(self.namespacecheckbox, False, True, 0)
