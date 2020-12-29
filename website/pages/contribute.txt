@@ -4,11 +4,14 @@ Wiki-Format: zim 0.4
 ====== Contribute ======
 
 ===== Donations =====
-Zim is completely free software, free as in open source //and// free as in free beer. However if you feel like stimulating further development of zim, you can make a donation using the paypal button below.
+Zim is completely free software, free as in open source //and// free as in free beer. If you want to express your gratitude a small email is always appreciated. However if you feel like making a monetary donation, you can make a donation using the PayPal button below.
 
 INSERT_PAYPAL_BUTTON_HERE
 
-In the paypal form there is a link "Suggestions and Comments" (it is a bit small but it is there when you confirm the donation). Feel free to use this text field to tell me what is on your wish list for future development. I can not promise to implement every feature that gets mentioned in a donation, but it will certainly be taken into consideration. If enough funds come in we will set up bounties for other developers that want to work on nominated features as well.
+In the PayPal form there is a link "Suggestions and Comments" (it is a bit small but it is there when you confirm the donation). Feel free to use this text field to tell me what is on your wish list for future development. I can not promise anything, but it will certainly be taken into consideration.
+
+Since expenses on Zim are low and I do want to put the money that comes in to good use, any donations beyond a small buffer will be donated in turn to the International Red Cross (via the dutch national branch). This way they will not only contribute to stimulating better open software, but also to more pressing needs.
+
 
 ===== User Manual Updates =====
 Updates for the user manual can be submitted in [[https://www.zim-wiki.org/wiki/|the wiki]] or as patches (see below).
