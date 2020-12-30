@@ -1656,8 +1656,8 @@ msgid ""
 msgstr ""
 "As teclas de atalho podem ser mudadas seleccionando a acção na lista e "
 "teclando o novo atalho.\n"
-"Para desactivar uma tecla de atalho, seleccione-a na lista e use "
-"<tt>&lt;Backspace&gt;</tt>."
+"Para desactivar uma tecla de atalho, seleccione-a na lista e use <tt>&lt;"
+"Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:508

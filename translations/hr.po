@@ -10,8 +10,8 @@ msgstr ""
 "POT-Creation-Date: 2020-07-24 08:10+0200\n"
 "PO-Revision-Date: 2020-12-18 16:29+0000\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
-"Language-Team: Croatian <https://hosted.weblate.org/projects/zim/master/hr/>"
-"\n"
+"Language-Team: Croatian <https://hosted.weblate.org/projects/zim/master/hr/"
+">\n"
 "Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -934,7 +934,8 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:206
 msgid "Checking a checkbox also change any sub-items"
-msgstr "Mijenjanjem stanja potvrdnog okvira mijenjaju se i svi podređene stavke"
+msgstr ""
+"Mijenjanjem stanja potvrdnog okvira mijenjaju se i svi podređene stavke"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:209
@@ -1657,8 +1658,8 @@ msgid ""
 msgstr ""
 "Tipkovnički prečaci se mogu mijenjati odabirom radnje u popisu i pritiskom "
 "na nov prečac.\n"
-"Za deaktiviranje prečaca, odaberi ga u popisu i pritisni tipku "
-"<tt>&lt;Backspace&gt;</tt>."
+"Za deaktiviranje prečaca, odaberi ga u popisu i pritisni tipku <tt>&lt;"
+"Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:508
