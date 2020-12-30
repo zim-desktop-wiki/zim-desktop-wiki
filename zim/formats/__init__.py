@@ -71,7 +71,7 @@ import logging
 import types
 
 from zim.fs import Dir, File
-from zim.parsing import link_type, is_url_re, \
+from zim.parsing import link_type, is_url_re, is_www_link_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
 from zim.config import data_file, ConfigDict
@@ -483,7 +483,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.iter('link'):
 			href = link.attrib['href']
-			if href and is_url_re.match(href):
+			if href and is_url_re.match(href) or is_www_link_re.match(href):
 				link.attrib['href'] = url_encode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
@@ -494,7 +494,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.iter('link'):
 			href = link.attrib['href']
-			if href and is_url_re.match(href):
+			if href and is_url_re.match(href) or is_www_link_re.match(href):
 				link.attrib['href'] = url_decode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']

@@ -416,6 +416,9 @@ is_uri_re = Re('^(\w[\w\+\-\.]*):')
 	# "scheme:"
 is_url_re = Re('^(\w[\w\+\-\.]*)://')
 	# "scheme://"
+is_www_link_re = Re('^www\.([\w\-]+\.)+[\w\-]+')
+	# "www." followed by 2 or more domain sections
+	# See also 'url_re' in 'formats/wiki.py' following the GFM scheme
 is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+(\?.+)?$', re.U)
 	# "mailto:" address
 	# name "@" host
@@ -469,6 +472,8 @@ def link_type(link):
 			type = is_url_re[1]
 	elif is_email_re.match(link):
 		type = 'mailto'
+	elif is_www_link_re.match(link):
+		type = 'http'
 	elif '@' in link and (
 		link.startswith('mid:') or
 		link.startswith('cid:')

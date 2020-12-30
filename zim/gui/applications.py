@@ -429,7 +429,7 @@ class ApplicationManager(object):
 
 
 from zim.errors import Error
-from zim.parsing import is_win32_share_re, is_url_re, is_uri_re
+from zim.parsing import is_win32_share_re, is_url_re, is_uri_re, is_www_link_re
 
 from zim.fs import adapt_from_newfs, normalize_win32_share
 from zim.newfs import FileNotFoundError
@@ -535,6 +535,8 @@ def open_url(widget, url):
 		if os.name == 'nt':
 			return _open_with_filebrowser(widget, url)
 		# else consider as a x-scheme-handler/smb type URI below
+	elif is_www_link_re.match(url):
+		url = 'http://' + url
 	elif not is_uri_re.match(url):
 		raise ValueError('Not an URL: %s' % url)
 	else:
