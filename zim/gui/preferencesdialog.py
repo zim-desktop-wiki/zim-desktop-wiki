@@ -297,12 +297,30 @@ class PluginsTab(Gtk.VBox):
 
 		buffer.delete(*buffer.get_bounds()) # clear
 
+		check, dependencies = klass.check_dependencies() if klass else (False, [])
+
 		if not activatable:
-			insert(_('This plugin failed to load') + '\n\n', 'red')
-			if not klass:
-				self.configure_button.set_sensitive(False)
-				self.plugin_help_button.set_sensitive(False)
-				return
+			# Each dependency is a 3-tuple of (name, available, required). If any
+			# dependency is required but not available we can inform the user.
+			if any(dep for dep in dependencies if not dep[1] and dep[2]):
+				insert(
+					_(
+						'This plugin could not be loaded due to missing dependencies.\n'
+						'Please see the dependencies section below for details.\n\n'
+					),
+					'red'
+				)
+			else:
+				# Dependencies are ok so there is some other reason for this plugin
+				# not being loaded. This can happen if there is a problem
+				# (e.g. syntax error) in the extension's Python module. Such issues
+				# are caught when the PluginsTreeModel is init'ed.
+				insert(_('There was a problem loading this plugin\n\n'), 'red')
+
+				if not klass:
+					self.configure_button.set_sensitive(False)
+					self.plugin_help_button.set_sensitive(False)
+					return
 
 		insert(_('Name') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
 		insert(klass.plugin_info['name'].strip() + '\n\n')
@@ -310,8 +328,7 @@ class PluginsTab(Gtk.VBox):
 		insert(klass.plugin_info['description'].strip() + '\n\n')
 		insert(_('Dependencies') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
 
-		check, dependencies = klass.check_dependencies()
-		if not(dependencies):
+		if not dependencies:
 			insert(_('No dependencies') + '\n') # T: label in plugin info in preferences dialog
 		else:
 			# Construct dependency list, missing dependencies are marked red
