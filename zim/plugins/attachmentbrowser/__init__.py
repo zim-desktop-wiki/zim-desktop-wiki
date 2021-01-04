@@ -206,8 +206,8 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 		self.update_title()
 
 	def on_copy_path_button(self):
-            if test_folder_prompt_create(self, self.iconview.folder):
-                    Clipboard.set_text(self.iconview.folder.path)
+		if test_folder_prompt_create(self, self.iconview.folder):
+			Clipboard.set_text(self.iconview.folder.path)
 
 	def on_zoom_in(self):
 		self.set_icon_size(
