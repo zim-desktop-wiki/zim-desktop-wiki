@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 Creation-Date: Wed, 08 Jul 2009 23:26:20 +0200
 
 ====== FAQ ======
@@ -20,6 +20,9 @@ These are pages that are linked by other pages but do not (yet) contain text. Yo
 
 ===== Why do some pages not disappear from the index after deleting them? =====
 The index keeps pages that are linked by other pages even if you delete them. To completely remove them you also need change any page linking them.
+
+===== I pasted a shall script / C code / ... and it looks all mangled up - is this a bug ? =====
+No, zim uses wiki formatting to save text, so some sequences of special characters will be interpreted as text formatting. This is enabled on purpose to let users type in wiki sequences directly. The downside is that when you include computer code or other text with many special characters it might get interpreted while that is not what you wanted. To avoid this either use the [[Plugins:Source View|Source View plugin]] or verbatim formatting. To paste directly with verbatim formatting there is a menu item in the context menu "Paste As Verbatim".
 
 ===== I would like zim to hide in the system tray. =====
 There is a [[Plugins:Tray Icon|Tray Icon plugin]] which can be enabled from the Preferences dialog.
