@@ -100,7 +100,7 @@ class TestFileLayout(tests.TestCase):
 		rdir = dir.folder('_resources')
 
 		layout = FileLayout(topfile, Path('Test'), 'html')
-		self.assertEqual(layout.relative_root, dir)
+		self.assertEqual(layout.relative_root, dir.parent())
 		self.assertEqual(layout.resources_dir(), rdir)
 
 		for path, file, adir in (
@@ -130,7 +130,7 @@ class TestSingleFileLayout(tests.TestCase):
 		rdir = dir.folder('_resources')
 
 		layout = SingleFileLayout(topfile, page=Path('Test'))
-		self.assertEqual(layout.relative_root, dir)
+		self.assertEqual(layout.relative_root, dir.parent())
 		self.assertEqual(layout.resources_dir(), rdir)
 
 		for path, file, adir in (
