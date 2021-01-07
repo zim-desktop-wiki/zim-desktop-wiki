@@ -2015,6 +2015,32 @@ foo
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="%s">%s</link></zim-tree>' % (wanted, wanted))
 
+	def testPasteWikiAndVerbatim(self):
+		view = TextView(self.preferences)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		view.set_buffer(buffer)
+
+		Clipboard.set_text('foo [[link]] ')
+		view.emit('paste-clipboard')
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n"
+			'<zim-tree><p>foo <link href="link">link</link> \n'
+			"</p></zim-tree>"
+		)
+		Clipboard.set_text('foo [[no link]]')
+		buffer.toggle_textstyle('code')
+		view.emit('paste-clipboard')
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n"
+			'<zim-tree><p>foo <link href="link">link</link> <code>foo [[no link]]</code>\n'
+			"</p></zim-tree>"
+		)
 
 	def testUnkownObjectType(self):
 		view = TextView(self.preferences)

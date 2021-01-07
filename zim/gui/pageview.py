@@ -221,6 +221,7 @@ _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
 _is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
+_is_pre_or_code_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code')
 _is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag)
 _is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
@@ -3002,7 +3003,7 @@ class TextBuffer(Gtk.TextBuffer):
 			self.copy_clipboard(clipboard)
 			self.delete_selection(True, default_editable)
 
-	def paste_clipboard(self, clipboard, iter, default_editable):
+	def paste_clipboard(self, clipboard, iter, default_editable, text_format=None):
 		'''Paste data from a clipboard into the buffer
 
 		@param clipboard: a L{Clipboard} object
@@ -3014,6 +3015,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 		if iter is None:
 			iter = self.get_iter_at_mark(self.get_insert())
+			tags = list(filter(_is_pre_or_code_tag, self._editmode_tags))
+			if tags:
+				text_format = 'verbatim-' + tags[0].zim_tag
 		elif self.get_has_selection():
 			# unset selection if explicit iter is given
 			bound = self.get_selection_bound()
@@ -3027,7 +3031,13 @@ class TextBuffer(Gtk.TextBuffer):
 			self.create_mark('zim-paste-position', iter, left_gravity=False)
 
 		#~ clipboard.debug_dump_contents()
-		parsetree = clipboard.get_parsetree(self.notebook, self.page)
+		if text_format is None:
+			tags = list(filter(_is_pre_or_code_tag, self.iter_get_zim_tags(iter)))
+			if tags:
+				text_format = 'verbatim-' + tags[0].zim_tag
+			else:
+				text_format = 'wiki' # TODO: should depend on page format
+		parsetree = clipboard.get_parsetree(self.notebook, self.page, text_format)
 		if not parsetree:
 			return
 
@@ -3773,10 +3783,10 @@ class TextView(Gtk.TextView):
 		self.get_buffer().cut_clipboard(Clipboard, self.get_editable())
 		self.scroll_mark_onscreen(self.get_buffer().get_insert())
 
-	def do_paste_clipboard(self):
+	def do_paste_clipboard(self, format=None):
 		# Overriden to force usage of our Textbuffer.paste_clipboard
 		# over Gtk.TextBuffer.paste_clipboard
-		self.get_buffer().paste_clipboard(Clipboard, None, self.get_editable())
+		self.get_buffer().paste_clipboard(Clipboard, None, self.get_editable(), text_format=format)
 		self.scroll_mark_onscreen(self.get_buffer().get_insert())
 
 	#~ def do_drag_motion(self, context, *a):
@@ -6103,6 +6113,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		item.set_submenu(copy_as_menu)
 		item.show_all()
 		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
+			# FIXME get code from test to seek stock item
+
+		### Paste As
+		item = Gtk.MenuItem.new_with_mnemonic(_('Paste As _Verbatim')) # T: menu item for context menu of editor
+		item.set_sensitive(Clipboard.clipboard.wait_is_text_available())
+		item.connect('activate', lambda o: self.textview.do_paste_clipboard(format='verbatim'))
+		item.show_all()
+		menu.insert(item, 4) # position after Paste in the standard menu - may not be robust...
 			# FIXME get code from test to seek stock item
 
 		### Move text to new page ###
