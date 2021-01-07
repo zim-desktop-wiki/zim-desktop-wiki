@@ -367,7 +367,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	def on_properties_changed(self, properties):
 		dir = Dir(self.layout.root.path) # XXX
 
-		self.name = properties['name']
+		self.name = properties['name'] or self.folder.basename
 		icon, document_root = _resolve_relative_config(dir, properties)
 		if icon:
 			self.icon = icon.path # FIXME rewrite to use File object
