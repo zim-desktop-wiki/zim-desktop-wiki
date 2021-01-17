@@ -8,6 +8,8 @@
 #
 
 import datetime
+import os
+import ntpath
 
 from gi.repository import Gtk
 from gi.repository import GObject
@@ -22,10 +24,10 @@ logger = logging.getLogger('zim.plugins.attachmentbrowser')
 from zim.newfs import LocalFile, FileNotFoundError
 from zim.newfs.helpers import format_file_size, FSObjectMonitor
 
-from zim.gui.widgets import gtk_popup_at_pointer
+from zim.gui.widgets import gtk_popup_at_pointer, QuestionDialog
 
 from zim.gui.applications import get_mime_icon, get_mime_description, \
-	OpenWithMenu, open_file
+	OpenWithMenu, open_file, adapt_from_newfs, File, Dir
 
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -35,9 +37,57 @@ from zim.gui.clipboard import \
 from .thumbnailer import ThumbnailQueue, ThumbnailManager, \
 	THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE
 
+from .filerenamedialog import FileRenameDialog
 
 MIN_THUMB_SIZE = 64 # don't render thumbs when icon size is smaller than this
 MAX_ICON_SIZE = 128 # never render icons larger than this - thumbs go up
+
+
+def path_leaf(path):
+	""" Returns the real name of the file without the path. """
+	head, tail = ntpath.split(path)
+	return tail or ntpath.basename(head)
+
+
+def delete_file(widget, file):
+	'''Delete a file
+
+	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}
+	@param file: a L{File} object
+
+	@raises FileNotFoundError: if C{file} does not exist
+	'''
+	logger.debug('delete_file(%s)', file)
+	file = adapt_from_newfs(file)
+	assert isinstance(file, File) and not isinstance(file, Dir)
+
+	if not file.exists():
+		raise FileNotFoundError(file)
+
+	dialog = QuestionDialog(widget, _('Are you sure you want to delete the file \'%s\'?') % path_leaf(file.path))
+	if dialog.run():
+		file.remove()
+
+
+def rename_file(widget, file):
+	'''Rename a file
+
+	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}
+	@param file: a L{File} object
+
+	@raises FileNotFoundError: if C{file} does not exist
+	'''
+	logger.debug('rename_file(%s)', file)
+	file = adapt_from_newfs(file)
+	assert isinstance(file, File) and not isinstance(file, Dir)
+
+	if not file.exists():
+		raise FileNotFoundError(file)
+
+	dialog = FileRenameDialog(widget, file.path)
+	if dialog.run() == Gtk.ResponseType.OK:
+		if file.path != dialog.new_filename:
+			os.rename(file.path, dialog.new_filename)
 
 
 def render_file_icon(widget, size):
@@ -332,9 +382,9 @@ class FileBrowserIconView(Gtk.IconView):
 			pathinfo = iconview.get_path_at_pos(x, y)
 			if pathinfo is not None:
 				iconview.grab_focus()
-				gtk_popup_at_pointer(popup_menu, event)
 				self.do_populate_popup(popup_menu, pathinfo)
 					# FIXME should use a signal here
+				gtk_popup_at_pointer(popup_menu, event)
 				return True
 		return False
 
@@ -343,6 +393,14 @@ class FileBrowserIconView(Gtk.IconView):
 		store = self.get_model()
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])
+
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Delete...')) # T: menu item to delete file
+		item.connect('activate', lambda o: delete_file(self, file))
+		menu.prepend(item)
+
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Rename...')) # T: menu item to rename file
+		item.connect('activate', lambda o: rename_file(self, file))
+		menu.prepend(item)
 
 		item = Gtk.MenuItem.new_with_mnemonic(_('Open With...')) # T: menu item
 		menu.prepend(item)
