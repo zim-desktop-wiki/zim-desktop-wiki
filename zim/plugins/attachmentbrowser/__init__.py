@@ -7,6 +7,7 @@
 # !! NOTE: when changing this plugin, do test performance on a folder with lots of photos!
 #
 # ChangeLog
+# 2021-01-16 Added rename and delete functionality to file browsers context menu (Thomas Engel)
 # 2015-10-04 Reworked threads to better avoid blocking user interface (Jaap)
 # 2013-03-03 Change to new plugin extension structure (Jaap)
 # 2013-02-25 Added zooming icon size, made icon rendering more robust (Jaap)
@@ -26,7 +27,6 @@
 # 2010-06-29 1st working version
 #
 # TODO:
-# [ ] Action for deleting files in context menu
 # [ ] Copy / cut files in context menu
 # [ ] Button to clean up the folder - only show when the folder is empty
 # [ ] Avoid scaling up small images when thumbnailing (check spec on this)
@@ -71,7 +71,9 @@ class AttachmentBrowserPlugin(PluginClass):
 This plugin shows the attachments folder of the current page as an
 icon view at bottom pane.
 '''), # T: plugin description
-		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\nJaap Karssenberg <jaap.karssenberg@gmail.com>',
+		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\n'
+			      'Jaap Karssenberg <jaap.karssenberg@gmail.com>\n'
+				  'Thomas Engel <realdatenwurm@gmail.com>',
 		'help': 'Plugins:Attachment Browser',
 	}
 
