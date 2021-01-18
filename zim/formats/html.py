@@ -47,6 +47,7 @@ class Dumper(DumperClass):
 		TAG: ('<span class="zim-tag">', '</span>'),
 		SUBSCRIPT: ('<sub>', '</sub>'),
 		SUPERSCRIPT: ('<sup>', '</sup>'),
+		LINE_RETURN: ('', ''), # TODO
 
 	}
 

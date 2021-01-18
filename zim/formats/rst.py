@@ -40,6 +40,7 @@ class Dumper(TextDumper):
 		TAG: ('', ''), # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('\\ :sub:`', '`\\ '),
 		SUPERSCRIPT: ('\\ :sup:`', '`\\ '),
+		LINE_RETURN: ('', ''), # TODO
 	}
 	# TODO tags other than :sub: and :sup: may also need surrounding whitespace, deal with this in post process (join) action ?
 	# IDEM for blocks like images and objects, how to enforce empty lines and how to deal with inline images..

@@ -131,6 +131,7 @@ VERBATIM = 'code'
 STRIKE = 'strike'
 SUBSCRIPT = 'sub'
 SUPERSCRIPT = 'sup'
+LINE_RETURN = 'br'
 
 LINK = 'link'
 TAG = 'tag'

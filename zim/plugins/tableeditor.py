@@ -45,7 +45,8 @@ SYNTAX_WIKI_PANGO2 = [
 	(r'<link href="\1">\1</link>', r'<span foreground="blue">\1<span size="0">\1</span></span>', r'[[\1]]'),
 	# Link url with link text  - Link url has always size = 0
 	(r'<link href="\1">\2</link>', r'<span foreground="blue">\2<span size="0">\1</span></span>', r'[[\2|\1]]'),
-	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//')
+	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
+	(r'\\n', r'\n', r'\\n'),
 ]
 
 # Possible alignments in edit-table-dialog

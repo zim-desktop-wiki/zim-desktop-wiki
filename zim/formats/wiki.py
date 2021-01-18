@@ -670,6 +670,7 @@ class Dumper(TextDumper):
 		TAG: ('', ''), # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('_{', '}'),
 		SUPERSCRIPT: ('^{', '}'),
+		LINE_RETURN: ('', ''), # TODO
 	}
 
 	def dump(self, tree, file_output=False):
