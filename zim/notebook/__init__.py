@@ -47,7 +47,8 @@ from .operations import NotebookOperation, SimpleAsyncOperation, \
 	NotebookOperationOngoing, NotebookState
 
 from .notebook import Notebook, NotebookExtension, TrashNotSupportedError, \
-	PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
+	PageNotFoundError, PageNotAllowedError, PageNotAvailableError, \
+	PageExistsError, PageReadOnlyError
 
 from .page import Path, Page, \
 	HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE

@@ -15,7 +15,7 @@ logger = logging.getLogger('zim.gui')
 from zim.config import data_file, value_is_coord, ConfigDict, Boolean, ConfigManager
 from zim.signals import DelayedCallback
 
-from zim.notebook import Path, Page, LINK_DIR_BACKWARD
+from zim.notebook import Path, Page, LINK_DIR_BACKWARD, PageNotAvailableError
 from zim.notebook.index import IndexNotFoundError
 from zim.notebook.operations import ongoing_operation
 from zim.history import History, HistoryPath
@@ -25,7 +25,7 @@ from zim.actions import action, toggle_action, radio_action, radio_option, get_g
 from zim.gui.widgets import \
 	MenuButton, \
 	Window, Dialog, \
-	ErrorDialog, FileDialog, ProgressDialog, MessageDialog, \
+	ErrorDialog, FileDialog, ProgressDialog, MessageDialog, QuestionDialog, \
 	ScrolledTextView, \
 	gtk_popup_at_pointer
 
@@ -650,7 +650,18 @@ class MainWindow(WindowBaseMixin, Window):
 		@returns: C{True} for success
 		'''
 		assert isinstance(path, Path)
-		page = self.notebook.get_page(path) # can raise
+		try:
+			page = self.notebook.get_page(path) # can raise
+		except PageNotAvailableError as error:
+			# Same code in NewPageDialog
+			if QuestionDialog(self, (
+				_('File exists, do you want to import?'), # T: short question on open-page if file exists
+				_('The file "%s" exists but is not a wiki page.\nDo you want to import it?') % error.file.basename # T: longer question on open-page if file exists
+			)).run():
+				from zim.import_files import import_file
+				page = import_file(error.file, self.notebook, path)
+			else:
+				return # user cancelled
 
 		if self.page and id(self.page) == id(page):
 			# XXX: Check ID to enable reload_page but catch all other
@@ -685,7 +696,7 @@ class MainWindow(WindowBaseMixin, Window):
 			cursor = None
 
 		if cursor is None and self.preferences['always_use_last_cursor_pos']:
-			cursor, _ = self.history.get_state(page)
+			cursor, x = self.history.get_state(page)
 
 		self.pageview.set_page(page, cursor)
 

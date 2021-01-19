@@ -131,7 +131,9 @@ class PagesIndexer(IndexerBase):
 			return # nothing to do
 
 		row = self._select(pagename)
-		assert row is not None
+		if row is None:
+			self.insert_page(pagename, filerow['id']) # May have been changed file type
+			row = self._select(pagename)
 
 		if row['source_file'] == filerow['id']:
 			file = self.layout.root.file(filerow['path'])
