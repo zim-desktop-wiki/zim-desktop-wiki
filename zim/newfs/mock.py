@@ -395,6 +395,9 @@ class MockFile(MockFSObjectBase, File):
 	def read(self):
 		return self._node().data.decode('UTF-8').replace('\r\n', '\n')
 
+	def readline(self):
+		return self.read().splitlines(True)[0]
+
 	def readlines(self):
 		return self.read().splitlines(True)
 

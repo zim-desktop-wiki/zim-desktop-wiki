@@ -83,6 +83,25 @@ class TestUIActions(tests.TestCase):
 		with tests.DialogContext(open_new_page):
 			self.uiactions.new_page()
 
+	def testCreateNewPageImportExistingTextFile(self):
+		# See also mainwindow.TestOpenPageImportTextFile
+		file = self.notebook.folder.file('ExistingFile.txt')
+		file.write('Test 123') # Not a page, just text!
+
+		def open_new_page(dialog):
+			dialog.set_input(page='ExistingFile')
+			dialog.assert_response_ok()
+
+		def do_import(questiondialog):
+			questiondialog.answer_yes()
+
+		with tests.DialogContext(open_new_page, do_import):
+			self.uiactions.new_page()
+
+		lines = file.readlines()
+		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
+		self.assertEqual(lines[-1], 'Test 123\n')
+
 	def testCreateNewPageWithRelativePaths(self):
 		self.uiactions.page = self.notebook.get_page(Path('Test:SubPage'))
 
@@ -403,6 +422,22 @@ class TestUIActions(tests.TestCase):
 		def movepage(dialog):
 			dialog.set_input(parent=':')
 			self.assertRaises(PageExistsError, dialog.do_response_ok)
+
+		with tests.DialogContext(movepage):
+			self.uiactions.move_page(page)
+
+	def testMovePageFailsForExistingTextFile(self):
+		from zim.notebook import PageNotAvailableError
+		file = self.notebook.folder.file('ExistingFile.txt')
+		file.write('Test 123') # Not a page, just text!
+
+		page = self.notebook.get_page(Path('SomeParent:ExistingFile'))
+		page.parse('wiki', 'test 123\n')
+		self.notebook.store_page(page)
+
+		def movepage(dialog):
+			dialog.set_input(parent=':')
+			self.assertRaises(PageNotAvailableError, dialog.do_response_ok)
 
 		with tests.DialogContext(movepage):
 			self.uiactions.move_page(page)

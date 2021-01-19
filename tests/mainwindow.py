@@ -164,6 +164,28 @@ class TestActions(tests.TestCase):
 		# FIXME - what to test here?
 
 
+class TestOpenPageImportTextFile(tests.TestCase):
+
+	def runTest(self):
+		# See also uiactions.TestUIActions.testCreateNewPageImportExistingTextFile
+		notebook = self.setUpNotebook(content=('A',))
+		file = notebook.folder.file('B.txt')
+		file.write('Test 123\n') # Not a page, just text !
+
+		window = setUpMainWindow(notebook, path='A')
+
+		def do_import(questiondialog):
+			questiondialog.answer_yes()
+
+		with tests.DialogContext(do_import):
+			window.open_page(Path('B'))
+
+		self.assertEqual(window.page, Path('B'))
+		lines = file.readlines()
+		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
+		self.assertEqual(lines[-1], 'Test 123\n')
+
+
 from gi.repository import Gtk
 
 from zim.gui.widgets import WindowSidePaneWidget, LEFT_PANE

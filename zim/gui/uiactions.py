@@ -19,11 +19,11 @@ from zim.parsing import url_encode, URL_ENCODE_DATA
 from zim.templates import list_templates, get_template
 
 from zim.config import data_file, ConfigManager
-from zim.notebook import Path, PageExistsError, NotebookOperation
+from zim.notebook import Path, PageExistsError, NotebookOperation, PageNotAvailableError
 from zim.notebook.index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 from zim.actions import get_gtk_actiongroup
-from zim.gui.widgets import Dialog, FileDialog, ProgressDialog, ErrorDialog, ScrolledTextView
+from zim.gui.widgets import Dialog, FileDialog, ProgressDialog, ErrorDialog, QuestionDialog, ScrolledTextView
 from zim.gui.applications import open_url, open_folder, open_folder_prompt_create, open_file, edit_file
 
 PAGE_EDIT_ACTIONS = 'page_edit'
@@ -495,17 +495,32 @@ class NewPageDialog(Dialog):
 		if not path:
 			return False
 
-		page = self.notebook.get_page(path) # can raise PageNotFoundError
-		if page.exists():
-			raise PageExistsError(path)
+		try:
+			page = self.notebook.get_page(path) # can raise PageNotFoundError
+		except PageNotAvailableError as error:
+			self.hide()
+			# Same code in MainWindow.open_page()
+			if QuestionDialog(self, (
+				_('File exists, do you want to import?'), # T: short question on open-page if file exists
+				_('The file "%s" exists but is not a wiki page.\nDo you want to import it?') % error.file.basename # T: longer question on open-page if file exists
+			)).run():
+				from zim.import_files import import_file
+				page = import_file(error.file, self.notebook, path)
+			else:
+				return False # user cancelled
 
-		template = get_template('wiki', self.form['template'])
-		tree = self.notebook.eval_new_page_template(page, template)
-		page.set_parsetree(tree)
-		self.notebook.store_page(page)
+			template = None
+		else:
+			if page.exists():
+				raise PageExistsError(path)
+
+			template = get_template('wiki', self.form['template'])
+			tree = self.notebook.eval_new_page_template(page, template)
+			page.set_parsetree(tree)
+			self.notebook.store_page(page)
 
 		pageview = self.navigation.open_page(page)
-		if pageview is not None:
+		if pageview and template:
 			pageview.set_cursor_pos(-1) # HACK set position to end of template
 		return True
 
@@ -526,6 +541,8 @@ class ImportPageDialog(FileDialog):
 		# TODO add input for namespace, format
 
 	def do_response_ok(self):
+		from zim.import_files import import_file
+
 		file = self.get_file()
 		if file is None:
 			return False
@@ -535,11 +552,7 @@ class ImportPageDialog(FileDialog):
 			basename = basename[:-4]
 
 		path = self.notebook.pages.lookup_from_user_input(basename)
-		page = self.notebook.get_new_page(path)
-		assert not page.exists()
-
-		page.parse('wiki', file.readlines())
-		self.notebook.store_page(page)
+		page = import_file(file, self.notebook, path)
 		self.navigation.open_page(page)
 		return True
 

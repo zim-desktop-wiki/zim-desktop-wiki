@@ -120,7 +120,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 	FILES_CHANGE = (
 		'foo.txt',
 	)
-	PAGE_TEXT = 'test 123\n'
+	PAGE_TEXT = 'Content-Type: text/x-zim-wiki\n\ntest 123\n'
 
 	def runTest(self):
 		# Test in 3 parts:
@@ -264,6 +264,8 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		'foo-bar.txt', # page without children
 		'baz/dus/ja.txt', # page nested 2 folders deep
 		'argh/somefile.pdf', # not a page
+		'foo/not_a_page.txt', # not a page - see below for missing content line
+		'not_a_page.txt', # not a page - see below for missing content line
 	)))
 	PAGES = (
 		'foo',
@@ -333,7 +335,10 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		# 1. insert files
 		for i, path in enumerate(self.FILES):
 			file = self.root.file(path)
-			file.write('test 123')
+			if path.endswith('.txt') and not "not_a_page" in path:
+				file.write('Content-Type: text/x-zim-wiki\n\ntest 123\n')
+			else:
+				file.write('test 123\n')
 			row = {'id': i, 'path': path}
 			indexer.on_file_row_inserted(file_indexer, row)
 			self.assertPagesDBConsistent(db)
@@ -542,7 +547,7 @@ class TestFullIndexer(TestFilesIndexer):
 	# Just test that all indexers play nice together,
 	# no detailed assertions
 
-	PAGE_TEXT = 'test 123\n[[foo:sub1]]\n[[sub1]]\n@tagfoo\n'
+	PAGE_TEXT = 'Content-Type: text/x-zim-wiki\n\ntest 123\n[[foo:sub1]]\n[[sub1]]\n@tagfoo\n'
 		# link content choosen to have one link
 		# that resolves always and one link that
 		# resolves for some pages, but causes

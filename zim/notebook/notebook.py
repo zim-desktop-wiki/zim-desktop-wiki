@@ -130,6 +130,16 @@ class PageNotAllowedError(PageNotFoundError):
 			# T: description for PageNotAllowedError
 
 
+class PageNotAvailableError(PageNotFoundError):
+	_msg = _('Page not available: %s') # T: message for PageNotAvailableError
+	description = _('This page name cannot be used due to a conflicting file in the storage')
+			# T: description for PageNotAvailableError
+
+	def __init__(self, path, file):
+		PageError.__init__(self, path)
+		self.file = file
+
+
 class PageExistsError(Error):
 	_msg = _('Page already exists: %s') # T: message for PageExistsError
 
@@ -435,6 +445,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			return page
 		else:
 			file, folder = self.layout.map_page(path)
+			if file.exists() and not self.layout.is_source_file(file):
+				raise PageNotAvailableError(path, file)
+
 			folder = self.layout.get_attachments_folder(path)
 			format = self.layout.get_format(file)
 			page = Page(path, False, file, folder, format)
@@ -468,12 +481,17 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		i = 0
 		base = path.name
-		page = self.get_page(path)
-		while page.hascontent or page.haschildren:
-			i += 1
-			path = Path(base + ' %i' % i)
-			page = self.get_page(path)
-		return page
+		while True:
+			try:
+				page = self.get_page(path)
+			except PageNotAvailableError:
+				pass
+			else:
+				if not (page.hascontent or page.haschildren):
+					return page
+			finally:
+				i += 1
+				path = Path(base + ' %i' % i)
 
 	def get_home_page(self):
 		'''Returns a L{Page} object for the home page'''
@@ -614,7 +632,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				pass # renaming on case-insensitive filesystem
 			elif newfile.exists() or newfolder.exists():
 				raise PageExistsError(newpath)
-		elif newfile.exists() or newfolder.exists():
+		elif newfile.exists():
+			if self.layout.is_source_file(newfile):
+				raise PageExistsError(newpath)
+			else:
+				raise PageNotAvailableError(newpath, newfile)
+		elif newfolder.exists():
 			raise PageExistsError(newpath)
 
 		# First move the dir - if it fails due to some file being locked

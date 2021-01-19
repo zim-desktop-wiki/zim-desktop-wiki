@@ -92,7 +92,7 @@ def _get_sql(files):
 	folder = MockFolder('/mock/notebook/')
 	indexer = buildUpdateIter(folder)
 	for path, text in files:
-		folder.file(path).write(text)
+		folder.file(path).write('Content-Type: text/x-zim-wiki\n\n' + text)
 	indexer.check_and_update()
 	lines = list(indexer.db.iterdump())
 	indexer.db.close()

@@ -45,7 +45,7 @@ __all__ = [
 	# Notebook components
 	'formats', 'templates',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
-	'export', 'www', 'search',
+	'export', 'import_files', 'www', 'search',
 	# Core application
 	'widgets', 'pageview', 'save_page', 'clipboard', 'uiactions',
 	'mainwindow', 'notebookdialog',
