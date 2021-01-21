@@ -21,13 +21,13 @@ import logging
 logger = logging.getLogger('zim.plugins.attachmentbrowser')
 
 
-from zim.newfs import LocalFile, FileNotFoundError
-from zim.newfs.helpers import format_file_size, FSObjectMonitor
+from zim.newfs import localFileOrFolder, LocalFile, LocalFolder, FileNotFoundError
+from zim.newfs.helpers import format_file_size, FSObjectMonitor, TrashHelper
 
 from zim.gui.widgets import gtk_popup_at_pointer, QuestionDialog
 
 from zim.gui.applications import get_mime_icon, get_mime_description, \
-	OpenWithMenu, open_file, adapt_from_newfs, File, Dir
+	OpenWithMenu, open_file
 
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -43,12 +43,6 @@ MIN_THUMB_SIZE = 64 # don't render thumbs when icon size is smaller than this
 MAX_ICON_SIZE = 128 # never render icons larger than this - thumbs go up
 
 
-def path_leaf(path):
-	""" Returns the real name of the file without the path. """
-	head, tail = ntpath.split(path)
-	return tail or ntpath.basename(head)
-
-
 def delete_file(widget, file):
 	'''Delete a file
 
@@ -58,15 +52,15 @@ def delete_file(widget, file):
 	@raises FileNotFoundError: if C{file} does not exist
 	'''
 	logger.debug('delete_file(%s)', file)
-	file = adapt_from_newfs(file)
-	assert isinstance(file, File) and not isinstance(file, Dir)
+	file = localFileOrFolder(file)
+	assert isinstance(file, LocalFile) and not isinstance(file, LocalFolder)
 
 	if not file.exists():
 		raise FileNotFoundError(file)
 
-	dialog = QuestionDialog(widget, _('Are you sure you want to delete the file \'%s\'?') % path_leaf(file.path))
+	dialog = QuestionDialog(widget, _('Are you sure you want to delete the file \'%s\'?') % file.basename)
 	if dialog.run():
-		file.remove()
+		TrashHelper().trash(file)
 
 
 def rename_file(widget, file):
@@ -78,16 +72,16 @@ def rename_file(widget, file):
 	@raises FileNotFoundError: if C{file} does not exist
 	'''
 	logger.debug('rename_file(%s)', file)
-	file = adapt_from_newfs(file)
-	assert isinstance(file, File) and not isinstance(file, Dir)
+	file = localFileOrFolder(file)
+	assert isinstance(file, LocalFile) and not isinstance(file, LocalFolder)
 
 	if not file.exists():
 		raise FileNotFoundError(file)
 
-	dialog = FileRenameDialog(widget, file.path)
+	dialog = FileRenameDialog(widget, file)
 	if dialog.run() == Gtk.ResponseType.OK:
-		if file.path != dialog.new_filename:
-			os.rename(file.path, dialog.new_filename)
+		if file.path != dialog.new_file:
+			file.moveto(dialog.new_file)
 
 
 def render_file_icon(widget, size):
