@@ -942,67 +942,6 @@ class StubFile(object):
 		return self.text
 
 
-class TestOldParseTreeBuilder(tests.TestCase):
-
-	def runTest(self):
-		'''Test OldParseTreeBuilder class'''
-		# - Test \n before and after h / p / pre
-		# - Test break line into lines
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-foo<h level="1">bar</h>baz
-
-dus<pre>ja</pre>hmm
-
-<h level="2">foo
-</h>bar
-
-dus ja <emphasis>hmm
-dus ja
-</emphasis>grrr
-
-<strong>foo
-
-bar
-</strong>
-<strike></strike><emphasis>   </emphasis>.
-</zim-tree>'''
-
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-foo
-
-<h level="1">bar</h>
-baz
-
-dus
-<pre>ja
-</pre>hmm
-
-<h level="2">foo</h>
-bar
-
-dus ja <emphasis>hmm</emphasis>
-<emphasis>dus ja</emphasis>
-grrr
-
-<strong>foo</strong>
-
-<strong>bar</strong>
-
-   .
-</zim-tree>'''
-
-		from xml.etree.ElementTree import XMLParser
-		builder = XMLParser(target=OldParseTreeBuilder())
-		builder.feed(input)
-		root = builder.close()
-		tree = ParseTree(root)
-		self.assertEqual(tree.tostring(), wanted)
-
-
 class TestParseHeaderLines(tests.TestCase):
 
 	def runTest(self):

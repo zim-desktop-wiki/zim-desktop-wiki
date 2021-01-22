@@ -40,7 +40,8 @@ from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT, \
+	HEADING, LISTITEM, BLOCK_LEVEL
 from zim.formats.wiki import url_re, match_url
 from zim.actions import get_gtk_actiongroup, action, toggle_action
 from zim.gui.widgets import \
@@ -2602,16 +2603,27 @@ class TextBuffer(Gtk.TextBuffer):
 					bound = end.copy()
 					text = iter.get_slice(end)
 
-				if [t for t in open_tags if t[1] == 'li'] \
-				and bound.get_line() != iter.get_line():
-					# And limit bullets to a single line
+				break_at = None
+				MULTI_LINE_BLOCK = [t for t in BLOCK_LEVEL if t != HEADING]
+				if bound.get_line() != iter.get_line():
+					if any(t[1] == LISTITEM for t in open_tags):
+						# And limit bullets to a single line
+						break_at = LISTITEM
+					elif not raw and any(t[1] not in MULTI_LINE_BLOCK for t in open_tags):
+						# Prevent formatting tags to run multiple lines
+						for t in open_tags:
+							if t[1] not in MULTI_LINE_BLOCK:
+								break_at = t[1]
+								break
+
+				if break_at:
 					orig = bound
 					bound = iter.copy()
 					bound.forward_line()
 					assert bound.compare(orig) < 1
 					text = iter.get_slice(bound).rstrip('\n')
 					builder.data(text)
-					break_tags('li')
+					break_tags(break_at)
 					builder.data('\n') # add to tail
 				else:
 					# Else just insert text we got

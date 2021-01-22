@@ -1130,6 +1130,28 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		buffer.apply_tag(tag, *bounds)
 		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag>\n</p>', raw=False)
 
+	def testInlineTagsBreakAtNewline(self):
+		buffer = self.get_buffer('<emphasis>line1\nline2</emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<emphasis>line1\nline2</emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis>line2</emphasis>\n</p>', raw=False)
+
+	def testInlineTagsBreakAtNewline_ExampleIssue1245(self):
+		buffer = self.get_buffer(
+			'<strike>Ut enim ad minim veniam,\n'
+			'<link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>',
+			raw=True
+		)
+		self.assertBufferEquals(buffer,
+			'<strike>Ut enim ad minim veniam,\n'
+			'<link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>',
+			raw=True
+		)
+		self.assertBufferEquals(buffer,
+			'<p><strike>Ut enim ad minim veniam,</strike>\n'
+			'<strike><link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>\n</p>',
+			raw=False
+		)
+
 
 class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 
