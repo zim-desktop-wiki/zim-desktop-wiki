@@ -282,49 +282,77 @@ class InsertCodeBlockDialog(Dialog):
 		self.result = (None, None)
 		self.uistate.define(lang=String(None))
 		self.uistate.define(line_numbers=Boolean(True))
-		defaultlang = self.uistate['lang']
-
-		menu = {}
-		for l in sorted(LANGUAGES, key=lambda k: k.lower()):
-			key = l[0].upper()
-			if not key in menu:
-				menu[key] = []
-			menu[key].append(l)
-
-		model = Gtk.TreeStore(str)
-		defaultiter = None
-		for key in sorted(menu):
-			iter = model.append(None, [key])
-			for lang in menu[key]:
-				myiter = model.append(iter, [lang])
-				if LANGUAGES[lang] == defaultlang:
-					defaultiter = myiter
 
 		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 		hbox.set_spacing(5)
 		label = Gtk.Label(_('Syntax') +':') # T: input label
 		hbox.add(label)
 
-		combobox = Gtk.ComboBox.new_with_model(model)
-		renderer_text = Gtk.CellRendererText()
-		combobox.pack_start(renderer_text, True)
-		combobox.add_attribute(renderer_text, "text", 0)
-		if defaultiter is not None:
-			combobox.set_active_iter(defaultiter)
-		hbox.add(combobox)
-		self.combobox = combobox
+		# Setup combobox with autocompletion
+		self.combobox = Gtk.ComboBox.new_with_model_and_entry(self.init_combobox_model())
+		self.combobox.set_entry_text_column(0)
+		entry = self.combobox.get_child()
+		entry.set_activates_default(True)  # Pressing enter will activate the default button (here: ok-button)
+
+		completion = Gtk.EntryCompletion()
+		completion.set_model(self.init_autocomplete_model())
+		completion.set_text_column(0)
+		completion.set_minimum_key_length(0)
+		entry.set_completion(completion)
+
+		defaultlang = self.init_default_language()
+		if defaultlang:
+			entry.set_text(defaultlang)
+
+		self.combobox.connect("changed", self.on_combobox_changed)
+
+		hbox.add(self.combobox)
 		self.vbox.add(hbox)
+
 		self.checkbox = Gtk.CheckButton(_('Display line numbers')) # T: input checkbox
 		self.checkbox.set_active(self.uistate['line_numbers'])
 		self.vbox.add(self.checkbox)
 
-	def do_response_ok(self):
-		model = self.combobox.get_model()
-		iter = self.combobox.get_active_iter()
+		# Set ok button as default.
+		self.btn_ok = self.get_widget_for_response(response_id=Gtk.ResponseType.OK)
+		self.btn_ok.set_can_default(True)
+		self.btn_ok.grab_default()
+		self.btn_ok.set_sensitive(defaultlang is not None)
 
-		if iter is not None:
-			name = model[iter][0]
-			self.uistate['lang'] = LANGUAGES[name]
+	def init_default_language(self):
+		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
+			if LANGUAGES[lang] == self.uistate['lang']:
+				return lang
+		return None
+
+	def init_combobox_model(self):
+		menu = {}
+		for l in sorted(LANGUAGES, key=lambda k: k.lower()):
+			key = l[0].upper()
+			if not key in menu:
+				menu[key] = []
+			menu[key].append(l)
+		model = Gtk.TreeStore(str)
+		for key in sorted(menu):
+			iter = model.append(None, [key])
+			for lang in menu[key]:
+				model.append(iter, [lang])
+		return model
+
+	def init_autocomplete_model(self):
+		store = Gtk.TreeStore(str)
+		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
+			store.append(None, [lang])
+		return store
+
+	def on_combobox_changed(self, widget):
+		""" Checks whether the text entry in combobox is valid and enables/disables the ok-button. """
+		self.btn_ok = self.get_widget_for_response(response_id=Gtk.ResponseType.OK)
+		self.btn_ok.set_sensitive(widget.get_child().get_text() in LANGUAGES)
+
+	def do_response_ok(self):
+		if self.combobox.get_child().get_text() in LANGUAGES:
+			self.uistate['lang'] = LANGUAGES[self.combobox.get_child().get_text()]
 			self.uistate['line_numbers'] = self.checkbox.get_active()
 			self.result = (self.uistate['lang'], self.uistate['line_numbers'])
 			return True
