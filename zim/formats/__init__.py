@@ -854,7 +854,8 @@ class OldParseTreeBuilder(object):
 	also be used on other "dirty" interfaces.
 
 	This builder takes care of the following issues:
-		- Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
+		- ~~Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines~~
+		  (refactored out to `TextBuffer.get_parsetree()`)
 		- Tags can not contain only whitespace
 		- Tags can not be empty (with the exception of the 'img' tag)
 		- There should be an empty line before each 'h', 'p' or 'pre'

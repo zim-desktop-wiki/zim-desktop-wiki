@@ -1135,6 +1135,16 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		self.assertBufferEquals(buffer, '<emphasis>line1\nline2</emphasis>', raw=True)
 		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis>line2</emphasis>\n</p>', raw=False)
 
+	def testInlineTagsBreakAtNewline_MultipleTags(self):
+		buffer = self.get_buffer('<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1 <strong>foo</strong></emphasis>\n<emphasis><strong>line2</strong></emphasis>\n</p>', raw=False)
+
+	def testInlineTagsBreakAtNewline_LeaveNoEmptyTag(self):
+		buffer = self.get_buffer('<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis><strong>line2</strong></emphasis>\n</p>', raw=False)
+
 	def testInlineTagsBreakAtNewline_ExampleIssue1245(self):
 		buffer = self.get_buffer(
 			'<strike>Ut enim ad minim veniam,\n'
