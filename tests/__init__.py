@@ -118,7 +118,8 @@ def _setUpEnvironment():
 		'TEST_XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
 		'XDG_CONFIG_HOME': os.path.join(TMPDIR, 'config_home'),
 		'XDG_CONFIG_DIRS': os.path.join(TMPDIR, 'config_dir'),
-		'XDG_CACHE_HOME': os.path.join(TMPDIR, 'cache_home')
+		'XDG_CACHE_HOME': os.path.join(TMPDIR, 'cache_home'),
+		'XDG_RUNTIME_DIR': os.path.join(TMPDIR, 'runtime')
 	})
 
 	if os.path.isdir(TMPDIR):
