@@ -1162,6 +1162,18 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 			raw=False
 		)
 
+	def testHighLightedEmail_ExampleIssue1377(self):
+		# This could as well be a formatting test - and extend to other markup as well
+		buffer = self.get_buffer('<mark><link href="">mike@example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<mark><link href="">mike@example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<p><mark><link href="mike@example.com">mike@example.com</link></mark>\n</p>', raw=False)
+
+	def testHighLightedURL(self):
+		# This could as well be a formatting test - and extend to other markup as well
+		buffer = self.get_buffer('<mark><link href="">http://example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<mark><link href="">http://example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<p><mark><link href="http://example.com">http://example.com</link></mark>\n</p>', raw=False)
+
 
 class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 

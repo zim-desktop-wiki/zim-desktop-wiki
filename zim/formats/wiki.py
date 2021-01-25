@@ -79,19 +79,20 @@ def _remove_indent(text, indent):
 # NOTE: we follow rules of GFM spec, except:
 #  - we allow any URL scheme
 #  - we add a file URI match
+#  - do not allow to start with "__" because of conflict with mark markup parsing
 # For GFM Markdown parser, remove these exceptions
 #
 # File paths cannot contain '\', '/', ':', '*', '?', '"', '<', '>', '|'
 # These are valid URL / path seperators: / \ : ? |
 # So restrict matching " < > and also '
 url_re = re.compile(
-	'\\b(?P<url>'
+	'\\b(?!__)(?P<url>'
 
 	'(www\.|https?://|\w+://)'			# autolink & autourl prefix
 	'(?P<domain>([\w\-]+\.)+[\w\-]+)' 	# 2 or more domain sections
 	'[^\s<]*'					# any non-space char except "<"
 
-	')|(?P<email>'
+	')|(?!__)(?P<email>'
 
 	'(mailto:)?'
 	'[\w\.\-_+]+@'				# email prefix
@@ -129,9 +130,12 @@ def match_url(text):
 		url = m.group(0)
 		if m.lastgroup == 'email':
 			# Do not allow end in "-" or "_", use trailing "."
+			# modified rule from GFM to allow trailing __ because of mark markup
 			while url:
 				if url[-1] == '.':
 					url = url[:-1]
+				elif url[-1] == '_' and url[-2] == '_':
+					url = url[:-2]
 				elif url[-1] in ('-', '_'):
 					return None
 				else:
@@ -591,9 +595,12 @@ class WikiParser(object):
 			url = match_url(text)
 			if url is None:
 				self.inline_parser.backup_parser_offset(len(text) - 1)
+				builder.text(text[0]) # FIXME Ideally should allow re-parsing first character
 			elif url != text:
 				self.inline_parser.backup_parser_offset(len(text) - len(url))
-			builder.append(LINK, {'href': url}, url)
+				builder.append(LINK, {'href': url}, url)
+			else:
+				builder.append(LINK, {'href': url}, url)
 
 	@staticmethod
 	def parse_tag(builder, text):

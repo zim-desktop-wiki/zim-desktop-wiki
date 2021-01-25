@@ -2637,7 +2637,6 @@ class TextBuffer(Gtk.TextBuffer):
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
 		tree.encode_urls()
-		#~ print tree.tostring()
 
 		if not raw and tree.hascontent:
 			# Reparsing the parsetree in order to find raw wiki codes
