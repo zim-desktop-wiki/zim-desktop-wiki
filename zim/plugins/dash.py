@@ -184,7 +184,13 @@ class ZimDashDialog(Dialog):
 	def on_key_pressed(self, widget, event, data=None):
 		""" Listener for gtk.Entry key press events. """
 		if event.keyval == Gdk.KEY_Up or event.keyval == Gdk.KEY_Down:
-			self.txt_search.emit('changed')
+			# Open popup-menu with suggestions when pressing arrow-up/arrow-down key.
+			#
+			# Note: The popup-menu is only shown when the text field contains at least one character. This bypasses
+			#       a bug which appears when the text field is empty in which case the entries shown in the popup menu
+			#       can't be selected by pressing the ENTER key.
+			if len(self.txt_search.get_text()) > 0:
+				self.txt_search.emit('changed')
 			return True
 		elif event.keyval == Gdk.KEY_Escape:
 			self.close()
