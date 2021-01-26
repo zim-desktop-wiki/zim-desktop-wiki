@@ -8,17 +8,17 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2019-05-24 10:00+0000\n"
-"Last-Translator: Nick <Unknown>\n"
-"Language-Team: Russian <ru@li.org>\n"
+"PO-Revision-Date: 2021-01-27 20:32+0000\n"
+"Last-Translator: Nick222 <nick222@yandex.ru>\n"
+"Language-Team: Russian <https://hosted.weblate.org/projects/zim/master/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.5-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
@@ -1777,7 +1777,7 @@ msgstr "Имя файла"
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "Пароль"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -2292,7 +2292,7 @@ msgstr ""
 #: zim/newfs/local.py:60
 #, python-format
 msgid "File path too long: %s"
-msgstr ""
+msgstr "Слишком длинное имя файла: %s"
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:420
