@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2020-10-09 14:19+0000\n"
+"PO-Revision-Date: 2021-01-27 20:32+0000\n"
 "Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
 "Language-Team: Dutch <https://hosted.weblate.org/projects/zim/master/nl/>\n"
 "Language: nl\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.3-dev\n"
+"X-Generator: Weblate 4.5-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -995,10 +995,8 @@ msgstr "Kopiëren _Als..."
 
 #. menu item for context menu of editor
 #: zim/gui/pageview.py:6119
-#, fuzzy
-#| msgid "_Verbatim"
 msgid "Paste As _Verbatim"
-msgstr "_Letterlijk"
+msgstr "Tekst _letterlijk plakken"
 
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:6127
@@ -1656,22 +1654,17 @@ msgstr "Standaard text editor"
 
 #. help text in preferences dialog for modifying keybindings
 #: zim/gui/preferencesdialog.py:490
-#, fuzzy
-#| msgid ""
-#| "Key bindings can be changed by selecting the action in the list and "
-#| "pressing the new key binding.\n"
-#| "To disable a keybinding, select it in the list and use <tt>&lt;"
-#| "Backspace&gt;</tt>."
 msgid ""
 "Key bindings can be changed by clicking on a field with a key combination\n"
 "in the list and then press the new key binding.\n"
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
-"Toetsen combinaties kunnen worden veranderd door de actie te selecteren en "
-"een nieuwe toetsen\n"
-"combinatie in te drukken. Om een toetsen combinatie te verwijderen, "
-"selecteer de actie en gebruik <tt>&lt;Backspace&gt;</tt>."
+"Toetsen combinaties kunnen worden veranderd door op een veld met een "
+"toetsencombinatie te klikken\n"
+"en een nieuwe toetsen combinatie in te drukken. \n"
+"Om een toetsen combinatie te verwijderen, selecteer de combinatie en gebruik "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:509
@@ -2647,7 +2640,7 @@ msgstr "Tekst voorgrond kleur"
 #. plugin name
 #: zim/plugins/ditaaeditor.py:28
 msgid "Insert Ditaa"
-msgstr "Insert Ditaa"
+msgstr "Ditaa diagram invoegen"
 
 #. plugin description
 #: zim/plugins/ditaaeditor.py:29
@@ -2691,7 +2684,7 @@ msgstr "Formule"
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
 msgid "Insert Gnuplot"
-msgstr "Insert Gnuplot"
+msgstr "Gnuplot diagram invoegen"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:33
