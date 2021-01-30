@@ -137,9 +137,21 @@ some <b>bold</b> text
 		self.assertTrue(Clipboard.get_parsetree() is None)
 
 	def testCopyTextPasteAsParseTree(self):
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True">some string</zim-tree>'''
-		Clipboard.set_text('some string')
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True">some **string**</zim-tree>'''
+		Clipboard.set_text('some **string**')
 		newtree = Clipboard.get_parsetree(self.notebook)
+		self.assertEqual(newtree.tostring(), wanted)
+
+	def testCopyTextPasteAsParseTreeWiki(self):
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True"><p>some <strong>string</strong></p></zim-tree>'''
+		Clipboard.set_text('some **string**')
+		newtree = Clipboard.get_parsetree(self.notebook, text_format='wiki')
+		self.assertEqual(newtree.tostring(), wanted)
+
+	def testCopyTextPasteAsParseTreeVerbatim(self):
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True"><pre>some **string**</pre></zim-tree>'''
+		Clipboard.set_text('some **string**')
+		newtree = Clipboard.get_parsetree(self.notebook, text_format='verbatim-pre')
 		self.assertEqual(newtree.tostring(), wanted)
 
 	@tests.expectedFailure

@@ -35,6 +35,22 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2021-01-30" version="0.73.5">
+      <description>
+        <ul>
+          <li>Fix regression for "www." links in pages</li>
+          <li>Fix bug with email address or url wrapped in higlight markup</li>
+          <li>Fix bug with handling newline in inline formatting</li>
+          <li>Fix bug when deleting a bullet-like sequence</li>
+          <li>Fix bug with relative links in single page export</li>
+          <li>Fix bug if notebook name is not set</li>
+          <li>Interpret pasted text as "wiki" format and add "Paste As Verbatim"</li>
+          <li>Update default application lookup to latest spec</li>
+          <li>Fix portable environment windows installer</li>
+          <li>Merge Weblate translations</li>
+        </ul>
+      </description>
+    </release>
     <release date="2020-11-19" version="0.73.4">
       <description>
         <ul>

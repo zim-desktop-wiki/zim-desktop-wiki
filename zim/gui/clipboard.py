@@ -200,7 +200,7 @@ def deserialize_image(register_buf, content_buf, iter, data, length, create_tags
 	return True
 
 
-def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
+def parsetree_from_selectiondata(selectiondata, notebook=None, path=None, text_format='plain'):
 	'''Function to get a parsetree based on the selectiondata contents
 	if at all possible. Used by both copy-paste and drag-and-drop
 	methods.
@@ -216,6 +216,11 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 	@param selectiondata: a C{Gtk.SelectionData} object
 	@param notebook: a L{Notebook} object
 	@param path: a L{Path} object
+	@param text_format: format to parse pasted text, as a special case
+
+		- "verbatim" will wrap content in VERBARIM_BLOCK or VERBATIM element based on the content
+		- "verbatim-pre" will wrap the content in a VERBATIM_BLOCK element and
+		- "verbatim-code" will wrap the content in a VERBATIM element
 
 	@returns: a L{ParseTree} or C{None}
 	'''
@@ -234,7 +239,20 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		# try to catch this situation by a check here
 		text = selectiondata.get_text()
 		if text:
-			return get_format('plain').Parser().parse(text, partial=True)
+			if text_format in ('verbatim', 'verbatim-pre', 'verbatim-code'):
+				if text_format == 'verbatim':
+					tag_name = 'pre' if '\n' in text else 'code'
+				else:
+					tag_name = text_format[9:]
+				builder = ParseTreeBuilder(partial=True)
+				builder.start('zim-tree', {})
+				builder.start(tag_name, {})
+				builder.text(text)
+				builder.end(tag_name)
+				builder.end('zim-tree')
+				return builder.get_parsetree()
+			else:
+				return get_format(text_format).Parser().parse(text, partial=True)
 		else:
 			return None
 	elif targetname in IMAGE_TARGET_NAMES:
@@ -549,7 +567,7 @@ class ClipboardManager(object):
 		self.set_clipboard_data(
 			ParseTreeData(notebook, path, parsetree, format) )
 
-	def get_parsetree(self, notebook=None, path=None):
+	def get_parsetree(self, notebook=None, path=None, text_format='plain'):
 		'''Get a parsetree from the clipboard.
 
 		Can handle various data types and convert them to L{ParseTree}
@@ -561,6 +579,7 @@ class ClipboardManager(object):
 
 		@param notebook: a L{Notebook} object
 		@param path: a L{Path} object
+		@param text_format: format to parse pasted text
 
 		@returns: a L{ParseTree} or C{None}
 		'''
@@ -582,7 +601,7 @@ class ClipboardManager(object):
 					assert len(targets) > 0
 					logger.debug('Requesting data for %s -- using set_with_data() workaround', targets[0])
 					selectiondata = MockSelectionData(targets[0], self.data)
-					return parsetree_from_selectiondata(selectiondata, notebook, path)
+					return parsetree_from_selectiondata(selectiondata, notebook, path, text_format)
 		###
 
 		atoms = sorted(
@@ -595,7 +614,7 @@ class ClipboardManager(object):
 			logger.debug('Requesting data for %s', atom)
 			selectiondata = self.clipboard.wait_for_contents(atom)
 			if selectiondata:
-				return parsetree_from_selectiondata(selectiondata, notebook, path)
+				return parsetree_from_selectiondata(selectiondata, notebook, path, text_format)
 			else:
 				logger.warn('Did not get requested data from clipboard')
 				return None

@@ -42,7 +42,8 @@ from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT, \
+	HEADING, LISTITEM, BLOCK_LEVEL
 from zim.formats.wiki import url_re, match_url
 from zim.actions import get_gtk_actiongroup, action, toggle_action, get_actions, \
 	ActionClassMethod, ToggleActionClassMethod, initialize_actiongroup
@@ -203,6 +204,7 @@ _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
 _is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
+_is_pre_or_code_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code')
 _is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag)
 _is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
@@ -594,6 +596,7 @@ class TextBuffer(Gtk.TextBuffer):
 		self.page = page
 		self._insert_tree_in_progress = False
 		self._deleted_editmode_mark = None
+		self._deleted_line_end = False
 		self._check_renumber = []
 		self._renumbering = False
 		self.user_action = UserActionContext(self)
@@ -2211,11 +2214,21 @@ class TextBuffer(Gtk.TextBuffer):
 		self._deleted_editmode_mark = self.create_mark(None, end, left_gravity=True)
 		self._deleted_editmode_mark.editmode_tags = self.iter_get_zim_tags(end)
 
+		# Also need to know whether range spanned multiple lines or not
+		self._deleted_line_end = start.get_line() != end.get_line()
+
 	def do_post_delete_range(self, start, end):
 		# Post handler to hook _do_lines_merged and do some logic
 		# when deleting bullets
 		# Note that 'start' and 'end' refer to the same postion here ...
 
+		was_list = (
+			not start.ends_line()
+			and any(t for t in start.get_tags() if _is_indent_tag(t) and t.zim_attrib.get('_bullet'))
+		)
+
+		# Do merging of tags regardless of whether we deleted a line end or not
+		# worst case some clean up of run-aways tags is done
 		if (
 			(
 				not start.starts_line()
@@ -2227,11 +2240,13 @@ class TextBuffer(Gtk.TextBuffer):
 		):
 			self._do_lines_merged(start)
 
-		bullet = self._get_bullet_at_iter(start)
-		if bullet is not None:
+		# For cleaning up bullets do check more, else we can delete sequences
+		# that look like a bullet but aren't - see issue #1328
+		bullet = self._get_bullet_at_iter(start) # Does not check start of line !
+		if self._deleted_line_end and bullet is not None:
 			if start.starts_line():
 				self._check_renumber.append(start.get_line())
-			else:
+			elif was_list:
 				# Clean up the redundant bullet
 				offset = start.get_offset()
 				bound = start.copy()
@@ -2243,6 +2258,8 @@ class TextBuffer(Gtk.TextBuffer):
 				# there is a crash here on some systems - see issue #766
 				start.assign(new)
 				end.assign(new)
+			else:
+				pass
 		elif start.starts_line():
 			indent_tags = list(filter(_is_indent_tag, start.get_tags()))
 			if indent_tags and indent_tags[0].zim_attrib['_bullet']:
@@ -2592,16 +2609,27 @@ class TextBuffer(Gtk.TextBuffer):
 					bound = end.copy()
 					text = iter.get_slice(end)
 
-				if [t for t in open_tags if t[1] == 'li'] \
-				and bound.get_line() != iter.get_line():
-					# And limit bullets to a single line
+				break_at = None
+				MULTI_LINE_BLOCK = [t for t in BLOCK_LEVEL if t != HEADING]
+				if bound.get_line() != iter.get_line():
+					if any(t[1] == LISTITEM for t in open_tags):
+						# And limit bullets to a single line
+						break_at = LISTITEM
+					elif not raw and any(t[1] not in MULTI_LINE_BLOCK for t in open_tags):
+						# Prevent formatting tags to run multiple lines
+						for t in open_tags:
+							if t[1] not in MULTI_LINE_BLOCK:
+								break_at = t[1]
+								break
+
+				if break_at:
 					orig = bound
 					bound = iter.copy()
 					bound.forward_line()
 					assert bound.compare(orig) < 1
 					text = iter.get_slice(bound).rstrip('\n')
 					builder.data(text)
-					break_tags('li')
+					break_tags(break_at)
 					builder.data('\n') # add to tail
 				else:
 					# Else just insert text we got
@@ -2615,7 +2643,6 @@ class TextBuffer(Gtk.TextBuffer):
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
 		tree.encode_urls()
-		#~ print tree.tostring()
 
 		if not raw and tree.hascontent:
 			# Reparsing the parsetree in order to find raw wiki codes
@@ -2993,7 +3020,7 @@ class TextBuffer(Gtk.TextBuffer):
 			self.copy_clipboard(clipboard)
 			self.delete_selection(True, default_editable)
 
-	def paste_clipboard(self, clipboard, iter, default_editable):
+	def paste_clipboard(self, clipboard, iter, default_editable, text_format=None):
 		'''Paste data from a clipboard into the buffer
 
 		@param clipboard: a L{Clipboard} object
@@ -3005,6 +3032,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 		if iter is None:
 			iter = self.get_iter_at_mark(self.get_insert())
+			tags = list(filter(_is_pre_or_code_tag, self._editmode_tags))
+			if tags:
+				text_format = 'verbatim-' + tags[0].zim_tag
 		elif self.get_has_selection():
 			# unset selection if explicit iter is given
 			bound = self.get_selection_bound()
@@ -3018,7 +3048,13 @@ class TextBuffer(Gtk.TextBuffer):
 			self.create_mark('zim-paste-position', iter, left_gravity=False)
 
 		#~ clipboard.debug_dump_contents()
-		parsetree = clipboard.get_parsetree(self.notebook, self.page)
+		if text_format is None:
+			tags = list(filter(_is_pre_or_code_tag, self.iter_get_zim_tags(iter)))
+			if tags:
+				text_format = 'verbatim-' + tags[0].zim_tag
+			else:
+				text_format = 'wiki' # TODO: should depend on page format
+		parsetree = clipboard.get_parsetree(self.notebook, self.page, text_format)
 		if not parsetree:
 			return
 
@@ -3775,10 +3811,10 @@ class TextView(Gtk.TextView):
 		self.get_buffer().cut_clipboard(Clipboard, self.get_editable())
 		self.scroll_mark_onscreen(self.get_buffer().get_insert())
 
-	def do_paste_clipboard(self):
+	def do_paste_clipboard(self, format=None):
 		# Overriden to force usage of our Textbuffer.paste_clipboard
 		# over Gtk.TextBuffer.paste_clipboard
-		self.get_buffer().paste_clipboard(Clipboard, None, self.get_editable())
+		self.get_buffer().paste_clipboard(Clipboard, None, self.get_editable(), text_format=format)
 		self.scroll_mark_onscreen(self.get_buffer().get_insert())
 
 	#~ def do_drag_motion(self, context, *a):
@@ -6154,6 +6190,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		item.set_submenu(copy_as_menu)
 		item.show_all()
 		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
+			# FIXME get code from test to seek stock item
+
+		### Paste As
+		item = Gtk.MenuItem.new_with_mnemonic(_('Paste As _Verbatim')) # T: menu item for context menu of editor
+		item.set_sensitive(Clipboard.clipboard.wait_is_text_available())
+		item.connect('activate', lambda o: self.textview.do_paste_clipboard(format='verbatim'))
+		item.show_all()
+		menu.insert(item, 4) # position after Paste in the standard menu - may not be robust...
 			# FIXME get code from test to seek stock item
 
 		### Move text to new page ###

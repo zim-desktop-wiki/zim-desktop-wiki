@@ -5,6 +5,18 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.73.5 - Sat 30 Jan 2021
+* Fix regression for "www." links in pages
+* Fix bug with email address or url wrapped in higlight markup
+* Fix bug with handling newline in inline formatting
+* Fix bug when deleting a bullet-like sequence
+* Fix bug with relative links in single page export
+* Fix bug if notebook name is not set
+* Interpret pasted text as "wiki" format and add "Paste As Verbatim"
+* Update default application lookup to latest spec
+* Fix portable environment windows installer
+* Merge Weblate translations
+
 ##  0.73.4 - Thu 19 Nov 2020
 * Fix issue with relative links on windows
 * Fix reload page after change in external editor

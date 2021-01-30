@@ -177,6 +177,7 @@ class NotebookTreeView(Gtk.TreeView):
 		self.get_selection().set_mode(Gtk.SelectionMode.BROWSE)
 		self.set_rules_hint(True)
 		self.set_reorderable(True)
+		self.set_search_column(NAME_COL)
 
 		cell_renderer = Gtk.CellRendererPixbuf()
 		column = Gtk.TreeViewColumn(None, cell_renderer, pixbuf=PIXBUF_COL)

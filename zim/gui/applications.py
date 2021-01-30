@@ -23,7 +23,8 @@ from gi.repository import GdkPixbuf
 
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
-from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, data_dirs, SectionedConfigDict, INIConfigFile
+from zim.config import XDG_CONFIG_HOME, XDG_CONFIG_DIRS, XDG_DATA_HOME, XDG_DATA_DIRS, \
+	data_dirs, SectionedConfigDict, INIConfigFile
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, strip_boolean_result
@@ -61,22 +62,18 @@ def _application_dirs():
 		yield dir.subdir('applications')
 
 
-def _create_application(dir, Name, Exec, klass=None, NoDisplay=True, **param):
-	n = cleanup_filename(Name.lower()) + '-usercreated'
-	key = n
-	file = dir.file(key + '.desktop')
+def _create_application(dir, basename, Name, Exec, NoDisplay=True, **param):
+	file = dir.file(basename)
 	i = 0
 	while file.exists():
 		assert i < 1000, 'BUG: Infinite loop ?'
 		i += 1
-		key = n + '-' + str(i)
-		file = dir.file(key + '.desktop')
+		basename = basename[:-8] + '-' + str(i) + '.desktop'
+		file = dir.file(basename)
 
-	if klass is None:
-		klass = DesktopEntryFile
-	entry = klass(file)
+	entry = DesktopEntryFile(file)
 	entry.update(
-		Type=param.pop('Type', 'Application'),
+		Type='Application',
 		Version=1.0,
 		NoDisplay=NoDisplay,
 		Name=Name,
@@ -88,22 +85,15 @@ def _create_application(dir, Name, Exec, klass=None, NoDisplay=True, **param):
 	entry.write()
 
 	if param.get('MimeType'):
+		mimetype = param.get('MimeType')
+
+		# Update mimeapps
+		defaults = XDG_CONFIG_HOME.file('mimeapps.list')
+		_update_mimeapps_file(defaults, '[Added Associations]', mimetype, basename, replace=False)
+
 		# Update mimetype cache
 		cache = dir.file('mimeinfo.cache')
-		if not cache.exists():
-			lines = ['[MIME Cache]\n']
-		else:
-			lines = cache.readlines()
-
-		mimetype = param.get('MimeType')
-		for i, line in enumerate(lines):
-			if line.startswith(mimetype + '='):
-				lines[i] = line.strip() + ';' + key + '.desktop\n'
-				break
-		else:
-			lines.append(mimetype + '=' + key + '.desktop\n')
-
-		cache.writelines(lines)
+		_update_mimeapps_file(cache, '[MIME Cache]', mimetype, basename, replace=False)
 
 	return entry
 
@@ -211,12 +201,57 @@ def _read_comment_from(file):
 		else:
 			return None
 
+def _update_mimeapps_file(file, section, key, value, replace):
+	assert section.startswith('[')
+	assert not (not value and not replace)
+	assert value is None or value.endswith('.desktop')
+	key = key + '='
+
+	if file.exists():
+		lines = file.readlines()
+	else:
+		lines = [section + '\n']
+
+	insert_location = None
+	in_section = False
+	for i, line in enumerate(lines):
+		if line.startswith(section):
+			in_section = True
+			insert_location = i + 1
+		elif in_section:
+			if line.startswith(key):
+				if replace:
+					if value:
+						lines[i] = key + value + '\n'
+					else:
+						lines[i] = ''
+				else:
+					lines[i] = key + value + ';' + lines[i][len(key):]
+				break
+			elif line.startswith('['):
+				in_section = False
+			elif not line.isspace():
+				insert_location = i + 1
+			else:
+				pass # empty lines
+	else:
+		if value:
+			if insert_location is None: # section not found - add it
+				lines.extend(['\n', section + '\n', key + value + '\n'])
+			else:
+				lines.insert(insert_location, key + value + '\n')
+
+	file.writelines(lines)
+
+
 
 class ApplicationManager(object):
 	'''Manager object for dealing with desktop applications. Uses the
 	freedesktop.org (XDG) system to locate desktop entry files for
 	installed applications.
 	'''
+
+	_defaults_app_cache = {}
 
 	@staticmethod
 	def get_application(name):
@@ -249,30 +284,61 @@ class ApplicationManager(object):
 		@param mimetype: the mime-type of the file (e.g. "text/html")
 		@returns: an L{Application} object or C{None}
 		'''
-		## Based on logic from xdg-mime defapp_generic()
-		## Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
+		# TODO: also check timestamp of mimeapps for validity of the cache ?
+		if mimetype in klass._defaults_app_cache \
+			and klass._defaults_app_cache[mimetype] is not None \
+				and not klass._defaults_app_cache[mimetype].file.exists():
+					del klass._defaults_app_cache[mimetype]
+
+		if mimetype not in klass._defaults_app_cache:
+			klass._defaults_app_cache[mimetype] = klass._get_default_application(mimetype)
+
+		return klass._defaults_app_cache[mimetype]
+
+	@staticmethod
+	def _mimeapps_files():
+		desktops = []
+		if os.environ.get('XDG_CURRENT_DESKTOP'):
+			desktops = os.environ['XDG_CURRENT_DESKTOP'].split(';')
+		folders = [XDG_CONFIG_HOME] + XDG_CONFIG_DIRS
+		folders += [f.subdir('applications') for f in [XDG_DATA_HOME] + XDG_DATA_DIRS]
+
+		for folder in folders:
+			for desktop in desktops:
+				file = folder.file('%s-mimeapps.list' % desktop)
+				if file.exists():
+					yield file
+
+			file = folder.file('mimeapps.list')
+			if file.exists():
+				yield file
+
+		for folder in _application_dirs():
+			file = folder.file('defaults.list')
+			if file.exists():
+				yield file
+
+	@classmethod
+	def _get_default_application(klass, mimetype):
+		## Based on https://specifications.freedesktop.org/mime-apps-spec/latest/
+		## Version 1.0 dated 2 April 2014
 		##
-		## Considered calling xdg-mime directly with code below as fallback.
-		## But xdg-mime has only a special case for KDE, all others are generic.
-		## Our purpose is to be able to set defaults ourselves and read them back.
-		## If we fail we fallback to opening files with the file browser which
-		## defaults to xdg-open. So even if the system does not support the
-		## generic implementation, it will behave sanely and fall back to system
-		## defaults.
+		## Implemented from scratch to ensure platform independent support
+		##
+		## Kept "defaults.list" file support for backward compatibility
+		## when changing zim versions.
 
-		## TODO: optimize for being called very often ?
-
-		for dir in _application_dirs():
-			default_file = dir.file('defaults.list')
-			if not default_file.exists():
-				continue
-
+		for default_file in klass._mimeapps_files():
+			in_default_section = False
 			for line in default_file.readlines():
-				if line.startswith(mimetype + '='):
+				if line.startswith('[Default Applications]'):
+					in_default_section = True
+				elif in_default_section and line.startswith('['):
+					break # new group, look no further
+
+				if in_default_section and line.startswith(mimetype + '='):
 					_, key = line.strip().split('=', 1)
 					for k in key.split(';'):
-						# Copied logic from xdg-mime, apparently entries
-						# can be ";" seperated lists
 						k = k.strip()
 						application = klass.get_application(k)
 						if application is not None:
@@ -281,8 +347,8 @@ class ApplicationManager(object):
 		else:
 			return None
 
-	@staticmethod
-	def set_default_application(mimetype, application):
+	@classmethod
+	def set_default_application(klass, mimetype, application):
 		'''Set the default application to open a file with a specific
 		mimetype. Updates the C{applications/defaults.list} file.
 		As a special case when you set the default to C{None} it will
@@ -291,10 +357,10 @@ class ApplicationManager(object):
 		@param mimetype: the mime-type of the file (e.g. "text/html")
 		@param application: an L{Application} object or C{None}
 		'''
-		## Based on logic from xdg-mime make_default_generic()
-		## Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
-		##
-		## See comment in get_default_application()
+		## Based on https://specifications.freedesktop.org/mime-apps-spec/latest/
+		## Version 1.0 dated 2 April 2014
+
+		klass._defaults_app_cache[mimetype] = application
 
 		if application is not None:
 			if not isinstance(application, str):
@@ -303,16 +369,8 @@ class ApplicationManager(object):
 			if not application.endswith('.desktop'):
 				application += '.desktop'
 
-		default_file = XDG_DATA_HOME.file('applications/defaults.list')
-		if default_file.exists():
-			lines = default_file.readlines()
-			lines = [l for l in lines if not l.startswith(mimetype + '=')]
-		else:
-			lines = ['[Default Applications]\n']
-
-		if application:
-			lines.append('%s=%s\n' % (mimetype, application))
-		default_file.writelines(lines)
+		file = XDG_CONFIG_HOME.file('mimeapps.list')
+		_update_mimeapps_file(file, '[Default Applications]', mimetype, application, replace=True)
 
 	@staticmethod
 	def create(mimetype, Name, Exec, **param):
@@ -335,7 +393,8 @@ class ApplicationManager(object):
 		'''
 		dir = XDG_DATA_HOME.subdir('applications')
 		param['MimeType'] = mimetype
-		file = _create_application(dir, Name, Exec, **param)
+		basename = cleanup_filename(Name.lower()) + '-usercreated.desktop'
+		file = _create_application(dir, basename, Name, Exec, **param)
 		return file
 
 	@classmethod
@@ -395,9 +454,40 @@ class ApplicationManager(object):
 		@returns: a list of L{Application} objects that are known to
 		be able to handle this file type
 		'''
+		## Supporting mimapps.list
+		## Based on https://specifications.freedesktop.org/mime-apps-spec/latest/
+		## Version 1.0 dated 2 April 2014
+		##
+		## Also using older "mimeinfo.cache" which is deprecated in the spec
+		## but still in use at least on Ubuntu as of Jan 2021
+		##
+		## TODO: cache these as well ?
+
 		seen = set()
 		entries = []
+		blacklist = set()
 		key = '%s=' % mimetype
+
+		def add_entry(basename, dirs):
+			if basename not in seen and basename not in blacklist:
+				file = _application_file(basename, dirs)
+				if file:
+					entries.append(DesktopEntryFile(File(file)))
+					seen.add(basename)
+
+		for file in klass._mimeapps_files():
+			section=None
+			for line in file.readlines():
+				if line.startswith('['):
+					section=line.strip()
+				elif line.startswith(key):
+					if section in ('[Default Applications]', '[Added Associations]'):
+						for basename in line[len(key):].strip().split(';'):
+							add_entry(basename, _application_dirs())
+					elif section == '[Removed Associations]':
+						for basename in line[len(key):].strip().split(';'):
+							blacklist.add(basename)
+
 		for dir in _application_dirs():
 			cache = dir.file('mimeinfo.cache')
 			if not cache.exists():
@@ -405,20 +495,14 @@ class ApplicationManager(object):
 			for line in cache.readlines():
 				if line.startswith(key):
 					for basename in line[len(key):].strip().split(';'):
-						if basename in seen:
-							continue
-						else:
-							file = _application_file(basename, (dir,))
-							if file:
-								entries.append(DesktopEntryFile(File(file)))
-								seen.add(basename)
+						add_entry(basename, (dir,))
 
 		if mimetype in ('x-scheme-handler/http', 'x-scheme-handler/https'):
 			# Since "x-scheme-handler" is not in the standard, some browsers
 			# only identify themselves with "text/html".
 			for entry in klass.list_applications('text/html', nodisplay): # recurs
 				basename = entry.key + '.desktop'
-				if not basename in seen:
+				if basename not in seen and basename not in blacklist:
 					entries.append(entry)
 					seen.add(basename)
 
@@ -429,7 +513,7 @@ class ApplicationManager(object):
 
 
 from zim.errors import Error
-from zim.parsing import is_win32_share_re, is_url_re, is_uri_re
+from zim.parsing import is_win32_share_re, is_url_re, is_uri_re, is_www_link_re
 
 from zim.fs import adapt_from_newfs, normalize_win32_share
 from zim.newfs import FileNotFoundError
@@ -535,6 +619,8 @@ def open_url(widget, url):
 		if os.name == 'nt':
 			return _open_with_filebrowser(widget, url)
 		# else consider as a x-scheme-handler/smb type URI below
+	elif is_www_link_re.match(url):
+		url = 'http://' + url
 	elif not is_uri_re.match(url):
 		raise ValueError('Not an URL: %s' % url)
 	else:

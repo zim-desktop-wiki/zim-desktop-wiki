@@ -138,7 +138,7 @@ class FileLayout(DirLayoutBase):
 	   `--> subpage/attachment.pdf
 	   `--> _resources/
 
-	The root for relative links is "page_files/"
+	The root for relative links is the parent folder of "page.html" and "page_files/"
 	'''
 
 	def __init__(self, file, page, ext):
@@ -157,7 +157,7 @@ class FileLayout(DirLayoutBase):
 		if '.' in basename:
 			basename, x = basename.rsplit('.', 1)
 		self.dir = file.parent().folder(basename + '_files')
-		self.relative_root = self.dir
+		self.relative_root = file.parent()
 
 	def page_file(self, page):
 		if page == self.namespace:
@@ -186,7 +186,7 @@ class SingleFileLayout(DirLayoutBase):
 	   `--> subpage/attachment.pdf
 	   `--> _resources/
 
-	The root for relative links is "page_files/"
+	The root for relative links is the parent folder of "page.html" and "page_files/"
 	'''
 
 	def __init__(self, file, page=None):
@@ -202,7 +202,7 @@ class SingleFileLayout(DirLayoutBase):
 		if '.' in basename:
 			basename, x = basename.rsplit('.', 1)
 		self.dir = file.parent().folder(basename + '_files')
-		self.relative_root = self.dir
+		self.relative_root = file.parent()
 
 		self.namespace = page
 

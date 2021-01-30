@@ -145,6 +145,19 @@ The file location of this configuration is: ''$XDG_CONFIG_HOME/gtk-3.0/gtk.css''
 
 In addition there are some settings that are not in CSS but can be configured via  ''$XDG_CONFIG_HOME/gtk-3.0/settings.ini'' . The developer documentation is here: https://developer.gnome.org/gtk3/stable/GtkSettings.html
 
+	**NOTE:** if you installed zim on Windows using the installer, the location for these files are ''<zim-installation-dir>\etc\gtk-3.0\gtk.css'' and ''<zim-installation-dir>\etc\gtk-3.0\settings.ini ''respectively.
+
+Specifically the Gtk theme can be configured via the ''settings.ini'' file by setting ''gtk-theme-name'' after installing a custom theme on your system.
+
+Also the ''settings.ini'' can be used to request the dark version of any theme like this:
+
+'''
+[Settings]
+gtk-application-prefer-dark-theme=1
+'''
+
+  NOTE: for the windows installer, you can use ''.\etc\gtk-3.0\settings.ini'' relative to the install folder of the application.
+
 There are some widgets in zim that have a name set, so they can be addressed specifically from the CSS style using an id selector ("''#name''").
 
 Specific ones are:

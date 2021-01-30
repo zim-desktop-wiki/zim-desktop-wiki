@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 Creation-Date: Wed, 08 Jul 2009 23:26:20 +0200
 
 ====== FAQ ======
@@ -21,6 +21,9 @@ These are pages that are linked by other pages but do not (yet) contain text. Yo
 ===== Why do some pages not disappear from the index after deleting them? =====
 The index keeps pages that are linked by other pages even if you delete them. To completely remove them you also need change any page linking them.
 
+===== I pasted a shall script / C code / ... and it looks all mangled up - is this a bug ? =====
+No, zim uses wiki formatting to save text, so some sequences of special characters will be interpreted as text formatting. This is enabled on purpose to let users type in wiki sequences directly. The downside is that when you include computer code or other text with many special characters it might get interpreted while that is not what you wanted. To avoid this either use the [[Plugins:Source View|Source View plugin]] or verbatim formatting. To paste directly with verbatim formatting there is a menu item in the context menu "Paste As Verbatim".
+
 ===== I would like zim to hide in the system tray. =====
 There is a [[Plugins:Tray Icon|Tray Icon plugin]] which can be enabled from the Preferences dialog.
 
@@ -28,7 +31,7 @@ There is a [[Plugins:Tray Icon|Tray Icon plugin]] which can be enabled from the 
 You can call the [[Plugins:Tray Icon|Tray Icon plugin]] with the command "''zim --plugin trayicon''"
 
 ===== Can I make zim appear with a global keybinding? =====
-By default zim will  only run a single instance of each notebook. Trying to open the same notebook again will just pop the corresponding window to the foreground. So you can set a default notebook (see [[Help:Notebooks|Notebooks]]) and just make a global key binding run the command "''zim''". 
+By default zim will  only run a single instance of each notebook. Trying to open the same notebook again will just pop the corresponding window to the foreground. So you can set a default notebook (see [[Help:Notebooks|Notebooks]]) and just make a global key binding run the command "''zim''".
 
 ===== How do I publish content from zim to my webpage? =====
 See [[Usage:Publishing]] for some tips
@@ -63,6 +66,12 @@ By synchronizing all visible files in the notebook. E.g. by putting the zim note
 ===== Can multiple people collaborate using a zim notebook ? =====
 Zim is written as a "single user" program, so it is not intended for multiple people using the same notebook. However it can be used with version control like Bazaar, Git or Mercurial. This way multiple users can work on the same notebook and merge their changes. See the [[Plugins:Version Control|Version Control plugin]].
 
+
+===== How do I change the Gtk theme? =====
+On a Linux desktop, you can probably do this via your settings manager.
+
+Windows users and users please see the section "Gtk configuration" in [[Help:Config Files]]
+
+
 ===== I have a useful trick or tip. How can I share it with other users? =====
 You can have a look at the [[https://www.zim-wiki.org/wiki/|zim documentation wiki]]. It has a section dedicated to tricks and tips. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
-

@@ -71,7 +71,7 @@ import logging
 import types
 
 from zim.fs import Dir, File
-from zim.parsing import link_type, is_url_re, \
+from zim.parsing import link_type, is_url_re, is_www_link_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
 from zim.config import data_file, ConfigDict
@@ -488,7 +488,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.iter('link'):
 			href = link.attrib['href']
-			if href and is_url_re.match(href):
+			if href and is_url_re.match(href) or is_www_link_re.match(href):
 				link.attrib['href'] = url_encode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
@@ -499,7 +499,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.iter('link'):
 			href = link.attrib['href']
-			if href and is_url_re.match(href):
+			if href and is_url_re.match(href) or is_www_link_re.match(href):
 				link.attrib['href'] = url_decode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
@@ -859,7 +859,8 @@ class OldParseTreeBuilder(object):
 	also be used on other "dirty" interfaces.
 
 	This builder takes care of the following issues:
-		- Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
+		- ~~Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines~~
+		  (refactored out to `TextBuffer.get_parsetree()`)
 		- Tags can not contain only whitespace
 		- Tags can not be empty (with the exception of the 'img' tag)
 		- There should be an empty line before each 'h', 'p' or 'pre'
@@ -977,6 +978,7 @@ class OldParseTreeBuilder(object):
 
 		#~ print('DATA:', self._data)
 		text = ''.join(self._data)
+		self._data = []
 
 		# Fix trailing newlines
 		if text:
@@ -1010,45 +1012,12 @@ class OldParseTreeBuilder(object):
 
 		if text:
 			assert not self._last is None, 'data seen before root element'
-			self._data = []
-
-			# Tags that are not allowed to have newlines
-			if not self._tail and self._last.tag in (
-			'h', 'emphasis', 'strong', 'mark', 'strike', 'code'):
-                # assume no nested tags in these types ... XXE3rd: WHY we assume no nested tags? They are now all of them nested and it still works well without change.
-				if self._seen_eol:
-					text = text.rstrip('\n')
-					self._data.append('\n' * self._seen_eol)
-					self._seen_eol = 0
-				lines = text.split('\n')
-
-				for line in lines[:-1]:
-					assert self._last.text is None, "internal error (text)"
-					assert self._last.tail is None, "internal error (tail)"
-					if line and not line.isspace():
-						self._last.text = line
-						self._last.tail = '\n'
-						attrib = self._last.attrib.copy()
-						self._last = ElementTreeModule.Element(self._last.tag, attrib)
-						self._stack[-2].append(self._last)
-						self._stack[-1] = self._last
-					else:
-						self._append_to_previous(line + '\n')
-
-				assert self._last.text is None, "internal error (text)"
-				self._last.text = lines[-1]
+			if self._tail:
+				assert self._last.tail is None, "internal error (tail)"
+				self._last.tail = text
 			else:
-				# TODO split paragraphs
-
-				if self._tail:
-					assert self._last.tail is None, "internal error (tail)"
-					self._last.tail = text
-				else:
-					assert self._last.text is None, "internal error (text)"
-					self._last.text = text
-		else:
-			self._data = []
-
+				assert self._last.text is None, "internal error (text)"
+				self._last.text = text
 
 	def close(self):
 		assert len(self._stack) == 0, 'missing end tags'

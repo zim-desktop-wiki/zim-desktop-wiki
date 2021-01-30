@@ -632,8 +632,7 @@ C
 		buffer = TextBuffer(notebook, page)
 		buffer.set_parsetree(tree)
 
-		# Position at end of first lest item and delete end of line
-		buffer.place_cursor(buffer.get_iter_at_offset(9))
+		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
 		start = buffer.get_insert_iter()
 		end = start.copy()
 		end.forward_char()
@@ -645,6 +644,63 @@ C
 <zim-tree>
 <p><ul><li bullet="*">item 1item 2</li></ul></p>
 </zim-tree>''')
+
+	def testMergeLinesWithNotABulletWithoutNewline(self):
+		# See issue #1328, avoid accidental removal of something that looks
+		# like a bullet
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<ul><li>item 1 123. test</li></ul>
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tree)
+
+		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
+		start = buffer.get_insert_iter()
+		end = start.copy()
+		end.forward_char()
+		buffer.delete_interactive(start, end, True)
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul><li bullet="*">item 1123. test</li></ul></p>
+</zim-tree>''')
+
+	def testMergeLinesWithNotABulletAfterNewline(self):
+		# See issue #1328, avoid accidental removal of something that looks
+		# like a bullet
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<ul><li>item 1</li></ul>123. test
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tree)
+
+		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
+		start = buffer.get_insert_iter()
+		end = start.copy()
+		end.forward_char()
+		buffer.delete_interactive(start, end, True)
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul><li bullet="*">item 1123. test</li></ul></p></zim-tree>''')
 
 	def testFormatHeading(self):
 		buffer = self.get_buffer('foo bar\n')
@@ -1074,6 +1130,50 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(tag, *bounds)
 		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag>\n</p>', raw=False)
+
+	def testInlineTagsBreakAtNewline(self):
+		buffer = self.get_buffer('<emphasis>line1\nline2</emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<emphasis>line1\nline2</emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis>line2</emphasis>\n</p>', raw=False)
+
+	def testInlineTagsBreakAtNewline_MultipleTags(self):
+		buffer = self.get_buffer('<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1 <strong>foo</strong></emphasis>\n<emphasis><strong>line2</strong></emphasis>\n</p>', raw=False)
+
+	def testInlineTagsBreakAtNewline_LeaveNoEmptyTag(self):
+		buffer = self.get_buffer('<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis><strong>line2</strong></emphasis>\n</p>', raw=False)
+
+	def testInlineTagsBreakAtNewline_ExampleIssue1245(self):
+		buffer = self.get_buffer(
+			'<strike>Ut enim ad minim veniam,\n'
+			'<link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>',
+			raw=True
+		)
+		self.assertBufferEquals(buffer,
+			'<strike>Ut enim ad minim veniam,\n'
+			'<link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>',
+			raw=True
+		)
+		self.assertBufferEquals(buffer,
+			'<p><strike>Ut enim ad minim veniam,</strike>\n'
+			'<strike><link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>\n</p>',
+			raw=False
+		)
+
+	def testHighLightedEmail_ExampleIssue1377(self):
+		# This could as well be a formatting test - and extend to other markup as well
+		buffer = self.get_buffer('<mark><link href="">mike@example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<mark><link href="">mike@example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<p><mark><link href="mike@example.com">mike@example.com</link></mark>\n</p>', raw=False)
+
+	def testHighLightedURL(self):
+		# This could as well be a formatting test - and extend to other markup as well
+		buffer = self.get_buffer('<mark><link href="">http://example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<mark><link href="">http://example.com</link></mark>', raw=True)
+		self.assertBufferEquals(buffer, '<p><mark><link href="http://example.com">http://example.com</link></mark>\n</p>', raw=False)
 
 	def testAppendTree(self):
 		input = '''\
@@ -1982,6 +2082,32 @@ foo
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="%s">%s</link></zim-tree>' % (wanted, wanted))
 
+	def testPasteWikiAndVerbatim(self):
+		view = TextView(self.preferences)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		view.set_buffer(buffer)
+
+		Clipboard.set_text('foo [[link]] ')
+		view.emit('paste-clipboard')
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n"
+			'<zim-tree><p>foo <link href="link">link</link> \n'
+			"</p></zim-tree>"
+		)
+		Clipboard.set_text('foo [[no link]]')
+		buffer.toggle_textstyle('code')
+		view.emit('paste-clipboard')
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n"
+			'<zim-tree><p>foo <link href="link">link</link> <code>foo [[no link]]</code>\n'
+			"</p></zim-tree>"
+		)
 
 	def testUnkownObjectType(self):
 		view = TextView(self.preferences)
