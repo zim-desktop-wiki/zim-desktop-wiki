@@ -23,13 +23,36 @@ from zim.parsing import split_quoted_strings
 from zim.config import ConfigManager, XDG_CONFIG_HOME, INIConfigFile
 from zim.signals import SignalEmitter, SIGNAL_NORMAL, SignalHandler
 
-from zim.gui.applications import Application, DesktopEntryDict, \
- 	_create_application, String, Boolean
+from zim.gui.applications import Application, DesktopEntryDict, String, Boolean
 from zim.gui.widgets import Dialog, IconButton, IconChooserButton
 
 import zim.errors
 
 logger = logging.getLogger('zim.gui')
+
+
+def _create_application(dir, basename, Name, Exec, NoDisplay=True, **param):
+	file = dir.file(basename)
+	i = 0
+	while file.exists():
+		assert i < 1000, 'BUG: Infinite loop ?'
+		i += 1
+		basename = basename[:-8] + '-' + str(i) + '.desktop'
+		file = dir.file(basename)
+
+	entry = CustomTool(file)
+	entry.update(
+		Type='X-Zim-CustomTool',
+		Version=1.0,
+		NoDisplay=NoDisplay,
+		Name=Name,
+		Exec=Exec,
+		**param
+	)
+
+	assert entry.isvalid(), 'BUG: created invalid desktop entry'
+	entry.write()
+	return entry
 
 
 class CustomToolManager(SignalEmitter):
@@ -119,9 +142,9 @@ class CustomToolManager(SignalEmitter):
 
 		@returns: a new L{CustomTool} object.
 		'''
-		properties['Type'] = 'X-Zim-CustomTool'
 		dir = XDG_CONFIG_HOME.subdir('zim/customtools')
-		tool = _create_application(dir, Name, '', klass=CustomTool, NoDisplay=False, **properties)
+		basename = cleanup_filename(Name.lower()) + '-usercreated.desktop'
+		tool = _create_application(dir, basename, Name, '', NoDisplay=False, **properties)
 
 		# XXX - hack to ensure we link to configmanager
 		file = ConfigManager.get_config_file('customtools/' + tool.file.basename)

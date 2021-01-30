@@ -13,6 +13,7 @@ import shutil
 from gi.repository import Gtk
 
 from zim.gui.applications import *
+from zim.gui.applications import _create_application
 from zim.notebook import Path
 from zim.fs import Dir, TmpFile
 
@@ -124,6 +125,20 @@ class TestApplications(tests.TestCase):
 @tests.slowTest
 class TestApplicationManager(tests.TestCase):
 
+	def tearDown(self):
+		ApplicationManager._defaults_app_cache.clear()
+
+		def remove_file(path):
+			#print("REMOVE", path)
+			assert path.startswith(tests.TMPDIR)
+			if os.path.exists(path):
+				os.unlink(path)
+
+		remove_file(XDG_CONFIG_HOME.file('mimeapps.list').path)
+		dir = XDG_DATA_HOME.subdir('applications')
+		for basename in dir.list():
+			remove_file(dir.file(basename).path)
+
 	def testGetMimeType(self):
 		for obj, mimetype in (
 			(File('file.txt'), 'text/plain'),
@@ -135,7 +150,7 @@ class TestApplicationManager(tests.TestCase):
 		):
 			self.assertEqual(get_mimetype(obj), mimetype)
 
-	def testGetSetApplications(self):
+	def testGetSetListApplications(self):
 		# Typically a system will have multiple programs installed for
 		# text/plain and text/html, but do not rely on them for
 		# testing, so create our own first to test.
@@ -153,8 +168,23 @@ class TestApplicationManager(tests.TestCase):
 			self.assertFalse(entry['Desktop Entry']['NoDisplay'])
 
 		## Test Set & Get Default
-		defaults = XDG_DATA_HOME.file('applications/defaults.list')
-		self.assertFalse(defaults.exists())
+		defaults = XDG_CONFIG_HOME.file('mimeapps.list')
+		self.assertEqual(
+			defaults.read(),
+			'[Added Associations]\n'
+			'text/plain=test_entry_text-usercreated.desktop\n'
+			'text/html=test_entry_html-usercreated.desktop\n'
+			'x-scheme-handler/ssh=test_entry_ssh-usercreated.desktop\n'
+		)
+
+		cache = XDG_DATA_HOME.file('applications/mimeinfo.cache')
+		self.assertEqual(
+			cache.read(),
+			'[MIME Cache]\n'
+			'text/plain=test_entry_text-usercreated.desktop\n'
+			'text/html=test_entry_html-usercreated.desktop\n'
+			'x-scheme-handler/ssh=test_entry_ssh-usercreated.desktop\n'
+		)
 
 		default = manager.get_default_application('text/plain')
 		self.assertIsInstance(default, (None.__class__, DesktopEntryFile))
@@ -165,6 +195,11 @@ class TestApplicationManager(tests.TestCase):
 
 		self.assertTrue(defaults.exists())
 		self.assertEqual(defaults.read(),
+			'[Added Associations]\n'
+			'text/plain=test_entry_text-usercreated.desktop\n'
+			'text/html=test_entry_html-usercreated.desktop\n'
+			'x-scheme-handler/ssh=test_entry_ssh-usercreated.desktop\n'
+			'\n'
 			'[Default Applications]\n'
 			'text/plain=test_entry_text-usercreated.desktop\n'
 		)
@@ -172,6 +207,11 @@ class TestApplicationManager(tests.TestCase):
 
 		manager.set_default_application('text/plain', None)
 		self.assertEqual(defaults.read(),
+			'[Added Associations]\n'
+			'text/plain=test_entry_text-usercreated.desktop\n'
+			'text/html=test_entry_html-usercreated.desktop\n'
+			'x-scheme-handler/ssh=test_entry_ssh-usercreated.desktop\n'
+			'\n'
 			'[Default Applications]\n'
 		)
 		self.assertNotEqual(manager.get_default_application('text/plain'), entry_text)
@@ -197,6 +237,138 @@ class TestApplicationManager(tests.TestCase):
 		self.assertIsInstance(manager.get_application('webbrowser'), WebBrowser)
 		self.assertIsInstance(manager.get_application('startfile'), StartFile)
 		self.assertIsNone(manager.get_application('non_existing_application'))
+
+	def testSetGetWithoutCache(self):
+		manager = ApplicationManager()
+		entry_text = manager.create('text/plain', 'Test_Entry_Text', 'test_text 123', NoDisplay=False)
+		manager.set_default_application('text/plain', entry_text)
+		self.assertEqual(manager.get_default_application('text/plain'), entry_text)
+		manager._defaults_app_cache.clear()
+		self.assertEqual(manager.get_default_application('text/plain'), entry_text)
+
+	def testSetGetForMimeappsWithMultipleSections(self):
+		# Make sure we respect the section when writing
+		defaults_file = XDG_CONFIG_HOME.file('mimeapps.list')
+		defaults_file.write(
+			'[Default Applications]\n'
+			'text/html=foo.desktop\n'
+			'\n'
+			'[Added Associations]\n'
+			'text/plain=bar.desktop\n'
+		)
+		manager = ApplicationManager()
+		entry_text = manager.create('text/plain', 'Test_Entry_Text', 'test_text 123', NoDisplay=False)
+		manager.set_default_application('text/plain', entry_text)
+		self.assertEqual(
+			defaults_file.read(),
+			'[Default Applications]\n'
+			'text/html=foo.desktop\n'
+			'text/plain=test_entry_text-usercreated.desktop\n'
+			'\n'
+			'[Added Associations]\n'
+			'text/plain=test_entry_text-usercreated.desktop;bar.desktop\n'
+		)
+
+	def testSupportDesktopMimeappsList(self):
+		orig_desktop = os.environ.get('XDG_CURRENT_DESKTOP')
+		def restore_desktop():
+			os.environ['XDG_CURRENT_DESKTOP'] = orig_desktop
+		self.addCleanup(restore_desktop)
+
+		os.environ['XDG_CURRENT_DESKTOP'] = 'Test'
+		desktopfile = XDG_CONFIG_HOME.file('Test-mimeapps.list')
+		defaultfile = XDG_CONFIG_HOME.file('mimeapps.list')
+
+		dir = XDG_DATA_HOME.subdir('applications')
+		for basename in ('desktop-foo.desktop', 'normal-foo.desktop', 'ignore_this.desktop'):
+			_create_application(dir, basename, 'test', 'test')
+
+		desktopfile.write(
+			'[Default Applications]\n'
+			'text/plain=desktop-foo.desktop\n'
+			'\n'
+			'[Removed Associations]\n'
+			'text/html=ignore_this.desktop\n'
+		)
+		defaultfile.write(
+			'[Default Applications]\n'
+			'text/plain=normal-foo.desktop\n'
+			'text/html=ignore_this.desktop\n'
+			'\n'
+		)
+		manager = ApplicationManager()
+
+		# Test default picked up from desktop file
+		self.assertEqual(manager.get_default_application('text/plain').key, 'desktop-foo')
+
+		# Test blacklist in effect
+		self.assertNotIn('ignore_this', manager.list_applications('text/plain'))
+
+	def testSupportBackwardDefaultsList(self):
+		defaultfile = XDG_CONFIG_HOME.file('mimeapps.list')
+		backwardfile = XDG_DATA_HOME.file('applications/defaults.list')
+
+		dir = XDG_DATA_HOME.subdir('applications')
+		for basename in ('foo.desktop', 'bar.desktop', 'ignore_this.desktop'):
+			_create_application(dir, basename, 'test', 'test')
+
+		defaultfile.write(
+			'[Default Applications]\n'
+			'text/html=bar.desktop\n'
+			'\n'
+		)
+		backwardfile.write(
+			'[Default Applications]\n'
+			'text/plain=foo.desktop\n'
+			'text/html=ignore_this.desktop\n'
+			'\n'
+		)
+
+		manager = ApplicationManager()
+		self.assertEqual(manager.get_default_application('text/plain').key, 'foo')
+		self.assertEqual(manager.get_default_application('text/html').key, 'bar')
+
+	def testListApplications(self):
+		defaultfile = XDG_CONFIG_HOME.file('mimeapps.list')
+		cachefile = XDG_DATA_HOME.file('applications/mimeinfo.cache')
+
+		dir = XDG_DATA_HOME.subdir('applications')
+		for basename in ('aaa.desktop', 'bbb.desktop', 'ccc.desktop', 'ddd.desktop', 'ignore_this.desktop', 'browser.desktop'):
+			_create_application(dir, basename, 'test', 'test', NoDisplay=False)
+		_create_application(dir, 'do_not_list.desktop', 'test', 'test', NoDisplay=True)
+
+		defaultfile.write(
+			'[Default Applications]\n'
+			'text/plain=aaa.desktop\n'
+			'text/html=browser.desktop\n'
+			'\n'
+			'[Added Associations]\n'
+			'text/plain=bbb.desktop;ccc.desktop;do_not_list.desktop\n'
+			'\n'
+			'[Removed Associations]\n'
+			'text/plain=ignore_this.desktop\n'
+		)
+		cachefile.write(
+			'[MIME Cache]\n'
+			'text/plain=ddd.desktop;ignore_this.desktop\n'
+		)
+
+		manager = ApplicationManager()
+		self.assertEqual(
+			[e.key for e in manager.list_applications('text/plain')],
+			['aaa', 'bbb', 'ccc', 'ddd']
+		)
+
+		# Test url scheme also falls back to text/html
+		self.assertEqual(
+			[e.key for e in manager.list_applications('text/html')],
+			['browser']
+		)
+		self.assertEqual(
+			[e.key for e in manager.list_applications('x-scheme-handler/http')],
+			['browser']
+		)
+
 
 
 #~ class TestOpenWithMenu(tests.TestCase):
