@@ -4076,10 +4076,7 @@ class TextView(Gtk.TextView):
 			start = iter.copy()
 			if buffer.iter_backward_word_start(start):
 				word = start.get_text(iter)
-				editmode = [t.zim_tag
-					for t in buffer._editmode_tags
-					if hasattr(t, 'zim_tag')
-				]
+				editmode = [t.zim_tag for t in buffer.iter_get_zim_tags(iter)]
 				self.emit('end-of-word', start, iter, word, char, editmode)
 
 			if keyval in KEYVALS_ENTER:
@@ -4488,11 +4485,17 @@ class TextView(Gtk.TextView):
 	def do_end_of_line(self, end):
 		# Default handler, takes care of cutting of formatting on the
 		# line end, set indenting and bullet items on the new line etc.
-		buffer = self.get_buffer()
 
 		if end.starts_line():
 			return # empty line
+
+		buffer = self.get_buffer()
+
 		start = buffer.get_iter_at_line(end.get_line())
+		if any(_is_pre_or_code_tag(t) for t in start.get_tags()):
+			logger.debug('pre-formatted code')
+			return # pre-formatted
+
 		line = start.get_text(end)
 		#~ print('LINE >>%s<<' % line)
 
