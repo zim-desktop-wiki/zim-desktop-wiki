@@ -63,6 +63,14 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		text = start.get_text(end)
 		self.assertEqual(text, r'\alpha ') # no replace
 
+		# no insert in code or pre section at end-of-line
+		buffer.clear()
+		pageview.toggle_format(VERBATIM)
+		press(textview, '\\alpha\n')
+		start, end = buffer.get_bounds()
+		text = start.get_text(end)
+		self.assertEqual(text, '\\alpha\n') # no replace
+
 		# test dialog
 		def check_dialog(dialog):
 			self.assertIsInstance(dialog, InsertSymbolDialog)

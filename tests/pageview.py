@@ -2207,6 +2207,11 @@ class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertInsertNewLine('=== Foo', '<h level="2">Foo</h>\n')
 		self.assertInsertNewLine('=== Foo ===', '<h level="2">Foo</h>\n')
 
+	def testNoFormattingInsideCode(self):
+		# Make sure text inside code is not being formatted
+		self.assertInsertNewLine('<code>== Foo ==</code>', '<code>== Foo ==</code>\n')
+		self.assertInsertNewLine('<code>---</code>', '<code>---</code>\n')
+
 	def testFormatLine(self):
 		self.assertInsertNewLine('aaa\n-----', 'aaa\n<line>--------------------</line>\n')
 
