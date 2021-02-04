@@ -272,7 +272,10 @@ class TestApplicationManager(tests.TestCase):
 	def testSupportDesktopMimeappsList(self):
 		orig_desktop = os.environ.get('XDG_CURRENT_DESKTOP')
 		def restore_desktop():
-			os.environ['XDG_CURRENT_DESKTOP'] = orig_desktop
+			if orig_desktop:
+				os.environ['XDG_CURRENT_DESKTOP'] = orig_desktop
+			else:
+				del os.environ['XDG_CURRENT_DESKTOP']
 		self.addCleanup(restore_desktop)
 
 		os.environ['XDG_CURRENT_DESKTOP'] = 'Test'
