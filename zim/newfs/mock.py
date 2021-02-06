@@ -1,4 +1,3 @@
-
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Mock objects for file system classes
@@ -52,7 +51,7 @@ def os_native_path(unixpath):
 		return unixpath
 
 
-class MockFSNode(object):
+class MockFSNode:
 
 	__slots__ = ('ctime', 'mtime', 'size', 'data', 'isdir', 'case_sensitive')
 
@@ -119,8 +118,7 @@ class MockFS(MockFSNode):
 			for name in node.data:
 				yield prefix + name
 				if node.data[name].isdir:
-					for line in walk(prefix + name + '/', node.data[name]):
-						yield line
+					yield from walk(prefix + name + '/', node.data[name])
 
 		return walk('', self)
 

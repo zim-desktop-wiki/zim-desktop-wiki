@@ -1,4 +1,3 @@
-
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
@@ -44,11 +43,11 @@ __all__ = ('date_re', 'parse_date', 'Month', 'Week', 'Day')
 
 date_re = re.compile(
 	'(?:'
-	'\d{4}-\d{2}-\d{2}'
-	'|\d{4}-\d{2}'
-	'|(?:\d{2}|\d{4})-?[Ww][Kk]?\d{2}(?:-\d)?'
-	'|[Ww][Kk]?(?:\d{2}|\d{4})\d{2}(?:[.-]\d)?'
-	')(?![\w-])'
+	r'\d{4}-\d{2}-\d{2}'
+	r'|\d{4}-\d{2}'
+	r'|(?:\d{2}|\d{4})-?[Ww][Kk]?\d{2}(?:-\d)?'
+	r'|[Ww][Kk]?(?:\d{2}|\d{4})\d{2}(?:[.-]\d)?'
+	r')(?![\w-])'
 )
 
 
@@ -74,10 +73,10 @@ def parse_date(date):
 		raise ValueError('Could not parse: %s' % date)
 
 
-class DateRange(object):
+class DateRange:
 
 	def __repr__(self):
-		return "<%s: %s>" % (self.__class__.__name__, str(self))
+		return "<{}: {}>".format(self.__class__.__name__, str(self))
 
 
 class Day(DateRange, datetime.date):
@@ -127,7 +126,7 @@ class Week(DateRange):
 		self.first_day, self.last_day = dates_for_week(year, week)
 
 	def __str__(self):
-		return '%s-W%s' % (self.year, self.week)
+		return '{}-W{}'.format(self.year, self.week)
 
 
 class Month(DateRange):
@@ -146,4 +145,4 @@ class Month(DateRange):
 			return datetime.date(self.year + 1, 1, 1) - datetime.timedelta(days=1)
 
 	def __str__(self):
-		return '%s-%s' % (self.year, self.month)
+		return '{}-{}'.format(self.year, self.month)

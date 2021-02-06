@@ -1,4 +1,3 @@
-
 # Copyright 2012,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles dumping markdown text with pandoc extensions'''
@@ -89,19 +88,19 @@ class Dumper(TextDumper):
 
 	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \
-			'BUG: link misses href: %s "%s"' % (attrib, strings)
+			'BUG: link misses href: {} "{}"'.format(attrib, strings)
 		href = self.linker.link(attrib['href'])
 		text = ''.join(strings) or href
 		if href == text and url_re.match(href):
 			return ['<', href, '>']
 		else:
-			return ['[%s](%s)' % (text, href)]
+			return ['[{}]({})'.format(text, href)]
 
 	def dump_img(self, tag, attrib, strings=None):
 		# OPEN ISSUE: image properties used in zim not supported in pandoc
 		src = self.linker.img(attrib['src'])
 		text = attrib.get('alt', '')
-		return ['![%s](%s)' % (text, src)]
+		return ['![{}]({})'.format(text, src)]
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		# dump object as verbatim block

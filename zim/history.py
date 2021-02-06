@@ -1,4 +1,3 @@
-
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module implements the history for navigating pages in the
@@ -355,8 +354,7 @@ class History(SignalEmitter):
 		@returns: yields L{HistoryPath} objects
 		'''
 		# Generator to avoid external acces to the list
-		for p in reversed(self._history):
-			yield p
+		yield from reversed(self._history)
 
 	def get_recent(self):
 		'''Generator function that yields recent pages

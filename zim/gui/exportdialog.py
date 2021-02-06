@@ -1,4 +1,3 @@
-
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -444,7 +443,7 @@ class ExportDoneDialog(MessageDialog):
 		open_file(self.output)
 
 
-class LogContext(object):
+class LogContext:
 	'''Context to log errors and warnings to a log file'''
 
 	def __init__(self):

@@ -1,5 +1,3 @@
-# coding=UTF-8
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -139,9 +137,9 @@ class Index(SignalEmitter):
 				value TEXT,
 				CONSTRAINT uc_MetaOnce UNIQUE (key)
 			);
-			INSERT INTO zim_index VALUES ('db_version', %r);
-			INSERT INTO zim_index VALUES ('db_sortkey_format', %r)
-		''' % (DB_VERSION, natural_sort_key(DB_SORTKEY_CONTENT)))
+			INSERT INTO zim_index VALUES ('db_version', {!r});
+			INSERT INTO zim_index VALUES ('db_sortkey_format', {!r})
+		'''.format(DB_VERSION, natural_sort_key(DB_SORTKEY_CONTENT)))
 
 		self._update_iter_init() # Force re-init of all tables
 		self._db.commit()
@@ -364,7 +362,7 @@ class IndexUpdateIter(SignalEmitter):
 				yield
 
 
-class BackgroundCheck(object):
+class BackgroundCheck:
 
 	def __init__(self, checker, callback):
 		self.checker = checker

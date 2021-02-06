@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module defines the main parser for template text.
@@ -85,7 +84,7 @@ class TemplateTreeBuilder(SimpleTreeBuilder):
 			SimpleTreeBuilder.start(self, tag, attrib)
 
 
-class TemplateParser(object):
+class TemplateParser:
 	'''The parser to parse template files into a hierarchic tree of
 	instructions.
 	'''

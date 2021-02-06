@@ -1,4 +1,3 @@
-
 # Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module defines the L{main()} function for executing the zim
@@ -604,7 +603,7 @@ def build_command(args, pwd=None):
 
 
 
-class ZimApplication(object):
+class ZimApplication:
 	'''This object is repsonsible for managing the life cycle of the
 	application process.
 

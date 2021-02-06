@@ -1,4 +1,3 @@
-
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
@@ -78,7 +77,7 @@ keyword_re = Re('(' + '|'.join(KEYWORDS) + '):(.*)', re.I)
 operators_re = Re(r'^(\|\||\&\&|\+|\-)')
 tag_re = Re(r'^\@(\w+)$', re.U)
 
-class QueryTerm(object):
+class QueryTerm:
 	'''Wrapper for a single term in a query. Consists of a keyword,
 	a string and a flag for inverse (NOT operator).
 	'''
@@ -98,9 +97,9 @@ class QueryTerm(object):
 
 	def __repr__(self):
 		if self.inverse:
-			return '<NOT %s: "%s">' % (self.keyword, self.string)
+			return '<NOT {}: "{}">'.format(self.keyword, self.string)
 		else:
-			return '<%s: "%s">' % (self.keyword, self.string)
+			return '<{}: "{}">'.format(self.keyword, self.string)
 
 
 class QueryGroup(list):
@@ -115,7 +114,7 @@ class QueryGroup(list):
 			self[:] = terms
 
 
-class Query(object):
+class Query:
 	'''This class wraps a query as typed by the user. It parses the
 	query into a tree of QueryGroup and QueryTerm objects. The 'root'
 	attribute contains the top of the tree, while the 'string' attribute

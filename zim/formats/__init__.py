@@ -1,4 +1,3 @@
-
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Package with source formats for pages.
@@ -244,7 +243,7 @@ def get_dumper(name, *arg, **kwarg):
 	return klass(*arg, **kwarg)
 
 
-class ParseTree(object):
+class ParseTree:
 	'''Wrapper for zim parse trees.'''
 
 	# No longer derives from ElementTree, internals are now private
@@ -699,7 +698,7 @@ class VisitorSkip(Exception):
 	pass
 
 
-class Visitor(object):
+class Visitor:
 	'''Conceptual opposite of a builder, but with same API.
 	Used to walk nodes in a parsetree and call callbacks for each node.
 	See e.g. L{ParseTree.visit()}.
@@ -847,7 +846,7 @@ count_eol_re = re.compile(r'\n+\Z')
 split_para_re = re.compile(r'((?:^[ \t]*\n){2,})', re.M)
 
 
-class OldParseTreeBuilder(object):
+class OldParseTreeBuilder:
 	'''This class supplies an alternative for xml.etree.ElementTree.TreeBuilder
 	which cleans up the tree on the fly while building it. The main use
 	is to normalize the tree that is produced by the editor widget, but it can
@@ -927,7 +926,7 @@ class OldParseTreeBuilder(object):
 
 		self._last = self._stack[-1]
 		assert self._last.tag == tag, \
-			"end tag mismatch (expected %s, got %s)" % (self._last.tag, tag)
+			"end tag mismatch (expected {}, got {})".format(self._last.tag, tag)
 		self._tail = True
 
 		if len(self._stack) > 1 and not (
@@ -1035,7 +1034,7 @@ class OldParseTreeBuilder(object):
 				parent.text = text
 
 
-class ParserClass(object):
+class ParserClass:
 	'''Base class for parsers
 
 	Each format that can be used natively should define a class
@@ -1299,7 +1298,7 @@ class DumperClass(Visitor):
 			return dir == Pango.Direction.RTL
 
 
-class BaseLinker(object):
+class BaseLinker:
 	'''Base class for linker objects
 	Linker object translate links in zim pages to (relative) URLs.
 	This is used when exporting data to resolve links.
@@ -1473,7 +1472,7 @@ class Node(list):
 		if self.attrib:
 			strings.append('<%s' % self.tag)
 			for key in sorted(self.attrib):
-				strings.append(' %s="%s"' % (key, encode_xml(self.attrib[key])))
+				strings.append(' {}="{}"'.format(key, encode_xml(self.attrib[key])))
 			strings.append('>')
 		else:
 			strings.append("<%s>" % self.tag)
@@ -1666,8 +1665,8 @@ class TableParser():
 
 from zim.config.dicts import OrderedDict
 
-_is_header_re = re.compile('^([\w\-]+):\s+(.*?)\n', re.M)
-_is_continue_re = re.compile('^([^\S\n]+)(.+?)\n', re.M)
+_is_header_re = re.compile('^([\\w\\-]+):\\s+(.*?)\n', re.M)
+_is_continue_re = re.compile('^([^\\S\n]+)(.+?)\n', re.M)
 
 def parse_header_lines(text):
 	'''Read header lines in the rfc822 format.

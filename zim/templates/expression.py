@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
@@ -48,7 +47,7 @@ import logging
 logger = logging.getLogger('zim.templates')
 
 
-class Expression(object):
+class Expression:
 	'''Base class for all expressions'''
 
 	__slots__ = ()
@@ -60,7 +59,7 @@ class Expression(object):
 		raise NotImplementedError
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.pprint())
+		return '<{}: {}>'.format(self.__class__.__name__, self.pprint())
 
 	def __str__(self):
 		return self.pprint()
@@ -211,7 +210,7 @@ class ExpressionOperator(Expression):
 		return self.operator(lvalue, rvalue)
 
 	def pprint(self):
-		return 'OP(%s, %s, %s)' % (self.operator.__name__, self.lexpr, self.rexpr)
+		return 'OP({}, {}, {})'.format(self.operator.__name__, self.lexpr, self.rexpr)
 
 
 class ExpressionUnaryOperator(Expression):
@@ -238,7 +237,7 @@ class ExpressionUnaryOperator(Expression):
 		return self.operator(rvalue)
 
 	def pprint(self):
-		return 'OP(%s, %s)' % (self.operator.__name__, self.rexpr)
+		return 'OP({}, {})'.format(self.operator.__name__, self.rexpr)
 
 
 class ExpressionFunctionCall(Expression):
@@ -308,10 +307,10 @@ class ExpressionFunctionCall(Expression):
 			return None
 
 	def pprint(self):
-		return 'CALL(%s: %s)' % (self.param.name, self.args.pprint())
+		return 'CALL({}: {})'.format(self.param.name, self.args.pprint())
 
 
-class ExpressionFunction(object):
+class ExpressionFunction:
 	'''Wrapper for methods and functions that whitelists
 	functions to be called from expressions
 
@@ -341,10 +340,10 @@ class ExpressionFunction(object):
 		# Also shows up when function parameter is used, but not called
 		# (TemplateToolkit allow implicit call - we don't !)
 		try:
-			return "<%s: %s()>" % (self.__class__.__name__, self._func.__name__)
+			return "<{}: {}()>".format(self.__class__.__name__, self._func.__name__)
 		except:
 			# Partial functions don't have a __name__ attribute
-			return "<%s: %r()>" % (self.__class__.__name__, self._func)
+			return "<{}: {!r}()>".format(self.__class__.__name__, self._func)
 
 
 class BoundExpressionFunction(ExpressionFunction):
@@ -360,7 +359,7 @@ class BoundExpressionFunction(ExpressionFunction):
 		return self._func(self._obj, *a)
 
 
-class ExpressionObjectBase(object):
+class ExpressionObjectBase:
 	'''Base method for wrapper objects that are used to determine the
 	safe functions to call on objects in the parameter dict.
 
@@ -394,7 +393,7 @@ class ExpressionObjectBase(object):
 		return str(self._obj)
 
 	def __repr__(self):
-		return '<%s: %r>' % (self.__class__.__name__, self._obj)
+		return '<{}: {!r}>'.format(self.__class__.__name__, self._obj)
 
 	@ExpressionFunction
 	def len(self):

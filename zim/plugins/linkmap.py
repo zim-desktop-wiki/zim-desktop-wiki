@@ -1,4 +1,3 @@
-
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin showing a map of links between pages based on GraphViz'''
@@ -49,7 +48,7 @@ This is a core plugin shipping with zim.
 		]
 
 
-class LinkMap(object):
+class LinkMap:
 
 	def __init__(self, notebook, path, depth=2):
 		self.notebook = notebook
@@ -58,8 +57,7 @@ class LinkMap(object):
 
 	def _all_links(self):
 		for page in self.notebook.pages.walk():
-			for link in self.notebook.links.list_links(page):
-				yield link
+			yield from self.notebook.links.list_links(page)
 
 	def _links(self, path, depth, seen=None):
 		if seen is None:
@@ -90,7 +88,7 @@ class LinkMap(object):
 			'  size="6,6";',
 			#~ '  node [shape=box, style="rounded,filled", color="#204a87", fillcolor="#729fcf"];',
 			'  node [shape=note, style="filled", color="#204a87", fillcolor="#729fcf"];',
-			'  "%s" [color="#4e9a06", fillcolor="#8ae234", URL="%s"]' % (self.path.name, self.path.name), # special node
+			'  "{}" [color="#4e9a06", fillcolor="#8ae234", URL="{}"]'.format(self.path.name, self.path.name), # special node
 		]
 
 		seen = set()
@@ -98,10 +96,10 @@ class LinkMap(object):
 		for link in self._links(self.path, self.depth):
 			for name in (link.source.name, link.target.name):
 				if not name in seen:
-					dotcode.append('  "%s" [URL="%s"];' % (name, name))
+					dotcode.append('  "{}" [URL="{}"];'.format(name, name))
 					seen.add(name)
 			dotcode.append(
-				'  "%s" -> "%s";' % (link.source.name, link.target.name))
+				'  "{}" -> "{}";'.format(link.source.name, link.target.name))
 
 		dotcode.append('}')
 

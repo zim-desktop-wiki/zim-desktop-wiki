@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main object to "execute" a template and
@@ -35,7 +34,7 @@ class TemplateContextDict(ExpressionDictObject):
 	) # adding methods for mutable mapping here
 
 
-class TemplateProcessor(object):
+class TemplateProcessor:
 	'''The template processor takes a parsed template and "executes" it
 	one or more times.
 	'''
@@ -176,7 +175,7 @@ class TemplateProcessor(object):
 
 
 
-class TemplateLoopState(object):
+class TemplateLoopState:
 	'''Object used for the "loop" parameter in a FOR loop'''
 
 	def __init__(self, size=None, outer=None):

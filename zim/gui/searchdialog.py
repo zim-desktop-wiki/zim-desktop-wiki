@@ -1,4 +1,3 @@
-
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # Tests: search gui.TestDialogs.testSearchDialog

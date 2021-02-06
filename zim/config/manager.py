@@ -1,4 +1,3 @@
-
 # Copyright 2013-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -19,7 +18,7 @@ from zim.fs import FileNotFoundError as oldFileNotFoundError
 from zim.signals import ConnectorMixin, SignalEmitter, SignalHandler, SIGNAL_NORMAL
 
 
-class ConfigManagerClass(object):
+class ConfigManagerClass:
 	'''This class defines an object that manages a set of config files.
 
 	The config manager abstracts the lookup of files using the XDG
@@ -110,7 +109,7 @@ def resetConfigManager():
 	ConfigManager._set()
 
 
-class DefaultFileIter(object):
+class DefaultFileIter:
 	'''Generator for iterating default files
 	Will yield first the files in C{extra} followed by files that
 	are based on C{path} and C{dirs}. Yields only existing files.
@@ -132,16 +131,16 @@ class DefaultFileIter(object):
 				yield file
 
 
-class XDGConfigDirsIter(object):
+class XDGConfigDirsIter:
 	'''Generator for iterating XDG config dirs
 	Yields the "zim" subdir of each XDG config file.
 	'''
 
 	def __iter__(self):
 		from . import data_dirs # XXX
-		yield basedirs.XDG_CONFIG_HOME.subdir(('zim'))
+		yield basedirs.XDG_CONFIG_HOME.subdir('zim')
 		for dir in basedirs.XDG_CONFIG_DIRS:
-			yield dir.subdir(('zim'))
+			yield dir.subdir('zim')
 		for dir in data_dirs():
 			yield dir
 
@@ -203,7 +202,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		self.defaults = defaults or []
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.file.path)
+		return '<{}: {}>'.format(self.__class__.__name__, self.file.path)
 
 	def __eq__(self, other):
 		return isinstance(other, ConfigFile) \

@@ -1,4 +1,3 @@
-
 # Copyright 2010 Fabian Stanke
 # Copyright 2011-2017 Jaap Karssenberg
 

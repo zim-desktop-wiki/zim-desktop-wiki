@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''The exporters are the main public objects for exporting, they
@@ -13,7 +12,7 @@ import logging
 logger = logging.getLogger('zim.export')
 
 
-class Exporter(object):
+class Exporter:
 	'''Base class that defines the public API for exporter objects'''
 
 	def export(self, pages):

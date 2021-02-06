@@ -1,4 +1,3 @@
-
 # Copyright 2009-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import glob

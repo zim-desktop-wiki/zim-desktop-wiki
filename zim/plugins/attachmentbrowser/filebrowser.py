@@ -390,7 +390,7 @@ class FileBrowserIconView(Gtk.IconView):
 		s_label = _('Size') # T: label for file size
 		m_label = _('Modified') # T: label for file modification date
 		tooltip.set_markup(
-			"%s\n\n<b>%s:</b> %s\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
+			"{}\n\n<b>{}:</b> {}\n<b>{}:</b> {}\n<b>{}:</b>\n{}".format(
 				name,
 				t_label, mtype_desc or mtype,
 				s_label, size,

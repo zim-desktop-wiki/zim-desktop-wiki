@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -14,7 +13,7 @@ from zim.newfs import LocalFile, LocalFolder
 from zim.notebook import encode_filename
 
 
-class ExportLayout(object):
+class ExportLayout:
 	'''The ExportLayout object determines the mapping of pages to files
 	when exporting. This is the base class that defines the public API.
 	'''
@@ -58,7 +57,7 @@ class DirLayoutBase(ExportLayout):
 				path = page.relname(self.namespace)
 			else:
 				raise PathLookupError(
-					'%s not a child of %s' % (page, self.namespace)
+					'{} not a child of {}'.format(page, self.namespace)
 				)
 			name = page.relname(self.namespace)
 		else:
@@ -107,7 +106,7 @@ class MultiFileLayout(DirLayoutBase):
 			else:
 				# This layout can not store page == namespace !
 				raise PathLookupError(
-					'%s not a child of %s' % (page, self.namespace)
+					'{} not a child of {}'.format(page, self.namespace)
 				)
 		else:
 			name = page.name
@@ -166,7 +165,7 @@ class FileLayout(DirLayoutBase):
 			name = page.relname(self.namespace)
 		else:
 			raise PathLookupError(
-				'%s not a child of %s' % (page, self.namespace)
+				'{} not a child of {}'.format(page, self.namespace)
 			)
 		return self.dir.file(encode_filename(name) + '.' + self.ext)
 
@@ -213,7 +212,7 @@ class SingleFileLayout(DirLayoutBase):
 		and not page == self.namespace \
 		and not page.ischild(self.namespace):
 			raise PathLookupError(
-				'%s not a child of %s' % (page, self.namespace)
+				'{} not a child of {}'.format(page, self.namespace)
 			)
 		else:
 			return self.file

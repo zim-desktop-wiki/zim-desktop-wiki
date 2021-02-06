@@ -1,4 +1,3 @@
-
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Local file system object'''
@@ -254,17 +253,17 @@ elif sys.platform == 'win32':
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
+				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
+				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
 else:
 	_replace_file = os.rename
 
 
-class AtomicWriteContext(object):
+class AtomicWriteContext:
 	# Functions for atomic write as a context manager
 	# used by LocalFile.read and .readlines
 	# Exposed as separate object to make it testable.
@@ -329,7 +328,7 @@ class LocalFile(LocalFSObjectBase, File):
 		try:
 			with open(self.path, 'rb') as fh:
 				return fh.read()
-		except IOError:
+		except OSError:
 			if not self.exists():
 				raise FileNotFoundError(self)
 			else:
@@ -346,7 +345,7 @@ class LocalFile(LocalFSObjectBase, File):
 					return text.lstrip('\ufeff').replace('\x00', '')
 					# Strip unicode byte order mark
 					# And remove any NULL byte since they screw up parsing
-		except IOError:
+		except OSError:
 			if not self.exists():
 				raise FileNotFoundError(self)
 			else:
@@ -360,7 +359,7 @@ class LocalFile(LocalFSObjectBase, File):
 				# And remove any NULL byte since they screw up parsing
 		except UnicodeDecodeError as err:
 			raise FileUnicodeError(self, err)
-		except IOError:
+		except OSError:
 			if not self.exists():
 				raise FileNotFoundError(self)
 			else:

@@ -1,4 +1,3 @@
-
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
@@ -687,7 +686,7 @@ class SingleClickTreeView(Gtk.TreeView):
 
 
 class BrowserTreeView(SingleClickTreeView):
-	'''Sub-class of C{Gtk.TreeView} that is intended for hierarchic
+	r'''Sub-class of C{Gtk.TreeView} that is intended for hierarchic
 	lists that can be navigated in "browser mode". It inherits the
 	single-click behavior of L{SingleClickTreeView} and adds the
 	following keybindings:
@@ -737,7 +736,7 @@ class BrowserTreeView(SingleClickTreeView):
 
 
 def widget_set_css(widget, name, css):
-	text = '#%s {%s}' % (name, css)
+	text = '#{} {{{}}}'.format(name, css)
 	css_provider = Gtk.CssProvider()
 	css_provider.load_from_data(text.encode('UTF-8'))
 	widget_style = widget.get_style_context()
@@ -842,7 +841,7 @@ class MenuButton(Gtk.HBox):
 		self.button.handler_unblock(self._clicked_signal)
 
 
-class PanedClass(object):
+class PanedClass:
 	# We change default packing to shrink=False
 
 	def pack1(self, widget, resize=True, shrink=False):
@@ -2025,7 +2024,7 @@ def get_window(widget):
 		return None
 
 
-class uistate_property(object):
+class uistate_property:
 	'''Class for uistate get/set attributes'''
 
 	def __init__(self, key, *default):
@@ -2217,7 +2216,7 @@ class WindowSidePane(Gtk.VBox):
 		# their relative ordering
 
 
-class MinimizedTabs(object):
+class MinimizedTabs:
 
 	def __init__(self, sidepane, angle):
 		self.status_bar_style = False

@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the parser to parse expressions in templates
@@ -24,7 +23,7 @@ class ExpressionSyntaxError(ParserError):
 	pass
 
 
-class ExpressionParser(object):
+class ExpressionParser:
 	'''Parser for expressions'''
 
 	# This parser does not use the Parser / Builder architecture
@@ -64,9 +63,9 @@ class ExpressionParser(object):
 			r'''(
 				'(\\'|[^'])*' |  # single quoted word
 				"(\\"|[^"])*" |  # double quoted word
-				[^\s'"%s]+    |  # word without spaces and token chars
-				%s               # tokens are a word on their own
-			)''' % (''.join(tokens), '|'.join(tokens)), re.X
+				[^\s'"{}]+    |  # word without spaces and token chars
+				{}               # tokens are a word on their own
+			)'''.format(''.join(tokens), '|'.join(tokens)), re.X
 		)
 
 	def parse(self, string):

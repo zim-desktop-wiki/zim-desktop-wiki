@@ -1,4 +1,3 @@
-
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os

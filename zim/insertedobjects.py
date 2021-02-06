@@ -1,5 +1,3 @@
-# -*- coding: UTF-8 -*-
-
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -8,7 +6,7 @@ from zim.signals import SignalEmitter, SIGNAL_RUN_LAST
 from zim.config import String, ConfigDict
 
 
-class InsertedObjectType(object):
+class InsertedObjectType:
 	'''Base class for defining "objects" that can be inserted in a wiki page
 
 	This class is called "InsertedObjectType" instead of "InsertedObject"
@@ -156,6 +154,6 @@ class InsertedObjectType(object):
 		try:
 			method = getattr(self, 'format_' + format)
 		except AttributeError:
-			raise ValueError('No "%s" formatting defined for objecttype "%s"' % (format, self.name))
+			raise ValueError('No "{}" formatting defined for objecttype "{}"'.format(format, self.name))
 		else:
 			return method(dumper, attrib, data)

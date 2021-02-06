@@ -1,4 +1,3 @@
-
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Base classes for filesystem and storage implementation'''
@@ -19,7 +18,7 @@ from zim.errors import Error
 from zim.parsing import url_encode
 
 
-is_url_re = re.compile('^\w{2,}:/')
+is_url_re = re.compile(r'^\w{2,}:/')
 is_share_re = re.compile(r'^\\\\\w')
 
 
@@ -107,7 +106,7 @@ def _split_file_url(url):
 	if path.startswith('/localhost/'): # exact 2 '/' before 'localhost'
 		path = path[11:]
 		isshare = False
-	elif scheme == 'smb' or re.match('^/\w', path): # exact 2 '/' before 'localhost'
+	elif scheme == 'smb' or re.match(r'^/\w', path): # exact 2 '/' before 'localhost'
 		isshare = True
 	else:
 		isshare = False # either 'file:/' or 'file:///'
@@ -213,7 +212,7 @@ def _os_expanduser(path):
 			return path
 
 
-class FilePath(object):
+class FilePath:
 	'''Class to represent filesystem paths and the base class for all
 	file and folder objects. Contains methods for file path manipulation.
 
@@ -242,7 +241,7 @@ class FilePath(object):
 		self.islocal = not self.pathnames[0].startswith('\\\\')
 
 	def __repr__(self):
-		return "<%s: %s>" % (self.__class__.__name__, self.path)
+		return "<{}: {}>".format(self.__class__.__name__, self.path)
 
 	def __str__(self):
 		return self.path
@@ -312,7 +311,7 @@ class FilePath(object):
 		if allowupward and not self.ischild(start):
 			parent = self.commonparent(start)
 			if parent is None:
-				raise ValueError('No common parent between %s and %s' % (self.path, start.path))
+				raise ValueError('No common parent between {} and {}'.format(self.path, start.path))
 			relpath = self.relpath(parent)
 			level_up = len(start.pathnames) - len(parent.pathnames)
 			return (('..' + SEP) * level_up) + relpath
@@ -448,8 +447,7 @@ class Folder(FSObjectBase):
 		for child in self:
 			yield child
 			if isinstance(child, Folder):
-				for grandchild in child.walk():
-					yield grandchild
+				yield from child.walk()
 
 	def file(self, path):
 		raise NotImplementedError

@@ -1,4 +1,3 @@
-
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the notebook dialog which is used for the

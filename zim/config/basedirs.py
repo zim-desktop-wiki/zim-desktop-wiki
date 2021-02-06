@@ -1,4 +1,3 @@
-
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module defines the search path for zim config files following

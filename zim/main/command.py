@@ -1,4 +1,3 @@
-
 # Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
@@ -25,7 +24,7 @@ class UsageError(Error):
 	pass
 
 
-class Command(object):
+class Command:
 	'''Base class for commandline commands, used by zim to abstract
 	part of the C{main()} functionality and allow better testability
 	of commandline arguments.
@@ -95,7 +94,7 @@ class Command(object):
 		'''Retrieve a dict with a sub-set of the command options
 		@param names: that options in the subset
 		'''
-		return dict((k, self.opts.get(k)) for k in names)
+		return {k: self.opts.get(k) for k in names}
 
 	def get_arguments(self):
 		'''Get the arguments, to be used by the implementation of C{run()}

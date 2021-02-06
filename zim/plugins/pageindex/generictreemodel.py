@@ -102,7 +102,7 @@ class GenericTreeModel(GObject.GObject, Gtk.TreeModel):
     #
     def __init__(self):
         """Initialize. Make sure to call this from derived classes if overridden."""
-        super(GenericTreeModel, self).__init__()
+        super().__init__()
         self.stamp = 0
 
         #: Dictionary of (id(user_data): user_data), used when leak-refernces=False
@@ -203,7 +203,7 @@ class GenericTreeModel(GObject.GObject, Gtk.TreeModel):
                 Python object used as the node returned from "on_get_iter". This is
                 optional but ensures the model will not leak references to this object.
         """
-        super(GenericTreeModel, self).row_deleted(path)
+        super().row_deleted(path)
         node_id = id(node)
         if node_id in self._held_refs:
             del self._held_refs[node_id]

@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from functools import partial
@@ -103,9 +102,7 @@ class MultiFileExporter(FilesExporterBase):
 			try:
 				self.export_page(pages.notebook, page, pages, prevpage=prev, nextpage=next)
 					# XXX FIXME remove need for notebook here
-				for file in self.export_attachments_iter(pages.notebook, page):
-					yield file
-					# XXX FIXME remove need for notebook here
+				yield from self.export_attachments_iter(pages.notebook, page)
 			except:
 				raise
 				logger.exception('Error while exporting: %s', page.name)
@@ -199,8 +196,7 @@ class SingleFileExporter(FilesExporterBase):
 
 		for page in pages:
 			yield page
-			for file in self.export_attachments_iter(pages.notebook, page):
-				yield file
+			yield from self.export_attachments_iter(pages.notebook, page)
 
 
 #~ class StaticFileExporter(SingleFileExporter):

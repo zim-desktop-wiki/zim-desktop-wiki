@@ -1,5 +1,3 @@
-# -*- coding: UTF-8 -*-
-
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -324,7 +322,7 @@ class UnknownInsertedObject(InsertedObjectType):
 		return UnkownObjectWidget(buffer)
 
 
-class UnkownImage(object):
+class UnkownImage:
 
 	def __init__(self, file, attrib, data):
 		self.file = file
@@ -365,7 +363,7 @@ class UnknownInsertedImageObject(InsertedObjectType):
 
 
 
-class InsertedObjectUI(object):
+class InsertedObjectUI:
 
 	def __init__(self, uimanager, pageview):
 		self.uimanager = uimanager
@@ -415,17 +413,17 @@ class InsertedObjectUI(object):
 			<menubar name='menubar'>
 				<menu action='insert_menu'>
 					<placeholder name='plugin_items'>
-					 %s
+					 {}
 					</placeholder>
 				</menu>
 			</menubar>
 			<toolbar name='toolbar'>
 				<placeholder name='insert_plugin_items'>
-				%s
+				{}
 				</placeholder>
 			</toolbar>
 		</ui>
-		""" % (
+		""".format(
 			''.join(menulines),
 			''.join(toollines),
 		)

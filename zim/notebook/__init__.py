@@ -1,4 +1,3 @@
-
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
@@ -156,7 +155,7 @@ def is_relevant_mount_point(root, path):
 		return False
 
 
-class ApplicationMountPointHandler(object):
+class ApplicationMountPointHandler:
 	# TODO add password prompt logic, provide to cmd as argument, stdin
 
 	def __init__(self, dir, mount, **a):

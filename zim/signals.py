@@ -1,4 +1,3 @@
-
 # Copyright 2012-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -20,7 +19,7 @@ SIGNAL_AFTER = 4
 
 
 
-class SignalHandler(object):
+class SignalHandler:
 	'''Wrapper for a signal handler method that allows blocking the
 	handler for incoming signals. To be used as function decorator.
 
@@ -60,7 +59,7 @@ class SignalHandler(object):
 			return getattr(instance, name)
 
 
-class BoundSignalHandler(object):
+class BoundSignalHandler:
 
 	def __init__(self, instance, func):
 		self._instance = instance
@@ -85,7 +84,7 @@ class BoundSignalHandler(object):
 		return SignalHandlerBlockContextManager(self)
 
 
-class SignalHandlerBlockContextManager(object):
+class SignalHandlerBlockContextManager:
 
 	def __init__(self, handler):
 		self.handler = handler
@@ -99,7 +98,7 @@ class SignalHandlerBlockContextManager(object):
 
 
 
-class ConnectorMixin(object):
+class ConnectorMixin:
 	'''Mixin class that has convenience methods for objects that
 	want to connect to signals of other objects.
 	'''
@@ -232,10 +231,10 @@ class SignalEmitterMeta(type):
 				closure = getattr(cls, name) # unbound version!
 				cls._signal_closures.append((signal, order, closure))
 
-		super(SignalEmitterMeta, cls).__init__(name, bases, dct)
+		super().__init__(name, bases, dct)
 
 
-class SignalEmitter(object, metaclass=SignalEmitterMeta):
+class SignalEmitter(metaclass=SignalEmitterMeta):
 	'''Replacement for C{GObject} to make objects emit signals.
 	API should be (mostly) compatible with API offered by GObject.
 
@@ -275,7 +274,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 
 	def __new__(cls, *arg, **kwarg):
 		# New instance: init attributes for signal handling
-		obj = super(SignalEmitter, cls).__new__(cls)
+		obj = super().__new__(cls)
 
 		obj._signal_handlers = {}
 		obj._signal_blocks = {}
@@ -307,7 +306,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 		return self._connect(SIGNAL_AFTER, signal, handler)
 
 	def _connect(self, category, signal, callback):
-		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
+		assert signal in self.__signals__, 'No such signal: {}::{}'.format(self.__class__.__name__, signal)
 
 		if not signal in self._signal_handlers:
 			self._signal_handlers[signal] = []
@@ -350,7 +349,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 		# NOTE: do *not* refactor this method as a wrapper around
 		# emit_return_iter() or similar. It is called often enough to justify
 		# being optimized at the cost of some redundant code.
-		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
+		assert signal in self.__signals__, 'No such signal: {}::{}'.format(self.__class__.__name__, signal)
 
 		if not len(args) == len(self.__signals__[signal][2]):
 			logger.warning('Signal args do not match spec for %s::%s', self.__class__.__name__, signal)
@@ -378,7 +377,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 		'''Returns an generator that calls one handler on each iteration and
 		yields the return values. This allows aggregating return values.
 		'''
-		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
+		assert signal in self.__signals__, 'No such signal: {}::{}'.format(self.__class__.__name__, signal)
 
 		if not len(args) == len(self.__signals__[signal][2]):
 			logger.warning('Signal args do not match spec for %s::%s', self.__class__.__name__, signal)
@@ -397,7 +396,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 		return BlockSignalsContextManager(self, signals)
 
 
-class GSignalEmitterMixin(object):
+class GSignalEmitterMixin:
 	'''Implements a subset of L{SignalEmitter} to extend C{GObject.GObject}
 	classes with methods to use signals as callbacks.
 	'''
@@ -408,10 +407,10 @@ class GSignalEmitterMixin(object):
 				if k[1] is not None
 		]
 		clsname = self.__class__.__name__ + 'SignalEmitter'
-		signals = dict(
-			(k, (SIGNAL_RUN_FIRST,) + v[1:])
+		signals = {
+			k: (SIGNAL_RUN_FIRST,) + v[1:]
 				for k, v in list(self.__signals__.items()) if k in self._signal_hooks
-		)
+		}
 		innercls = type(clsname, (SignalEmitter,), {'__signals__': signals})
 		self._signals_inner = innercls()
 
@@ -446,7 +445,7 @@ class GSignalEmitterMixin(object):
 		return self._signals_inner.emit_return_iter(signal, *args)
 
 
-class BlockSignalsContextManager(object):
+class BlockSignalsContextManager:
 
 	def __init__(self, obj, signals):
 		self.obj = obj
@@ -465,7 +464,7 @@ class BlockSignalsContextManager(object):
 
 
 
-class DelayedCallback(object):
+class DelayedCallback:
 	'''Wrapper for callbacks that need to be delayed after a signal
 
 	This class allows you to add a callback to a signal, but only have

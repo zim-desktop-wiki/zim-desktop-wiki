@@ -1,4 +1,3 @@
-
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''When this module is run as a script it allows conversion

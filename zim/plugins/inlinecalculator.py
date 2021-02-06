@@ -1,4 +1,3 @@
-
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #
 # Inspired by and partially based on code from clac.py,
@@ -194,7 +193,7 @@ class ExpressionError(Error):
 		# T: error description
 
 
-_multiline_re = re.compile('--+\s+[+-]')
+_multiline_re = re.compile(r'--+\s+[+-]')
 	# for multiline summation with "--- +" and similar
 
 
@@ -284,7 +283,7 @@ This is a core plugin shipping with zim.
 		try:
 			return eval(expression, GLOBALS, {})
 		except Exception as error:
-			msg = '%s: %s' % (error.__class__.__name__, error)
+			msg = '{}: {}'.format(error.__class__.__name__, error)
 			raise ExpressionError(msg)
 
 

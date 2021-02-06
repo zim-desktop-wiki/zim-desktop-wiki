@@ -1,4 +1,3 @@
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -31,7 +30,7 @@ from .dates import parse_date
 
 
 _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
-_date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
+_date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + r'|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
 _MAX_DUE_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
@@ -88,8 +87,8 @@ class TasksIndexer(IndexerBase):
 			tags TEXT,
 			description TEXT
 		);
-		INSERT OR REPLACE INTO zim_index VALUES (%r, %r);
-	''' % (PLUGIN_NAME, PLUGIN_DB_FORMAT)
+		INSERT OR REPLACE INTO zim_index VALUES ({!r}, {!r});
+	'''.format(PLUGIN_NAME, PLUGIN_DB_FORMAT)
 
 	TEARDOWN_SCRIPT = '''
 		DROP TABLE IF EXISTS "tasklist";
@@ -218,22 +217,20 @@ class TasksView(IndexView):
 		#  started tasks by prio, due date, page + id to keep order in page
 		#  not-started tasks by start date, ...
 		today = str(datetime.date.today())
-		for row in self.db.execute('''
+		yield from self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id
 			WHERE tasklist.open=1 and tasklist.parent=? and tasklist.start<=?
 			ORDER BY tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
 			''', (parentid, today)
-		):
-			yield row
-		for row in self.db.execute('''
+		)
+		yield from self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id
 			WHERE tasklist.open=1 and tasklist.parent=? and tasklist.start>?
 			ORDER BY tasklist.start ASC, tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
 			''', (parentid, today)
-		):
-			yield row
+		)
 
 	def list_open_tasks_flatlist(self):
 		'''List tasks
@@ -243,22 +240,20 @@ class TasksView(IndexView):
 		#  started tasks by prio, due date, page + id to keep order in page
 		#  not-started tasks by start date, ...
 		today = str(datetime.date.today())
-		for row in self.db.execute('''
+		yield from self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id
 			WHERE tasklist.open=1 and tasklist.start<=? and hasopenchildren=0
 			ORDER BY tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
 			''', (today,)
-		):
-			yield row
-		for row in self.db.execute('''
+		)
+		yield from self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id
 			WHERE tasklist.open=1 and tasklist.start>? and hasopenchildren=0
 			ORDER BY tasklist.start ASC, tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
 			''', (today,)
-		):
-			yield row
+		)
 
 	def get_task(self, taskid):
 		row = self.db.execute(
@@ -275,7 +270,7 @@ class TasksView(IndexView):
 		return self._pages.get_pagename(task['source'])
 
 
-class TaskParser(object):
+class TaskParser:
 
 	# This parser uses the "top level lists" representation to separate
 	# lists from paragraphs.

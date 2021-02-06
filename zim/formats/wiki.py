@@ -1,4 +1,3 @@
-
 # Copyright 2008, 2012-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping wiki text'''
@@ -48,7 +47,7 @@ bullet_pattern = '(?:[\\*\u2022]|\\[[ \\*x>]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
-number_bullet_re = re.compile('^(\d+|[a-zA-Z])\.$')
+number_bullet_re = re.compile(r'^(\d+|[a-zA-Z])\.$')
 def check_number_bullet(bullet):
 	'''If bullet is a numbered bullet this returns the number or letter,
 	C{None} otherwise
@@ -59,14 +58,14 @@ def check_number_bullet(bullet):
 	else:
 		return None
 
-param_re = re.compile('([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
+param_re = re.compile(r'([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
 	# matches parameter list for objects
 	# allow name="foo bar" and name=Foo
 
 empty_lines_re = re.compile(r'((?:^[ \t]*\n)+)', re.M | re.U)
 	# match multiple empty lines
 
-unindented_line_re = re.compile('^\S', re.M)
+unindented_line_re = re.compile(r'^\S', re.M)
 	# match any unindented line
 
 
@@ -88,20 +87,20 @@ def _remove_indent(text, indent):
 url_re = re.compile(
 	'\\b(?!__)(?P<url>'
 
-	'(www\.|https?://|\w+://)'			# autolink & autourl prefix
-	'(?P<domain>([\w\-]+\.)+[\w\-]+)' 	# 2 or more domain sections
-	'[^\s<]*'					# any non-space char except "<"
+	r'(www\.|https?://|\w+://)'			# autolink & autourl prefix
+	r'(?P<domain>([\w\-]+\.)+[\w\-]+)' 	# 2 or more domain sections
+	r'[^\s<]*'					# any non-space char except "<"
 
 	')|(?!__)(?P<email>'
 
 	'(mailto:)?'
-	'[\w\.\-_+]+@'				# email prefix
-	'([\w\-_]+\.)+[\w\-_]+'	# email domain
+	r'[\w\.\-_+]+@'				# email prefix
+	r'([\w\-_]+\.)+[\w\-_]+'	# email domain
 
 	')|(?P<fileuri>'
 
 	'file:/+'
-	'[^\s"<>\']+'
+	'[^\\s"<>\']+'
 
 	')', re.U
 )
@@ -156,7 +155,7 @@ def match_url(text):
 			or (url[-1] == ')' and url.count(')') > url.count('(')):
 				url = url[:-1]
 		elif url[-1] == ';':
-			m = re.search('&\w+;$', url)
+			m = re.search(r'&\w+;$', url)
 			if m:
 				ref = m.group(0)
 				url = url[:-len(ref)]
@@ -168,7 +167,7 @@ def match_url(text):
 		return None
 
 
-class WikiParser(object):
+class WikiParser:
 	# This parser uses 3 levels of rules. The top level splits up
 	# paragraphs, verbatim paragraphs, images and objects.
 	# The second level further splits paragraphs in lists and indented
@@ -235,21 +234,21 @@ class WikiParser(object):
 			Rule(
 				'X-Bullet-List',
 				r'''(
-					^ %s .* \n								# Line starting with bullet
+					^ {} .* \n								# Line starting with bullet
 					(?:
-						^ \t* %s .* \n						# Line with same or more indent and bullet
+						^ \t* {} .* \n						# Line with same or more indent and bullet
 					)*										# .. repeat
-				)''' % (bullet_pattern, bullet_pattern),
+				)'''.format(bullet_pattern, bullet_pattern),
 				process=self.parse_list
 			),
 			Rule(
 				'X-Indented-Bullet-List',
 				r'''(
-					^(?P<list_indent>\t+) %s .* \n			# Line with indent and bullet
+					^(?P<list_indent>\t+) {} .* \n			# Line with indent and bullet
 					(?:
-						^(?P=list_indent) \t* %s .* \n		# Line with same or more indent and bullet
+						^(?P=list_indent) \t* {} .* \n		# Line with same or more indent and bullet
 					)*										# .. repeat
-				)''' % (bullet_pattern, bullet_pattern),
+				)'''.format(bullet_pattern, bullet_pattern),
 				process=self.parse_list
 			),
 			Rule(
@@ -713,7 +712,7 @@ class Dumper(TextDumper):
 
 	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \
-			'BUG: link misses href: %s "%s"' % (attrib, strings)
+			'BUG: link misses href: {} "{}"'.format(attrib, strings)
 		href = attrib['href']
 
 		if not strings or href == ''.join(strings):
@@ -734,7 +733,7 @@ class Dumper(TextDumper):
 				continue
 			elif v: # skip None, "" and 0
 				data = url_encode(str(v), mode=URL_ENCODE_DATA)
-				opts.append('%s=%s' % (k, data))
+				opts.append('{}={}'.format(k, data))
 		if opts:
 			src += '?%s' % '&'.join(opts)
 
@@ -754,7 +753,7 @@ class Dumper(TextDumper):
 			if key in ('type', 'indent') or value is None:
 				continue
 			# double quotes are escaped by doubling them
-			opts.append(' %s="%s"' % (key, str(value).replace('"', '""')))
+			opts.append(' {}="{}"'.format(key, str(value).replace('"', '""')))
 
 		if not strings:
 			strings = []

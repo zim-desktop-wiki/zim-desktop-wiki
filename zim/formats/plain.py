@@ -1,4 +1,3 @@
-
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping input in plain text'''
@@ -173,7 +172,7 @@ class Dumper(DumperClass):
 	def dump_link(self, tag, attrib, strings=None):
 		# Just plain text, either text of link, or link href
 		assert 'href' in attrib, \
-			'BUG: link misses href: %s "%s"' % (attrib, strings)
+			'BUG: link misses href: {} "{}"'.format(attrib, strings)
 		href = attrib['href']
 
 		if strings:

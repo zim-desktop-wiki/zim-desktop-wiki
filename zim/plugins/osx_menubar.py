@@ -1,4 +1,3 @@
-
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # To install this plugin:
@@ -37,13 +36,13 @@ if False: #pragma: no cover
 	# production code.
 	# Switch by setting above statement to "True" or "False"
 
-	class MockOSXAppModule(object):
+	class MockOSXAppModule:
 
 		@staticmethod
 		def Application():
 			return MockOSXAppObject()
 
-	class MockOSXAppObject(object):
+	class MockOSXAppObject:
 
 		def __getattr__(self, name):
 			def method(*a):

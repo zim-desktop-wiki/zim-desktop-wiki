@@ -1,4 +1,3 @@
-
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Helper classes for file system related functions'''
@@ -55,7 +54,7 @@ class TrashCancelledError(Error):
 	pass
 
 
-class TrashHelper(object):
+class TrashHelper:
 
 	def trash(self, file):
 		'''Trash a file or folder by moving it to the system trashcan
@@ -173,10 +172,10 @@ def format_file_size(bytes):
 		if bytes >= unit:
 			size = float(bytes) / unit
 			if size < 10:
-				return "%.2f%s" % (size, label)
+				return "{:.2f}{}".format(size, label)
 			elif size < 100:
-				return "%.1f%s" % (size, label)
+				return "{:.1f}{}".format(size, label)
 			else:
-				return "%.0f%s" % (size, label)
+				return "{:.0f}{}".format(size, label)
 	else:
 		return str(bytes) + 'b'

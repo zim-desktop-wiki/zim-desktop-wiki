@@ -1,4 +1,3 @@
-
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -23,7 +22,7 @@ import zim.datetimetz as datetime
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(
 	'(' +
-		'^[_\W]+|(?<=:)[_\W]+' +
+		r'^[_\W]+|(?<=:)[_\W]+' +
 	'|' +
 		'[' + re.escape(''.join(
 			("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r")
@@ -71,7 +70,7 @@ def shortest_unique_names(paths):
 	return result
 
 
-class Path(object):
+class Path:
 	'''Class representing a page name in the notebook
 
 	This is the parent class for the Page class. It contains the name
@@ -153,7 +152,7 @@ class Path(object):
 		try:
 			Path.assertValidPageName(newname)
 		except AssertionError:
-			raise ValueError('Not a valid page name: %s (was: %s)' % (newname, name))
+			raise ValueError('Not a valid page name: {} (was: {})'.format(newname, name))
 		return newname
 
 	def __init__(self, name):
@@ -192,7 +191,7 @@ class Path(object):
 		return self.name
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.name)
+		return '<{}: {}>'.format(self.__class__.__name__, self.name)
 
 	def __str__(self):
 		return self.name
@@ -257,7 +256,7 @@ class Path(object):
 			i = len(path.name) + 1
 			return self.name[i:].strip(':')
 		else:
-			raise ValueError('"%s" is not below "%s"' % (self, path))
+			raise ValueError('"{}" is not below "{}"'.format(self, path))
 
 	@property
 	def parent(self):
@@ -329,7 +328,7 @@ HREF_REL_ABSOLUTE = 0
 HREF_REL_FLOATING = 1
 HREF_REL_RELATIVE = 2
 
-class HRef(object):
+class HRef:
 
 	__slots__ = ('rel', 'names')
 
@@ -362,7 +361,7 @@ class HRef(object):
 
 	def __str__(self):
 		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
-		return '<%s: %s %s>' % (self.__class__.__name__, rel, self.names)
+		return '<{}: {} {}>'.format(self.__class__.__name__, rel, self.names)
 
 	def parts(self):
 		return self.names.split(':')

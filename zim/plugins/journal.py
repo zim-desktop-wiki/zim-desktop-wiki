@@ -1,4 +1,3 @@
-
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -425,7 +424,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 			self.treeview.get_selection().unselect_all()
 
 
-class CalendarWidgetModel(object):
+class CalendarWidgetModel:
 
 	def __init__(self, plugin, notebook):
 		self.plugin = plugin

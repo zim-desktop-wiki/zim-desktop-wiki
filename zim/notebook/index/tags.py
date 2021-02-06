@@ -1,4 +1,3 @@
-
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -13,7 +12,7 @@ from .pages import PagesViewInternal, ROOT_PATH, \
 	PageIndexRecord  #, get_treepath_for_indexpath_factory
 
 
-class IndexTag(object):
+class IndexTag:
 	'''Object to represent a page tag in the L{Index} API
 
 	These are tags that appear in pages with an "@", like "@foo". They
@@ -30,7 +29,7 @@ class IndexTag(object):
 		self.id = id
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.name)
+		return '<{}: {}>'.format(self.__class__.__name__, self.name)
 
 	def __hash__(self):
 		return self.name.__hash__()
@@ -78,14 +77,14 @@ class TagsIndexer(IndexerBase):
 		''')
 
 	def on_page_changed(self, pagesindexer, pagerow, doc):
-		oldtags = dict(
-			(r[0], r) for r in self.db.execute(
+		oldtags = {
+			r[0]: r for r in self.db.execute(
 				'SELECT tags.sortkey, tags.name, tags.id FROM tagsources '
 				'LEFT JOIN tags ON tagsources.tag = tags.id '
 				'WHERE tagsources.source=?',
 				(pagerow['id'],)
 			)
-		)
+		}
 
 		seen = set()
 		for name in doc.iter_tag_names():
@@ -338,9 +337,9 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 		else:
 			rows = self.db.execute('''
 						SELECT id FROM tags
-						WHERE name in %s
+						WHERE name in {}
 						ORDER BY sortkey, name
-						''' % (self.tags,)
+						'''.format(self.tags)
 					)
 			self._tagids = tuple(r['id'] for r in rows)
 
@@ -349,7 +348,7 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 		elif len(self._tagids) == 1:
 			self._tagquery = ' = %i ' % self._tagids[0]
 		else:
-			self._tagquery = ' in %s ' % (self._tagids,)
+			self._tagquery = ' in {} '.format(self._tagids)
 
 	def _emit_children_inserted(self, pageid, treepath):
 		treeiter = self.get_iter(treepath) # not mytreeiter !
@@ -641,9 +640,9 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 			offset, = treepath
 			if self._tagids: # Selection
 				row = self.db.execute('''
-						SELECT * FROM tags WHERE id %s
+						SELECT * FROM tags WHERE id {}
 						ORDER BY sortkey, name LIMIT 1 OFFSET ?
-					''' % (self._tagquery,),
+					'''.format(self._tagquery),
 					(offset,)
 				).fetchone()
 			else: # Full set

@@ -1,4 +1,3 @@
-
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Utilities to work with the clipboard for copy-pasting
@@ -348,7 +347,7 @@ def _get_image_info(targetname):
 		return None, None
 
 
-class MockSelectionData(object):
+class MockSelectionData:
 	'''Adapter to allow usage of C{ClipboardData} as input for
 	C{parsetree_from_selectiondata()}
 	'''
@@ -378,7 +377,7 @@ class MockSelectionData(object):
 		raise NotImplementedError
 
 
-class ClipboardData(object):
+class ClipboardData:
 	'''Wrapper for data that can be set on the clipboard and pasted
 	multiple formats
 	'''
@@ -477,7 +476,7 @@ class PageLinkData(ClipboardData):
 		if targetid == INTERNAL_PAGELIST_TARGET_ID:
 			return pack_urilist((self.path.name,))
 		elif targetid == PAGELIST_TARGET_ID:
-			link = "%s?%s" % (self.notebookname, self.path.name)
+			link = "{}?{}".format(self.notebookname, self.path.name)
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:
 			return self.path.name
@@ -485,7 +484,7 @@ class PageLinkData(ClipboardData):
 			raise ValueError('Unknown target id %i' % targetid)
 
 
-class ClipboardManager(object):
+class ClipboardManager:
 	'''Wrapper for C{Gtk.Clipboard}, supporting specific data formats'''
 
 	def __init__(self, name):
@@ -665,13 +664,13 @@ def wrap_html(html, target):
 		return '''\
 <html>
 <head>
-%s
+{}
 </head>
 <body>
-%s
+{}
 </body>
 </html>
-''' % (HTML_HEAD, html)
+'''.format(HTML_HEAD, html)
 
 
 class Win32HtmlFormat:

@@ -1,4 +1,3 @@
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
@@ -27,7 +26,7 @@ logger = logging.getLogger('zim.plugins.tasklist')
 from .indexer import _MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re
 
 
-class TaskListWidgetMixin(object):
+class TaskListWidgetMixin:
 
 		def on_populate_popup(self, o, menu):
 			sep = Gtk.SeparatorMenuItem()
@@ -617,7 +616,7 @@ class TaskListTreeView(BrowserTreeView):
 
 			# Format description
 			desc = _date_re.sub('', row['description'])
-			desc = re.sub('\s*!+\s*', ' ', desc) # get rid of exclamation marks
+			desc = re.sub(r'\s*!+\s*', ' ', desc) # get rid of exclamation marks
 			desc = encode_markup_text(desc)
 			if actionable:
 				desc = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', desc) # highlight tags - same color as used in pageview
@@ -827,30 +826,30 @@ class TaskListTreeView(BrowserTreeView):
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>Task List - Zim</title>
-		<meta name='Generator' content='Zim [%% zim.version %%]'>
+		<meta name='Generator' content='Zim [% zim.version %]'>
 		<style type='text/css'>
-			table.tasklist {
+			table.tasklist {{
 				border-width: 1px;
 				border-spacing: 2px;
 				border-style: solid;
 				border-color: gray;
 				border-collapse: collapse;
-			}
-			table.tasklist th {
+			}}
+			table.tasklist th {{
 				border-width: 1px;
 				padding: 1px;
 				border-style: solid;
 				border-color: gray;
-			}
-			table.tasklist td {
+			}}
+			table.tasklist td {{
 				border-width: 1px;
 				padding: 1px;
 				border-style: solid;
 				border-color: gray;
-			}
-			.high {background-color: %s}
-			.medium {background-color: %s}
-			.alert {background-color: %s}
+			}}
+			.high {{background-color: {}}}
+			.medium {{background-color: {}}}
+			.alert {{background-color: {}}}
 		</style>
 	</head>
 	<body>
@@ -859,7 +858,7 @@ class TaskListTreeView(BrowserTreeView):
 
 <table class="tasklist">
 <tr><th>Prio</th><th>Task</th><th>Date</th><th>Page</th></tr>
-''' % (HIGH_COLOR, MEDIUM_COLOR, ALERT_COLOR)
+'''.format(HIGH_COLOR, MEDIUM_COLOR, ALERT_COLOR)
 
 		today = str(datetime.date.today())
 		tomorrow = str(datetime.date.today() + datetime.timedelta(days=1))
@@ -883,7 +882,7 @@ class TaskListTreeView(BrowserTreeView):
 			else:
 					date = '<td>%s</td>' % date
 
-			desc = '<td>%s%s</td>' % ('&nbsp;' * (4 * indent), desc)
+			desc = '<td>{}{}</td>'.format('&nbsp;' * (4 * indent), desc)
 			page = '<td>%s</td>' % page
 
 			html += '<tr>' + prio + desc + date + page + '</tr>\n'

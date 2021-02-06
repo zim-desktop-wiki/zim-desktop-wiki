@@ -1,4 +1,3 @@
-
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains base classes to map config files to dicts
@@ -121,7 +120,7 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin, metaclass=_MyMe
 					v.set_modified(False)
 
 
-class ConfigDefinition(object):
+class ConfigDefinition:
 	'''Definition for a key in a L{ConfigDict}'''
 
 	__slots__ = ('default', 'allow_empty')
@@ -221,7 +220,7 @@ class ConfigDefinitionByClass(ConfigDefinition):
 				return self.klass.new_from_zim_config(value)
 			except:
 				logger.debug('Error while converting %s to %s', value, self.klass, exc_info=1)
-				raise ValueError('Can not convert %s to %s' % (value, self.klass))
+				raise ValueError('Can not convert {} to {}'.format(value, self.klass))
 		else:
 			raise ValueError('Value should be of type: %s' % self.klass.__name__)
 
@@ -536,7 +535,7 @@ class ConfigDict(ControlledDict):
 			try:
 				v = self.definitions[k].check(v)
 			except ValueError as error:
-				raise ValueError('Invalid config value for %s: "%s" - %s' % (k, v, error.args[0]))
+				raise ValueError('Invalid config value for {}: "{}" - {}'.format(k, v, error.args[0]))
 			else:
 				ControlledDict.__setitem__(self, k, v)
 		else:
@@ -841,9 +840,9 @@ class INIConfigFile(SectionedConfigDict):
 				if not key.startswith('_'):
 					try:
 						if key in section.definitions:
-							lines.append('%s=%s\n' % (key, section.definitions[key].tostring(value)))
+							lines.append('{}={}\n'.format(key, section.definitions[key].tostring(value)))
 						else:
-							lines.append('%s=%s\n' % (key, value))
+							lines.append('{}={}\n'.format(key, value))
 					except:
 						logger.exception('Error serializing "%s" in section "[%s]"', key, name)
 			lines.append('\n')
@@ -859,7 +858,7 @@ class INIConfigFile(SectionedConfigDict):
 		return lines
 
 
-class HierarchicDict(object):
+class HierarchicDict:
 	'''This class implements a data store that behaves as a hierarchic
 	dict of dicts. Each key in this object is considered a hierarchic
 	path (the path separator is ':' for obvious reasons). The dict for
@@ -894,7 +893,7 @@ class HierarchicDict(object):
 		return HierarchicDictFrame(self.dict, k)
 
 
-class HierarchicDictFrame(object):
+class HierarchicDictFrame:
 	'''Object acts as a member dict for L{HierarchicDict}'''
 
 	__slots__ = ('dict', 'key')

@@ -114,7 +114,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 		return pixbuf
 
 
-class ThumbnailQueue(object):
+class ThumbnailQueue:
 
 	'''Wrapper for L{ThumbnailManager} that does that actual thumbnailing
 	in a separate thread and manages the requests and the results with
@@ -222,7 +222,7 @@ class ThumbnailQueue(object):
 			self._count = 0
 
 
-class ThumbnailManager(object):
+class ThumbnailManager:
 	'''This class implements thumbnails management (mostly) following
 	the C{freedesktop.org} spec.
 	'''

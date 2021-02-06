@@ -1,4 +1,3 @@
-
 # Copyright 2008,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module stands apart from the rest of the gui modules as it is not

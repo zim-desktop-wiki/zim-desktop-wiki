@@ -1,4 +1,3 @@
-
 # Copyright 2013-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Action interface classes.
@@ -43,7 +42,7 @@ def hasaction(obj, actionname):
 		and isinstance(getattr(obj.__class__, actionname), ActionMethod)
 
 
-class ActionMethod(object):
+class ActionMethod:
 	pass
 
 
@@ -206,7 +205,7 @@ class ToggleAction(Action):
 				self.__get__(instance, instance.__class__)()
 			except Exception as error:
 				zim.errors.exception_handler(
-					'Exception during toggle action: %s(%s)' % (self.name, active))
+					'Exception during toggle action: {}({})'.format(self.name, active))
 
 	def get_toggleaction_state(self, instance):
 		'''Get the state for C{instance}'''
@@ -294,7 +293,7 @@ class RadioAction(ActionMethod):
 				self.__get__(instance, instance.__class__)(key)
 		except:
 			zim.errors.exception_handler(
-				'Exception during action: %s(%s)' % (self.name, key))
+				'Exception during action: {}({})'.format(self.name, key))
 
 
 def get_actions(obj):

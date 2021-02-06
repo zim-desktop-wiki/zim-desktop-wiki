@@ -1,4 +1,3 @@
-
 # Copyright 2016-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # Tokens come in 3 variants
@@ -89,7 +88,7 @@ class TokenBuilder(Builder):
 			])
 
 
-class TokenParser(object):
+class TokenParser:
 
 	def __init__(self, builder):
 		self.builder = builder
@@ -104,7 +103,7 @@ class TokenParser(object):
 				self.builder.start(*t)
 
 
-class TokenVisitor(object):
+class TokenVisitor:
 	# Adaptor for the visit interface
 
 	def __init__(self, tokens):
@@ -268,11 +267,11 @@ def testTokenStream(token_iter):
 	for t in token_iter:
 		assert isinstance(t, tuple) and len(t) == 2, 'Malformed token'
 		if t[0] == END:
-			assert nesting[-1] == t[1], 'Got /%s, expected /%s' % (t[1], nesting[-1])
+			assert nesting[-1] == t[1], 'Got /{}, expected /{}'.format(t[1], nesting[-1])
 			nesting.pop()
 		elif t[0] == TEXT:
 			assert isinstance(t[1], str), 'Wrong type for text'
-			assert not '\n' in t[1][:-1], 'Text token should not cross line break: %r' % (t,)
+			assert not '\n' in t[1][:-1], 'Text token should not cross line break: {!r}'.format(t)
 		else:
 			assert t[1] is None or isinstance(t[1], dict), 'Wrong type for attributes'
 

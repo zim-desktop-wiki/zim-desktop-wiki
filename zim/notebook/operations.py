@@ -1,4 +1,3 @@
-
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
@@ -329,7 +328,7 @@ class SimpleAsyncOperation(NotebookOperation):
 			pass # exhaust iter to call the post-handler
 
 
-class NotebookState(object):
+class NotebookState:
 	'''Context manager that can be used to wrap code that does not
 	allow for operations to run in parallel fashion.
 

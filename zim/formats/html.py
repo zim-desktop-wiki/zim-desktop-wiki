@@ -1,4 +1,3 @@
-
 # Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module supports dumping to HTML'''
@@ -154,7 +153,7 @@ class Dumper(DumperClass):
 			else:
 				type = '1'
 			return self.dump_block(tag, attrib, strings,
-				_extra='type="%s" start="%s"' % (type, start))
+				_extra='type="{}" start="{}"'.format(type, start))
 		else:
 			return self.dump_block(tag, attrib, strings)
 
@@ -199,12 +198,12 @@ class Dumper(DumperClass):
 			opt += ' alt="%s"' % html_encode(attrib['alt']).replace('"', '&quot;')
 		for o in ('width', 'height'):
 			if o in attrib and int(float(attrib[o])) > 0:
-				opt += ' %s="%s"' % (o, attrib[o])
+				opt += ' {}="{}"'.format(o, attrib[o])
 		if 'href' in attrib:
 			href = self.linker.link(attrib['href'])
-			return ['<a href="%s"><img src="%s"%s></a>' % (href, src, opt)]
+			return ['<a href="{}"><img src="{}"{}></a>'.format(href, src, opt)]
 		else:
-			return ['<img src="%s"%s>' % (src, opt)]
+			return ['<img src="{}"{}>'.format(src, opt)]
 
 	def dump_object(self, tag, attrib, strings=[]):
 		strings = DumperClass.dump_object(self, tag, attrib, strings)

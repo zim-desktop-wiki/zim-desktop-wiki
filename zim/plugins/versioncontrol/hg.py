@@ -1,4 +1,3 @@
-
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
@@ -139,7 +138,7 @@ class HGApplicationBackend(VCSApplicationBase):
 		@returns: nothing
 		"""
 		self.init()
-		self.ignore('\.zim*$\n')
+		self.ignore('\\.zim*$\n')
 		self.add('.') # add all existing files
 
 	def repo_exists(self):

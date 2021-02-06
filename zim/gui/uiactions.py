@@ -1,4 +1,3 @@
-
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
@@ -46,10 +45,10 @@ def _get_xml_for_menu(name):
 				if line.startswith('</popup>'):
 					return '<ui>\n%s\n</ui>\n' % '\n'.join(menu)
 	else:
-		raise ValueError('No such popup defined in %s: %s' % (file_name, name))
+		raise ValueError('No such popup defined in {}: {}'.format(file_name, name))
 
 
-class UIActions(object):
+class UIActions:
 	'''Container for all kind of actions that can be triggered from the
 	menubar, but do not directly link to a L{MainWindow} object.
 	'''
@@ -176,7 +175,7 @@ class UIActions(object):
 		to start the preferred email client.
 		'''
 		text = ''.join(self.page.dump(format='plain'))
-		url = 'mailto:?subject=%s&body=%s' % (
+		url = 'mailto:?subject={}&body={}'.format(
 			url_encode(self.page.name, mode=URL_ENCODE_DATA),
 			url_encode(text, mode=URL_ENCODE_DATA),
 		)

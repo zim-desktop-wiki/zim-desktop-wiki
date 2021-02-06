@@ -1,4 +1,3 @@
-
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin to serve as work-around for the lack of printing support'''

@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -353,17 +352,15 @@ class ExportTemplateContext(dict):
 		return self.linker.resource(link)
 
 
-class ExportTemplatePageIter(object):
+class ExportTemplatePageIter:
 
 	def __init__(self, special=None, content=None):
 		self.special = special or []
 		self.content = content or []
 
 	def __iter__(self):
-		for p in self.special:
-			yield p
-		for p in self.content:
-			yield p
+		yield from self.special
+		yield from self.content
 
 
 class HeadingSplitter(Visitor):
@@ -405,7 +402,7 @@ class HeadingSplitter(Visitor):
 		self._builder.append(tag, attrib, text)
 
 
-class PageListProxy(object):
+class PageListProxy:
 
 	def __init__(self, notebook, iterable, dumper_factory, linker_factory):
 		self._notebook = notebook
@@ -420,7 +417,7 @@ class PageListProxy(object):
 			yield PageProxy(self._notebook, page, dumper, linker)
 
 
-class ParseTreeProxy(object):
+class ParseTreeProxy:
 
 	@property
 	def meta(self):
@@ -541,7 +538,7 @@ class HeadingProxy(ParseTreeProxy):
 		self.level = tree.get_heading_level() or 1
 
 
-class FilePathProxy(object):
+class FilePathProxy:
 
 	def __init__(self, file, dest_file=None, relpath=None):
 		self._file = file
@@ -561,7 +558,7 @@ class FileProxy(FilePathProxy):
 		return format_file_size(self._file.size())
 
 
-class NotebookPathProxy(object):
+class NotebookPathProxy:
 
 	def __init__(self, path):
 		self._path = path
@@ -571,7 +568,7 @@ class NotebookPathProxy(object):
 		self.namespace = path.namespace # backward compat
 
 
-class UriProxy(object):
+class UriProxy:
 
 	def __init__(self, uri):
 		self.uri = uri

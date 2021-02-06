@@ -1,5 +1,3 @@
-# -*- coding: UTF-8 -*-
-
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -37,7 +35,7 @@ if GtkSource:
 	lang_ids = lm.get_language_ids()
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
-	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
+	LANGUAGES = {lm.get_language(i).get_name(): i for i in lang_ids}
 
 	ssm = GtkSource.StyleSchemeManager()
 

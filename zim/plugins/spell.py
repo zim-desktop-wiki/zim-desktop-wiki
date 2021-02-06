@@ -1,4 +1,3 @@
-
 # Copyright 2008,2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Spell check plugin based on gtkspell'''
@@ -112,7 +111,7 @@ class SpellPageViewExtension(PageViewExtension):
 	def _choose_adapter_cls(self):
 		if gtkspellcheck:
 			version = tuple(
-				map(int, re.findall('\d+', gtkspellcheck.__version__))
+				map(int, re.findall(r'\d+', gtkspellcheck.__version__))
 			)
 			if version >= (4, 0, 3):
 				return GtkspellcheckAdapter
@@ -172,7 +171,7 @@ class SpellPageViewExtension(PageViewExtension):
 			textview._gtkspell = None
 
 
-class GtkspellcheckAdapter(object):
+class GtkspellcheckAdapter:
 
 	def __init__(self, textview, lang):
 		self._lang = lang
@@ -231,7 +230,7 @@ class OldGtkspellcheckAdapter(GtkspellcheckAdapter):
 				self.detach()
 
 
-class GtkspellAdapter(object):
+class GtkspellAdapter:
 
 	def __init__(self, textview, lang):
 		self._lang = lang

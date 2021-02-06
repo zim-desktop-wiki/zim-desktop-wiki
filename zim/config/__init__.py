@@ -1,4 +1,3 @@
-
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import logging

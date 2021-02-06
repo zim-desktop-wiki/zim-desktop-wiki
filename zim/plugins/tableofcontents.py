@@ -1,4 +1,3 @@
-
 # Copyright 2012-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
@@ -201,8 +200,7 @@ class ToCTreeModel(Gtk.TreeStore):
 
 		while child:
 			if self.iter_has_child(child):
-				for i in self.walk(child):
-					yield i
+				yield from self.walk(child)
 			else:
 				yield child
 			child = self.iter_next(child)

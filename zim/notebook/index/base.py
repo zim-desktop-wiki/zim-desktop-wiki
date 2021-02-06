@@ -1,4 +1,3 @@
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -21,7 +20,7 @@ class IndexConsistencyError(AssertionError):
 	pass
 
 
-class IndexView(object):
+class IndexView:
 	'''Base class for "index view" objects'''
 
 	@classmethod
@@ -53,7 +52,7 @@ class IndexerBase(SignalEmitter, ConnectorMixin):
 		return iter([])
 
 
-class MyTreeIter(object):
+class MyTreeIter:
 	__slots__ = ('treepath', 'row', 'n_children', 'hint')
 
 	def __init__(self, treepath, row, n_children, hint=None):

@@ -1,4 +1,3 @@
-
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2014 Andri Kusumah
 
@@ -36,7 +35,7 @@ if len(SUPPORTED_COMMANDS):
 	COMMAND = SUPPORTED_COMMANDS[0]  # set first available tool as default
 
 
-class ScreenshotPicker(object):
+class ScreenshotPicker:
 	cmd_options = dict([
 		('scrot', {
 			'select': ('--select', '--border'),

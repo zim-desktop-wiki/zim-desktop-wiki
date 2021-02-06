@@ -1,4 +1,3 @@
-
 # Copyright 2008-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -59,7 +58,7 @@ def decode_filename(filename):
 
 
 
-class NotebookLayout(object):
+class NotebookLayout:
 	pass
 
 
@@ -164,7 +163,7 @@ class FilesLayout(NotebookLayout):
 		return [pagename + basename for basename in sorted(names)]
 
 
-class FilesAttachmentFolder(object):
+class FilesAttachmentFolder:
 
 	def __init__(self, folder, default_extension):
 		self._inner_fs_object = folder

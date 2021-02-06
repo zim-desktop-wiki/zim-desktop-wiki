@@ -1,4 +1,3 @@
-
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gi
@@ -643,20 +642,20 @@ PathBarMainWindowExtension._klasses[PATHBAR_PATH] = NamespacePathBar
 ############################
 # Allow testing visuals of scrolled box
 
-class TestPath(object):
+class TestPath:
 
 	def __init__(self, name):
 		self.name = name
 		self.basename = name
 
 
-class MockHistory(object):
+class MockHistory:
 
 	def connect(self, *a):
 		pass
 
 
-class MockNavigation(object):
+class MockNavigation:
 
 	def open_page(self, *a):
 		pass

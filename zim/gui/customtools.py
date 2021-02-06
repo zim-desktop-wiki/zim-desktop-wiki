@@ -1,4 +1,3 @@
-
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains code for defining and managing custom
@@ -373,7 +372,7 @@ class CustomTool(CustomToolDict, INIConfigFile):
 		return self.file.basename[:-8] # len('.desktop') is 8
 
 
-class StubPageView(object):
+class StubPageView:
 
 	def __init__(self, notebook, page):
 		self.notebook = notebook
@@ -392,7 +391,7 @@ class StubPageView(object):
 		raise NotImplementedError
 
 
-class CustomToolManagerUI(object):
+class CustomToolManagerUI:
 
 	def __init__(self, uimanager, pageview):
 		'''Constructor
@@ -469,27 +468,27 @@ class CustomToolManagerUI(object):
 			<menubar name='menubar'>
 				<menu action='tools_menu'>
 					<placeholder name='custom_tools'>
-					 %s
+					 {}
 					</placeholder>
 				</menu>
 			</menubar>
 			<toolbar name='toolbar'>
 				<placeholder name='tools'>
-				%s
+				{}
 				</placeholder>
 			</toolbar>
 			<popup name='text_popup'>
 				<placeholder name='tools'>
-				%s
+				{}
 				</placeholder>
 			</popup>
 			<popup name='page_popup'>
 				<placeholder name='tools'>
-				%s
+				{}
 				</placeholder>
 			</popup>
 		</ui>
-		""" % (
+		""".format(
 			''.join(menulines),
 			''.join(toollines),
 			''.join(textlines),
@@ -644,7 +643,7 @@ class CustomToolList(Gtk.TreeView):
 		model.clear()
 		for tool in self.manager:
 			pixbuf = tool.get_pixbuf(Gtk.IconSize.MENU)
-			text = '<b>%s</b>\n%s' % (encode_markup_text(tool.name), encode_markup_text(tool.comment))
+			text = '<b>{}</b>\n{}'.format(encode_markup_text(tool.name), encode_markup_text(tool.comment))
 			model.append((pixbuf, text, tool.key))
 
 

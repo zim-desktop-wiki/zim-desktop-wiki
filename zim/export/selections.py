@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -8,7 +7,7 @@
 from zim.notebook import PageNotFoundError
 
 
-class PageSelection(object):
+class PageSelection:
 	'''Base class defining the public API'''
 
 	notebook = None #: The L{Notebook} object
@@ -86,10 +85,8 @@ class SubPages(SinglePage):
 	def index(self, namespace=None):
 		if namespace is None or namespace.name == self.page.name:
 			yield self.page
-			for page in self.notebook.pages.walk(self.page):
-				yield page
+			yield from self.notebook.pages.walk(self.page)
 		elif namespace.ischild(self.page):
-			for page in self.notebook.pages.walk(namespace):
-				yield page
+			yield from self.notebook.pages.walk(namespace)
 		else:
 			pass

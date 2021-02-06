@@ -74,24 +74,24 @@ class ActionExtensionBase(ExtensionBase):
 		ui = '''\
 		<ui>
 		<menubar name='menubar'>
-			<menu action='%s'>
-				<placeholder name='%s'>
-				%s
+			<menu action='{}'>
+				<placeholder name='{}'>
+				{}
 				</placeholder>
 			</menu>
 		</menubar>
 		</ui>
-		''' % (menu_name, placeholder_name, item)
+		'''.format(menu_name, placeholder_name, item)
 
 		if not isinstance(action, RadioAction) and menuhint in ('view', 'insert') \
 			and (action.icon or action.verb_icon):
 				ui = ui.replace('</ui>', '''\
 		<toolbar name='toolbar'>
-			<placeholder name='%s'>
-			%s
+			<placeholder name='{}'>
+			{}
 			</placeholder>
 		</toolbar>
 		</ui>
-		''' % (menuhint + '_plugin_items', item.replace('menuitem', 'toolitem')))
+		'''.format(menuhint + '_plugin_items', item.replace('menuitem', 'toolitem')))
 
 		return ui

@@ -1,4 +1,3 @@
-
 # Copyright 2012-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -7,7 +6,7 @@
 import functools
 
 
-class classproperty(object):
+class classproperty:
 	'''Like C{property()} but for klass properties
 	Typically used as decorator
 	'''
@@ -151,7 +150,7 @@ def natural_sort_key(string, numeric_padding=5):
 
 import weakref
 
-class WeakSet(object):
+class WeakSet:
 	'''Class that behaves like a set, but keeps weak references to
 	members of the set.
 	'''
@@ -221,9 +220,9 @@ class OrderedDict(abc.MutableMapping):
 			self.update(E or F)
 
 	def __repr__(self):
-		return '<%s:\n%s\n>' % (
+		return '<{}:\n{}\n>'.format(
 			self.__class__.__name__,
-			',\n'.join('  %r: %r' % (k, v) for k, v in list(self.items()))
+			',\n'.join('  {!r}: {!r}'.format(k, v) for k, v in list(self.items()))
 		)
 
 	def __getitem__(self, k):
@@ -250,7 +249,7 @@ class OrderedDict(abc.MutableMapping):
 
 
 ## Special iterator class
-class MovingWindowIter(object):
+class MovingWindowIter:
 	'''Iterator yields a 3-tuple of the previous item, the current item
 	and the next item while iterating a give iterator.
 	Previous or next item will be C{None} if not available.

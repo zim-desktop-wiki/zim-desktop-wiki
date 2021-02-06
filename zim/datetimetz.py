@@ -1,4 +1,3 @@
-
 # Copyright 2010-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Thin wrapper for 'datetime' module from the standard library.

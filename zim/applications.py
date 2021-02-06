@@ -1,4 +1,3 @@
-
 # Copyright 2009,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains helper classes for running external applications.
@@ -94,7 +93,7 @@ class ApplicationError(zim.errors.Error):
 			self.description += '\n\n' + stderr
 
 
-class Application(object):
+class Application:
 	'''Base class for objects representing an external application or
 	command.
 
@@ -132,11 +131,11 @@ class Application(object):
 
 	def __repr__(self):
 		if hasattr(self, 'key'):
-			return '<%s: %s>' % (self.__class__.__name__, self.key)
+			return '<{}: {}>'.format(self.__class__.__name__, self.key)
 		elif hasattr(self, 'cmd'):
-			return '<%s: %s>' % (self.__class__.__name__, self.cmd)
+			return '<{}: {}>'.format(self.__class__.__name__, self.cmd)
 		else:
-			return '<%s: %s>' % (self.__class__.__name__, self.name)
+			return '<{}: {}>'.format(self.__class__.__name__, self.name)
 
 	@property
 	def name(self):

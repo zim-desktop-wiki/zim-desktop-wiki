@@ -1,4 +1,3 @@
-
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
@@ -132,7 +131,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		@returns: nothing
 		"""
 		self.init()
-		self.ignore('\.zim*/*,notebook.fossil')
+		self.ignore(r'\.zim*/*,notebook.fossil')
 		self.add('.') # add all existing files
 
 	def repo_exists(self):

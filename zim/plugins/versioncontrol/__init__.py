@@ -1,4 +1,3 @@
-
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
@@ -246,7 +245,7 @@ class NoChangesError(Error):
 		# T: Short error descriotion
 
 
-class VCS(object):
+class VCS:
 	"""
 	This class is the main entry for all Version Control System Stuff.
 	It is a factory, a dependencies checker, the enumeration of supported VCS.
@@ -352,7 +351,7 @@ class VCS(object):
 		@returns: a vcs backend object
 		"""
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
-			raise AssertionError('Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir))
+			raise AssertionError('Notebook {} is not part of version control dir {}'.format(notebook_dir, vcs_dir))
 
 		vcs_backend_klass = VCS.get_backend(vcs)
 		return vcs_backend_klass(vcs_dir, notebook_dir)
@@ -380,7 +379,7 @@ class VCSApplicationBase(ConnectorMixin):
 		assert isinstance(vcs_dir, LocalFolder)
 
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
-			raise AssertionError('Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir))
+			raise AssertionError('Notebook {} is not part of version control dir {}'.format(notebook_dir, vcs_dir))
 		self._app = self.build_bin_application_instance()
 		self.root = vcs_dir
 		self.notebook_dir = notebook_dir

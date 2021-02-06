@@ -1,4 +1,3 @@
-
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -581,12 +580,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			self.emit('moved-page', path, newpath)
 
 			if update_links:
-				for p in self._update_links_in_moved_page(path, newpath):
-					yield p
+				yield from self._update_links_in_moved_page(path, newpath)
 
 		if update_links:
-			for p in self._update_links_to_moved_page(path, newpath):
-				yield p
+			yield from self._update_links_to_moved_page(path, newpath)
 
 			new_n_links = self.links.n_list_links_section(newpath, LINK_DIR_BACKWARD)
 			if new_n_links != n_links:
@@ -832,8 +829,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''Like L{delete_page()}'''
 		self._delete_page(path)
 
-		for p in self._deleted_page(path, update_links):
-			yield p
+		yield from self._deleted_page(path, update_links)
 
 	def _delete_page(self, path):
 		logger.debug('Delete page: %s', path)
@@ -896,8 +892,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''Like L{trash_page()}'''
 		self._trash_page(path)
 
-		for p in self._deleted_page(path, update_links):
-			yield p
+		yield from self._deleted_page(path, update_links)
 
 	def _trash_page(self, path):
 		from zim.newfs.helpers import TrashHelper
@@ -937,8 +932,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			except IndexNotFoundError:
 				pass
 			else:
-				pages = set(
-					l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD))
+				pages = {
+					l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD)}
 
 				for p in pages:
 					yield p

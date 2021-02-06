@@ -1,4 +1,3 @@
-
 # Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
 # Copyright 2012-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -149,7 +148,7 @@ class Dumper(TextDumper):
 
 		strings.insert(0, '\\begin{enumerate}[%s]\n' % type)
 		if start > 1:
-			strings.insert(1, '\setcounter{enumi}{%i}\n' % (start - 1))
+			strings.insert(1, '\\setcounter{enumi}{%i}\n' % (start - 1))
 		strings.append('\\end{enumerate}\n')
 
 		return TextDumper.dump_ol(self, tag, attrib, strings)
@@ -204,11 +203,11 @@ class Dumper(TextDumper):
 
 		if imagepath.startswith('file://'):
 			imagepath = File(imagepath).path # avoid URIs here
-		image = '\\includegraphics[%s]{%s}' % (options, imagepath)
+		image = '\\includegraphics[{}]{{{}}}'.format(options, imagepath)
 
 		if 'href' in attrib:
 			href = self.linker.link(attrib['href'])
-			return ['\\href{%s}{%s}' % (href, image)]
+			return ['\\href{{{}}}{{{}}}'.format(href, image)]
 		else:
 			return [image]
 
@@ -219,7 +218,7 @@ class Dumper(TextDumper):
 			text = ''.join(strings)
 		else:
 			text = href
-		return ['\\href{%s}{%s}' % (href, text)]
+		return ['\\href{{{}}}{{{}}}'.format(href, text)]
 
 	def dump_code(self, tag, attrib, strings):
 		# Here we try several possible delimiters for the inline verb
@@ -238,23 +237,23 @@ class Dumper(TextDumper):
 		rows = strings
 
 		aligns, _wraps = TableParser.get_options(attrib)
-		rowline = lambda row: '&'.join([' ' + cell + ' ' for cell in row]) + '\\tabularnewline\n\hline'
+		rowline = lambda row: '&'.join([' ' + cell + ' ' for cell in row]) + '\\tabularnewline\n\\hline'
 		aligns = ['l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l' for a in aligns]
 
 		for i, row in enumerate(rows):
 			for j, (cell, align) in enumerate(zip(row, aligns)):
 				if '\n' in cell:
-					rows[i][j] = '\shortstack[' + align + ']{' + cell.replace("\n", "\\") + '}'
+					rows[i][j] = r'\shortstack[' + align + ']{' + cell.replace("\n", "\\") + '}'
 
 		# print table
 		table.append('\\begin{tabular}{ |' + '|'.join(aligns) + '| }')
-		table.append('\hline')
+		table.append(r'\hline')
 
 		table += [rowline(rows[0])]
-		table.append('\hline')
+		table.append(r'\hline')
 		table += [rowline(row) for row in rows[1:]]
 
-		table.append('\end{tabular}')
+		table.append(r'\end{tabular}')
 		return [line + "\n" for line in table]
 
 	def dump_line(self, tag, attrib, strings=None):

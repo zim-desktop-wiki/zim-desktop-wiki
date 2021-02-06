@@ -1,4 +1,3 @@
-
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -311,11 +310,11 @@ class PluginsTab(Gtk.VBox):
 			for dependency in dependencies:
 				text, ok, required = dependency
 				if ok:
-					insert('\u2022 %s - %s\n' % (text, _('OK'))) # T: dependency is OK
+					insert('\u2022 {} - {}\n'.format(text, _('OK'))) # T: dependency is OK
 				elif required:
-					insert('\u2022 %s - %s\n' % (text, _('Failed')), 'red') # T: dependency failed
+					insert('\u2022 {} - {}\n'.format(text, _('Failed')), 'red') # T: dependency failed
 				else:
-					insert('\u2022 %s - %s (%s)\n' % (text,
+					insert('\u2022 {} - {} ({})\n'.format(text,
 						_('Failed'), # T: dependency failed
 						_('Optional') # T: optional dependency
 					))

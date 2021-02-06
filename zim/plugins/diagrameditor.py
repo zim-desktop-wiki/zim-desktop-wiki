@@ -1,4 +1,3 @@
-
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from zim.plugins import PluginClass

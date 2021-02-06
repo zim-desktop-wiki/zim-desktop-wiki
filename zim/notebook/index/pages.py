@@ -1,4 +1,3 @@
-
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -335,7 +334,7 @@ class PageIndexRecord(Path):
 		return not self._row['is_link_placeholder']
 
 
-class PagesViewInternal(object):
+class PagesViewInternal:
 	'''This class defines private methods used by L{PagesView},
 	L{LinksView}, L{TagsView} and others.
 	'''
@@ -490,8 +489,7 @@ class PagesViewInternal(object):
 		):
 			yield PageIndexRecord(row)
 			if row['n_children'] > 0:
-				for child in self.walk(row['id']): # recurs
-					yield child
+				yield from self.walk(row['id'])
 
 	def walk_bottomup(self, parent_id):
 		for row in self.db.execute(
@@ -500,8 +498,7 @@ class PagesViewInternal(object):
 			(parent_id,)
 		):
 			if row['n_children'] > 0:
-				for child in self.walk_bottomup(row['id']): # recurs
-					yield child
+				yield from self.walk_bottomup(row['id'])
 			yield PageIndexRecord(row)
 
 
@@ -1035,7 +1032,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 ########################################################################
 
-class TestPagesDBTable(object):
+class TestPagesDBTable:
 	# Mixin for test cases, defined here to have all SQL in one place
 
 	def assertPagesDBConsistent(self, db):
@@ -1077,10 +1074,10 @@ class TestPagesDBTable(object):
 
 	def assertPagesDBEquals(self, db, pages):
 		rows = db.execute('SELECT * FROM pages WHERE id>1').fetchall()
-		in_db = set(r['name'] for r in rows)
+		in_db = {r['name'] for r in rows}
 		self.assertEqual(in_db, set(pages))
 
 	def assertPagesDBContains(self, db, pages):
 		rows = db.execute('SELECT * FROM pages WHERE id>1').fetchall()
-		in_db = set(r['name'] for r in rows)
+		in_db = {r['name'] for r in rows}
 		self.assertTrue(set(pages).issubset(in_db))

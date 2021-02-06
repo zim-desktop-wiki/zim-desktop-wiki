@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a web interface for zim. This is an alternative
@@ -66,7 +65,7 @@ class WWWError(Error):
 		@param headers: additional http headers for the error response,
 		list of 2-tuples with header name and value
 		'''
-		self.status = '%s %s' % (status, self.statusstring[status])
+		self.status = '{} {}'.format(status, self.statusstring[status])
 		self.headers = headers
 		self.msg = self.status
 		if msg:
@@ -97,7 +96,7 @@ The requested path is not valid
 		WWWError.__init__(self, 'Invalid path', status='403')
 
 
-class WWWInterface(object):
+class WWWInterface:
 	'''Class to handle the WWW interface for zim notebooks.
 
 	Objects of this class are callable, so they can be used as application

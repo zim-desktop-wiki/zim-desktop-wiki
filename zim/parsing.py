@@ -1,4 +1,3 @@
-
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains utilities for parsing strings and text'''
@@ -313,8 +312,8 @@ def parse_date(string):
 		return None
 
 
-class Re(object):
-	'''Wrapper around regex pattern objects which memorizes the
+class Re:
+	r'''Wrapper around regex pattern objects which memorizes the
 	last match object and gives list access to it's capturing groups.
 	See module re for regex docs.
 
@@ -346,7 +345,7 @@ class Re(object):
 		return self.r
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.r)
+		return '<{}: {}>'.format(self.__class__.__name__, self.r)
 
 	def __len__(self):
 		if self.m is None:
@@ -412,14 +411,14 @@ class Re(object):
 		return self.m.end(group)
 
 # Some often used regexes
-is_uri_re = Re('^(\w[\w\+\-\.]*):')
+is_uri_re = Re(r'^(\w[\w\+\-\.]*):')
 	# "scheme:"
-is_url_re = Re('^(\w[\w\+\-\.]*)://')
+is_url_re = Re(r'^(\w[\w\+\-\.]*)://')
 	# "scheme://"
-is_www_link_re = Re('^www\.([\w\-]+\.)+[\w\-]+')
+is_www_link_re = Re(r'^www\.([\w\-]+\.)+[\w\-]+')
 	# "www." followed by 2 or more domain sections
 	# See also 'url_re' in 'formats/wiki.py' following the GFM scheme
-is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+(\?.+)?$', re.U)
+is_email_re = Re(r'^(mailto:\S+|[^\s:]+)\@\S+\.\w+(\?.+)?$', re.U)
 	# "mailto:" address
 	# name "@" host
 	# but exclude other uris like mid: and cid:
@@ -431,9 +430,9 @@ is_win32_path_re = Re(r'^[A-Za-z]:[\\/]')
 is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# \\host\share
 	# smb://host/share
-is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
+is_interwiki_re = Re(r'^(\w[\w\+\-\.]*)\?(.*)', re.U)
 	# identifier "?" path
-is_interwiki_keyword_re = re.compile('^\w[\w+\-.]*$', re.U)
+is_interwiki_keyword_re = re.compile(r'^\w[\w+\-.]*$', re.U)
 
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit

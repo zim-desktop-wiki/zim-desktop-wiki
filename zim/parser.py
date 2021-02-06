@@ -1,7 +1,6 @@
-
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Generic parser for wiki formats
+r'''Generic parser for wiki formats
 
 This parser for wiki text (and similar formats) consists of two classes:
 the L{Rule} class which defines objects which specify a single parser
@@ -84,7 +83,7 @@ def convert_space_to_tab(text, tabstop=4):
 	return text
 
 
-class Builder(object):
+class Builder:
 	'''This class defines a 'builder' interface for parse trees. It is
 	used by the parser to construct the parse tree while keeping the
 	parser objects agnostic of how the resulting parse tree objects
@@ -208,9 +207,9 @@ class SimpleTreeElement(list):
 
 	def __repr__(self):
 		if len(self) > 0:
-			return '<%s:\n%s>' % (self.__class__.__name__, self.pprint(level=1))
+			return '<{}:\n{}>'.format(self.__class__.__name__, self.pprint(level=1))
 		else:
-			return '<%s: %s>' % (self.__class__.__name__, self.pprint(level=0).strip())
+			return '<{}: {}>'.format(self.__class__.__name__, self.pprint(level=0).strip())
 
 	def __str__(self):
 		return self.__repr__()
@@ -219,7 +218,7 @@ class SimpleTreeElement(list):
 		'''Returns pretty-printed text representation'''
 		prefix = '  ' * level
 		if len(self) > 0:
-			lines = [prefix + '%s %r [\n' % (self.tag, self.attrib)]
+			lines = [prefix + '{} {!r} [\n'.format(self.tag, self.attrib)]
 			for item in self:
 				if isinstance(item, SimpleTreeElement):
 					lines.append(item.pprint(level=level + 1))
@@ -231,7 +230,7 @@ class SimpleTreeElement(list):
 			lines.append(prefix + ']\n')
 			return ''.join(lines)
 		else:
-			return prefix + '%s %r []\n' % (self.tag, self.attrib)
+			return prefix + '{} {!r} []\n'.format(self.tag, self.attrib)
 
 
 class SimpleTreeBuilder(Builder):
@@ -258,7 +257,7 @@ class SimpleTreeBuilder(Builder):
 	def end(self, tag):
 		element = self.stack.pop()
 		if element.tag != tag:
-			raise AssertionError('Unmatched %s at end of %s' % (element.tag, tag))
+			raise AssertionError('Unmatched {} at end of {}'.format(element.tag, tag))
 
 	def text(self, text):
 		self.stack[-1].append(text)
@@ -289,7 +288,7 @@ class ParserError(Error):
 			# T: Extended error message while parsing a file, gives file name, line number and words where error occurred
 
 
-class Rule(object):
+class Rule:
 	'''Class that defines a single parser rule. Typically used
 	to define a regex pattern for one specific wiki format string
 	and the processing to be done when this formatting is encountered
@@ -328,7 +327,7 @@ class Rule(object):
 		self.process = process or self._process
 
 	def __repr__(self):
-		return '<%s: %s: %s>' % (self.__class__.__name__, self.tag, self.pattern)
+		return '<{}: {}: {}>'.format(self.__class__.__name__, self.tag, self.pattern)
 
 	def __or__(self, other):
 		'''Allow new parsers to be constructed by combining parser
@@ -346,7 +345,7 @@ class Rule(object):
 			builder.append(self.tag, None, text)
 
 
-class Parser(object):
+class Parser:
 	'''Parser class that matches multiple rules at once. It will
 	compile the patterns of various rules into a single regex and
 	based on the match call the correct rules for processing.

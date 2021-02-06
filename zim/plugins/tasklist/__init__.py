@@ -1,4 +1,3 @@
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # TODO: allow more complex queries for filter, in particular (NOT tag AND tag)

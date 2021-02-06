@@ -1,4 +1,3 @@
-
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import logging
@@ -23,7 +22,7 @@ def load_zim_stock_icons():
 	'''
 	factory = Gtk.IconFactory()
 	factory.add_default()
-	for dir in data_dirs(('pixmaps')):
+	for dir in data_dirs('pixmaps'):
 		for basename in dir.list('*.png'):
 			# not all installs have svg support, so only check png for now..
 			name = 'zim-' + basename[:-4] # e.g. checked-box.png -> zim-checked-box

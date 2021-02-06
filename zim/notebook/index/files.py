@@ -1,5 +1,3 @@
-
-
 import os
 import logging
 
@@ -288,7 +286,7 @@ class FilesIndexer(SignalEmitter):
 		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
 
 
-class FilesIndexChecker(object):
+class FilesIndexChecker:
 
 	def __init__(self, db, folder):
 		self.db = db
@@ -403,7 +401,7 @@ class FilesIndexChecker(object):
 
 
 
-class TestFilesDBTable(object):
+class TestFilesDBTable:
 	# Mixin for test cases, defined here to have all SQL in one place
 
 	def assertFilesDBConsistent(self, db):
@@ -421,10 +419,10 @@ class TestFilesDBTable(object):
 		import os
 		rows = db.execute('SELECT * FROM files WHERE id>1').fetchall()
 
-		in_db = dict((r['path'], r['node_type']) for r in rows)
-		wanted = dict(
-			(p.strip(SEP), TYPE_FOLDER if p.endswith(SEP) else TYPE_FILE)
+		in_db = {r['path']: r['node_type'] for r in rows}
+		wanted = {
+			p.strip(SEP): TYPE_FOLDER if p.endswith(SEP) else TYPE_FILE
 				for p in paths
-		)
+		}
 
 		self.assertEqual(in_db, wanted)

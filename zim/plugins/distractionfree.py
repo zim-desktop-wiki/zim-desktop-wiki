@@ -1,4 +1,3 @@
-
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
@@ -63,17 +62,17 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 
 	def _new_css_provider(self):
 		css = '''
-		#zim-pageview text {
-			color: %s;
-			background-color: %s;
-		}
-		widget box box scrolledwindow{
+		#zim-pageview text {{
+			color: {};
+			background-color: {};
+		}}
+		widget box box scrolledwindow{{
 			border-style: none;
-			}
-		box {
-			background-color: %s;
-		}
-		''' % (self.preferences['textcolor'], self.preferences['basecolor'],self.preferences['basecolor'])
+			}}
+		box {{
+			background-color: {};
+		}}
+		'''.format(self.preferences['textcolor'], self.preferences['basecolor'],self.preferences['basecolor'])
 		provider = Gtk.CssProvider()
 		provider.load_from_data(css.encode('UTF-8'))
 		return provider

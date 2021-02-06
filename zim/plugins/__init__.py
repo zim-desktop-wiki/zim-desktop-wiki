@@ -1,4 +1,3 @@
-
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''API documentation of the zim plugin framework.
@@ -79,7 +78,7 @@ __path__.insert(0, PLUGIN_FOLDER.path) # Should be redundant, but need to be sur
 
 #print("PLUGIN PATH:", __path__)
 
-class _BootstrapPluginManager(object):
+class _BootstrapPluginManager:
 
 	def __init__(self):
 		self._extendables = []
@@ -182,8 +181,7 @@ class ExtensionBase(SignalEmitter, ConnectorMixin):
 			yield klass
 			for base in klass.__bases__:
 				if issubclass(base, ExtensionBase):
-					for k in walk(base): # recurs
-						yield k
+					yield from walk(base)
 
 		for klass in walk(self.__class__):
 			try:
@@ -311,7 +309,7 @@ class InsertedObjectTypeMap(SignalEmitter):
 		'''
 		key = objecttype.name.lower()
 		if key in self._objects:
-			raise AssertionError('InsertedObjectType "%s" already defined by %s' % (key, self._objects[key]))
+			raise AssertionError('InsertedObjectType "{}" already defined by {}'.format(key, self._objects[key]))
 		else:
 			self._objects[key] = objecttype
 			self.emit('changed')
@@ -692,8 +690,7 @@ class PluginClass(ConnectorMixin):
 		defined in the same module as the plugin
 		'''
 		module = get_module(pluginklass.__module__)
-		for klass in lookup_subclasses(module, baseclass):
-			yield klass
+		yield from lookup_subclasses(module, baseclass)
 
 	def destroy(self):
 		'''Destroy the plugin object and all extensions

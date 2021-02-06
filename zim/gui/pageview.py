@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Copyright 2008-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
@@ -117,7 +115,7 @@ BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
 CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
 
 NUMBER_BULLET = '#.' # Special case for autonumbering
-is_numbered_bullet_re = re.compile('^(\d+|\w|#)\.$')
+is_numbered_bullet_re = re.compile(r'^(\d+|\w|#)\.$')
 	#: This regular expression is used to test whether a bullet belongs to a numbered list or not
 
 # Check the (undocumented) list of constants in Gtk.keysyms to see all names
@@ -348,7 +346,7 @@ class ConfigDefinitionConstant(String):
 			if hasattr(self.group, value):
 				return getattr(self.group, value)
 			else:
-				raise ValueError('No such constant: %s_%s' % (self.prefix, value))
+				raise ValueError('No such constant: {}_{}'.format(self.prefix, value))
 		else:
 			return value
 
@@ -360,7 +358,7 @@ class ConfigDefinitionConstant(String):
 
 
 
-class UserActionContext(object):
+class UserActionContext:
 	'''Context manager to wrap actions in proper user-action signals
 
 	This class used for the L{TextBuffer.user_action} attribute
@@ -394,7 +392,7 @@ class UserActionContext(object):
 GRAVITY_RIGHT = 'right'
 GRAVITY_LEFT = 'left'
 
-class SaveCursorContext(object):
+class SaveCursorContext:
 	'''Context manager used by L{TextBuffer.tmp_cursor()}
 
 	This allows syntax like::
@@ -3374,7 +3372,7 @@ FIND_CASE_SENSITIVE = 1 #: Constant to find case sensitive
 FIND_WHOLE_WORD = 2 #: Constant to find whole words only
 FIND_REGEX = 4 #: Constant to find based on regexes
 
-class TextFinder(object):
+class TextFinder:
 	'''This class handles finding text in the L{TextBuffer}
 
 	Typically you should get an instance of this class from the
@@ -4967,7 +4965,7 @@ class UndoStackManager:
 		self.unblock()
 
 
-class SavePageHandler(object):
+class SavePageHandler:
 	'''Object for handling page saving.
 
 	This class implements auto-saving on a timer and tries writing in
@@ -5190,7 +5188,7 @@ from zim.gui.actionextension import ActionExtensionBase
 from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
 
 
-class NavigationWrapper(object):
+class NavigationWrapper:
 	'''Wrapper to allow late initialization of the "navigation" object'''
 
 	def __init__(self):
@@ -6039,7 +6037,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self._do_activate_link(link, hints)
 		except:
 			zim.errors.exception_handler(
-				'Exception during activate-link(%r)' % ((link, hints),))
+				'Exception during activate-link({!r})'.format((link, hints)))
 
 	def _do_activate_link(self, link, hints):
 		type = link_type(link)
@@ -7527,7 +7525,7 @@ class InsertLinkDialog(Dialog):
 		return True
 
 
-class FindWidget(object):
+class FindWidget:
 	'''Base class for L{FindBar} and L{FindAndReplaceDialog}'''
 
 	def __init__(self, textview):

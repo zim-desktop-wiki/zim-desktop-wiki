@@ -52,7 +52,7 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = [
 		# key, type, label, default
-		('include_header', 'string', _('Common include header'), '\include "predefined-guitar-fretboards.ly"'), # T: plugin preference
+		('include_header', 'string', _('Common include header'), r'\include "predefined-guitar-fretboards.ly"'), # T: plugin preference
 		('include_footer', 'string', _('Common include footer'), ''), # T: plugin preference
 	]
 
@@ -89,7 +89,7 @@ class ScoreGenerator(ImageGeneratorClass):
 			if l.strip().startswith('\\version'):
 				version_present = True
 		if not version_present:
-			text = '\\version "{0}"\n\n'.format(self.cur_lilypond_version) + text
+			text = '\\version "{}"\n\n'.format(self.cur_lilypond_version) + text
 		return text
 
 	def extract_version(self, text):

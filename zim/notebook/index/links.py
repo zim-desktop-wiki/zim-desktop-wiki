@@ -1,4 +1,3 @@
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -42,7 +41,7 @@ LINK_DIR_BOTH = 3 #: Constant for links in any direction
 
 
 
-class IndexLink(object):
+class IndexLink:
 	'''Class used to represent links between two pages
 
 	@ivar source: L{Path} object for the source of the link
@@ -56,7 +55,7 @@ class IndexLink(object):
 		self.target = target
 
 	def __repr__(self):
-		return '<%s: %s to %s>' % (self.__class__.__name__, self.source, self.target)
+		return '<{}: {} to {}>'.format(self.__class__.__name__, self.source, self.target)
 
 
 class LinksIndexer(IndexerBase):
@@ -283,12 +282,10 @@ class LinksView(IndexView):
 	def _list_links_section(self, page_id, pagename, direction):
 		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4
 
-		for link in self._list_links(page_id, pagename, direction):
-			yield link
+		yield from self._list_links(page_id, pagename, direction)
 
 		for child in self._pages.walk(page_id):
-			for link in self._list_links(child.id, child, direction):
-				yield link
+			yield from self._list_links(child.id, child, direction)
 
 	def n_list_links_section(self, pagename, direction=LINK_DIR_FORWARD):
 		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4

@@ -1,4 +1,3 @@
-
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # The Error class needed to be put in a separate file to avoid recursive
@@ -142,4 +141,4 @@ class Error(Exception):
 		return msg
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.msg)
+		return '<{}: {}>'.format(self.__class__.__name__, self.msg)

@@ -1,4 +1,3 @@
-
 # Copyright 2009-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the base classes used by all plugins that
@@ -152,7 +151,7 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 		self.emit('changed')
 
 
-class ImageGeneratorClass(object):
+class ImageGeneratorClass:
 	'''Base class for image generators.
 	A plugin defining an L{ImageGeneratorObjectType} should also define a
 	sub-class of this class to do the actual work.

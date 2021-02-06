@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Module with basic filesystem objects.
@@ -153,7 +152,7 @@ def normalize_file_uris(path):
 
 def normalize_win32_share(path):
 	'''Translates paths for windows shares in the platform specific
-	form. So on windows it translates C{smb://} URLs to C{\\host\share}
+	form. So on windows it translates C{smb://} URLs to C{\\host\\share}
 	form, and vice versa on all other platforms.
 	Just returns the original path if it was already in the right form,
 	or when it is not a path for a share drive.
@@ -216,11 +215,11 @@ def format_file_size(bytes):
 		if bytes >= unit:
 			size = float(bytes) / unit
 			if size < 10:
-				return "%.2f%s" % (size, label)
+				return "{:.2f}{}".format(size, label)
 			elif size < 100:
-				return "%.1f%s" % (size, label)
+				return "{:.1f}{}".format(size, label)
 			else:
-				return "%.0f%s" % (size, label)
+				return "{:.0f}{}".format(size, label)
 	else:
 		return str(bytes) + 'b'
 
@@ -307,7 +306,7 @@ class FSSingletonClass(SignalEmitter):
 FS = FSSingletonClass()
 
 
-class UnixPath(object):
+class UnixPath:
 	'''Base class for Dir and File objects, represents a file path
 
 	@ivar path: the absolute file path as string
@@ -405,7 +404,7 @@ class UnixPath(object):
 		return self.path
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.path)
+		return '<{}: {}>'.format(self.__class__.__name__, self.path)
 
 	def __add__(self, other):
 		'''Concatenates paths, only creates objects of the same class. See
@@ -712,8 +711,7 @@ class Dir(FilePath):
 			if os.path.isdir(path):
 				dir = self.subdir(name)
 				yield dir
-				for child in dir.walk(raw=raw):
-					yield child
+				yield from dir.walk(raw=raw)
 			else:
 				yield self.file(name)
 
@@ -829,7 +827,7 @@ class Dir(FilePath):
 		'''
 		file = self.resolve_file(path)
 		if not file.path.startswith(self.path):
-			raise PathLookupError('%s is not below %s' % (file, self))
+			raise PathLookupError('{} is not below {}'.format(file, self))
 		return file
 
 	def resolve_file(self, path):
@@ -896,7 +894,7 @@ class Dir(FilePath):
 
 		dir = self.resolve_dir(path)
 		if not dir.path.startswith(self.path):
-			raise PathLookupError('%s is not below %s' % (dir, self))
+			raise PathLookupError('{} is not below {}'.format(dir, self))
 		return dir
 
 	def resolve_dir(self, path):
@@ -1117,7 +1115,7 @@ class File(FilePath):
 			content = fh.read()
 			fh.close()
 			return content
-		except IOError:
+		except OSError:
 			raise FileNotFoundError(self)
 
 	def read(self):
@@ -1132,7 +1130,7 @@ class File(FilePath):
 			return content.lstrip('\ufeff').replace('\x00', '')
 				# Strip unicode byte order mark
 				# And remove any NULL byte since they screw up parsing
-		except IOError:
+		except OSError:
 			raise FileNotFoundError(self)
 		except UnicodeDecodeError as error:
 			raise FileUnicodeError(self, error)
@@ -1157,7 +1155,7 @@ class File(FilePath):
 			return [line.lstrip('\ufeff').replace('\x00', '') for line in lines]
 				# Strip unicode byte order mark
 				# And remove any NULL byte since they screw up parsing
-		except IOError:
+		except OSError:
 			raise FileNotFoundError(self)
 		except UnicodeDecodeError as error:
 			raise FileUnicodeError(self, error)
@@ -1371,12 +1369,12 @@ elif sys.platform == 'win32':
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
+				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
+				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
 else:
 	_replace_file = os.rename
 

@@ -1,4 +1,3 @@
-
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -124,7 +123,7 @@ def interwiki_link(link):
 		return None
 
 
-class NotebookInfo(object):
+class NotebookInfo:
 	'''This class keeps the info for a notebook
 
 	@ivar uri: The location of the notebook
@@ -185,7 +184,7 @@ class NotebookInfo(object):
 			return False
 
 	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.uri)
+		return '<{}: {}>'.format(self.__class__.__name__, self.uri)
 
 	def update(self):
 		'''Check if info is still up to date and update this object
@@ -218,7 +217,7 @@ class NotebookInfo(object):
 			return False
 
 
-class VirtualFile(object):
+class VirtualFile:
 	### TODO - proper class for this in zim.fs
 	###        unify with code in config manager
 

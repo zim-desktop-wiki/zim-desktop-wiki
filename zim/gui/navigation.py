@@ -1,8 +1,7 @@
-
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-class NavigationModel(object):
+class NavigationModel:
 	'''This class defines an object that decides how and where to open
 	pages, files and other objects in the user interface.
 	'''

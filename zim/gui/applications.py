@@ -1,4 +1,3 @@
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains utilities to work with external applications
@@ -245,7 +244,7 @@ def _update_mimeapps_file(file, section, key, value, replace):
 
 
 
-class ApplicationManager(object):
+class ApplicationManager:
 	'''Manager object for dealing with desktop applications. Uses the
 	freedesktop.org (XDG) system to locate desktop entry files for
 	installed applications.
@@ -1146,7 +1145,7 @@ class CustomizeOpenWithDialog(Dialog):
 		self.reload()
 
 
-class SystemDefault(object):
+class SystemDefault:
 	'''Stub object that can be used in L{ApplicationComboBox}'''
 
 	name = _('System Default') # T: Label for default application handler

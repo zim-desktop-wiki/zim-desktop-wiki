@@ -1,4 +1,3 @@
-
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import email.mime.multipart
@@ -48,15 +47,14 @@ class MHTMLExporter(Exporter):
 		layout = SingleFileLayout(file, pages.prefix)
 		exporter = SingleFileExporter(layout, self.template, 'html', document_root_url=self.document_root_url)
 
-		for p in exporter.export_iter(pages):
-			yield p
+		yield from exporter.export_iter(pages)
 
 		encoder = MHTMLEncoder()
 		linker = ExportLinker(pages.notebook, layout, output=file, usebase=True)
 		self.file.write(encoder(layout, linker))
 
 
-class MHTMLEncoder(object):
+class MHTMLEncoder:
 
 	# Create message of file + attachments + resources
 

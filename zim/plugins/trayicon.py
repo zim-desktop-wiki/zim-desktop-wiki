@@ -1,4 +1,3 @@
-
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import GObject
@@ -120,7 +119,7 @@ class TrayIconMainWindowExtension(MainWindowExtension):
 			GLOBAL_TRAYICON = None
 
 
-class TrayIconBase(object):
+class TrayIconBase:
 	'''Base class for the zim tray icon.
 	Contains code to create the tray icon menus.
 	'''
