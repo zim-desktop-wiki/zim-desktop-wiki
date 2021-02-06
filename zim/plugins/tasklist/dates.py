@@ -126,7 +126,7 @@ class Week(DateRange):
 		self.first_day, self.last_day = dates_for_week(year, week)
 
 	def __str__(self):
-		return '{}-W{}'.format(self.year, self.week)
+		return f'{self.year}-W{self.week}'
 
 
 class Month(DateRange):
@@ -145,4 +145,4 @@ class Month(DateRange):
 			return datetime.date(self.year + 1, 1, 1) - datetime.timedelta(days=1)
 
 	def __str__(self):
-		return '{}-{}'.format(self.year, self.month)
+		return f'{self.year}-{self.month}'

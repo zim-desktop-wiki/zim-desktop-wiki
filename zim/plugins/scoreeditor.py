@@ -89,7 +89,7 @@ class ScoreGenerator(ImageGeneratorClass):
 			if l.strip().startswith('\\version'):
 				version_present = True
 		if not version_present:
-			text = '\\version "{}"\n\n'.format(self.cur_lilypond_version) + text
+			text = f'\\version "{self.cur_lilypond_version}"\n\n' + text
 		return text
 
 	def extract_version(self, text):

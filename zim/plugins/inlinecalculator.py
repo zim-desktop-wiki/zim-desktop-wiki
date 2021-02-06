@@ -283,7 +283,7 @@ This is a core plugin shipping with zim.
 		try:
 			return eval(expression, GLOBALS, {})
 		except Exception as error:
-			msg = '{}: {}'.format(error.__class__.__name__, error)
+			msg = f'{error.__class__.__name__}: {error}'
 			raise ExpressionError(msg)
 
 

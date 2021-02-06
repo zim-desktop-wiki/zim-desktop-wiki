@@ -736,7 +736,7 @@ class BrowserTreeView(SingleClickTreeView):
 
 
 def widget_set_css(widget, name, css):
-	text = '#{} {{{}}}'.format(name, css)
+	text = f'#{name} {{{css}}}'
 	css_provider = Gtk.CssProvider()
 	css_provider.load_from_data(text.encode('UTF-8'))
 	widget_style = widget.get_style_context()

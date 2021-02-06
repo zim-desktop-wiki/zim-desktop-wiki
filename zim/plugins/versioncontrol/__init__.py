@@ -351,7 +351,7 @@ class VCS:
 		@returns: a vcs backend object
 		"""
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
-			raise AssertionError('Notebook {} is not part of version control dir {}'.format(notebook_dir, vcs_dir))
+			raise AssertionError(f'Notebook {notebook_dir} is not part of version control dir {vcs_dir}')
 
 		vcs_backend_klass = VCS.get_backend(vcs)
 		return vcs_backend_klass(vcs_dir, notebook_dir)
@@ -379,7 +379,7 @@ class VCSApplicationBase(ConnectorMixin):
 		assert isinstance(vcs_dir, LocalFolder)
 
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
-			raise AssertionError('Notebook {} is not part of version control dir {}'.format(notebook_dir, vcs_dir))
+			raise AssertionError(f'Notebook {notebook_dir} is not part of version control dir {vcs_dir}')
 		self._app = self.build_bin_application_instance()
 		self.root = vcs_dir
 		self.notebook_dir = notebook_dir

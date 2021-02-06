@@ -62,7 +62,7 @@ key = zim.__version__ + '-' + _m.hexdigest()[:8]
 if sys.platform == 'win32':
 	# Windows named pipe
 	userstring = url_encode(os.environ['USER'], URL_ENCODE_READABLE)
-	SERVER_ADDRESS = '\\\\.\\pipe\\zim-{}-{}'.format(userstring, key)
+	SERVER_ADDRESS = f'\\\\.\\pipe\\zim-{userstring}-{key}'
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 	from multiprocessing.connection import PipeListener
 	Listener = PipeListener

@@ -346,7 +346,7 @@ class ConfigDefinitionConstant(String):
 			if hasattr(self.group, value):
 				return getattr(self.group, value)
 			else:
-				raise ValueError('No such constant: {}_{}'.format(self.prefix, value))
+				raise ValueError(f'No such constant: {self.prefix}_{value}')
 		else:
 			return value
 

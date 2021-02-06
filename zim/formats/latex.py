@@ -203,11 +203,11 @@ class Dumper(TextDumper):
 
 		if imagepath.startswith('file://'):
 			imagepath = File(imagepath).path # avoid URIs here
-		image = '\\includegraphics[{}]{{{}}}'.format(options, imagepath)
+		image = f'\\includegraphics[{options}]{{{imagepath}}}'
 
 		if 'href' in attrib:
 			href = self.linker.link(attrib['href'])
-			return ['\\href{{{}}}{{{}}}'.format(href, image)]
+			return [f'\\href{{{href}}}{{{image}}}']
 		else:
 			return [image]
 
@@ -218,7 +218,7 @@ class Dumper(TextDumper):
 			text = ''.join(strings)
 		else:
 			text = href
-		return ['\\href{{{}}}{{{}}}'.format(href, text)]
+		return [f'\\href{{{href}}}{{{text}}}']
 
 	def dump_code(self, tag, attrib, strings):
 		# Here we try several possible delimiters for the inline verb

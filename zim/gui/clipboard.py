@@ -476,7 +476,7 @@ class PageLinkData(ClipboardData):
 		if targetid == INTERNAL_PAGELIST_TARGET_ID:
 			return pack_urilist((self.path.name,))
 		elif targetid == PAGELIST_TARGET_ID:
-			link = "{}?{}".format(self.notebookname, self.path.name)
+			link = f"{self.notebookname}?{self.path.name}"
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:
 			return self.path.name

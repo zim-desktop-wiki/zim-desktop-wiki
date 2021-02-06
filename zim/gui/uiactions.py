@@ -45,7 +45,7 @@ def _get_xml_for_menu(name):
 				if line.startswith('</popup>'):
 					return '<ui>\n%s\n</ui>\n' % '\n'.join(menu)
 	else:
-		raise ValueError('No such popup defined in {}: {}'.format(file_name, name))
+		raise ValueError(f'No such popup defined in {file_name}: {name}')
 
 
 class UIActions:

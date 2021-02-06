@@ -202,7 +202,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		self.defaults = defaults or []
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.file.path)
+		return f'<{self.__class__.__name__}: {self.file.path}>'
 
 	def __eq__(self, other):
 		return isinstance(other, ConfigFile) \

@@ -131,11 +131,11 @@ class Application:
 
 	def __repr__(self):
 		if hasattr(self, 'key'):
-			return '<{}: {}>'.format(self.__class__.__name__, self.key)
+			return f'<{self.__class__.__name__}: {self.key}>'
 		elif hasattr(self, 'cmd'):
-			return '<{}: {}>'.format(self.__class__.__name__, self.cmd)
+			return f'<{self.__class__.__name__}: {self.cmd}>'
 		else:
-			return '<{}: {}>'.format(self.__class__.__name__, self.name)
+			return f'<{self.__class__.__name__}: {self.name}>'
 
 	@property
 	def name(self):

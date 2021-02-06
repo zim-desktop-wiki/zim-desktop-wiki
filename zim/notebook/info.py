@@ -184,7 +184,7 @@ class NotebookInfo:
 			return False
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.uri)
+		return f'<{self.__class__.__name__}: {self.uri}>'
 
 	def update(self):
 		'''Check if info is still up to date and update this object

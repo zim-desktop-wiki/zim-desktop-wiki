@@ -55,7 +55,7 @@ class IndexLink:
 		self.target = target
 
 	def __repr__(self):
-		return '<{}: {} to {}>'.format(self.__class__.__name__, self.source, self.target)
+		return f'<{self.__class__.__name__}: {self.source} to {self.target}>'
 
 
 class LinksIndexer(IndexerBase):

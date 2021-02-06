@@ -59,7 +59,7 @@ class Expression:
 		raise NotImplementedError
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.pprint())
+		return f'<{self.__class__.__name__}: {self.pprint()}>'
 
 	def __str__(self):
 		return self.pprint()
@@ -210,7 +210,7 @@ class ExpressionOperator(Expression):
 		return self.operator(lvalue, rvalue)
 
 	def pprint(self):
-		return 'OP({}, {}, {})'.format(self.operator.__name__, self.lexpr, self.rexpr)
+		return f'OP({self.operator.__name__}, {self.lexpr}, {self.rexpr})'
 
 
 class ExpressionUnaryOperator(Expression):
@@ -237,7 +237,7 @@ class ExpressionUnaryOperator(Expression):
 		return self.operator(rvalue)
 
 	def pprint(self):
-		return 'OP({}, {})'.format(self.operator.__name__, self.rexpr)
+		return f'OP({self.operator.__name__}, {self.rexpr})'
 
 
 class ExpressionFunctionCall(Expression):
@@ -307,7 +307,7 @@ class ExpressionFunctionCall(Expression):
 			return None
 
 	def pprint(self):
-		return 'CALL({}: {})'.format(self.param.name, self.args.pprint())
+		return f'CALL({self.param.name}: {self.args.pprint()})'
 
 
 class ExpressionFunction:
@@ -340,10 +340,10 @@ class ExpressionFunction:
 		# Also shows up when function parameter is used, but not called
 		# (TemplateToolkit allow implicit call - we don't !)
 		try:
-			return "<{}: {}()>".format(self.__class__.__name__, self._func.__name__)
+			return f"<{self.__class__.__name__}: {self._func.__name__}()>"
 		except:
 			# Partial functions don't have a __name__ attribute
-			return "<{}: {!r}()>".format(self.__class__.__name__, self._func)
+			return f"<{self.__class__.__name__}: {self._func!r}()>"
 
 
 class BoundExpressionFunction(ExpressionFunction):
@@ -393,7 +393,7 @@ class ExpressionObjectBase:
 		return str(self._obj)
 
 	def __repr__(self):
-		return '<{}: {!r}>'.format(self.__class__.__name__, self._obj)
+		return f'<{self.__class__.__name__}: {self._obj!r}>'
 
 	@ExpressionFunction
 	def len(self):

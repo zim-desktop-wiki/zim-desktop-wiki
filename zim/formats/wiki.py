@@ -712,7 +712,7 @@ class Dumper(TextDumper):
 
 	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \
-			'BUG: link misses href: {} "{}"'.format(attrib, strings)
+			f'BUG: link misses href: {attrib} "{strings}"'
 		href = attrib['href']
 
 		if not strings or href == ''.join(strings):
@@ -733,7 +733,7 @@ class Dumper(TextDumper):
 				continue
 			elif v: # skip None, "" and 0
 				data = url_encode(str(v), mode=URL_ENCODE_DATA)
-				opts.append('{}={}'.format(k, data))
+				opts.append(f'{k}={data}')
 		if opts:
 			src += '?%s' % '&'.join(opts)
 

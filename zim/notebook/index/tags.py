@@ -29,7 +29,7 @@ class IndexTag:
 		self.id = id
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.name)
+		return f'<{self.__class__.__name__}: {self.name}>'
 
 	def __hash__(self):
 		return self.name.__hash__()
@@ -348,7 +348,7 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 		elif len(self._tagids) == 1:
 			self._tagquery = ' = %i ' % self._tagids[0]
 		else:
-			self._tagquery = ' in {} '.format(self._tagids)
+			self._tagquery = f' in {self._tagids} '
 
 	def _emit_children_inserted(self, pageid, treepath):
 		treeiter = self.get_iter(treepath) # not mytreeiter !

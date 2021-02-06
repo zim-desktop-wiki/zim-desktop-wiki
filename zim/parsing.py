@@ -345,7 +345,7 @@ class Re:
 		return self.r
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.r)
+		return f'<{self.__class__.__name__}: {self.r}>'
 
 	def __len__(self):
 		if self.m is None:

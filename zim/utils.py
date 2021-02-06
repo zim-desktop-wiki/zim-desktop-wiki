@@ -222,7 +222,7 @@ class OrderedDict(abc.MutableMapping):
 	def __repr__(self):
 		return '<{}:\n{}\n>'.format(
 			self.__class__.__name__,
-			',\n'.join('  {!r}: {!r}'.format(k, v) for k, v in list(self.items()))
+			',\n'.join(f'  {k!r}: {v!r}' for k, v in list(self.items()))
 		)
 
 	def __getitem__(self, k):

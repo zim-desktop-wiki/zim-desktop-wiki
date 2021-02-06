@@ -141,4 +141,4 @@ class Error(Exception):
 		return msg
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.msg)
+		return f'<{self.__class__.__name__}: {self.msg}>'

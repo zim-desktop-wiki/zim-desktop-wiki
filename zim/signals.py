@@ -306,7 +306,7 @@ class SignalEmitter(metaclass=SignalEmitterMeta):
 		return self._connect(SIGNAL_AFTER, signal, handler)
 
 	def _connect(self, category, signal, callback):
-		assert signal in self.__signals__, 'No such signal: {}::{}'.format(self.__class__.__name__, signal)
+		assert signal in self.__signals__, f'No such signal: {self.__class__.__name__}::{signal}'
 
 		if not signal in self._signal_handlers:
 			self._signal_handlers[signal] = []
@@ -349,7 +349,7 @@ class SignalEmitter(metaclass=SignalEmitterMeta):
 		# NOTE: do *not* refactor this method as a wrapper around
 		# emit_return_iter() or similar. It is called often enough to justify
 		# being optimized at the cost of some redundant code.
-		assert signal in self.__signals__, 'No such signal: {}::{}'.format(self.__class__.__name__, signal)
+		assert signal in self.__signals__, f'No such signal: {self.__class__.__name__}::{signal}'
 
 		if not len(args) == len(self.__signals__[signal][2]):
 			logger.warning('Signal args do not match spec for %s::%s', self.__class__.__name__, signal)
@@ -377,7 +377,7 @@ class SignalEmitter(metaclass=SignalEmitterMeta):
 		'''Returns an generator that calls one handler on each iteration and
 		yields the return values. This allows aggregating return values.
 		'''
-		assert signal in self.__signals__, 'No such signal: {}::{}'.format(self.__class__.__name__, signal)
+		assert signal in self.__signals__, f'No such signal: {self.__class__.__name__}::{signal}'
 
 		if not len(args) == len(self.__signals__[signal][2]):
 			logger.warning('Signal args do not match spec for %s::%s', self.__class__.__name__, signal)

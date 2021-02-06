@@ -205,7 +205,7 @@ class ToggleAction(Action):
 				self.__get__(instance, instance.__class__)()
 			except Exception as error:
 				zim.errors.exception_handler(
-					'Exception during toggle action: {}({})'.format(self.name, active))
+					f'Exception during toggle action: {self.name}({active})')
 
 	def get_toggleaction_state(self, instance):
 		'''Get the state for C{instance}'''
@@ -293,7 +293,7 @@ class RadioAction(ActionMethod):
 				self.__get__(instance, instance.__class__)(key)
 		except:
 			zim.errors.exception_handler(
-				'Exception during action: {}({})'.format(self.name, key))
+				f'Exception during action: {self.name}({key})')
 
 
 def get_actions(obj):

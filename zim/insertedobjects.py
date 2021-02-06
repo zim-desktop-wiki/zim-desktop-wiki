@@ -154,6 +154,6 @@ class InsertedObjectType:
 		try:
 			method = getattr(self, 'format_' + format)
 		except AttributeError:
-			raise ValueError('No "{}" formatting defined for objecttype "{}"'.format(format, self.name))
+			raise ValueError(f'No "{format}" formatting defined for objecttype "{self.name}"')
 		else:
 			return method(dumper, attrib, data)

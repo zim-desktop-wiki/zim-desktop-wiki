@@ -71,10 +71,10 @@ class Dumper(TextDumper):
 	def dump_link(self, tag, attrib, strings=None):
 		# Use inline url form, putting links at the end is more difficult
 		assert 'href' in attrib, \
-			'BUG: link misses href: {} "{}"'.format(attrib, strings)
+			f'BUG: link misses href: {attrib} "{strings}"'
 		href = self.linker.link(attrib['href'])
 		text = ''.join(strings) or href
-		return '`{} <{}>`_'.format(text, href)
+		return f'`{text} <{href}>`_'
 
 	def dump_img(self, tag, attrib, strings=None):
 		src = self.linker.img(attrib['src'])
@@ -85,7 +85,7 @@ class Dumper(TextDumper):
 			if k == 'src' or k.startswith('_'):
 				continue
 			elif v: # skip None, "" and 0
-				text += '   :{}: {}\n'.format(k, v)
+				text += f'   :{k}: {v}\n'
 
 		return text + '\n'
 

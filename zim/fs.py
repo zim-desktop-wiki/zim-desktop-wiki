@@ -215,11 +215,11 @@ def format_file_size(bytes):
 		if bytes >= unit:
 			size = float(bytes) / unit
 			if size < 10:
-				return "{:.2f}{}".format(size, label)
+				return f"{size:.2f}{label}"
 			elif size < 100:
-				return "{:.1f}{}".format(size, label)
+				return f"{size:.1f}{label}"
 			else:
-				return "{:.0f}{}".format(size, label)
+				return f"{size:.0f}{label}"
 	else:
 		return str(bytes) + 'b'
 
@@ -404,7 +404,7 @@ class UnixPath:
 		return self.path
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.path)
+		return f'<{self.__class__.__name__}: {self.path}>'
 
 	def __add__(self, other):
 		'''Concatenates paths, only creates objects of the same class. See
@@ -827,7 +827,7 @@ class Dir(FilePath):
 		'''
 		file = self.resolve_file(path)
 		if not file.path.startswith(self.path):
-			raise PathLookupError('{} is not below {}'.format(file, self))
+			raise PathLookupError(f'{file} is not below {self}')
 		return file
 
 	def resolve_file(self, path):
@@ -894,7 +894,7 @@ class Dir(FilePath):
 
 		dir = self.resolve_dir(path)
 		if not dir.path.startswith(self.path):
-			raise PathLookupError('{} is not below {}'.format(dir, self))
+			raise PathLookupError(f'{dir} is not below {self}')
 		return dir
 
 	def resolve_dir(self, path):
@@ -1369,12 +1369,12 @@ elif sys.platform == 'win32':
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
+				raise OSError(f'Could not replace "{src}" -> "{dst}"')
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
+				raise OSError(f'Could not replace "{src}" -> "{dst}"')
 else:
 	_replace_file = os.rename
 

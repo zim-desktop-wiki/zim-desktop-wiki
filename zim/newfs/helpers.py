@@ -172,10 +172,10 @@ def format_file_size(bytes):
 		if bytes >= unit:
 			size = float(bytes) / unit
 			if size < 10:
-				return "{:.2f}{}".format(size, label)
+				return f"{size:.2f}{label}"
 			elif size < 100:
-				return "{:.1f}{}".format(size, label)
+				return f"{size:.1f}{label}"
 			else:
-				return "{:.0f}{}".format(size, label)
+				return f"{size:.0f}{label}"
 	else:
 		return str(bytes) + 'b'

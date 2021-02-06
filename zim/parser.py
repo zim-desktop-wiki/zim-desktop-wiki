@@ -218,7 +218,7 @@ class SimpleTreeElement(list):
 		'''Returns pretty-printed text representation'''
 		prefix = '  ' * level
 		if len(self) > 0:
-			lines = [prefix + '{} {!r} [\n'.format(self.tag, self.attrib)]
+			lines = [prefix + f'{self.tag} {self.attrib!r} [\n']
 			for item in self:
 				if isinstance(item, SimpleTreeElement):
 					lines.append(item.pprint(level=level + 1))
@@ -230,7 +230,7 @@ class SimpleTreeElement(list):
 			lines.append(prefix + ']\n')
 			return ''.join(lines)
 		else:
-			return prefix + '{} {!r} []\n'.format(self.tag, self.attrib)
+			return prefix + f'{self.tag} {self.attrib!r} []\n'
 
 
 class SimpleTreeBuilder(Builder):
@@ -257,7 +257,7 @@ class SimpleTreeBuilder(Builder):
 	def end(self, tag):
 		element = self.stack.pop()
 		if element.tag != tag:
-			raise AssertionError('Unmatched {} at end of {}'.format(element.tag, tag))
+			raise AssertionError(f'Unmatched {element.tag} at end of {tag}')
 
 	def text(self, text):
 		self.stack[-1].append(text)
@@ -327,7 +327,7 @@ class Rule:
 		self.process = process or self._process
 
 	def __repr__(self):
-		return '<{}: {}: {}>'.format(self.__class__.__name__, self.tag, self.pattern)
+		return f'<{self.__class__.__name__}: {self.tag}: {self.pattern}>'
 
 	def __or__(self, other):
 		'''Allow new parsers to be constructed by combining parser

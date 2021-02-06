@@ -926,7 +926,7 @@ class OldParseTreeBuilder:
 
 		self._last = self._stack[-1]
 		assert self._last.tag == tag, \
-			"end tag mismatch (expected {}, got {})".format(self._last.tag, tag)
+			f"end tag mismatch (expected {self._last.tag}, got {tag})"
 		self._tail = True
 
 		if len(self._stack) > 1 and not (

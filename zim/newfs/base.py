@@ -241,7 +241,7 @@ class FilePath:
 		self.islocal = not self.pathnames[0].startswith('\\\\')
 
 	def __repr__(self):
-		return "<{}: {}>".format(self.__class__.__name__, self.path)
+		return f"<{self.__class__.__name__}: {self.path}>"
 
 	def __str__(self):
 		return self.path
@@ -311,7 +311,7 @@ class FilePath:
 		if allowupward and not self.ischild(start):
 			parent = self.commonparent(start)
 			if parent is None:
-				raise ValueError('No common parent between {} and {}'.format(self.path, start.path))
+				raise ValueError(f'No common parent between {self.path} and {start.path}')
 			relpath = self.relpath(parent)
 			level_up = len(start.pathnames) - len(parent.pathnames)
 			return (('..' + SEP) * level_up) + relpath

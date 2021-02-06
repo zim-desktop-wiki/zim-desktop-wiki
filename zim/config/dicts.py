@@ -220,7 +220,7 @@ class ConfigDefinitionByClass(ConfigDefinition):
 				return self.klass.new_from_zim_config(value)
 			except:
 				logger.debug('Error while converting %s to %s', value, self.klass, exc_info=1)
-				raise ValueError('Can not convert {} to {}'.format(value, self.klass))
+				raise ValueError(f'Can not convert {value} to {self.klass}')
 		else:
 			raise ValueError('Value should be of type: %s' % self.klass.__name__)
 
@@ -842,7 +842,7 @@ class INIConfigFile(SectionedConfigDict):
 						if key in section.definitions:
 							lines.append('{}={}\n'.format(key, section.definitions[key].tostring(value)))
 						else:
-							lines.append('{}={}\n'.format(key, value))
+							lines.append(f'{key}={value}\n')
 					except:
 						logger.exception('Error serializing "%s" in section "[%s]"', key, name)
 			lines.append('\n')

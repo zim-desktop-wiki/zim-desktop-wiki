@@ -152,7 +152,7 @@ class Path:
 		try:
 			Path.assertValidPageName(newname)
 		except AssertionError:
-			raise ValueError('Not a valid page name: {} (was: {})'.format(newname, name))
+			raise ValueError(f'Not a valid page name: {newname} (was: {name})')
 		return newname
 
 	def __init__(self, name):
@@ -191,7 +191,7 @@ class Path:
 		return self.name
 
 	def __repr__(self):
-		return '<{}: {}>'.format(self.__class__.__name__, self.name)
+		return f'<{self.__class__.__name__}: {self.name}>'
 
 	def __str__(self):
 		return self.name
@@ -256,7 +256,7 @@ class Path:
 			i = len(path.name) + 1
 			return self.name[i:].strip(':')
 		else:
-			raise ValueError('"{}" is not below "{}"'.format(self, path))
+			raise ValueError(f'"{self}" is not below "{path}"')
 
 	@property
 	def parent(self):
@@ -361,7 +361,7 @@ class HRef:
 
 	def __str__(self):
 		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
-		return '<{}: {} {}>'.format(self.__class__.__name__, rel, self.names)
+		return f'<{self.__class__.__name__}: {rel} {self.names}>'
 
 	def parts(self):
 		return self.names.split(':')

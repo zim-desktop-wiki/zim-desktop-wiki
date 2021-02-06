@@ -271,7 +271,7 @@ def testTokenStream(token_iter):
 			nesting.pop()
 		elif t[0] == TEXT:
 			assert isinstance(t[1], str), 'Wrong type for text'
-			assert not '\n' in t[1][:-1], 'Text token should not cross line break: {!r}'.format(t)
+			assert not '\n' in t[1][:-1], f'Text token should not cross line break: {t!r}'
 		else:
 			assert t[1] is None or isinstance(t[1], dict), 'Wrong type for attributes'
 

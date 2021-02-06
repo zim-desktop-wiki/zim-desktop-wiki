@@ -88,19 +88,19 @@ class Dumper(TextDumper):
 
 	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \
-			'BUG: link misses href: {} "{}"'.format(attrib, strings)
+			f'BUG: link misses href: {attrib} "{strings}"'
 		href = self.linker.link(attrib['href'])
 		text = ''.join(strings) or href
 		if href == text and url_re.match(href):
 			return ['<', href, '>']
 		else:
-			return ['[{}]({})'.format(text, href)]
+			return [f'[{text}]({href})']
 
 	def dump_img(self, tag, attrib, strings=None):
 		# OPEN ISSUE: image properties used in zim not supported in pandoc
 		src = self.linker.img(attrib['src'])
 		text = attrib.get('alt', '')
-		return ['![{}]({})'.format(text, src)]
+		return [f'![{text}]({src})']
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		# dump object as verbatim block

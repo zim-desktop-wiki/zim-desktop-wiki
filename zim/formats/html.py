@@ -153,7 +153,7 @@ class Dumper(DumperClass):
 			else:
 				type = '1'
 			return self.dump_block(tag, attrib, strings,
-				_extra='type="{}" start="{}"'.format(type, start))
+				_extra=f'type="{type}" start="{start}"')
 		else:
 			return self.dump_block(tag, attrib, strings)
 
@@ -201,9 +201,9 @@ class Dumper(DumperClass):
 				opt += ' {}="{}"'.format(o, attrib[o])
 		if 'href' in attrib:
 			href = self.linker.link(attrib['href'])
-			return ['<a href="{}"><img src="{}"{}></a>'.format(href, src, opt)]
+			return [f'<a href="{href}"><img src="{src}"{opt}></a>']
 		else:
-			return ['<img src="{}"{}>'.format(src, opt)]
+			return [f'<img src="{src}"{opt}>']
 
 	def dump_object(self, tag, attrib, strings=[]):
 		strings = DumperClass.dump_object(self, tag, attrib, strings)

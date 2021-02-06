@@ -253,12 +253,12 @@ elif sys.platform == 'win32':
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
+				raise OSError(f'Could not replace "{src}" -> "{dst}"')
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError('Could not replace "{}" -> "{}"'.format(src, dst))
+				raise OSError(f'Could not replace "{src}" -> "{dst}"')
 else:
 	_replace_file = os.rename
 

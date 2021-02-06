@@ -172,7 +172,7 @@ class Dumper(DumperClass):
 	def dump_link(self, tag, attrib, strings=None):
 		# Just plain text, either text of link, or link href
 		assert 'href' in attrib, \
-			'BUG: link misses href: {} "{}"'.format(attrib, strings)
+			f'BUG: link misses href: {attrib} "{strings}"'
 		href = attrib['href']
 
 		if strings:

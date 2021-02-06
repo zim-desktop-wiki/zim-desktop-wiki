@@ -97,9 +97,9 @@ class QueryTerm:
 
 	def __repr__(self):
 		if self.inverse:
-			return '<NOT {}: "{}">'.format(self.keyword, self.string)
+			return f'<NOT {self.keyword}: "{self.string}">'
 		else:
-			return '<{}: "{}">'.format(self.keyword, self.string)
+			return f'<{self.keyword}: "{self.string}">'
 
 
 class QueryGroup(list):
