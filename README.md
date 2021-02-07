@@ -63,6 +63,11 @@ Zim can be installed from source using:
 
     ./setup.py install
 
+If you are installing Zim from source in a Python virtual environment,
+you need to tell Zim where to load necessary data files by
+`export XDG_DATA_DIRS=<where-your-virtual-environment-root-folder-is>/share:$XDG_DATA_DIRS`.
+Please refer to the `Install Paths` section for more details about the XDG paths.
+
 Most plugins have additional requirements. These are listed in the plugin descriptions.
 
 ### Ubuntu
