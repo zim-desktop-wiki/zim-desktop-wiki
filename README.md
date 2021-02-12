@@ -77,15 +77,25 @@ On Ubuntu or other debian derived systems, the following packages should be inst
 
 ### Windows
 
-On windows the "msys" environment can be used to install python3 with Gtk and
-run zim from source. See https://www.gtk.org/docs/installations/windows/ for detailed
-instructions.
+Download, install and update [MSYS2](https://www.msys2.org/) 64-bit by following the instructions on their website.
 
-Make sure to include the python bindings as well.
+Open "MSYS2 MSYS" terminal from the Start Menu and install GTK3, Python3 and Python bindings for GTK:
 
-*Note:* after installation the "msys" environment offers a "32" and a "64" bit
-shell. When you installed the "64" packages for Gtk, they will only run from
-the "64" shell.
+`pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject`
+
+The Windows drive is mounted on `/c`, browse your Windows user folder using:
+
+`cd "/c/Users/$USERNAME"`
+
+You can now run Zim from the MSYS terminal using:
+
+`/mingw64/bin/python zim.py`
+
+Or from any Windows terminal using:
+
+`C:\msys64\mingw64\bin\python.exe zim.py`
+
+For more details see https://www.gtk.org/docs/installations/windows/ and https://pygobject.readthedocs.io/en/latest/getting_started.html.
 
 
 ### Mac OS X
