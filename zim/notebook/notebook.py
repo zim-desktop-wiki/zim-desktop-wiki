@@ -88,7 +88,7 @@ def _iswritable(dir):
 		f = dir.file('.zim.tmp')
 		try:
 			f.write('Test')
-			f.remove(cleanup=False)
+			f.remove()
 		except:
 			return False
 		else:
@@ -242,6 +242,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		shared = config['Notebook']['shared']
 
 		subdir = dir.subdir('.zim')
+		if not shared:
+			subdir.touch()
+
 		if not shared and subdir.exists() and _iswritable(subdir):
 			cache_dir = subdir
 		else:
