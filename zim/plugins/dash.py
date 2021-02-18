@@ -50,9 +50,6 @@ class DashPlugin(PluginClass):
 		'author': 'Thomas Engel <thomas.engel.web@gmail.com>',
 		'help': 'Plugins:Dash',
 	}
-	plugin_preferences = (
-		('show_keyboard_shortcuts', 'bool', _('Show keyboard shortcuts'), SHOW_KEYBOARD_SHORTCUTS_DEFAULT),
-	)
 
 
 class DashMainWindowExtension(MainWindowExtension):
@@ -99,7 +96,7 @@ class ZimMenuBarCrawler:
 				accel_name = None
 				if container.get_accel_path():
 					accel = Gtk.AccelMap.lookup_entry(container.get_accel_path())[1]
-					accel_name = Gtk.accelerator_name(accel.accel_key, accel.accel_mods)
+					accel_name = Gtk.accelerator_get_label(accel.accel_key, accel.accel_mods)
 				result[path] = [container.activate, accel_name]
 
 		for child in menu_bar:
@@ -125,10 +122,9 @@ class ZimDashDialog(Dialog):
 		completion = Gtk.EntryCompletion()
 		completion.set_model(store)
 
-		if preferences["show_keyboard_shortcuts"]:
-			cell_shortcut = Gtk.CellRendererText()
-			completion.pack_end(cell_shortcut, False)
-			completion.add_attribute(cell_shortcut, 'text', 2)
+		cell_shortcut = Gtk.CellRendererText()
+		completion.pack_end(cell_shortcut, False)
+		completion.add_attribute(cell_shortcut, 'text', 2)
 
 		completion.set_text_column(0)
 		completion.set_minimum_key_length(0)
