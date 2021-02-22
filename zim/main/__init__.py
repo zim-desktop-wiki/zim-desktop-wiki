@@ -303,7 +303,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 			if not preferences['plugins']:
 				pluginmanager.load_plugins_from_preferences(
 					[ # Default plugins
-						'pageindex', 'pathbar',
+						'pageindex', 'pathbar', 'toolbar',
 						'insertsymbol', 'printtobrowser',
 						'versioncontrol', 'osx_menubar'
 					]

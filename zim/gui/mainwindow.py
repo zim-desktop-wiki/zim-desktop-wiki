@@ -27,7 +27,8 @@ from zim.gui.widgets import \
 	Window, Dialog, \
 	ErrorDialog, FileDialog, ProgressDialog, MessageDialog, QuestionDialog, \
 	ScrolledTextView, \
-	gtk_popup_at_pointer
+	gtk_popup_at_pointer, \
+	TOP
 
 from zim.gui.navigation import NavigationModel
 from zim.gui.uiactions import UIActions
@@ -301,7 +302,7 @@ class MainWindow(WindowBaseMixin, Window):
 		# setup menubar
 		self.add_accel_group(self.uimanager.get_accel_group())
 		self.menubar = self.uimanager.get_widget('/menubar')
-		self.add_bar(self.menubar)
+		self.add_bar(self.menubar, position=TOP)
 
 		self.pageview = NotebookView(self.notebook, self.navigation)
 		self.connect_object('readonly-changed', NotebookView.set_readonly, self.pageview)
@@ -327,6 +328,7 @@ class MainWindow(WindowBaseMixin, Window):
 
 		# Finish uimanager
 		self._uiactions = UIActions(self, self.notebook, self.page, self.navigation)
+		self.__zim_extension_objects__.append(self._uiactions) # HACK to make actions discoverable
 		group = get_gtk_actiongroup(self._uiactions)
 		self.uimanager.insert_action_group(group, 0)
 

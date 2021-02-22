@@ -48,7 +48,7 @@ from zim.newfs import LocalFolder, LocalFile
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SIGNAL_RUN_LAST, SignalHandler
 from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses
-from zim.actions import hasaction
+from zim.actions import hasaction, get_actions
 
 from zim.config import data_dirs, XDG_DATA_HOME, ConfigManager
 from zim.insertedobjects import InsertedObjectType
@@ -80,6 +80,7 @@ __path__.insert(0, PLUGIN_FOLDER.path) # Should be redundant, but need to be sur
 
 #print("PLUGIN PATH:", __path__)
 
+
 class _BootstrapPluginManager(object):
 
 	def __init__(self):
@@ -106,9 +107,14 @@ def extendable(*extension_bases, register_after_init=True):
 		orig_init = cls.__init__
 
 		def _init_wrapper(self, *arg, **kwarg):
+			if not hasattr(self, '__zim_extension_objects__'):
+				self.__zim_extension_objects__ = []
+				# Must be before orig_init to allow init to add "built-in"
+				# extensions for discoverability of actions (e.g. mainwindow._uiactions)
 			orig_init(self, *arg, **kwarg)
 			self.__zim_extension_bases__ = extension_bases
-			self.__zim_extension_objects__ = []
+				# Must be after orig_init to allow sub-classes of extendables
+				# to override the parent class
 			if register_after_init:
 				PluginManager.register_new_extendable(self)
 
@@ -163,9 +169,22 @@ def find_action(obj, actionname):
 		raise ValueError('Action not found: %s' % actionname)
 
 
+def list_actions(obj):
+	'''List actions
+	Returns list of actions of C{obj} followed by all actions of
+	all of it's extensions. Each action is a 2-tuple of the action and it's name.
+	'''
+	actions = get_actions(obj)
+	if hasattr(obj, '__zim_extension_objects__'):
+		for e in obj.__zim_extension_objects__:
+			actions.extend(get_actions(e))
+	return actions
+
+
 class ExtensionBase(SignalEmitter, ConnectorMixin):
 	'''Base class for all extensions classes
 	@ivar plugin: the plugin object to which this extension belongs
+	@ivar obj: the extendable object
 	'''
 
 	__signals__ = {}
@@ -204,6 +223,8 @@ class ExtensionBase(SignalEmitter, ConnectorMixin):
 			pass
 		except ValueError:
 			pass
+		finally:
+			PluginManager.emit('extensions-changed', self.obj)
 
 		self.plugin.extensions.discard(self)
 			# Avoid waiting for garbage collection to take place
@@ -277,6 +298,7 @@ class InsertedObjectTypeMap(SignalEmitter):
 
 	# Note: Wanted to inherit from collections.abc.Mapping
 	#       but conflicts with metaclass use for SignalEmitter
+	# .. fixing using _MyMeta gives other issues ...
 
 	__signals__ = {
 		'changed': (SIGNAL_RUN_LAST, None, ()),
@@ -332,13 +354,22 @@ class InsertedObjectTypeMap(SignalEmitter):
 			self.emit('changed')
 
 
-class PluginManagerClass(ConnectorMixin, abc.Mapping):
+class _MyMeta(type(SignalEmitter), type(abc.Mapping)):
+	# Combine meta classes to resolve conflict
+	pass
+
+
+class PluginManagerClass(ConnectorMixin, SignalEmitter, abc.Mapping, metaclass=_MyMeta):
 	'''Manager that maintains a set of active plugins
 
 	This class is the interface towards the rest of the application to
 	load/unload plugins. It behaves as a dictionary with plugin object names as
 	keys and plugin objects as value
 	'''
+
+	__signals__ = {
+		'extensions-changed': (SIGNAL_RUN_LAST, None, (object,)),
+	}
 
 	def __init__(self):
 		'''Constructor
@@ -435,13 +466,18 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 		logger.debug("New extendable: %s", obj)
 		assert not obj in self._extendables
 
+		count = 0
 		for name, plugin in sorted(self._plugins.items()):
 			# sort to make operation predictable
-			self._extend(plugin, obj)
+			count += self._extend(plugin, obj)
+
+		if count > 0:
+			self.emit('extensions-changed', obj)
 
 		self._extendables.add(obj)
 
 	def _extend(self, plugin, obj):
+		count = 0
 		for ext_class in plugin.extension_classes:
 			if issubclass(ext_class, obj.__zim_extension_bases__):
 				logger.debug("Load extension: %s", ext_class)
@@ -451,6 +487,8 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 					logger.exception('Failed loading extension %s for plugin %s', ext_class, plugin)
 				else:
 					plugin.extensions.add(ext)
+					count += 1
+		return count
 
 	def load_plugin(self, name):
 		'''Load a single plugin by name
@@ -476,7 +514,9 @@ class PluginManagerClass(ConnectorMixin, abc.Mapping):
 		self._plugins[name] = plugin
 
 		for obj in self._extendables:
-			self._extend(plugin, obj)
+			count = self._extend(plugin, obj)
+			if count > 0:
+				self.emit('extensions-changed', obj)
 
 		if not name in self._preferences['plugins']:
 			self._preferences['plugins'].append(name)

@@ -30,7 +30,7 @@ http://pp.com.mx/python/arithmetic.
 
 class ArithmeticPageViewExtension(PageViewExtension):
 
-	@action(_('_Arithmetic'), accelerator='F5') # T: menu item
+	@action(_('_Arithmetic'), accelerator='F5', icon='accessories-calculator', menuhints='tools') # T: menu item
 	def calculate(self):
 		"""Perform arithmetic operations"""
 

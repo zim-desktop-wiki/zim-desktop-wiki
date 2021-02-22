@@ -52,7 +52,7 @@ __all__ = [
 	'preferencesdialog', 'searchdialog', 'customtools', 'templateeditordialog',
 	'main', 'plugins',
 	# Plugins
-	'pathbar', 'pageindex',
+	'pathbar', 'pageindex', 'toolbar',
 	'journal', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',

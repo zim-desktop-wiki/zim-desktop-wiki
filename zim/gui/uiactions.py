@@ -312,7 +312,7 @@ class UIActions(object):
 		dialog = RecentChangesDialog.unique(self, self.widget, self.notebook, self.navigation)
 		dialog.present()
 
-	@action(_('Open Attachments _Folder')) # T: Menu item
+	@action(_('Open Attachments _Folder'), menuhints='tools', icon='folder') # T: Menu item
 	def open_attachments_folder(self):
 		'''Menu action to open the attachment folder for the current page'''
 		dir = self.notebook.get_attachments_dir(self.page)

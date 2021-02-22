@@ -2058,6 +2058,18 @@ PANE_POSITIONS = (
 	(TOP_PANE, _('Top Pane')), # T: Option for placement of plugin widgets
 )
 
+TOP = 'top'
+BOTTOM = 'bottom'
+LEFT = 'left'
+RIGHT = 'right'
+
+POSITIONS = (
+	(TOP, _('Top')), # T: position of widget in window
+	(BOTTOM, _('Bottom')), # T: position of widget in window
+	(LEFT, _('Left')), # T: position of widget in window
+	(RIGHT, _('Right')), # T: position of widget in window
+)
+
 
 def _hide(widget):
 	widget.hide()
@@ -2481,24 +2493,24 @@ class Window(Gtk.Window):
 		'''
 		self._zim_window_bottom_paned.pack1(widget, resize=True)
 
-	def add_bar(self, widget, start=True):
+	def add_bar(self, widget, position):
 		'''Add a bar to top or bottom of the window. Used e.g. to add
 		menu-, tool- & status-bars.
 		@param widget: gtk widget for the bar
-		@param start: if C{True} add to top of window, else to bottom
+		@param position: position of the bar in the window C{TOP}, C{BOTTOM}, C{LEFT} or C{RIGHT}
 		'''
-		self._zim_window_main.pack_start(widget, False, True, 0)
-
-		if start:
-			# reshuffle widget to go above main widgets but
-			# below earlier added bars
-			i = self._zim_window_main.child_get_property(
-					self._zim_window_central_hbox, 'position')
-			self._zim_window_main.reorder_child(widget, i)
-
-		#self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
-			# Force to ignore the bars in keyboard navigation
-			# items in the bars are all accesible by accelerators
+		if position in (TOP, BOTTOM):
+			self._zim_window_main.pack_start(widget, False, True, 0)
+			if position == TOP:
+				# reshuffle widget to go above main widgets but
+				# below earlier added bars
+				i = self._zim_window_main.child_get_property(
+						self._zim_window_central_hbox, 'position')
+				self._zim_window_main.reorder_child(widget, i)
+		else: # LEFT, RIGHT
+			self._zim_window_central_hbox.pack_start(widget, False, True, 0)
+			if position == LEFT:
+				self._zim_window_central_hbox.reorder_child(widget, 0)
 
 	def add_center_bar(self, widget):
 		'''Add a widget in the central part of the window above the
@@ -2535,7 +2547,10 @@ class Window(Gtk.Window):
 		if self._last_sidepane_focus == widget:
 			self._last_sidepane_focus = None
 
-		for parent in (self._zim_window_central_vbox, self._zim_window_bottom_paned):
+		for parent in (
+			self._zim_window_main, self._zim_window_central_hbox,
+			self._zim_window_central_vbox, self._zim_window_bottom_paned
+		):
 			if widget in parent.get_children():
 				parent.remove(widget)
 				return

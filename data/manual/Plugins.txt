@@ -35,6 +35,7 @@ The following plugins are standard included with zim:
 * [[+Table Of Contents|Table Of Contents]]
 * [[+Tags|Tags]]
 * [[+Task List|Task List]]
+* [[+ToolBar|ToolBar]]
 * [[+Tray Icon|Tray Icon]]
 * [[+Version Control|Version Control]]
 

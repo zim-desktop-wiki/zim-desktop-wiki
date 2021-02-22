@@ -287,7 +287,7 @@ class TestCustomToolDialog(tests.TestCase):
 			'Comment': 'Test Add',
 			'X-Zim-ExecTool': 'add %f',
 			'X-Zim-ReadOnly': False,
-			#'X-Zim-ShowInToolBar': False,
+			'X-Zim-ShowInToolBar': False,
 			'X-Zim-ReplaceSelection': False,
 		}
 

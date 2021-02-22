@@ -28,11 +28,12 @@ Known values include:
   - edit -- "Edit" menu - modifies page, insensitive for read-only page
   - insert -- "Insert" menu & editor actionbar - modifies page, insensitive for read-only page
   - view -- "View" menu
-  - tools -- "Tools" menu
+  - tools -- "Tools" menu - also shown in toolbar plugin if an icon is provided and tool and not the "headerbar" hint
   - go -- "Go" menu
   - accelonly -- do not show in menu, shortcut key only
   - headerbar -- place action in the headerbar of the window, will place "view"
     menu items on the right, others on the left
+  - toolbar -- used by toolbar plugin
 
 Other values are ignored silently
 
@@ -167,6 +168,7 @@ class BoundActionMethod(object):
 class ActionMethod(BoundActionMethod):
 
 	_button_class = Gtk.Button if Gtk is not None else None
+	_tool_button_class = Gtk.ToolButton if Gtk is not None else None
 
 	def create_button(self):
 		assert Gtk is not None
@@ -175,13 +177,25 @@ class ActionMethod(BoundActionMethod):
 		self.connect_button(button)
 		return button
 
-	def create_icon_button(self):
+	def create_icon_button(self, fallback_icon=None):
 		assert Gtk is not None
-		icon_name = self.verb_icon or self.icon
+		icon_name = self.verb_icon or self.icon or fallback_icon
 		assert icon_name, 'No icon or verb_icon defined for action "%s"' % self.name
 		icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
 		button = self._button_class()
 		button.set_image(icon)
+		button.set_tooltip_text(self.tooltip) # icon button should always have tooltip
+		self.connect_button(button)
+		return button
+
+	def create_tool_button(self, fallback_icon=None):
+		assert Gtk is not None
+		icon_name = self.verb_icon or self.icon or fallback_icon
+		assert icon_name, 'No icon or verb_icon defined for action "%s"' % self.name
+		button = self._tool_button_class()
+		button.set_label(self.label)
+		button.set_use_underline(True)
+		button.set_icon_name(icon_name)
 		button.set_tooltip_text(self.tooltip) # icon button should always have tooltip
 		self.connect_button(button)
 		return button
@@ -213,6 +227,7 @@ class ActionClassMethod(ActionDescriptor):
 		self.tooltip = tooltip
 		self.icon = icon
 		self.verb_icon = verb_icon
+		self.hasicon = bool(self.verb_icon or self.icon)
 		self.menuhints = menuhints.split(':')
 
 		self._attr = (self.name, label, tooltip, icon or verb_icon)
@@ -260,6 +275,7 @@ def toggle_action(label, accelerator='', icon=None, verb_icon=None, init=False, 
 class ToggleActionMethod(ActionMethod):
 
 	_button_class = Gtk.ToggleButton if Gtk is not None else None
+	_tool_button_class = Gtk.ToggleToolButton if Gtk is not None else None
 
 	def __init__(self, instance, action):
 		ActionMethod.__init__(self, instance, action)
@@ -414,7 +430,11 @@ class RadioActionClassMethod(ActionDescriptor):
 
 
 def get_actions(obj):
-	'''Returns bound actions for object'''
+	'''Returns bound actions for object
+
+	NOTE: See also L{zim.plugins.list_actions()} if you want to include actions
+	of plugin extensions
+	'''
 	actions = []
 	for name, action in inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionDescriptor)):
 		actions.append((name, action.__get__(obj, obj.__class__)))

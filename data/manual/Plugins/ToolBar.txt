@@ -1,0 +1,18 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-02-22T13:37:50+01:00
+
+====== ToolBar ======
+This plugin adds a "tool bar" to the main window. It can be a "classic" toolbar at the top of the window or running along the side of the window.
+
+The toolbar will show a few default tools as well as tools defined in plugins and [[Help:Custom_Tools|custom tools]].
+
+
+===== Options =====
+
+* **Position in the window:** the position in the window to place the toolbar
+* **Toolbar style:** the style of the toolbar buttons (text and/or icons)
+* **Toolbar size:** the size of the toolbar buttons
+
+
+**Dependencies:** This plugin has no additional dependencies.

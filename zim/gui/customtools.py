@@ -320,12 +320,12 @@ class CustomToolDict(DesktopEntryDict):
 			else:
 				cmd[cmd.index('%D')] = ''
 
-		if '%t' in cmd:
+		if '%t' in cmd and pageview is not None:
 			text = pageview.get_selection() or pageview.get_word()
 			cmd[cmd.index('%t')] = text or ''
 			# FIXME - need to substitute this in arguments + url encoding
 
-		if '%T' in cmd:
+		if '%T' in cmd and pageview is not None:
 			text = pageview.get_selection(format='wiki') or pageview.get_word(format='wiki')
 			cmd[cmd.index('%T')] = text or ''
 			# FIXME - need to substitute this in arguments + url encoding
@@ -334,14 +334,33 @@ class CustomToolDict(DesktopEntryDict):
 
 	_cmd = parse_exec # To hook into Application.spawn and Application.run
 
-	def run(self, args, cwd=None):
-		self._tmpfile = None
-		Application.run(self, args, cwd=cwd)
-		if self._tmpfile:
-			notebook, page, pageview = args
-			page.parse('wiki', self._tmpfile.readlines())
-			notebook.store_page(page)
+	def run(self, notebook, page, pageview=None):
+		args = (notebook, page, pageview)
+		cwd = page.source_file.parent()
+
+		if pageview:
+			pageview.save_changes()
+
+		if self.replaceselection:
+			if not pageview:
+				raise ValueError('This tool needs a PageView object')
+			output = self.pipe(args, cwd=cwd)
+			logger.debug('Replace selection with: %s', output)
+			pageview.replace_selection(output, autoselect='word')
+		elif self.isreadonly:
+			self.spawn(args, cwd=cwd)
+		else:
 			self._tmpfile = None
+			Application.run(self, args, cwd=cwd)
+			if self._tmpfile:
+				page.parse('wiki', self._tmpfile.readlines())
+				notebook.store_page(page)
+				self._tmpfile = None
+
+			page.check_source_changed()
+			notebook.index.start_background_check(notebook)
+			# TODO instead of using run, use spawn and show dialog
+			# with cancel button. Dialog blocks ui.
 
 	def update(self, E=(), **F):
 		self['Desktop Entry'].update(E, **F)
@@ -492,32 +511,13 @@ class CustomToolManagerUI(object):
 	def _action_handler(self, action):
 		tool = self._manager.get_tool(action.get_name())
 		logger.info('Execute custom tool %s', tool.name)
+		pageview = self.pageview
+		notebook, page = pageview.notebook, pageview.page
 		try:
-			self._exec_custom_tool(tool)
+			tool.run(notebook, page, pageview)
 		except:
 			zim.errors.exception_handler(
 				'Exception during action: %s' % tool.name)
-
-	def _exec_custom_tool(self, tool):
-		# FIXME: should this not be part of tool.run() ?
-		pageview = self.pageview
-		notebook, page = pageview.notebook, pageview.page
-		args = (notebook, page, pageview)
-		cwd = page.source_file.parent()
-
-		pageview.save_changes()
-		if tool.replaceselection:
-			output = tool.pipe(args, cwd=cwd)
-			logger.debug('Replace selection with: %s', output)
-			pageview.replace_selection(output, autoselect='word')
-		elif tool.isreadonly:
-			tool.spawn(args, cwd=cwd)
-		else:
-			tool.run(args, cwd=cwd)
-			pageview.page.check_source_changed()
-			notebook.index.start_background_check(notebook)
-			# TODO instead of using run, use spawn and show dialog
-			# with cancel button. Dialog blocks ui.
 
 
 class CustomToolManagerDialog(Dialog):
@@ -691,12 +691,12 @@ class EditCustomToolDialog(Dialog):
 		self.form.add_inputs((
 			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')), # T: Input in "Edit Custom Tool" dialog
 			('X-Zim-ReplaceSelection', 'bool', _('Output should replace current selection')), # T: Input in "Edit Custom Tool" dialog
-			#('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
 		))
 		self.form.update({
 			'X-Zim-ReadOnly': readonly,
 			'X-Zim-ReplaceSelection': replaceselection,
-			#'X-Zim-ShowInToolBar': toolbar,
+			'X-Zim-ShowInToolBar': toolbar,
 		})
 
 		self.add_help_text(_('''\
