@@ -28,7 +28,7 @@ After formatting: 	{{./cell_after_text_formatting.png}}
 '''
 
 Note:	Only **one link per cell** can be opened. The first one is taken.
-		You can not use a special link text. The link text is the url, the mail-address or the Title of the linked page.
+		You can not use a special link text. The link text must be a URL, a mail-address or the title of a linked page.
 A link can be accessed with:
 * ''RIGHT MOUSE-BUTTON-CLICK'' on cell with the link  and selection of the menu item //Open cell in content link//
 * ''CTRL + LEFT MOUSE-BUTTON-CLICK'' on a cell
@@ -36,11 +36,11 @@ A link can be accessed with:
 See also:	[[:Help:Links|Syntax for Links]]
 
 ===== Exporting: =====
-Exporting filters for Plain, HTML, Markdown, reStructuredText, Latex have been also adjusted for the table plugin.
+Exporting filters for Plain, HTML, Markdown, reStructuredText, Latex has been also adjusted for the table plugin.
 
 ===== Limits of widget's integration =====
 * search / replacing:
 	* no highlighting
-	* only first location is found and after that the next one within the main text
+	* only the first location is found and after that the next one within the main text
 * Undo / Redo not supported at all
-* There can not be any element right or left to the table. The table must stand alone. 
+* There can not be any element right or left to the table. The table must stand alone.

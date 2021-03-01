@@ -7,9 +7,9 @@ The Tray Icon plugin adds an icon for zim in the system tray or status bar. This
 
 Clicking on the tray icon with the left mouse will popup the current notebook if only one notebook is open, or show a menu of notebooks to choose from. If any notebooks are open this menu only contains the open notebooks.
 
-Clicking in the tray icon with the right mouse button will open a menu with all known notebooks. Also there is an option to quit zim entirely.
+Clicking in the tray icon with the right mouse button will open a menu with all known notebooks. Also, there is an option to quit zim entirely.
 
-When this plugin is enabled windows are hidden when they are closed instead of closing them entirely.  Quiting a notebook will really close it. However even when all the windows have quit there is still a zim process running in the background. Select "Quit" in the tray icon menu is the only way to completely exit zim.
+When this plugin is enabled windows are hidden when they are closed instead of closing them entirely.  Quitting a notebook will really close it. However, even when all the windows have quit there is still a zim process running in the background. Select "Quit" in the tray icon menu is the only way to completely exit zim.
 
 **Dependencies:** This plugin requires Gtk+ version 2.10 or newer. It is not available for older releases. If you wish to use the Ubuntu Unity style trayicon ("app-indicator" menu) you need to install the "''python-appindicator''" package.
 
@@ -20,4 +20,4 @@ The "app-indicator" style trayicon can also be used in Gnome3 with the "AppIndic
 ==== Options ====
 For Ubuntu 10.4 and newer the new style "app-indicator" tray icon is supported. This tray icon is integrated with the Ubuntu system tray menu and always shows a menu on left mouse click. If you prefer the classic style instead you can select the "**Classic trayicon**" option in the plugin preferences.
 
-If the option "**Show a separate icon for each notebook**" is enabled each open notebook will have it's own trayicon instead of one trayicon for all notebooks. This option overrules the "classic trayicon" option.
+If the option "**Show a separate icon for each notebook**" is enabled each open notebook will have its own trayicon instead of one trayicon for all notebooks. This option overrules the "classic trayicon" option.
