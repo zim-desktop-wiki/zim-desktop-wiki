@@ -11,7 +11,7 @@ The "//Search//->//Find//..." menu item  triggers a search box at the bottom of 
 The **Match case** check-box makes the search case sensitive. The **Highlight** check-box toggles highlighting for all results in the buffer.
 
 ===== Find and Replace =====
-The "//Search//->//Replace...//" menu item triggers a dialog for find and replace in the current page. The "Next" and "Previous" buttons can be used to find the next or previous occurrence without replacing. The "Replace" button can be used to replace one occurrence only. The "Replace all" button can be used to replace all occurrences in the current page at once.
+The "//Search//->//Replace...//" menu item triggers a dialog for 'find and replace' in the current page. The "Next" and "Previous" buttons can be used to go to the next or previous occurrence without replacing. The "Replace" button can be used to replace one occurrence only. The "Replace all" button can be used to replace all occurrences in the current page at once.
 
 The **Match case** check-box toggles case sensitivity. The search is by default not case sensitive. But it can be useful to match case when looking for names or acronyms.
 
@@ -22,16 +22,16 @@ The **Regular expressions** check-box toggles advanced search and replace where 
 The **Highlight** check-box toggles highlighting for all results in the buffer.
 
 ===== Search =====
-The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to e.g. search for pages that contain a certain word. You can have multiple search dialogs open at the same time. 
+The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to e.g. search for pages that contain a certain word. You can have multiple search dialogs open at the same time.
 
 You can not only search for multiple words, but zim also allows using more refined search queries. See below for the query syntax supported by this dialog for advanced usage.
 
 A normal search runs through all the pages of the notebook. Special searches, such as searching for links or page names, search only part of the index and are correspondingly faster, which may be important for large notebooks with hundreds to thousands of pages.
 
 ===== Back links =====
-This is the last item in the Search menu. As a special case you can search for a page name. Instead of a full text search a cache lookup will be done and a list is shown of pages linking to the page you searched for. Page names are defined as words containing a ":" character in this context.
+This is the last item in the Search menu. As a special case, you can search for a page name. Instead of a 'full text search', a cache lookup is performed and a list is displayed, containing pages that have link to the searched page. Page names are defined as words containing a ":" character in this context.
 
-When you open the "//Search//->//Search Back links//..." menu item you get the same Search dialog as with //Search// but the name of the current page is filled in already. 
+When you open the "//Search//->//Search Back links//..." menu item you get the same Search dialog as with //Search// but the name of the current page is filled in already.
 
 As an alternative you can click on the "Back links" area in the status bar, this will pop up a menu with all back links to the current page.
 
@@ -117,7 +117,7 @@ To match phrases, i.e. strings containing whitespace (blanks), or to match thing
 
 	''"foo bar" and "+1"''
 
-To match partial words you can use a "''*''" as wildcard. So the following query 
+To match partial words you can use a "''*''" as wildcard. So the following query
 
 '''
 Some*
@@ -128,7 +128,7 @@ will match all words starting with "Some", like "Someday", "Someplace" etc.
 
 **Keyword searches: **
 So far we just searched for words in the page contents and page names. If you want more control you can use keywords to specify a specific page property. Such searches limit the scope of the search, they are not only more specific, but in some cases also much faster than normal searches.  The keywords for defined fields of pages are:
- 
+
 	**Content:**
 	**Name:**
 	**Section:**
@@ -143,7 +143,7 @@ So far we just searched for words in the page contents and page names. If you wa
 Name: *foo*
 '''
 
-This query only returns pages that contain "foo" in the page name without looking at their content. 
+This query only returns pages that contain "foo" in the page name without looking at their content.
 
 The "Content:" keyword only matches page contents and excludes e.g. page names.
 
@@ -153,7 +153,7 @@ will find pages that have foo written somewhere in their page content but that d
 
 The "Section:" keyword limits the search to sub-pages of a specific page name. This allows searching a sub-set of the full notebook.
 
-Suppose under Home you have the page "photo" as top level page with multiple pages below it and you want to search only the photo part of your large notebook. You want to find all entries about depth of field or its abbreviation DoF, so you type the following search: 
+Suppose under Home you have the page "photo" as top-level page with multiple pages below it and you want to search only the photo part of your large notebook. You want to find all entries about the depth of field or its abbreviation DoF, so you type the following search:
 
 	''Section: Home:photo "depth of field" or dof''
 
@@ -165,7 +165,7 @@ To exclude all pages linking to ":Done" try:
 NOT LinksTo: ":Done"
 '''
 
-A complex example would be to find any pages in the section ":Date" that link to ":Planning". 
+A complex example would be to find any pages in the section ":Date" that link to ":Planning".
 
 '''
 section: Date and linksto: Planning

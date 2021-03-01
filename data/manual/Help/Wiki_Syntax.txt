@@ -56,7 +56,7 @@ Will be rendered as:
 * item 2
 * item 3
 	* item 3a
-	
+
 Numbered lists use a "1.", "a.", or "A." as bullets:
 
 1. item 1
@@ -64,7 +64,7 @@ Numbered lists use a "1.", "a.", or "A." as bullets:
 3. item 3
 	a. item 3a
 
-Numbered lists can start with an arbitrary number. However internal inconsistencies will be fixed by renumbering automatically. Off course you can mix numbered lists with bullet sub-lists and vice versa.
+Numbered lists can start with an arbitrary number. However internal inconsistencies will be fixed by renumbering automatically. Of course, you can mix numbered lists with bullet sub-lists and vice versa.
 
 Checkbox lists look like this:
 
@@ -84,7 +84,7 @@ This renders as:
 	[*] sub item 2
 [x] baz
 
-Of course the checkboxes are clickable in zim. See [[Check Boxes]] for more details.
+Of course, the checkboxes are clickable in zim. See [[Check Boxes]] for more details.
 
 ===== Markup =====
 **bold**, //italic// and __underline__ and ''verbatim''
@@ -93,13 +93,13 @@ Of course the checkboxes are clickable in zim. See [[Check Boxes]] for more deta
 **bold**, //italic// and __underline__ and ''verbatim''
 '''
 
-and also ~~strike through~~	
+and also ~~strike through~~
 
 '''
 and also ~~strike through~~
 '''
 
-Using verbatim also prevents any further parsing of the content. To render a whole block as verbatim the first and last line of the block should contain 3 quotes and no other characters:
+Using verbatim also prevents any further parsing of the content. To render a whole block verbatim, the first and last line of the block should contain 3 quotes and no other characters:
 
 '''
 Sing, O goddess, the rage of
@@ -116,7 +116,7 @@ You can combine all standard inline markup, the main exception is "verbatim" for
 
 ===== Images =====
 
-To include images use: 
+To include images use:
 
 '''
 {{./foobar.png}}
