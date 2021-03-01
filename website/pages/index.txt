@@ -13,6 +13,6 @@ Wiki-Format: zim 0.4
 * Draft blog entries and emails
 * Do brainstorming
 
-**Zim** handles several types of markup, like headings, bullet lists and of course **bold**, //italic// and __highlighted__. This markup is saved as wiki text so you can easily edit it with other editors. Because of the autosave feature you can switch between pages and follow links while editing without worries.
+**Zim** handles several types of markup, like headings, bullet lists and of course **bold**, //italic// and __highlighted__. This markup is saved as wiki text so you can easily edit it with other editors. Because of the autosave feature, you can switch between pages and follow links while editing without worries.
 
 {{/screenshots/zim-normal.png}}

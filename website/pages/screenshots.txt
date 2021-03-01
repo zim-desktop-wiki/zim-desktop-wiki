@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Screenshots ======
 
-On this page you find some screenshots of **zim** in action.
+On this page, you find some screenshots of **zim** in action.
 
 
 {{/screenshots/zim-normal.png}}
