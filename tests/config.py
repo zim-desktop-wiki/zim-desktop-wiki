@@ -180,6 +180,7 @@ class TestXDGDirs(tests.TestCase):
 				self.assertEqual(getattr(zim.config.basedirs, k), list(map(Dir, v.split(':'))))
 
 	@tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
+	@tests.skipIf(os.environ.get('XDG_DATA_DIRS', False), 'Not in standard XDG environment')
 	def testXDGDataDirs(self):
 		'''
 		test real XDG_DATA_DIRS is expected
