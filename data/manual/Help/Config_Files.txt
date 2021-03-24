@@ -35,7 +35,13 @@ Where ''%appdata%'' is the default Windows path to store application data, typic
 
 When there is no ''%HOME%'' environment parameter defined on Windows either the ''%USERPROFILE%'' parameter or ''%HOMEDRIVE%'' + ''%HOMEPATH%'' are used. Make sure to define ''%HOME%'' or ''%USERPROFILE%'' including a drive letter.
 
+==== macOS ====
+On macOS the default paths are:
 
+'''
+ $XDG_CONFIG_HOME = ~/Application Support/org.zim-wiki.Zim/
+ $XDG_DATA_HOME = ~/Application Support/org.zim-wiki.Zim/share/
+'''
 
 ===== Global Config Files =====
 
