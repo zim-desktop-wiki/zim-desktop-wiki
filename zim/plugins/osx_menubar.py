@@ -25,8 +25,10 @@ from zim.gui.mainwindow import MainWindowExtension
 from zim.plugins import PluginClass
 
 try:
+	import gi
+	gi.require_version('GtkosxApplication', '1.0')
 	from gi.repository import GtkosxApplication
-except ImportError:
+except (ValueError, ImportError) as error:
 	GtkosxApplication = None
 
 
