@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2015-10-28 06:54+0000\n"
-"Last-Translator: Matti Pulkkinen <matti.pulkkinen3@gmail.com>\n"
-"Language-Team: Finnish <fi@li.org>\n"
+"PO-Revision-Date: 2021-03-28 01:29+0000\n"
+"Last-Translator: Nikolay Korotkiy <sikmir@gmail.com>\n"
+"Language-Team: Finnish <https://hosted.weblate.org/projects/zim/master/fi/>\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.6-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
@@ -128,7 +128,7 @@ msgid ""
 "when you are done"
 msgstr ""
 "Käytät ulkoista sovellusta tiedoston muokkaamiseen. Voit sulkea tämän "
-"valintaikkunan kun olet valmis."
+"valintaikkunan kun olet valmis"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:926
@@ -254,7 +254,7 @@ msgstr ""
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:678
 msgid "Show in the toolbar"
-msgstr "Näytä työkalupalkissa."
+msgstr "Näytä työkalupalkissa"
 
 #. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 #: zim/gui/customtools.py:686
@@ -674,13 +674,11 @@ msgstr "La_taa uudelleen"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:944
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Paluulinkki..."
-msgstr[1] "%i _Paluulinkit..."
+msgstr[0] "%i _Paluulinkki"
+msgstr[1] "%i _Paluulinkit"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1004
@@ -712,13 +710,14 @@ msgstr "Avaa muistio"
 
 #. Button label
 #: zim/gui/notebookdialog.py:328
+#, fuzzy
 msgid "_Add"
-msgstr ""
+msgstr "Lisää"
 
 #. Button label
 #: zim/gui/notebookdialog.py:332 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "Poista"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:348
@@ -951,7 +950,7 @@ msgstr ""
 #: zim/gui/pageview.py:5115 zim/gui/pageview.py:7225 zim/gui/searchdialog.py:42
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
-msgstr ""
+msgstr "Peruuta"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:5120
@@ -1137,10 +1136,8 @@ msgstr "_Kuva…"
 
 #. Menu item
 #: zim/gui/pageview.py:6459
-#, fuzzy
-#| msgid "Attachments"
 msgid "_Attachment..."
-msgstr "Liitteet"
+msgstr "Liitteet…"
 
 #. Menu item | 
 #. Menu item,
@@ -1541,7 +1538,7 @@ msgstr "Lisäosat"
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:127
 msgid "Applications"
-msgstr ""
+msgstr "Sovellukset"
 
 #. option in preferences dialog
 #: zim/gui/preferencesdialog.py:134
@@ -1643,10 +1640,8 @@ msgstr ""
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:509
-#, fuzzy
-#| msgid "Location"
 msgid "Action"
-msgstr "Sijainti"
+msgstr "Toiminto"
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:520
@@ -1755,7 +1750,7 @@ msgstr "Tiedoston nimi"
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "Salasana"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -1806,12 +1801,12 @@ msgstr "_Avaa toinen muistio..."
 #. Menu item
 #: zim/gui/uiactions.py:142
 msgid "_Import Page..."
-msgstr "Tuo _sivu"
+msgstr "Tuo _sivu…"
 
 #. Menu item
 #: zim/gui/uiactions.py:160
 msgid "Save A _Copy..."
-msgstr "Tallenna _kopio"
+msgstr "Tallenna _kopio…"
 
 #. Menu item
 #: zim/gui/uiactions.py:165
@@ -2269,7 +2264,7 @@ msgstr ""
 #: zim/notebook/notebook.py:130
 #, python-format
 msgid "Page already exists: %s"
-msgstr ""
+msgstr "Sivu on jo olemassa: %s"
 
 #. error message for read-only pages
 #: zim/notebook/notebook.py:134
@@ -2280,7 +2275,7 @@ msgstr "Sivua ei voi muokata: %s"
 #. placeholder for unknown file name
 #: zim/parser.py:278
 msgid "<Unknown>"
-msgstr ""
+msgstr "<Tuntematon>"
 
 #. Extended error message while parsing a file, gives file name, line number and words where error occurred
 #: zim/parser.py:284
@@ -2456,7 +2451,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/bookmarksbar.py:46
 msgid "Save bookmarks"
-msgstr ""
+msgstr "Tallenna kirjanmerkit"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:47
@@ -2466,12 +2461,12 @@ msgstr ""
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:99 zim/plugins/bookmarksbar.py:160
 msgid "Add Bookmark"
-msgstr ""
+msgstr "Lisää kirjanmerkki"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:149
 msgid "Bookmarks"
-msgstr ""
+msgstr "Kirjanmerkit"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:184
@@ -2481,7 +2476,7 @@ msgstr ""
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:294
 msgid "Do you want to delete all bookmarks?"
-msgstr ""
+msgstr "Haluatko poistaa kaikki kirjanmerkit?"
 
 #. menu item for context menu
 #: zim/plugins/bookmarksbar.py:375
@@ -2501,22 +2496,22 @@ msgstr ""
 #. menu item
 #: zim/plugins/bookmarksbar.py:404
 msgid "Remove"
-msgstr ""
+msgstr "Poista"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:405
 msgid "Remove All"
-msgstr ""
+msgstr "Poista kaikki"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Kopioi"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Liitä"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -3191,7 +3186,7 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:94
 msgid "Theme"
-msgstr ""
+msgstr "Teema"
 
 #. menu item
 #: zim/plugins/sourceview.py:109
