@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
 "PO-Revision-Date: 2021-03-27 01:07+0000\n"
-"Last-Translator: Nikolay Korotkiy <sikmir@gmail.com>\n"
+"Last-Translator: Nick222 <nick222@yandex.ru>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/zim/master/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -1750,7 +1750,7 @@ msgstr "Разрешить публичный доступ"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr "Требовать аутентификацию"
+msgstr "Требуется аутентификация"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -3664,12 +3664,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет диалог, показывающий список \n"
-"открытых задач в определенном блокноте. \n"
-"Открытые задачи помечаются флажками или\n"
-"метками, например TODO или FIXME.\n"
+"Этот модуль добавляет диалог, показывающий список  открытых задач в "
+"определенном блокноте.\n"
+"Открытые задачи помечаются флажками или метками, например TODO или FIXME.\n"
 "\n"
-"Это базовый модуль, поставляющийся с Zim.\n"
+"Это - базовый плагин, поставляется вместе с zim.\n"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
