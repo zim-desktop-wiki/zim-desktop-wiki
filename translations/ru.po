@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
 "PO-Revision-Date: 2021-03-27 01:03+0000\n"
-"Last-Translator: Nikolay Korotkiy <sikmir@gmail.com>\n"
+"Last-Translator: Nick222 <nick222@yandex.ru>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/zim/master/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -2657,8 +2657,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет редактор диаграмм, основанный на Ditaa. \n"
-"Это - базовый модуль; поставляется с zim.\n"
+"Этот плагин добавляет редактор диаграмм, основанный на Ditaa. \n"
+"\n"
+"Это - базовый плагин, поставляется вместе с zim.\n"
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
@@ -2677,9 +2678,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет редактор формул для Zim на основе LaTeX.\n"
+"Этот плагин добавляет редактор формул для Zim на основе LaTeX.\n"
 "\n"
-"Это базовый  модуль, поставляющийся с Zim.\n"
+"Это - базовый плагин, поставляется вместе с zim.\n"
 
 #. menu item
 #: zim/plugins/equationeditor.py:44
