@@ -58,9 +58,11 @@ try:
 	gi.require_version('Gtk', '3.0')
 	from gi.repository import Gtk
 	from gi.repository import Gio
+	from gi.repository import GLib
 except:
 	Gtk = None
 	Gio = None
+	GLib = None
 
 def _get_modifier_mask():
 	assert Gtk
@@ -188,7 +190,7 @@ class ActionMethod(BoundActionMethod):
 		self.connect_button(button)
 		return button
 
-	def create_tool_button(self, fallback_icon=None):
+	def create_tool_button(self, fallback_icon=None, connect_button=True):
 		assert Gtk is not None
 		icon_name = self.verb_icon or self.icon or fallback_icon
 		assert icon_name, 'No icon or verb_icon defined for action "%s"' % self.name
@@ -197,7 +199,8 @@ class ActionMethod(BoundActionMethod):
 		button.set_use_underline(True)
 		button.set_icon_name(icon_name)
 		button.set_tooltip_text(self.tooltip) # icon button should always have tooltip
-		self.connect_button(button)
+		if connect_button:
+			self.connect_button(button)
 		return button
 
 	def connect_button(self, button):
@@ -294,6 +297,11 @@ class ToggleActionMethod(ActionMethod):
 			self._action.func(self._instance, active)
 		self.set_active(active)
 
+	def create_tool_button(self, fallback_icon=None, connect_button=True):
+		if connect_button:
+			raise NotImplementedError # Should work but gives buggy behavior, try using gaction + set_action_name() instead
+		return ActionMethod.create_tool_button(self, fallback_icon, connect_button)
+
 	def connect_button(self, button):
 		'''Connect a C{Gtk.ToggleAction} or C{Gtk.ToggleButton} to this action'''
 		button.set_active(self._state)
@@ -303,10 +311,12 @@ class ToggleActionMethod(ActionMethod):
 
 	_connect_gtkaction = connect_button
 
+	def _on_activate_proxy(self, proxy):
+		self._on_activate(proxy, proxy.get_active())
+
 	@SignalHandler
-	def _on_activate(self, proxy, value):
+	def _on_activate(self, proxy, active):
 		'''Callback for activate signal of connected objects'''
-		active = proxy.get_active()
 		if active != self._state:
 			logger.debug('Action: %s(%s)', self.name, active)
 			try:
@@ -323,9 +333,24 @@ class ToggleActionMethod(ActionMethod):
 		if active == self._state:
 			return
 		self._state = active
+
+		if self._gaction:
+			self._gaction.set_state(GLib.Variant.new_boolean(self._state))
+
 		with self._on_activate.blocked():
 			for proxy in self._proxies:
-				proxy.set_active(active)
+				if isinstance(proxy, Gtk.ToggleToolButton):
+					pass
+				else:
+					proxy.set_active(active)
+
+	def get_gaction(self):
+		if self._gaction is None:
+			assert Gio is not None
+			self._gaction = Gio.SimpleAction.new_stateful(self.name, None, GLib.Variant.new_boolean(self._state))
+			self._gaction.set_enabled(self._sensitive)
+			self._gaction.connect('activate', self._on_activate)
+		return self._gaction
 
 
 class ToggleActionClassMethod(ActionClassMethod):

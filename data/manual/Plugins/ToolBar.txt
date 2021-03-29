@@ -10,6 +10,7 @@ The toolbar will show a few default tools as well as tools defined in plugins an
 
 ===== Options =====
 
+* **Include editing tools (classic toolbar):** when enabled the editing controls which are normally shown in the "edit bar" on the bottom of the screen are moved to the toolbar. This looks best when the toolbar is placed on top of the window and as a style "Both text & icons horizontal" is selected.
 * **Position in the window:** the position in the window to place the toolbar
 * **Toolbar style:** the style of the toolbar buttons (text and/or icons)
 * **Toolbar size:** the size of the toolbar buttons

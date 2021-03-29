@@ -26,6 +26,7 @@ from gi.repository import Gtk
 
 from zim.plugins import PluginClass, list_actions, PluginManager
 from zim.gui.pageview import PageViewExtension
+from zim.gui.pageview.editbar import EditActionMixin
 from zim.gui.widgets import TOP, BOTTOM, RIGHT, POSITIONS
 from zim.gui.customtools import CustomToolManager
 
@@ -65,7 +66,7 @@ or running along the side of the window.
 
 	plugin_preferences = (
 		# key, type, label, default
-		#('classic', 'bool', _('Include editing tools (classic toolbar)'), False),
+		('classic', 'bool', _('Include editing tools (classic toolbar)'), False),
 			# T: option for plugin preferences
 		('position', 'choice', _('Position in the window'), RIGHT, POSITIONS),
 			# T: option for plugin preferences
@@ -76,10 +77,11 @@ or running along the side of the window.
 	)
 
 
-class ToolBarMainWindowExtension(PageViewExtension):
+class ToolBarMainWindowExtension(EditActionMixin, PageViewExtension):
 
 	def __init__(self, plugin, view):
 		PageViewExtension.__init__(self, plugin, view)
+		EditActionMixin.__init__(self, view)
 		self.toolbar = None
 		self._customtoolmanager = CustomToolManager()
 		self.refresh_toolbar()
@@ -102,18 +104,28 @@ class ToolBarMainWindowExtension(PageViewExtension):
 
 		self.toolbar = Gtk.Toolbar()
 
-		#if self.plugin.preferences['classic']:
-		#	content = (
-		#		self._get_editing_actions(),
-		#		self._get_tools_actions(),
-		#		self._get_custom_tools(),
-		#	)
-		#else:
+		if self.plugin.preferences['classic']:
+			self.pageview.set_edit_bar_visible(False)
+
+			self.toolbar.insert_action_group('pageview', self.obj.get_action_group('pageview'))
+			for action in self.edit_format_actions:
+				item = action.create_tool_button(connect_button=False)
+				item.set_action_name('pageview.' + action.name)
+				self.toolbar.insert(item, -1)
+
+			for label, icon_name, menu in self.edit_menus:
+				button = self._create_menu_button(label, icon_name, menu)
+				button.set_is_important(True)
+				self.toolbar.insert(button, -1)
+
+			self.toolbar.insert(Gtk.SeparatorToolItem(), -1)
+		else:
+			self.pageview.set_edit_bar_visible(True)
+
 		content = (
 			self._get_tools_actions(),
 			self._get_custom_tools(),
 		)
-
 		content = [group for group in content if group]
 		for group in content:
 			for item in group:
@@ -134,8 +146,26 @@ class ToolBarMainWindowExtension(PageViewExtension):
 		window = self.pageview.get_toplevel()
 		window.add_bar(self.toolbar, position)
 
-	def _get_editing_actions(self):
-		raise NotImplementedError
+	def _create_menu_button(self, label, icon_name, menu):
+		button = Gtk.ToggleToolButton()
+		button.set_label(label+'...')
+		button.set_use_underline(True)
+		button.set_tooltip_text(label.replace('_', '')+'...') # icon button should always have tooltip
+		button.set_icon_name(icon_name)
+
+		popover = Gtk.Popover()
+		popover.bind_model(menu)
+		popover.set_relative_to(button)
+		def toggle_popover(button):
+			if button.get_active():
+				popover.popup()
+			else:
+				popover.popdown()
+		button.connect('toggled', toggle_popover)
+		popover.connect('closed', lambda o: button.set_active(False))
+		popover.connect('closed', lambda o: self.pageview.grab_focus())
+
+		return button
 
 	def _get_tools_actions(self):
 		items = []
@@ -164,6 +194,7 @@ class ToolBarMainWindowExtension(PageViewExtension):
 		return items
 
 	def teardown(self):
+		self.pageview.set_edit_bar_visible(True)
 		if self.toolbar is not None:
 			self.pageview.get_toplevel().remove(self.toolbar)
 			self.toolbar = None

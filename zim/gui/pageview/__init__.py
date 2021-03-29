@@ -5531,18 +5531,24 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		# ...
 		self.edit_bar = EditBar(self)
+		self._edit_bar_visible = True
 		self.pack_start(self.edit_bar, False, True, 0)
 		#self.reorder_child(self.edit_bar, 0)
 
+		self.edit_bar.show_all()
+		self.edit_bar.set_no_show_all(True)
+
 		def _toggle_on_readonly(*a):
-			if self.find_bar.get_property('visible') or self.readonly:
+			if self._edit_bar_visible:
+				pass
+			elif self.find_bar.get_property('visible') or self.readonly:
 				self.edit_bar.hide()
 			else:
-				self.edit_bar.show_all()
+				self.edit_bar.show()
 
 		def _show_edit_bar_on_hide_find(*a):
-			if not self.readonly:
-				self.edit_bar.show_all()
+			if self._edit_bar_visible and not self.readonly:
+				self.edit_bar.show()
 
 		self.connect('readonly-changed', _toggle_on_readonly)
 		self.find_bar.connect('show', lambda o: self.edit_bar.hide())
@@ -5716,6 +5722,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def on_link_leave(self, view, link):
 		self._overlay_label.hide()
+
+	def set_edit_bar_visible(self, visible):
+		self._edit_bar_visible = visible
+		if not visible:
+			self.edit_bar.hide()
+		elif self.find_bar.get_property('visible') or self.readonly:
+			self.edit_bar.hide()
+		else:
+			self.edit_bar.show()
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview

@@ -23,9 +23,9 @@ class EditActionMixin(object):
 			pageview.toggle_format_sub,
 			pageview.toggle_format_sup,
 		)
-		self.edit_menu_buttons = (
-			self._create_format_menubutton(),
-			self._create_insert_menubutton()
+		self.edit_menus = (
+			('_Format', 'document-edit-symbolic', self._create_format_menu()),
+			('_Insert', 'insert-image-symbolic', self._create_insert_menu()),
 		)
 		self.edit_clear_action = pageview.clear_formatting
 
@@ -35,23 +35,12 @@ class EditActionMixin(object):
 
 		PluginManager.connect('extensions-changed', on_extensions_changed)
 
-	def _create_menu_button(self, label):
-		button = Gtk.MenuButton()
-		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
-		hbox.add(Gtk.Label.new_with_mnemonic(label))
-		hbox.add(Gtk.Image.new_from_icon_name('pan-down-symbolic', Gtk.IconSize.BUTTON))
-		button.add(hbox)
-		popover = Gtk.Popover()
-		button.set_popover(popover)
-		return button, popover
-
-	def _create_format_menubutton(self):
-		pageview = self.pageview
-		format_button, format_popover = self._create_menu_button(_('_Format'))
-
+	def _create_format_menu(self):
 		menu = Gio.Menu()
 		section = Gio.Menu()
 		menu.append_section(None, section)
+
+		pageview = self.pageview
 		for action in (
 			pageview.apply_format_h1,
 			pageview.apply_format_h2,
@@ -69,22 +58,12 @@ class EditActionMixin(object):
 			else:
 				section.append(action.label, 'pageview.' + action.name)
 
-		format_popover.bind_model(menu)
-		format_popover.connect('closed', lambda o: pageview.grab_focus())
+		return menu
 
-		return format_button
-
-	def _create_insert_menubutton(self):
-		pageview = self.pageview
-		insert_button, insert_popover = self._create_menu_button(_('_Insert'))
-
+	def _create_insert_menu(self):
 		menu = Gio.Menu()
 		self._insert_menu = menu
-
-		insert_popover.bind_model(menu)
-		insert_popover.connect('closed', lambda o: pageview.grab_focus())
-
-		return insert_button
+		return menu
 
 	def _update_insert_menu(self):
 		menu = self._insert_menu
@@ -144,7 +123,8 @@ class EditBar(EditActionMixin, Gtk.ActionBar):
 			button.connect('clicked', _grab_focus_on_click)
 			self.pack_start(button)
 
-		for button in self.edit_menu_buttons:
+		for label, icon_name, menu in self.edit_menus:
+			button = self._create_menu_button(label, icon_name, menu)
 			self.pack_start(button)
 
 		clear_button = self.edit_clear_action.create_icon_button()
@@ -165,6 +145,20 @@ class EditBar(EditActionMixin, Gtk.ActionBar):
 		self.pack_end(self.style_info_label)
 		pageview.connect(
 			'textstyle-changed', self.on_textview_textstyle_changed)
+
+	def _create_menu_button(self, label, icon_name, menu):
+		button = Gtk.MenuButton()
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
+		hbox.add(Gtk.Label.new_with_mnemonic(label))
+		hbox.add(Gtk.Image.new_from_icon_name('pan-down-symbolic', Gtk.IconSize.BUTTON))
+		button.add(hbox)
+
+		popover = Gtk.Popover()
+		popover.bind_model(menu)
+		popover.connect('closed', lambda o: self.pageview.grab_focus())
+		button.set_popover(popover)
+
+		return button
 
 	def on_textview_toggle_overwrite(self, textview):
 		text = 'OVR' if textview.get_overwrite() else 'INS'

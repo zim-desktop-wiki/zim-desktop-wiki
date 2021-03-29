@@ -32,3 +32,13 @@ class TestToolBarPlugin(tests.TestCase):
 		n_children = len(self.extension.toolbar.get_children())
 		PluginManager.load_plugin('arithmetic')
 		self.assertEqual(len(self.extension.toolbar.get_children()), n_children + 1)
+
+	def testClassicMode(self):
+		n_children = len(self.extension.toolbar.get_children())
+		self.assertTrue(self.window.pageview.edit_bar.get_property('visible'))
+		self.plugin.preferences['classic'] = True
+		self.assertGreater(len(self.extension.toolbar.get_children()), n_children + 5)
+		self.assertFalse(self.window.pageview.edit_bar.get_property('visible'))
+		self.plugin.preferences['classic'] = False
+		self.assertEqual(len(self.extension.toolbar.get_children()), n_children)
+		self.assertTrue(self.window.pageview.edit_bar.get_property('visible'))
