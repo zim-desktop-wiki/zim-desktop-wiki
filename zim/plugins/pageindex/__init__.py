@@ -23,8 +23,8 @@ from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
 	encode_markup_text, ErrorDialog, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
-from zim.gui.clipboard import Clipboard, pack_urilist, unpack_urilist, \
-	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET
+from zim.gui.clipboard import Clipboard, unpack_urilist, PageLinkData, \
+	PAGELIST_TARGET_NAME, PAGELIST_TARGET_ID, PAGELIST_TARGET
 from zim.gui.uiactions import UIActions, PAGE_EDIT_ACTIONS, PAGE_ROOT_ACTIONS
 
 import zim.gui.clipboard
@@ -408,10 +408,10 @@ class PageTreeView(BrowserTreeView):
 		self.set_search_column(0)
 
 		self.enable_model_drag_source(
-			Gdk.ModifierType.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
+			Gdk.ModifierType.BUTTON1_MASK, (PAGELIST_TARGET,),
 			Gdk.DragAction.LINK | Gdk.DragAction.MOVE)
 		self.enable_model_drag_dest(
-			(INTERNAL_PAGELIST_TARGET,),
+			(PAGELIST_TARGET,),
 			Gdk.DragAction.MOVE)
 
 		if model:
@@ -493,16 +493,20 @@ class PageTreeView(BrowserTreeView):
 		menu.show_all()
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
-		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == PAGELIST_TARGET_NAME
 		model, iter = self.get_selection().get_selected()
 		path = model.get_indexpath(iter)
+		if not isinstance(path, PageIndexRecord):
+			# Can happen e.g. when overloaded by tags plugin
+			logger.debug('Drag data requested, but we do not have path')
+			return None
 		logger.debug('Drag data requested, we have internal path "%s"', path.name)
-		data = pack_urilist((path.name,))
+		data = PageLinkData(self.notebook, path).get_data_as(PAGELIST_TARGET_ID)
 		selectiondata.set(selectiondata.get_target(), 8, data)
 		zim.gui.clipboard._internal_selection_data = data # HACK issue #390
 
 	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, time):
-		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == PAGELIST_TARGET_NAME
 		data = selectiondata.get_data()
 		logger.debug('Drag data recieved: %r', data)
 		if data is None:
@@ -512,7 +516,14 @@ class PageTreeView(BrowserTreeView):
 
 		names = unpack_urilist(data)
 		assert len(names) == 1, 'Could not get pagenames from: %r' % data
-		source = Path(names[0])
+		if '?' in names[0]:
+			notebookname, path = names[0].split('?', 1)
+			if notebookname == self.notebook.name:
+				source = Path(path)
+			else:
+				return None # TODO: move here from other notebook - might need dialog to confirm ?
+		else:
+			source = Path(names[0])
 
 		dest_row = self.get_dest_row_at_pos(x, y)
 		if dest_row:

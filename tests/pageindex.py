@@ -345,18 +345,18 @@ class TestPageTreeView(tests.TestCase):
 	def _testDragAndDropCallbacks(self, workaround):
 		treeview = self.treeview
 
-		mocktarget = tests.MockObject(name=INTERNAL_PAGELIST_TARGET_NAME)
+		mocktarget = tests.MockObject(name=PAGELIST_TARGET_NAME)
 		mockselectiondata = tests.MockObject(get_target=mocktarget)
 
 		treeview.do_drag_data_get(None, mockselectiondata, None, None)
-		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'Test\r\n'))
+		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'testnotebook?Test\r\n'))
 
 		if workaround:
-			self.assertEqual(zim.gui.clipboard._internal_selection_data, b'Test\r\n')
+			self.assertEqual(zim.gui.clipboard._internal_selection_data, b'testnotebook?Test\r\n')
 			mockselectiondata.mock_method('get_data', None)
 		else:
 			zim.gui.clipboard._internal_selection_data = None
-			mockselectiondata.mock_method('get_data', b'Test\r\n')
+			mockselectiondata.mock_method('get_data', b'testnotebook?Test\r\n')
 
 		treepath = treeview.get_model().find(Path('Foo'))
 		position = Gtk.TreeViewDropPosition.INTO_OR_BEFORE

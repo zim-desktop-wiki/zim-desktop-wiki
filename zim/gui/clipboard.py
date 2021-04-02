@@ -32,11 +32,6 @@ PARSETREE_TARGET_ID = 1
 PARSETREE_TARGET_NAME = 'text/x-zim-parsetree'
 PARSETREE_TARGET = (PARSETREE_TARGET_NAME, 0, PARSETREE_TARGET_ID)
 
-INTERNAL_PAGELIST_TARGET_ID = 2
-INTERNAL_PAGELIST_TARGET_NAME = 'text/x-zim-page-list-internal'
-INTERNAL_PAGELIST_TARGET = \
-	(INTERNAL_PAGELIST_TARGET_NAME, Gtk.TargetFlags.SAME_APP, INTERNAL_PAGELIST_TARGET_ID)
-
 PAGELIST_TARGET_ID = 3
 PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
 PAGELIST_TARGET = (PAGELIST_TARGET_NAME, 0, PAGELIST_TARGET_ID)
@@ -97,7 +92,7 @@ TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
 # All targets that we can convert to a parsetree, in order of choice
 PARSETREE_ACCEPT_TARGETS = (
         PARSETREE_TARGET,
-        INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
+        PAGELIST_TARGET,
 ) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print('ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES)
@@ -138,7 +133,7 @@ def unpack_urilist(text):
 def textbuffer_register_serialize_formats(buffer, notebook, page):
 	buffer.register_serialize_format('text/x-zim-parsetree', serialize_parse_tree)
 	buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
-	for name in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) + URI_TARGET_NAMES:
+	for name in (PAGELIST_TARGET_NAME,) + URI_TARGET_NAMES:
 		buffer.register_deserialize_format(name, deserialize_urilist, (notebook, page))
 	for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
 		buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
@@ -229,7 +224,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None, text_f
 	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
 		return ParseTree().fromstring(selectiondata.get_data())
-	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
+	elif targetname == PAGELIST_TARGET_NAME \
 	or targetname in URI_TARGET_NAMES:
 		links = selectiondata.get_uris()
 		return _link_tree(links, notebook, path)
@@ -299,7 +294,12 @@ def _link_tree(links, notebook, path):
 		link = links[i]
 		type = link_type(link)
 		isimage = False
-		if type == 'file':
+		if type == 'interwiki':
+			prefix = notebook.name + '?'
+			if link.startswith(prefix):
+				link = link[len(prefix):]
+				type = link_type(link)
+		elif type == 'file':
 			try:
 				file = File(link)
 				isimage = file.isimage()
@@ -470,16 +470,14 @@ class ParseTreeData(ClipboardData):
 
 class PageLinkData(ClipboardData):
 
-	targets = (INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET) + TEXT_TARGETS
+	targets = (PAGELIST_TARGET,) + TEXT_TARGETS
 
 	def __init__(self, notebook, path):
 		self.notebookname = notebook.name
 		self.path = path
 
 	def get_data_as(self, targetid):
-		if targetid == INTERNAL_PAGELIST_TARGET_ID:
-			return pack_urilist((self.path.name,))
-		elif targetid == PAGELIST_TARGET_ID:
+		if targetid == PAGELIST_TARGET_ID:
 			link = "%s?%s" % (self.notebookname, self.path.name)
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:

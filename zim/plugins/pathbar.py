@@ -20,9 +20,7 @@ from zim.notebook.page import shortest_unique_names
 from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import encode_markup_text, gtk_popup_at_pointer, widget_set_css
 from zim.gui.uiactions import UIActions, PAGE_ACCESS_ACTIONS
-from zim.gui.clipboard import \
-	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
-	pack_urilist
+from zim.gui.clipboard import PageLinkData, PAGELIST_TARGET_NAME, PAGELIST_TARGET_ID, PAGELIST_TARGET
 
 import zim.gui.clipboard
 
@@ -510,7 +508,7 @@ class PathBar(ScrolledHBox):
 			button.connect('drag-data-get', self.on_drag_data_get)
 			button.drag_source_set(
 				Gdk.ModifierType.BUTTON1_MASK,
-				(Gtk.TargetEntry.new(*INTERNAL_PAGELIST_TARGET),),
+				(Gtk.TargetEntry.new(*PAGELIST_TARGET),),
 				Gdk.DragAction.LINK
 			)
 			button.show_all()
@@ -564,10 +562,10 @@ class PathBar(ScrolledHBox):
 		return menu
 
 	def on_drag_data_get(self, button, context, selectiondata, info, time):
-		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == PAGELIST_TARGET_NAME
 		path = button.zim_path
 		logger.debug('Drag data requested from PathBar, we have internal path "%s"', path.name)
-		data = pack_urilist((path.name,))
+		data = PageLinkData(self.notebook, path).get_data_as(PAGELIST_TARGET_ID)
 		selectiondata.set(selectiondata.get_target(), 8, data)
 		zim.gui.clipboard._internal_selection_data = data # HACK issue #390
 

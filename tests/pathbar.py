@@ -99,15 +99,16 @@ class TestPathBar(tests.TestCase):
 		self.assertTrue(count > 0)
 
 	def testDragAndDropCallback(self):
-		mocktarget = tests.MockObject(name=INTERNAL_PAGELIST_TARGET_NAME)
+		notebook = self.setUpNotebook()
+		mocktarget = tests.MockObject(name=PAGELIST_TARGET_NAME)
 		mockselectiondata = tests.MockObject(get_target=mocktarget)
 
-		pathbar = MyPathBar(None, None, None)
+		pathbar = MyPathBar(None, notebook, None)
 		button = pathbar.get_children()[1]
 		pathbar.on_drag_data_get(button, None, mockselectiondata, None, None)
 
-		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'aaa\r\n'))
-		self.assertEqual(zim.gui.clipboard._internal_selection_data, b'aaa\r\n')
+		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'testnotebook?aaa\r\n'))
+		self.assertEqual(zim.gui.clipboard._internal_selection_data, b'testnotebook?aaa\r\n')
 
 
 class TestHistoryPathBar(tests.TestCase):

@@ -288,9 +288,9 @@ class TestCase(unittest.TestCase):
 		assert not folder.exists()
 		return folder
 
-	def setUpNotebook(self, name='notebook', mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
+	def setUpNotebook(self, name='testnotebook', mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
 		'''
-		@param name: name postfix for the folder, see L{setUpFolder}
+		@param name: name postfix for the folder, see L{setUpFolder}, and name for the notebook
 		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
 		@param content: dictionary where the keys are page names and the
 		values the page content. If a tuple or list is given, pages are created
@@ -327,6 +327,7 @@ class TestCase(unittest.TestCase):
 			content = dict((p, 'test 123') for p in content)
 
 		notebook = Notebook(cache_dir, config, folder, layout, index)
+		notebook.properties['name'] = name
 		for name, text in list(content.items()):
 			path = Path(name) if isinstance(name, str) else name
 			file, folder = layout.map_page(path)
