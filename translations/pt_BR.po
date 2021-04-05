@@ -8,16 +8,17 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2019-06-23 14:08+0000\n"
-"Last-Translator: André Marcelo Alvarenga <andrealvarenga@gmx.net>\n"
-"Language-Team: Brazilian Portuguese <pt_BR@li.org>\n"
+"PO-Revision-Date: 2021-04-06 14:26+0000\n"
+"Last-Translator: Kett Lovahr <vagnerlunes@gmail.com>\n"
+"Language-Team: Portuguese (Brazil) <https://hosted.weblate.org/projects/zim/"
+"master/pt_BR/>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.6-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
@@ -460,18 +461,18 @@ msgstr "Visualizar _Registro"
 #: zim/gui/insertedobjects.py:265
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "Nenhum plugin disponível para mostrar objetos do tipo: %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:273
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "Plugin \"%s\" é necessário para mostrar esse objeto"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:277
 msgid "Enable plugin"
-msgstr ""
+msgstr "Habilitar plugin"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:310
@@ -688,13 +689,11 @@ msgstr "_Recarregar"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:944
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Link de Entrada..."
-msgstr[1] "%i _Links de entrada..."
+msgstr[0] "%i _Link de Entrada"
+msgstr[1] "%i _Links de entrada"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1004
@@ -704,7 +703,7 @@ msgstr "Pular para"
 #. Button label
 #: zim/gui/mainwindow.py:1005
 msgid "_Jump"
-msgstr ""
+msgstr "_Pular"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:1010
@@ -920,6 +919,8 @@ msgstr ""
 #: zim/gui/pageview.py:200
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
+"Cliques repetidos numa caixa de seleção alterna entre os estados da caixa de "
+"seleção"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:203
@@ -1153,10 +1154,8 @@ msgstr "_Imagem..."
 
 #. Menu item
 #: zim/gui/pageview.py:6459
-#, fuzzy
-#| msgid "Attachments"
 msgid "_Attachment..."
-msgstr "Anexos"
+msgstr "_Anexo..."
 
 #. Menu item | 
 #. Menu item,
@@ -1536,6 +1535,10 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
+"A codificação do sistema está definida como %s, se quiser suporte para "
+"caracteres especiais\n"
+"ou ver erros por conta da codificação, por favor configure seu sistema para "
+"que use \"UTF-8\""
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1544,10 +1547,8 @@ msgstr "Preferências"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:112
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key bindings"
-msgstr "_Atalhos do teclado"
+msgstr "Atalhos do teclado"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:117
@@ -1656,20 +1657,21 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"Atalhos de teclado podem ser alterados clicando num campo com uma combinação "
+"de teclas\n"
+"na lista e então pressionando o novo atalho.\n"
+"Para desativar um atalho, selecione-o na lista e use "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:509
-#, fuzzy
-#| msgid "Section"
 msgid "Action"
-msgstr "Seção"
+msgstr "Ação"
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:520
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key Binding"
-msgstr "_Atalhos do teclado"
+msgstr "Atalho do teclado"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:17
