@@ -38,11 +38,16 @@ The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Pref
 If the Reformat wiki markup on the fly option is enabled, zim tries to turn wiki syntax into formatting while you type. For example, typing "''**text**''" will turn into bold formatting when you type a <space> or <enter> after the last "*".
 
 **Default format for copying text to the clipboard** allows you to set the preferred format when you copy some text from zim and paste it in an other application. Default is just plain text, but you can also choose to paste wiki formatted text. This option will only affect copy-pasting where the receiving application asks for text input (like a text editor), if it asks for example for HTML input zim will paste HTML formatted text automatically.
- 
+
 **Folder with templates for attachment files** is the folder to look for file templates, see [[Attachments]] for details.
 
 ===== Plugins =====
 This tab allows you to enable or disable the various [[Plugins]]. Selecting a plugin will show a short description, select "More" to open the relevant manual page in this manual for a specific plugin or select "Configure" to set plugin specific preferences.
 
 ===== Applications =====
+
+Changing default applications does just set the defaults for Zim. If you are on a unix/linux based system that uses the XDG configuration system, this likely will change your system defaults as well. These options are offered here for convenience in case your system uses a different configuration system.
+
 **Set default text editor** allows to change the binding for the text editor that is used e.g. by the "Edit Source" menu option.
+
+**Set default browser** allows changing the default browser used to open both local HTML files and remote "http://" and "https://" links. If you want another browser for those links, use the "open with" context menu, which will allow setting defaults per URL scheme.

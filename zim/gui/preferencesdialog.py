@@ -13,7 +13,7 @@ import locale
 
 from zim.gui.widgets import Dialog, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory, get_window, help_text_factory
-from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_create
+from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_create, ApplicationManager
 
 from zim.plugins import PLUGIN_FOLDER
 from zim.config import String, ConfigManager
@@ -469,16 +469,27 @@ class ApplicationsTab(Gtk.VBox):
 	def __init__(self, dialog):
 		GObject.GObject.__init__(self)
 		self.set_border_width(5)
+		self.set_spacing(5)
 		self.dialog = dialog
 
 		button = Gtk.Button.new_with_mnemonic(_('Set default text editor'))
 			# T: button in preferences dialog to change default text editor
 		button.connect('clicked', self.on_set_texteditor)
+		self.pack_start(button, False, True, 0)
 
+		button = Gtk.Button.new_with_mnemonic(_('Set default browser'))
+			# T: button in preferences dialog to change default browser
+		button.connect('clicked', self.on_set_browser)
 		self.pack_start(button, False, True, 0)
 
 	def on_set_texteditor(self, o):
 		CustomizeOpenWithDialog(self.dialog, 'text/plain').run()
+
+	def on_set_browser(self, o):
+		CustomizeOpenWithDialog(self.dialog, 'text/html').run()
+		app = ApplicationManager.get_default_application('text/html')
+		for alt in ('x-scheme-handler/http', 'x-scheme-handler/https'):
+			ApplicationManager.set_default_application(alt, app)
 
 
 class StylesTab(Gtk.VBox):
