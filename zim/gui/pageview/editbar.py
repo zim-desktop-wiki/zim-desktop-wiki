@@ -24,7 +24,8 @@ class EditActionMixin(object):
 			pageview.toggle_format_sup,
 		)
 		self.edit_menus = (
-			('_Format', 'document-edit-symbolic', self._create_format_menu()),
+			('_List', 'view-list-symbolic', self._create_list_menu()),
+			('_Heading', 'format-text-heading-symbolic', self._create_head_menu()),
 			('_Insert', 'insert-image-symbolic', self._create_insert_menu()),
 		)
 		self.edit_clear_action = pageview.clear_formatting
@@ -35,7 +36,28 @@ class EditActionMixin(object):
 
 		PluginManager.connect('extensions-changed', on_extensions_changed)
 
-	def _create_format_menu(self):
+	def _create_list_menu(self):
+		menu = Gio.Menu()
+		section = Gio.Menu()
+		menu.append_section(None, section)
+
+		pageview = self.pageview
+		for action in (
+			pageview.apply_format_bullet_list,
+			pageview.apply_format_numbered_list,
+			pageview.apply_format_checkbox_list,
+			'----',
+			pageview.clear_list_format,
+		):
+			if action == '----':
+				section = Gio.Menu()
+				menu.append_section(None, section)
+			else:
+				section.append(action.label, 'pageview.' + action.name)
+
+		return menu
+
+	def _create_head_menu(self):
 		menu = Gio.Menu()
 		section = Gio.Menu()
 		menu.append_section(None, section)
@@ -48,9 +70,7 @@ class EditActionMixin(object):
 			pageview.apply_format_h4,
 			pageview.apply_format_h5,
 			'----',
-			pageview.apply_format_bullet_list,
-			pageview.apply_format_numbered_list,
-			pageview.apply_format_checkbox_list,
+			pageview.clear_heading_format,
 		):
 			if action == '----':
 				section = Gio.Menu()
@@ -149,7 +169,9 @@ class EditBar(EditActionMixin, Gtk.ActionBar):
 	def _create_menu_button(self, label, icon_name, menu):
 		button = Gtk.MenuButton()
 		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
-		hbox.add(Gtk.Label.new_with_mnemonic(label))
+		label = Gtk.Label.new_with_mnemonic(label)
+		label.set_ellipsize(Pango.EllipsizeMode.END)
+		hbox.add(label)
 		hbox.add(Gtk.Image.new_from_icon_name('pan-down-symbolic', Gtk.IconSize.BUTTON))
 		button.add(hbox)
 

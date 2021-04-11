@@ -6609,9 +6609,33 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to format selection as checkbox list'''
 		self._apply_bullet(UNCHECKED_BOX)
 
+	@action(_('_Remove List'), menuhints='edit') # T: Menu item,
+	def clear_list_format(self):
+		'''Menu action to remove list formatting'''
+		self._apply_bullet(None)
+
 	def _apply_bullet(self, bullet_type):
 		buffer = self.textview.get_buffer()
-		buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			# set for selected lines & restore selection
+			start_mark = buffer.create_mark(None, bounds[0], left_gravity=True)
+			end_mark = buffer.create_mark(None, bounds[1], left_gravity=False)
+			try:
+				buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
+			except:
+				raise
+			else:
+				start = buffer.get_iter_at_mark(start_mark)
+				end = buffer.get_iter_at_mark(end_mark)
+				buffer.select_range(start, end)
+			finally:
+				buffer.delete_mark(start_mark)
+				buffer.delete_mark(end_mark)
+		else:
+			# set for current line
+			line = buffer.get_insert_iter().get_line()
+			buffer.set_bullet(line, bullet_type)
 
 	@action(_('Text From _File...'), menuhints='insert') # T: Menu item
 	def insert_text_from_file(self):
@@ -6771,6 +6795,23 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			if selected:
 				# If we keep the selection we can not continue typing
 				# so remove the selection and restore the cursor.
+				buffer.unset_selection()
+				buffer.place_cursor(buffer.get_iter_at_mark(mark))
+		else:
+			buffer.set_textstyles(None)
+
+		buffer.delete_mark(mark)
+
+	@action(_('_Remove Heading'), menuhints='edit') # T: Menu item
+	def clear_heading_format(self):
+		'''Menu item to remove heading'''
+		buffer = self.textview.get_buffer()
+		mark = buffer.create_mark(None, buffer.get_insert_iter())
+		selected = self.autoselect(selectline=True)
+		if buffer.get_has_selection():
+			start, end = buffer.get_selection_bounds()
+			buffer.smart_remove_tags(_is_heading_tag, start, end)
+			if selected:
 				buffer.unset_selection()
 				buffer.place_cursor(buffer.get_iter_at_mark(mark))
 		else:
