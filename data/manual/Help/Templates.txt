@@ -3,7 +3,7 @@ Wiki-Format: zim 0.4
 
 ====== Templates ======
 
-Zim uses templates when exporting pages. This way you can for example write your website in zim and export it to HTML using the layout and style definition of you choice.
+Zim uses templates when exporting pages. This way you can for example write your website in zim and export it to HTML using the layout and style definition of your choice.
 
 Templates are also used to initialize new pages.
 
@@ -13,9 +13,9 @@ If you are looking for information for file templates for attachments, see [[Att
 
 The Template Editor Dialog can be accessed with the menu item "//Edit//" -> "//Templates//". It will show a list of templates that are available, and allows you to view and edit them.
 
-Templates can either be system defaults, or custom templates in your home folder. When you edit them, a copy is made of the default to your home folder, and this copy is than edited. The remove function again deletes this custom version, but does not touch the default template.
+Templates can either be system defaults, or custom templates in your home folder. When you edit them, a copy is made of the default to your home folder, and this copy is then edited. The remove function again deletes this custom version but does not touch the default template.
 
-**Note:** if you try to edit for example a HTML template, and it opens in the web browser instead of in your default text editor, the cause is most likely that you did not explicitly configure a text editor in the preferences. Go to the [[Preferences|Preferences Dialog]] and specify your text editor.
+**Note:** if you try to edit, for example, an HTML template, and it opens in the web browser instead of in your default text editor, the cause is most likely that you did not explicitly configure a text editor in the preferences. Go to the [[Preferences|Preferences Dialog]] and specify your text editor.
 
 ===== Templates =====
 Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default. You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
@@ -177,7 +177,7 @@ loop.next		next item or None
 '''
 
 
-A BLOCK can be defined anywhere in the template and then included in other places using the INCLUDE statement. This is useful e.g. for template parts that repeat multiple times in the document. Note that a BLOCK is always defined in the top level scope, so you can not put them e.g. in an IF clause to define alternative versions. A BLOCK may be defined after the location where they are used.
+A BLOCK can be defined anywhere in the template and then included in other places using the INCLUDE statement. This is useful e.g. for template parts that repeat multiple times in the document. Note that a BLOCK is always defined in the top-level scope, so you can not put them e.g. in an IF clause to define alternative versions. A BLOCK may be defined after the location where they are used.
 
 ==== Objects and functions ====
 
@@ -300,7 +300,7 @@ Functions:
 
 
 ===== Template Options =====
-For export templates there is a paramter "''options''" that allows setting options for the export format. You can set an option in a template using e.g.:
+For export templates, a parameter named "''options''" allows setting options for the export format. You can set an option in a template using e.g.:
 '''
 
 [% options.line_breaks = 'remove' %]
@@ -320,5 +320,5 @@ To add additional files to the template, create a folder of the same name as the
 
 Zim always includes some images when exporting for the checkboxes used in checkbox lists. To customize these there should be template resources named "''checked-box.png''", "''unchecked-box.png''" and "''xchecked-box.png''" in this folder.
 
-For the web interface the resources can also contain a "''favicon.ico''" to serve as the favicon of the website.
+For the web interface, the resources can also contain a "''favicon.ico''" to serve as the favicon of the website.
 

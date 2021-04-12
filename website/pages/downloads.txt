@@ -6,7 +6,7 @@ Creation-Date: Unknown
 
 ===== Latest release: 0.73.5 - Jan 2021 =====
 
-**This program depends on a number of prerequisites.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
+**This program depends on a number of prerequisites.** Most Linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier than compiling them manually.
 
 In order to compile and install the source run:
 
@@ -31,7 +31,7 @@ There is also a PPA with updates for zim [[https://launchpad.net/~jaap.karssenbe
 
 {{/images/os-windows.gif?width=24}}  **Windows**
 
-A windows installer can also be found [[/downloads/|here]]. This installer is build ^& tested on Windows 10 in a 64-bit environment. It might work on Windows 7 as well, but this is not tested. Older versions and 32-bit systems are not supported by this installer.
+A windows installer can also be found [[/downloads/|here]]. This installer is built ^& tested on Windows 10 in a 64-bit environment. It might work on Windows 7 as well, but this is not tested. Older versions and 32-bit systems are not supported by this installer.
 
 {{/images/os-apple.png?width=24}}  ** Mac OS X**
 
@@ -45,7 +45,7 @@ Optionally, you can [[https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OSX-
 
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**
 
-Numerous Linux distributions and BSD flavors are known to include zim: 
+Numerous Linux distributions and BSD flavors are known to include zim:
 INSERT_REPOLOGY_BADGE_HERE
 
 In specific the following distributions are known to include zim:

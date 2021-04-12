@@ -10,4 +10,4 @@ This plugin adds an extra widget showing a list of pages linking to the current 
 
 
 ===== Options =====
-The option **Position in the window** determines in which side pane the browser is shown.
+The option **Position in the window** determines on which side pane the browser is shown.

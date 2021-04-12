@@ -5,12 +5,12 @@ Zim - A Desktop Wiki Editor
 
 
 Zim is a graphical text editor used to maintain a collection of wiki pages. Each
-page can contain links to other pages, simple formatting and images. Pages are
+page can contain links to other pages, simple formatting, and images. Pages are
 stored in a folder structure, like in an outliner, and can have attachments.
 Creating a new page is as easy as linking to a nonexistent page. All data is
 stored in plain text files with wiki formatting. Various plugins provide
 additional functionality, like a task list manager, an equation editor, a tray
-icon, and support for version control.
+icon, and support for version control.****
 
 ![Screenshot](./website/files/screenshots/zim-normal.png)
 
@@ -25,10 +25,10 @@ Zim can be used to:
 
 ## Installing from a Package
 
-Most linux distributions include zim in their package repository. On debian and
-ubuntu to package is simply called "zim".
+Most Linux distributions include zim in their package repository. On Debian and
+Ubuntu, the package is simply called "zim".
 
-Debian/Ubuntu packages and a windows installer can be found via https://zim-wiki.org/downloads.html
+Debian/Ubuntu packages and a Windows installer can be found via https://zim-wiki.org/downloads.html
 
 On Mac OS X, zim can be installed from Homebrew using,
 
@@ -42,12 +42,12 @@ for convenience.
 
 ## Installing from Source
 
-**NOTE:** To test zim it is not needed to install. You should be able to run it
+**NOTE:** You don't need to install zim in order to test it. You should be able to run it
 directly from the source directory by calling `./zim.py`. (To run a translated
-version from the source first call `./setup.py build_trans`.)
+version from the source, run `./setup.py build_trans`.)
 
 
-First you should verify you have the dependencies zim needs. To list all dependencies check `./setup.py --requires`.
+First, you should verify you have the dependencies zim needs. To list all dependencies check `./setup.py --requires`.
 
 You will at least need the following:
 
@@ -57,7 +57,7 @@ You will at least need the following:
 * python3-xdg (optional, but recommended)
 * xdg-utils (optional, but recommended)
 
-To verify zim is working properly on your system you can call the test suite using `./test.py`. Failures do not have to be critical, but in principle all tests should pass.
+To verify that zim is working properly on your system, you can run the test suite using `./test.py`. Failures do not have to be critical, but in principle, all tests should pass.
 
 Zim can be installed from source using:
 
@@ -67,7 +67,7 @@ Most plugins have additional requirements. These are listed in the plugin descri
 
 ### Ubuntu
 
-On Ubuntu or other debian derived systems, the following packages should be installed:
+On Ubuntu or other Debian derived systems, the following packages should be installed:
 
 * python3
 * gir1.2-gtk-3.0
@@ -89,18 +89,22 @@ The Windows drive is mounted on `/c`, browse your Windows user folder using:
 
 You can now run Zim from the MSYS terminal using:
 
-`/mingw64/bin/python zim.py`
+`/mingw64/bin/python3 zim.py`
 
 Or from any Windows terminal using:
 
-`C:\msys64\mingw64\bin\python.exe zim.py`
+`C:\msys64\mingw64\bin\python3.exe zim.py`
 
 For more details see https://www.gtk.org/docs/installations/windows/ and https://pygobject.readthedocs.io/en/latest/getting_started.html.
+
+*Note:* installation of the "msys" environment offers a "32" and a "64" bit
+shell. When you installed the "64" packages for Gtk, they will only run from
+the "64" shell.
 
 
 ### Mac OS X
 
-You can run zim on mac if you have the proper dependencies installed.
+You can run zim on Mac if you have the proper dependencies installed.
 
 If you are using Mac Ports packages installing the following ports should work:
 
@@ -123,11 +127,11 @@ Or [make a wrapper app](https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OS
 
 ### Install Paths
 
-If you install in a non-default location you may need to set the PYTHONPATH environment variable in order for zim to find it's python modules. For example, if you installed the modules below "/home/user/lib/zim" you need to set:
+If you install zim in a non-default location, you may need to set the PYTHONPATH environment variable in order for zim to find its python modules. For example, if you installed the modules below "/home/user/lib/zim" you need to set:
 
     PYTHONPATH=/home/user/lib
 
-Also zim uses the XDG paths to locate data and config files. If you get an error that zim can not find it's data files For example, if you installed the zim data files to "/home/user/share/zim" you need to set the data path like this:
+Also, zim uses the XDG paths to locate data and config files. If you get an error that zim can not find its data files, for example, if you installed the zim data files to "/home/user/share/zim", you will need to set the data path like this:
 
     XDG_DATA_DIRS=/home/user/share:/usr/local/share:/usr/share
 
@@ -141,10 +145,10 @@ documentation.
 
 ## Copyright and License
 
-Zim is an open source program. This means it can be used and distributed freely
+Zim is an open-source program. This means it can be used and distributed freely
 under the conditions of the [license](./LICENSE).
 
-All files in this package, with the exception of those mentioned below are
+All files in this package, except for those mentioned below, are
 copyrighted by Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 Translations are copyrighted by their respective translators. All translations

@@ -38,7 +38,7 @@ The following plugins are standard included with zim:
 * [[+Tray Icon|Tray Icon]]
 * [[+Version Control|Version Control]]
 
-Plugins can be enabled and configured in the [[Help:Preferences|preferences dialog]]. A number of plugins have additional dependencies, like specific external programs, that are not required for the core functionality of zim. If one or more dependencies of a plugin are not fulfilled, these are marked red.
+Plugins can be enabled and configured in the [[Help:Preferences|preferences dialog]]. Several plugins have additional dependencies, like specific external programs, that are not required for the core functionality of zim. If one or more dependencies of a plugin are not fulfilled, these are marked red.
 
 ===== Custom Plugins =====
 More plugins can be found here: https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins

@@ -7,7 +7,7 @@ This plugin provides a "path bar" on top of the editor window that can show a li
 
 This list of pages can show:
 * **Recent Pages:** like "history" but without doubles
-* **Recently Changed Pages:** pages in order of there last modified timestamp
+* **Recently Changed Pages:** pages in order of their last modified timestamp
 * **History:** the browsing history for this window
 * **Page Hierarchy:** e.g. "''Projects''", "''CustomerA''" and "''MyProject''" for a page named "''Projects:CustomerA:MyProject''"
 

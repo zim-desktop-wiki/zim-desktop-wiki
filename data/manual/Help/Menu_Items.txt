@@ -19,10 +19,10 @@ Prompt a list of known notebooks for opening another notebook. This dialog will 
 Prompts for a file path for a text file to import into this notebook. The text file is assumed to be already using the wiki formatting used by the notebook. Files saved using "Save A Copy" can be imported again by this function. The basename of the imported file will be used as the page name.
 
 **Open in New Window**
-Open the current page in a separate window. The new window will be readonly and any links clicked will open in the main window.
+Open the current page in a separate window. The new window will be read-only and any links clicked will open in the main window.
 
 **Save <Ctrl><S>**
-Save the current page. This function is included to not scare users that do not feel comfortable with only auto-save. However pages are being saved continuously, save there is hardly any need to explicitly save them.
+Save the current page. This function is included to not scare users that do not feel comfortable with only auto-save. However, pages are being saved continuously, save there is hardly any need to explicitly save them.
 
 **Save A Copy**
 This function is intended for saving a copy of the current page outside of the notebook as a text file using the wiki syntax of the notebook. These files can later be imported again with the "Import Page" function.
@@ -38,28 +38,28 @@ Shows a list of saved versions and includes tools to compare versions.
 Only available if the [[Plugins:Version Control|Version Control plugin]] is enabled.
 
 **Export**
-Show the [[Export|export dialog]]. 
+Show the [[Export|export dialog]].
 
 **Print to Browser <Ctrl><P>**
-Export the current page to a temporary file and open it with the browser. This is a work around for the lack of printing support in zim. You can print the page from the browser, so pressing <ctrl><P> twice will print the current page.
+Export the current page to a temporary file and open it with the browser. This is a workaround for the lack of printing support in zim. You can print the page from the browser, so pressing <ctrl><P> twice will print the current page.
 
 **Send To**
-Open a new email with the current page as the email text using your email application. 
+Open a new email with the current page as the email text using your email application.
 
 **Rename Page**
 Prompt for a new name for the current page. Optionally the page heading is also changed on the fly. Links to this page can be updated automatically.
 
 **Move Page**
-Prompts for a new section to store the current page. Alternatively you can move pages by drag and drop in the side pane. Moving a page also moves all of it's child pages as well as any [[Help:Attachments|attachments]]. Links to this page can be updated automatically.
+Prompts for a new section to store the current page. Alternatively, you can move pages by drag and drop in the side pane. Moving a page also moves all of its child pages as well as any [[Help:Attachments|attachments]]. Links to this page can be updated automatically.
 
 **Delete Page**
-Delete the current page and all of it's child pages and [[Help:Attachments|attachments]]. Unless the current page has been stored in a saved version this can not be undone.
+Delete the current page and all of its child pages and [[Help:Attachments|attachments]]. Unless the current page has been stored in a saved version this can not be undone.
 
 **Properties**
 Show the [[Properties|properties dialog]].
 
 **Close <Ctrl><W>**
-Close the current notebook. In most cases this is identical to "Quit". However when the [[Plugins:Tray Icon|TrayIcon plugin]] is enabled closing the notebook only hides the window.
+Close the current notebook. In most cases, this is identical to "Quit". However, when the [[Plugins:Tray Icon|TrayIcon plugin]] is enabled closing the notebook only hides the window.
 
 **Quit <Ctrl><Q>**
 Quit the current notebook.
@@ -107,7 +107,7 @@ Show the [[Preferences|preferences dialog]].
 ===== View =====
 
 **Notebook Editable**
-This toggle allows switching between editing and read-only mode. In read-only mode the notebook can not be modified. This feature is intended to prevent accidental edits while browsing pages.
+This toggle allows switching between editing and read-only mode. In read-only mode, the notebook can not be modified. This feature is intended to prevent accidental edits while browsing pages.
 
 **Toolbar**
 Toggle the visibility of the toolbar.
@@ -130,9 +130,9 @@ Toggle the pathbar visibility and style. Options are **None**, **Recent** **Page
 Toggle toolbar style, overriding the system defaults. The same submenu is available as a context menu on the toolbar itself.
 
 **Fullscreen <F11>**
-Toggle fullscreen display, mainly intended for small screens where it makes sense to use the whole screen for the editor. Visibility of the toolbar, pathbar and statusbar is configured separately for the fullscreen mode and the normal mode. 
+Toggle fullscreen display, mainly intended for small screens where it makes sense to use the whole screen for the editor. Visibility of the toolbar, pathbar and statusbar is configured separately for the fullscreen mode and the normal mode.
 
-( Users who really prefer to use the whole screen can even decide to hide the menubar in fullscreen mode. See the hidden option in the notebook state file. )
+( If you prefer to use the whole screen, you can hide the menubar in fullscreen mode. See the hidden option in the notebook state file. )
 
 **Task List**
 Show the task list dialog.
@@ -156,13 +156,13 @@ Reload the current page. This means the page is saved and then reloaded from sou
 ===== Insert =====
 
 **Date and Time <Ctrl><D>**
-Insert a date or a date and timestamp. If the [[Plugins:Journal|Journal plugin]] is enabled the date can be linked automatically to the journal page. 
+Insert a date and/or a timestamp. If the [[Plugins:Journal|Journal plugin]] is enabled the date can be linked automatically to the journal page.
 
 **Image**
 Insert an image.
 
 **Screenshot**
-Prompt with options to take a screenshot and insert it as an image. 
+Prompt with options to take a screenshot and insert it as an image.
 
 Only available if the [[Plugins:Insert Screenshot|Insert Screenshot plugin]] is enabled.
 
@@ -172,7 +172,7 @@ Prompt for an equation written in latex and insert it as an image.
 Only available if the [[:Plugins:Equation Editor|Equation Editor plugin]] is enabled.
 
 **Diagram**
-Prompt for an diagram defined in the dot language and insert it as an image.
+Prompt for a diagram defined in the dot language and insert it as an image.
 
 Only available if the [[Plugins:Diagram Editor|Diagram Editor plugin]] is enabled.
 
@@ -180,10 +180,10 @@ Only available if the [[Plugins:Diagram Editor|Diagram Editor plugin]] is enable
 Prompt for a text file and insert the text from that file into the current page.
 
 **New Attachment (submenu)**
-This submenu shows a number of file templates for new attachments, see [[Attachments]] for details.
+This submenu shows several file templates for new attachments, see [[Attachments]] for details.
 
 **Link <Ctrl><L>**
-Prompt for a link and insert it in the current page. Selected text will be used as default value.
+Prompt for a link and insert it in the current page. The selected text will be used as the default value.
 
 
 ===== Format =====
@@ -193,14 +193,14 @@ Prompt for a link and insert it in the current page. Selected text will be used 
 **Heading 3 <Ctrl><3>**
 **Heading 4 <Ctrl><4>**
 **Heading 5 <Ctrl><5>**
-Toggle formatting used while typing. Selected text will also be formatted. If the "auto select" [[Preferences|preference]] is set toggling the will automatically select the current line and turn it in a heading.
+Toggles heading style while typing. Selected text can also be formatted. If the "auto select" [[Preferences|preference]] is set, toggling the will automatically select the current line and turn it in a heading.
 
 **Strong <Ctrl><B>**
 **Emphasis <Ctrl><I>**
 **Mark <Ctrl><U>**
 **Strike <Ctrl><K>**
 **Verbatim <Ctrl><T>**
-Toggle formatting used while typing. Selected text will also be formatted. If the "auto select" [[Preferences|preference]] is set toggling the format while the cursor is in the middle of a word will automatically select the word and format it.
+Toggle text formatting while typing. Selected text can also be formatted. If the "auto select" [[Preferences|preference]] is set, toggling the format while the cursor is in the middle of a word will automatically select the word and format it.
 
 **Clear Formatting <Ctrl><0>**
 Remove all formatting from the selected text.
@@ -234,16 +234,16 @@ Open the folder with [[Help:Attachments|attachments]] for the current page in a 
 Open the folder for the current notebook in a file browser.
 
 **Cleanup Attachments**
-Starts a dialog to search for orphaned files.  When an [[Help:Attachments|attachment]] link is removed, the file still exists in the attachment directory. From time to time it may be useful do find and delete this "orphaned" files.
+Starts a dialog to search for orphaned files.  When an [[Help:Attachments|attachment]] link is removed, the file still exists in the attachment directory. From time to time, it may be useful to find and delete this "orphaned" files.
 
 **Start Web Server**
-Start a stand-alone web server to make the current notebook available as a web page. Can be used to check the html formatting live, or to quickly share the current notebook with others on the same network.
+Start a stand-alone web server to make the current notebook available as a web page. Can be used to check the HTML formatting live, or to quickly share the current notebook with others on the same network.
 
 **Open Document Root**
 Open the document root folder in a file browser.
 
 **Update Index**
-Double check the page index against the folder contents of the notebook. This can be used when the index is by accident out of sync with the notebook contents.
+Double-check the page index against the folder contents of the notebook. This can be used when the index is by accident out of sync with the notebook contents.
 
 
 ===== Go =====
@@ -258,7 +258,7 @@ Go to the next page in the history.
 Go to the parent page.
 
 **Child <Alt><Down>**
-Go to a child page. If there is a recent child page in the history that page will opened, otherwise the first child in the index is opened.
+Go to a child page. If there is a recent child page in the history, it will be opened, otherwise the first child in the index is opened.
 
 **Next in Index <Alt><PgDn>**
 Go to the next page in the index. This traverses all children of pages recursively and only goes to the next page on the same level after the last child.

@@ -15,7 +15,7 @@ the section for the current page is automatically expanded.
 
 The option **Automatically collapse sections on close page** determines whether
 sections that are automatically expanded are also collapsed again on moving
-away from the page. It does not affect sections that where expanded manually
+away from the page. It does not affect sections that were expanded manually
 by clicking on the expand arrow.
 
 ===== Style =====
