@@ -4,9 +4,9 @@ Creation-Date: 2020-09-29T20:48:08+02:00
 
 ====== Portable Install ======
 
-To allow running zim in a "portable" install, you can configure the environment parameters which zim to e.g. looks up resources and [[Config Files]] with a special configuration file call ''environ.ini'' . This config file must be placed in the same folder where the zim script or zim executable is installed. The file can contain a section ''[Environment]'' where each key maps to a environment parameter.
+To allow running zim in a "portable" install, you can configure the environment parameters which zim to e.g. looks up resources and [[Config Files]] with a special configuration file call ''environ.ini'' . This config file must be placed in the same folder where the zim script or zim executable is installed. The file can contain a section ''[Environment]'' where each key maps to an environment parameter.
 
-When loading this file, the values are interpreted as file paths relative to the install directory. Also environment parameters are interpreted as "''${NAME}''".
+When loading this file, the values are interpreted as file paths relative to the install directory. Also, environment parameters are interpreted as "''${NAME}''".
 
 Thus a valid file could look like:
 

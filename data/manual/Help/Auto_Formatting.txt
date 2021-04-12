@@ -36,7 +36,7 @@ When you type a word in "CamelCase" it will be considered a link. Once again thi
 
 This feature can be turned off in the [[Preferences]].
 
-Also when you type a internet url like http://perl.org it will automatically be identified as a link.
+Also when you type an internet URL like http://perl.org, it will automatically be identified as a link.
 
 ===== Bullets and Checkboxes =====
 Another example of auto-formatting is that "* " at the beginning of a line gets converted to a bullet automatically. Typing either "[] ", "[*] ", "[x] ", "[>] " or "() ", "(*) ", "(x) ", "(>) " will give your different kinds of [[Check Boxes]].
@@ -52,8 +52,8 @@ gives you a horizontal line:
 
 ===== Sub- and superscript =====
 
-For subscript ''word_{word}'' will be auto formatted, e.g. typing ''H_{2}O''. This
+For subscript ''word_{word}'' will be auto-formatted, e.g. typing ''H_{2}O''. This
 only works if there are no spaces in the sequence.
 
-For superscript ''word^{word}'' or ''word^word'' will be auto formatted. These
+For superscript ''word^{word}'' or ''word^word'' will be auto-formatted. These
 only work if there are no spaces in the sequences.

@@ -38,12 +38,12 @@ And define a formula:   area = height x width
 
 To obtain the result of the formula, press <F5>:
 
-     area = 
+     area =
 
-<F5> also updates the result of area below,
+<F5> also updates the result of the area below,
 after one of the values is modified: height = 25
 
-     area = 
+     area =
 
 Other examples of formulas, try modifying the values of f
 and c will change after updating with <F5>:

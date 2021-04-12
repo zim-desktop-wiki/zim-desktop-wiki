@@ -7,12 +7,12 @@ Creation-Date: Unknown
 Zim will be able to export content to various formats. At the moment exporting to [[Help:Export:HTML|HTML]] and [[Help:Export:LaTeX|LaTeX]] is supported, as well as the Markdown and RST text formats.
 
 ===== Export dialog =====
-To open op the export dialog in zim use the "//File//->//Export//" menu item. This dialog asks for a number of input fields before you can start exporting.
+To open the export dialog in zim, use the "//File//->//Export//" menu item. This dialog asks for several input fields before you can start exporting.
 
 ==== Step1: Select the pages to export ====
-The option **Complete Notebook** will export all pages in the current notebook. 
+The option **Complete Notebook** will export all pages in the current notebook.
 
-The option **Single page** allows to select you a single page to export.
+The option **Single page** allows exporting a single page.
 
 When the **Include subpages** option is selected all pages below the selected page will be exported as well recursively.
 

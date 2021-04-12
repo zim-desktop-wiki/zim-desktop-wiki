@@ -10,7 +10,7 @@ There are various cases where you would want to publish content from zim to the 
 
 	**Note:** If you want to have the public edit your wiki, zim may not be the right tool, since it does not allows to edit a WWW version. There are scenarios for cooperation on a zim wiki (see [[Collaboration]]), but in general those will work best for small teams, not for public internet access. This section is about how to publish a static copy of the content.
 
-Basically the way you publish from zim is just using export to HTML from zim and upload the result to your server. The server only needs to serve static HTML, so there are no further requirements on the server and you can use any hosting you have available. See [[Help:Export]] for all export options.
+The way you publish from zim is simple, just export to HTML(using File --> Export) and upload the result to your server. The server only needs to serve static HTML, so there are no further requirements on the server and you can use any hosting you have available. See [[Help:Export]] for all export options.
 
 If you publish often, you probably want to write a small script that calls zim to perform the export with the right template and uploads the output to the server in one go. Once you have that script, you can add it to the zim toolbar as a [[Help:Custom Tools|Custom Tool]]. This way you can create a "one button" publish option to suit your way of working.
 
@@ -31,7 +31,7 @@ If you use large images in your notebook, you may want to scale them down before
 ===== Other formats =====
 Zim supports other output formats than just HTML, but most of them require further processing to turn them into documents that can be published right away.
 
-E.g. to get a PDF document, you can either export as Latex and then compile a pdf out of that, or you can use the markdown or RST toolkits. 
+E.g. to get a PDF document, you can either export as Latex and then compile a pdf out of that, or you can use the markdown or RST toolkits.
 
 If you have a script to compile output into the desired format, you could configure a [[Help:Custom Tools|Custom Tool]] to add a button in the zim toolbar to run that script.
 
