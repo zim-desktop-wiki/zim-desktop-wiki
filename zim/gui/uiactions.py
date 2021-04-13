@@ -278,7 +278,7 @@ class UIActions(object):
 			self.reload_index(update_only=True)
 
 	@action(_('_Search...'), '<shift><Primary>F', verb_icon='edit-find-symbolic') # T: Menu item
-	def show_search(self, query=None):
+	def show_search(self, query=None, focus_results=False):
 		'''Menu action to show the L{SearchDialog}
 		@param query: the search query to show
 		'''
@@ -292,10 +292,16 @@ class UIActions(object):
 		if query is not None:
 			dialog.search(query)
 
+		if focus_results:
+			dialog.results_treeview.grab_focus()
+		else:
+			dialog.query_entry.grab_focus()
+			dialog.query_entry.set_position(-1)
+
 	@action(_('Search this section')) # T: Menu item for search a sub-set of the notebook
 	def show_search_section(self, page=None):
 		page = page or self.page
-		self.show_search(query='Section: "%s"' % page.name)
+		self.show_search(query='Section: "%s" ' % page.name)
 
 	@action(_('Search _Backlinks...')) # T: Menu item
 	def show_search_backlinks(self, page=None):
@@ -303,7 +309,7 @@ class UIActions(object):
 		backlinks
 		'''
 		page = page or self.page
-		self.show_search(query='LinksTo: "%s"' % page.name)
+		self.show_search(query='LinksTo: "%s" ' % page.name, focus_results=True)
 
 	@action(_('Recent Changes...')) # T: Menu item
 	def show_recent_changes(self):

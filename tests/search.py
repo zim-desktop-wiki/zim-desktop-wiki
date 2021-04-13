@@ -42,7 +42,7 @@ class TestSearchRegex(tests.TestCase):
 
 class TestQuery(tests.TestCase):
 
-	def runTest(self):
+	def testKeywordParsingLinks(self):
 		query = Query('Links:Foo')
 		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Foo')])
 
@@ -51,6 +51,26 @@ class TestQuery(tests.TestCase):
 
 		query = Query('Links:') # edge case, looking for literal occurrence
 		self.assertEqual(query.root, [QueryTerm('contentorname', 'Links:')])
+
+		query = Query('"Links:Foo"')
+		self.assertEqual(query.root, [QueryTerm('contentorname', 'Links:Foo')])
+
+	def testFindInput(self):
+		for query_input, wanted_find_input in (
+			('Foo', ('Foo', False)),
+			('*Foo*', ('Foo', False)),
+			('Foo Bar', ('Foo|Bar', True)),
+			('Foo && Bar', ('Foo|Bar', True)),
+			('Foo || Bar', ('Foo|Bar', True)),
+			('Foo -Bar', ('Foo', False)),
+			('Links: Foo', (None, None)),
+			('Tag: Foo', ('@Foo', False)),
+			('@Foo', ('@Foo', False)),
+			('@Foo Bar', ('@Foo|Bar', True)),
+			('Foo... Bar', ('Foo\\.\\.\\.|Bar', True)),
+		):
+			query = Query(query_input)
+			self.assertEqual(query.find_input, wanted_find_input)
 
 
 class TestSearch(tests.TestCase):

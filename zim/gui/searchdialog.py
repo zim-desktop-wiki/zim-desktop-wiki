@@ -9,8 +9,9 @@ import logging
 
 from zim.notebook import Path
 from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry, ErrorDialog, ScrolledWindow
-from zim.search import *
+from zim.gui.pageview import FIND_REGEX
 
+from zim.search import *
 
 logger = logging.getLogger('zim.gui.searchdialog')
 
@@ -220,7 +221,8 @@ class SearchResultsTreeView(BrowserTreeView):
 		pageview = self.navigation.open_page(page)
 
 		# Popup find dialog with same query
-		if pageview and self.query and self.query.simple_match:
-			string = self.query.simple_match
-			string = string.strip('*') # support partial matches
-			pageview.show_find(string, highlight=True)
+		if pageview and self.query:
+			find_string, find_needs_regex = self.query.find_input
+			if find_string:
+				flag = FIND_REGEX if find_needs_regex else 0
+				pageview.show_find(find_string, flags=flag, highlight=True)

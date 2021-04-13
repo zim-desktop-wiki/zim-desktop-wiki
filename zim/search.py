@@ -125,6 +125,7 @@ class Query(object):
 	def __init__(self, string):
 		self.string = string
 		self.root = self._parse_query(string)
+		self.find_input = self._generate_find_input()
 
 	def _parse_query(self, string):
 		# First do a raw tokenizer
@@ -198,19 +199,31 @@ class Query(object):
 		#~ print root
 		return root
 
-	@property
-	def simple_match(self):
-		'''Used to determine a simple matching string to be used
-		in the find method in the pageview. Used by L{SearchDialog}
-		to set the L{PageView} find string to highligh matches in the page.
-		'''
-		# TODO make this return a list with positive terms for content
-		# if find supports an OR operator, highlight them all
-		if len(self.root) == 1 and isinstance(self.root[0], QueryTerm) \
-		and self.root[0].keyword in ('content', 'contentorname'):
-			return self.root[0].string
+	def _generate_find_input(self):
+		# parse query and format as a string or regex for the pageview "find"
+		# function - used to highlight matches in the pageview
+		strings = list(self._walk_text_content(self.root))
+		if not strings:
+			return None, None
+		elif len(strings) == 1:
+			return strings[0], False
 		else:
-			return None
+			return '|'.join(re.escape(s) for s in strings if s), True
+
+	def _walk_text_content(self, group):
+		for member in group:
+			if isinstance(member, QueryGroup):
+				for s in self._walk_text_content(member): # recurs
+					yield s
+			else: # QueryTerm
+				if member.inverse: # OPERATOR_NOT
+					pass
+				elif member.keyword in ('content', 'contentorname'):
+					yield member.string.strip('*') # strip "*" for partial matches
+				elif member.keyword == 'tag':
+					yield '@' + member.string.lstrip('@').strip('*')
+				else:
+					pass # other terms select pages, but no (easy) match in the page
 
 
 class PageSelection(set):
