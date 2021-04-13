@@ -66,7 +66,8 @@ class TestQuery(tests.TestCase):
 			('Links: Foo', (None, None)),
 			('Tag: Foo', ('@Foo', False)),
 			('@Foo', ('@Foo', False)),
-			('@Foo Bar', ('@Foo|Bar', True)),
+			('@Foo Bar', (re.escape('@Foo') + '|Bar', True)),
+				# re.escape() behavior changed in 3.7 older versions also escape the "@"
 			('Foo... Bar', ('Foo\\.\\.\\.|Bar', True)),
 		):
 			query = Query(query_input)
