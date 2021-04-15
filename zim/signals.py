@@ -235,6 +235,15 @@ class SignalEmitterMeta(type):
 		super(SignalEmitterMeta, cls).__init__(name, bases, dct)
 
 
+def init_signals_for_new_object(obj):
+	obj._signal_handlers = {}
+	obj._signal_blocks = {}
+	obj._signal_count = 0 # ensure signals execute in order of connecting
+
+	for signal, order, closure in obj._signal_closures:
+		obj._signal_handlers[signal] = [(order, 0, closure)]
+
+
 class SignalEmitter(object, metaclass=SignalEmitterMeta):
 	'''Replacement for C{GObject} to make objects emit signals.
 	API should be (mostly) compatible with API offered by GObject.
@@ -276,14 +285,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 	def __new__(cls, *arg, **kwarg):
 		# New instance: init attributes for signal handling
 		obj = super(SignalEmitter, cls).__new__(cls)
-
-		obj._signal_handlers = {}
-		obj._signal_blocks = {}
-		obj._signal_count = 0 # ensure signals execute in order of connecting
-
-		for signal, order, closure in obj._signal_closures:
-			obj._signal_handlers[signal] = [(order, 0, closure)]
-
+		init_signals_for_new_object(obj)
 		return obj
 
 	def connect(self, signal, handler):

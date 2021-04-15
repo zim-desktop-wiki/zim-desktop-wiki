@@ -750,7 +750,7 @@ class Dumper(TextDumper):
 
 		opts = []
 		for key, value in sorted(list(attrib.items())):
-			# TODO: sorted to make order predictable for testing - prefer use of OrderedDict
+			# TODO: sorted to make order predictable for testing - prefer use of DefinitionOrderedDict
 			if key in ('type', 'indent') or value is None:
 				continue
 			# double quotes are escaped by doubling them

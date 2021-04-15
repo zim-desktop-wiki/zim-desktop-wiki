@@ -260,7 +260,7 @@ class ParseTree(object):
 	def __init__(self, *arg, **kwarg):
 		self._etree = ElementTreeModule.ElementTree(*arg, **kwarg)
 		self._object_cache = {}
-		self.meta = OrderedDict()
+		self.meta = DefinitionOrderedDict()
 
 	@property
 	def hascontent(self):
@@ -1669,7 +1669,7 @@ class TableParser():
 		return cells
 
 
-from zim.config.dicts import OrderedDict
+from zim.config.dicts import DefinitionOrderedDict
 
 _is_header_re = re.compile('^([\w\-]+):\s+(.*?)\n', re.M)
 _is_continue_re = re.compile('^([^\S\n]+)(.+?)\n', re.M)
@@ -1685,7 +1685,7 @@ def parse_header_lines(text):
 	@returns: the text minus the headers and a dict with the headers
 	'''
 	assert isinstance(text, str)
-	meta = OrderedDict()
+	meta = DefinitionOrderedDict()
 	match = _is_header_re.match(text)
 	pos = 0
 	while match:

@@ -387,9 +387,6 @@ class TestConfigDict(tests.TestCase):
 			('c', 'CCC'),
 		))
 
-		self.assertEqual(mydict.__getitem__, mydict._values.__getitem__)
-			# optimization still in place..
-
 		self.assertFalse(mydict.modified)
 		self.assertEqual(len(mydict), 0)
 		self.assertEqual(list(mydict.keys()), [])

@@ -82,7 +82,7 @@ from zim import __version__ as ZIM_VERSION
 
 import zim.datetimetz as datetime
 
-from zim.utils import OrderedDict
+from zim.utils import DefinitionOrderedDict
 from zim.fs import format_file_size
 
 from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
@@ -187,7 +187,7 @@ class ExportTemplateContext(dict):
 				'prev': _link(prevpage),
 				'next': _link(nextpage),
 			},
-			'links': OrderedDict(), # keep order of links for iteration
+			'links': DefinitionOrderedDict(), # keep order of links for iteration
 			'pages': pages,
 
 			# Template settings

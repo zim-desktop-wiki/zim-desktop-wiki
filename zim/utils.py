@@ -5,6 +5,7 @@
 '''Module with assorted useful classes and functions used in the zim code'''
 
 import functools
+import collections
 
 
 class classproperty(object):
@@ -143,71 +144,18 @@ def natural_sort_key(string, numeric_padding=5):
 	return key
 
 
-# Python 2.7 has a collections.OrderedDict, but using this one for compatibility
-# Did not switch implementations per version to make sure we test
-# all modules with this implementation
-
-try:
-	import collections.abc as abc
-except ImportError:
-	# python < version 3.3
-	import collections as abc
-
-
-class OrderedDict(abc.MutableMapping):
-	'''Class that behaves like a dict but keeps items in same order.
+class DefinitionOrderedDict(collections.OrderedDict):
+	'''Class that behaves like a dict but keeps items the order they were defined.
 	Updating an items keeps it at the current position, removing and
 	re-inserting an item puts it at the end of the sequence.
 	'''
 
-	# By using collections.abc.MutableMapping we ensure all dict API calls
-	# are proxied by the methods below. When inheriting from dict
-	# directly e.g. "pop()" does not use "__delitem__()" but is
-	# optimized on it's own
-
-	def __init__(self, E=None, **F):
-		if not hasattr(self, '_keys') \
-		and not hasattr(self, '_values'):
-			# Some classes have double inheritance from this class
-			self._keys = []
-			self._values = {}
-
-		if self.__class__.__getitem__ == OrderedDict.__getitem__:
-			# optimization by just using the real dict.__getitem__
-			# but skip if subclass overloaded the method
-			self.__getitem__ = self._values.__getitem__
-
-		if E or F:
-			assert not (E and F)
-			self.update(E or F)
-
-	def __repr__(self):
-		return '<%s:\n%s\n>' % (
-			self.__class__.__name__,
-			',\n'.join('  %r: %r' % (k, v) for k, v in list(self.items()))
-		)
-
-	def __getitem__(self, k):
-		return self._values[k]
-		# Overloaded in __init__ for optimization
-
-	def __setitem__(self, k, v):
-		self._values[k] = v
-		if not k in self._keys:
-			self._keys.append(k)
-
-	def __delitem__(self, k):
-		del self._values[k]
-		try:
-			self._keys.remove(k)
-		except ValueError:
-			pass
-
-	def __iter__(self):
-		return iter(k for k in self._keys if k in self._values)
-
-	def __len__(self):
-		return len(self._values)
+	def __setitem__(self, key, value):
+		if not key in self:
+			super().__setitem__(key, value)
+			self.move_to_end(key)
+		else:
+			super().__setitem__(key, value)
 
 
 ## Special iterator class

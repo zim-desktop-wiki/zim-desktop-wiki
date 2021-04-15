@@ -38,11 +38,11 @@ class TestNaturalSorting(tests.TestCase):
 		self.assertTrue(id(result) != id(input))
 
 
-class TestOrderedDict(tests.TestCase):
+class TestDefinitionOrderedDict(tests.TestCase):
 
 	def runTest(self):
 		items = [('foo', 1), ('bar', 2), ('baz', 3)]
-		mydict = OrderedDict(items)
+		mydict = DefinitionOrderedDict(items)
 
 		self.assertIsInstance(repr(mydict), str)
 

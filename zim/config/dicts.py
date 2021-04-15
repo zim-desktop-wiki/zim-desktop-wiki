@@ -36,8 +36,8 @@ except ImportError:
 	# python < version 3.3
 	import collections as abc
 
-from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
-from zim.utils import OrderedDict
+from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL, init_signals_for_new_object
+from zim.utils import DefinitionOrderedDict
 from zim.fs import File, FileNotFoundError
 from zim.newfs import FileNotFoundError as NewFileNotFoundError
 from zim.errors import Error
@@ -48,13 +48,8 @@ from .basedirs import XDG_CONFIG_HOME
 logger = logging.getLogger('zim.config')
 
 
-class _MyMeta(type(SignalEmitter), type(OrderedDict)):
-	# Combine meta classes to resolve conflict
-	pass
-
-
-class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin, metaclass=_MyMeta):
-	'''Sub-class of C{OrderedDict} that tracks modified state.
+class ControlledDict(DefinitionOrderedDict, SignalEmitter, ConnectorMixin):
+	'''Sub-class of C{DefinitionOrderedDict} that tracks modified state.
 	This modified state is recursive for nested C{ControlledDict}s.
 
 	Used as base class for L{SectionedConfigDict} and L{ConfigDict}.
@@ -67,28 +62,27 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin, metaclass=_MyMe
 		'changed': (SIGNAL_NORMAL, None, ())
 	}
 
-	def __init__(self, E=None, **F):
-		OrderedDict.__init__(self, E, **F)
+	def __init__(self, E=(), **F):
+		init_signals_for_new_object(self) # Hack, probably needed because we inherit from "dict"
+		DefinitionOrderedDict.__init__(self, E or F)
 		self._modified = False
 
-	# Note that OrderedDict optimizes __getitem__, cannot overload it
-
 	def __setitem__(self, k, v):
-		OrderedDict.__setitem__(self, k, v)
+		DefinitionOrderedDict.__setitem__(self, k, v)
 		if isinstance(v, ControlledDict):
 			self.connectto(v, 'changed', self.on_child_changed)
 		self.emit('changed')
 
 	def __delitem__(self, k):
-		v = OrderedDict.__delitem__(self, k)
-		if isinstance(v, OrderedDict):
+		v = DefinitionOrderedDict.__delitem__(self, k)
+		if isinstance(v, DefinitionOrderedDict):
 			self.disconnect_from(v)
 		self.emit('changed')
 
 	def update(self, E=(), **F):
 		# Only emit changed once here
 		with self.block_signals('changed'):
-			OrderedDict.update(self, E, **F)
+			DefinitionOrderedDict.update(self, E, **F)
 		self.emit('changed')
 
 	def changed(self):
@@ -475,7 +469,7 @@ class ConfigDict(ControlledDict):
 	value does not conform to the definition.
 
 	THis class derives from L{ControlledDict} which in turn derives
-	from L{OrderedDict} so changes to the config can be tracked by the
+	from L{DefinitionOrderedDict} so changes to the config can be tracked by the
 	C{changed} signal, and values are kept in the same order so the order
 	in which items are written to the config file is predictable.
 	'''
@@ -483,7 +477,7 @@ class ConfigDict(ControlledDict):
 	def __init__(self, E=None, **F):
 		assert not (E and F)
 		ControlledDict.__init__(self)
-		self.definitions = OrderedDict()
+		self.definitions = DefinitionOrderedDict()
 		self._input = {}
 		if E or F:
 			self.input(E or F)
@@ -495,7 +489,6 @@ class ConfigDict(ControlledDict):
 		new = self.__class__()
 		new.update(self)
 		new._input.update(self._input)
-		new._keys[:] = list(self._keys)
 		return new
 
 	def update(self, E=None, **F):
@@ -517,19 +510,14 @@ class ConfigDict(ControlledDict):
 		keys in the dict, but want to preserve all of them when
 		writing back to a file.
 		'''
-		return dict(self.all_items()) # FIXME should be OrderedDict, but causes test errors
+		return dict(self.all_items()) # FIXME should be DefinitionOrderedDict, but causes test errors
 
 	def all_items(self):
 		# Like items() but returns both defined values and input values
-		for k in self._keys:
-			if k in self._values:
-				yield k, self._values[k]
-			elif k in self._input:
-				yield k, self._input[k]
-			else:
-				pass
-
-	# Note that OrderedDict optimizes __getitem__, cannot overload it
+		for k, v in self.items():
+			yield k, v
+		for k,v in self._input.items():
+			yield k, v
 
 	def __setitem__(self, k, v):
 		if k in self.definitions:
@@ -543,14 +531,10 @@ class ConfigDict(ControlledDict):
 			raise KeyError('Config key "%s" has not been defined' % k)
 
 	def __delitem__(self, k):
-		if k in self._values:
+		if k in self:
 			ControlledDict.__delitem__(self, k)
 		else:
 			del self._input[k]
-			try:
-				self._keys.remove(k)
-			except ValueError:
-				pass
 
 	def input(self, E=None, **F):
 		'''Like C{update()} but won't raise on failures.
@@ -570,8 +554,6 @@ class ConfigDict(ControlledDict):
 				self._set_input(key, value)
 			else:
 				self._input[key] = value # validated later
-				if key not in self._keys:
-					self._keys.append(key)
 
 	def define(self, E=None, **F):
 		'''Set one or more definitions for this config dict
@@ -599,7 +581,7 @@ class ConfigDict(ControlledDict):
 				self._set_input(key, value)
 			else:
 				with self.block_signals('changed'):
-					OrderedDict.__setitem__(self, key, definition.default)
+					DefinitionOrderedDict.__setitem__(self, key, definition.default)
 
 	def _set_input(self, key, value):
 		try:
@@ -612,7 +594,7 @@ class ConfigDict(ControlledDict):
 			value = self.definitions[key].default
 
 		with self.block_signals('changed'):
-			OrderedDict.__setitem__(self, key, value)
+			DefinitionOrderedDict.__setitem__(self, key, value)
 
 	def setdefault(self, key, default, check=None, allow_empty=False):
 		'''Set the default value for a configuration item.
