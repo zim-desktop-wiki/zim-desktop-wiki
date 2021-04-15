@@ -3128,6 +3128,21 @@ class TestPageViewActions(tests.TestCase):
 		pageview.apply_format_bullet_list()
 		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n'])
 
+	def testApplyBulletListWithoutSelection(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		buffer = pageview.textview.get_buffer()
+		buffer.place_cursor(buffer.get_start_iter())
+		pageview.apply_format_bullet_list()
+		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n'])
+
+	def testApplyBulletListOnHeadingRemovesHeading(self):
+		pageview = setUpPageView(self.setUpNotebook(), '== test 123\n')
+		self.assertEqual(pageview.page.dump('wiki'), ['== test 123 ==\n'])
+		buffer = pageview.textview.get_buffer()
+		buffer.place_cursor(buffer.get_start_iter())
+		pageview.apply_format_bullet_list()
+		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n'])
+
 	def testApplyNumberedList(self):
 		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
 		buffer = pageview.textview.get_buffer()

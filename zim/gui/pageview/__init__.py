@@ -1370,11 +1370,22 @@ class TextBuffer(Gtk.TextBuffer):
 			self.delete_mark(self._deleted_editmode_mark)
 			self._deleted_editmode_mark = None
 
+		orig_editmode_tags = self._editmode_tags
 		if not raw:
 			insert = self.get_insert_iter()
 			assert insert.starts_line(), 'BUG: bullet not at line start'
 
-			if not list(filter(_is_indent_tag, self._editmode_tags)):
+			# Turning into list item removes heading
+			end = insert.copy()
+			end.forward_to_line_end()
+			self.smart_remove_tags(_is_heading_tag, insert, end)
+
+			# TODO: convert 'pre' to 'code' ?
+
+			# Temporary clear non indent tags during insert
+			self._editmode_tags = list(filter(_is_indent_tag, self._editmode_tags))
+
+			if not self._editmode_tags:
 				# Without indent get_parsetree will not recognize
 				# the icon as a bullet item. This will mess up
 				# undo stack. If 'raw' we assume indent tag is set
@@ -1409,6 +1420,8 @@ class TextBuffer(Gtk.TextBuffer):
 					self.insert_at_cursor(bullet)
 				else:
 					self.insert_at_cursor(bullet + ' ')
+
+		self._editmode_tags = orig_editmode_tags
 
 	def renumber_list(self, line):
 		'''Renumber list from this line downward
