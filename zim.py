@@ -69,8 +69,14 @@ def init_logging():
 		sys.stdout = err_stream
 		sys.stderr = err_stream
 
-	# Preliminary initialization of logging because modules can throw warnings at import
-	logging.basicConfig(level=logging.WARN, format='%(levelname)s: %(message)s')
+	if '-D' in sys.argv or '--debug' in sys.argv:
+		level = logging.DEBUG
+	elif '-V' in sys.argv or '--verbose' in sys.argv:
+		level = logging.INFO
+	else:
+		level = logging.WARN
+
+	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
 	logging.captureWarnings(True)
 
 

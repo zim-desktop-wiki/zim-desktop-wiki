@@ -687,7 +687,8 @@ class ZimApplication(object):
 		self._run_cmd(cmd, args) # test seam
 
 	def _run_cmd(self, cmd, args):
-		self._setup_logging(cmd)
+		if not self._log_started:
+			self._log_start()
 
 		if self._running:
 			# This is not the first command that we process
@@ -773,21 +774,6 @@ class ZimApplication(object):
 			# start main again if toplevels remaining ..
 
 		# exit immediatly if no toplevel created
-
-	def _setup_logging(self, cmd):
-		if cmd.opts.get('debug'):
-			level = logging.DEBUG
-		elif cmd.opts.get('verbose'):
-			level = logging.INFO
-		else:
-			level = logging.WARN
-
-		root = logging.getLogger() # root
-		if level < root.getEffectiveLevel():
-			root.setLevel(level)
-
-		if not self._log_started:
-			self._log_start()
 
 	def _log_start(self):
 		self._log_started = True
