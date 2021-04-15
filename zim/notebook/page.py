@@ -686,7 +686,7 @@ class Page(Path, SignalEmitter):
 			tree = self.get_parsetree()
 			self._textbuffer = buffer
 			buffer.set_modified(False)
-			self.set_parsetree(tree) # load new tree in buffer
+			self.set_parsetree(tree) # load new tree in buffer, undo-able in 1 step
 			self.set_modified(False)
 		# else do nothing - source will be read with next call to `get_parsetree()`
 

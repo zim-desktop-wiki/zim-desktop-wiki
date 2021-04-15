@@ -1194,15 +1194,10 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 
 class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 
-	def setUp(self):
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		self.buffer = TextBuffer(notebook, page)
-
 	def testInsertUndoRedo(self):
 		# Test inserting a full tree, than undoing and redoing it
 
-		buffer = self.buffer
+		buffer = self.get_buffer()
 		undomanager = buffer.undostack
 		tree = new_parsetree(self)
 
@@ -1259,7 +1254,7 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\" />")
 
 	def testMore(self):
-		buffer = self.buffer
+		buffer = self.get_buffer()
 		undomanager = buffer.undostack
 
 		# Test merging
@@ -1353,6 +1348,16 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertBufferEquals(buffer, '<p><link href="Test">Test</link>\n</p>', raw=False)
 		undomanager.undo()
 		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
+
+	def testUndoPageReload(self):
+		# page reload calls "set_parsetree", so by testing whether we can
+		# undo "set_buffer()" we test undo-ing a buffer reload using page.reload_textbuffer()
+		buffer = self.get_buffer('test 123')
+		undomanager = buffer.undostack
+		self.set_buffer(buffer, 'test ABC')
+		self.assertBufferEquals(buffer, 'test ABC')
+		undomanager.undo()
+		self.assertBufferEquals(buffer, 'test 123')
 
 
 class TestFind(tests.TestCase, TextBufferTestCaseMixin):

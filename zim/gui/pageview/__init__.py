@@ -691,8 +691,10 @@ class TextBuffer(Gtk.TextBuffer):
 		@param showing_template: if C{True} the C{tree} represents a template
 		and not actual page content (yet)
 		'''
-		self.clear()
-		self.insert_parsetree_at_cursor(tree)
+		with self.user_action:
+			self.clear()
+			self.insert_parsetree_at_cursor(tree)
+
 		self.showing_template = showing_template # Set after modifying!
 
 	def insert_parsetree(self, iter, tree, interactive=False):
@@ -4778,12 +4780,9 @@ class UndoStackManager:
 		if self.block_count == 0:
 			if self.undo_count > 0:
 				self.flush_redo_stack()
-			else:
-				if self.group:
-					self.stack.append(self.group)
-					self.group = UndoActionGroup()
-				if self.insert_pending:
-					self.flush_insert()
+			elif self.insert_pending:
+				self.flush_insert()
+			# Do not start new group here - insert tree can be part of bigger change
 
 			self._insert_tree_start = buffer.get_insert_iter().get_offset()
 		self.block()
@@ -4797,8 +4796,6 @@ class UndoStackManager:
 			end = end_iter.get_offset()
 			tree = self.buffer.get_parsetree((start_iter, end_iter), raw=True)
 			self.group.append((self.ACTION_INSERT, start, end, tree))
-			self.stack.append(self.group)
-			self.group = UndoActionGroup()
 
 	def do_insert_text(self, buffer, iter, text, length):
 		# Handle insert text event
