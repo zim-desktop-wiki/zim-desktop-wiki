@@ -10,18 +10,14 @@
 #
 # 2020-11-22 1st working version
 # 2020-11-23 Improved usability
-#            - Selecting item in autocomplete list will directly execute
 # 2020-12-13 Improved code and usability
-#            - Removed '{'-keybinding used to open dash
 # 2020-12-29 Added history support
 # 2021-01-01 Improved usability
-#            - Popups can now be reopened using arrow keys
 # 2021-01-03 Improved usability
-#            - History can now be controlled using buttons
 # 2021-01-23 Limited history feature to only contain last entry
 # 2021-01-23 Added ability to show keybindings in dialog
-#            - This behavior can be disabled via the plugin options
-#
+# 2021-02-18 Fixed display of keybindings
+# 2021-03-13 Improved search ability
 
 import logging
 
@@ -133,7 +129,10 @@ class ZimDashDialog(Dialog):
 		def match_anywhere(_completion, _entrystr, _iter, _data):
 			""" Match any part. """
 			_modelstr = _completion.get_model()[_iter][0].lower()
-			return _entrystr in _modelstr
+			for part in _entrystr.split():
+				if part not in _modelstr:
+					return False
+			return True
 
 		completion.set_match_func(match_anywhere, None)
 
