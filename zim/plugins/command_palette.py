@@ -18,6 +18,7 @@
 # 2021-01-23 Added ability to show keybindings in dialog
 # 2021-02-18 Fixed display of keybindings
 # 2021-03-13 Improved search ability
+# 2021-04-16 Renamed project from "Zim Dash" to "Zim Command Palette" and changed keybinding from alt-x to ctrl-shift-p
 
 import logging
 
@@ -33,23 +34,21 @@ from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog
 from zim.plugins import PluginClass
 
-logger = logging.getLogger('zim.plugins.dashboard')
-
-SHOW_KEYBOARD_SHORTCUTS_DEFAULT = True
+logger = logging.getLogger('zim.plugins.command_palette')
 
 
-class DashPlugin(PluginClass):
+class CommandPalettePlugin(PluginClass):
 	plugin_info = {
-		'name': _('Dash'),  # T: plugin name
+		'name': _('Command Palette'),  # T: plugin name
 		'description': _('This plugin opens a search dialog to allow quickly '
 						 'executing menu entries.'),  # T: plugin description
 		'author': 'Thomas Engel <thomas.engel.web@gmail.com>',
-		'help': 'Plugins:Dash',
+		'help': 'Plugins:CommandPalette',
 	}
 
 
-class DashMainWindowExtension(MainWindowExtension):
-	""" Listener for the show dash dialog shortcut. """
+class CommandPaletteMainWindowExtension(MainWindowExtension):
+	""" Listener for the show command palette dialog shortcut. """
 
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
@@ -64,10 +63,10 @@ class DashMainWindowExtension(MainWindowExtension):
 			store.append((label, action, shortcut))
 		return store
 
-	@action('', accelerator='<alt>x', menuhints='accelonly')
-	def do_show_dash_dialog(self):
+	@action('', accelerator='<ctrl><shift>p', menuhints='accelonly')
+	def do_show_command_palette_dialog(self):
 		store = self._init_store()
-		dialog = ZimDashDialog(self.window, store, self.plugin.preferences)
+		dialog = ZimCommandPaletteDialog(self.window, store, self.plugin.preferences)
 		if dialog.run() == Gtk.ResponseType.OK:
 			dialog.action()
 			# The return value is only relevant for the on_key_press_event function and makes sure that the
@@ -78,6 +77,9 @@ class DashMainWindowExtension(MainWindowExtension):
 class ZimMenuBarCrawler:
 	""" Crawler for Gtk.MenuBar to return all item labels and associated actions in a dictionary. """
 
+	# Separator ">>" used between menu item names e.g. "File >> New Page..."
+	SEPARATOR = u'\u0020\u0020\u00BB\u0020\u0020'
+
 	def run(self, menu_bar: Gtk.MenuBar):
 
 		result = {}
@@ -86,7 +88,7 @@ class ZimMenuBarCrawler:
 			if container.get_submenu():
 				for child in container.get_submenu():
 					if hasattr(child, "get_label") and child.get_label():
-						child_path = path + u'\u0020\u0020\u00BB\u0020\u0020' + child.get_label().replace("_", "")
+						child_path = path + ZimMenuBarCrawler.SEPARATOR + child.get_label().replace("_", "")
 						crawl(child, child_path)
 			else:
 				accel_name = None
@@ -102,11 +104,11 @@ class ZimMenuBarCrawler:
 		return result
 
 
-class ZimDashDialog(Dialog):
+class ZimCommandPaletteDialog(Dialog):
 	""" A search dialog with auto-complete feature. """
 
 	def __init__(self, parent, store, preferences):
-		title = _('Dash')
+		title = _('Command Palette')
 		Dialog.__init__(self, parent, title)
 
 		self.uistate.define(last_entry=String(None))
@@ -142,7 +144,7 @@ class ZimDashDialog(Dialog):
 		self.txt_search = Gtk.SearchEntry(hexpand=True, margin=2)
 		self.txt_search.set_activates_default(True)  # Make ENTER key press trigger the OK button.
 		self.txt_search.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, Gtk.STOCK_FIND)
-		self.txt_search.set_placeholder_text("Search actions")
+		self.txt_search.set_placeholder_text("Search commands")
 		self.txt_search.set_completion(completion)
 
 		last_entry = self.init_last_entry()
@@ -194,7 +196,7 @@ class ZimDashDialog(Dialog):
 
 	def on_match_selected(self, completion, model, iter):
 		""" Directly close dialog when selecting an entry in the completion list. """
-		logger.debug("ZimDashPlugin: Match selected from popup menu: {}".format(model[iter][0]))
+		logger.debug("ZimCommandPalettePlugin: Match selected from popup menu: {}".format(model[iter][0]))
 		self.txt_search.set_text(model[iter][0])
 		if self.do_response_ok():
 			self.close()
@@ -211,4 +213,4 @@ class ZimDashDialog(Dialog):
 			self.result = Gtk.ResponseType.OK
 			return True
 		else:
-			logger.error("ZimDashPlugin: Aborting, invalid entry selected: {}".format(self.txt_search.get_text()))
+			logger.error("ZimCommandPalettePlugin: Aborting, invalid entry selected: {}".format(self.txt_search.get_text()))
