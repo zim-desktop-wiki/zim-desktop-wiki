@@ -130,7 +130,7 @@ class TestApplicationManager(tests.TestCase):
 
 		def remove_file(path):
 			#print("REMOVE", path)
-			assert path.startswith(tests.TMPDIR)
+			assert path.replace('\\', '/').startswith(tests.TMPDIR.replace('\\', '/'))
 			if os.path.exists(path):
 				os.unlink(path)
 

@@ -104,7 +104,10 @@ class TestFilePath(tests.TestCase):
 
 		# Test home folder fallback
 		f = FilePath('~non-existing-user/foo')
-		self.assertEqual(f.path, P('/'.join((HOME.dirname, 'non-existing-user', 'foo'))))
+		self.assertIn(f.path, (
+			P(os.path.expanduser('~non-existing-user/foo')),
+			P('/'.join((HOME.dirname, 'non-existing-user', 'foo')))
+		))
 
 
 	def testShareDrivePath(self):
