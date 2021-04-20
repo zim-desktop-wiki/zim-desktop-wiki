@@ -61,19 +61,22 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 	def _new_css_provider(self):
 		css = '''
 		#zim-pageview text {
-			color: %s;
-			background-color: %s;
+			color: %(textcolor)s;
+			background-color: %(basecolor)s;
 		}
 		#zim-window-main-box scrolledwindow{
 			border-style: none;
 			}
 		#zim-window-main-box box {
-			background-color: %s;
+			background-color: %(basecolor)s;
 		}
 		#zim-window-main-box button box {
 			background-color: @bg_color;
 		}
-		''' % (self.preferences['textcolor'], self.preferences['basecolor'],self.preferences['basecolor'])
+		toolbar {
+			background-color: %(basecolor)s;
+		}
+		''' % self.preferences
 		provider = Gtk.CssProvider()
 		provider.load_from_data(css.encode('UTF-8'))
 		return provider
