@@ -436,6 +436,13 @@ is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
 is_interwiki_keyword_re = re.compile('^\w[\w+\-.]*$', re.U)
 
 
+def valid_interwiki_key(name):
+	key = re.sub('[^\w+\-.]', '_', name)
+	if key[0] in ('-', '.'):
+		key = '_' + key[1:] # "_" matches \w
+	return key
+
+
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit
 url_re = Re(r'''(
 	\b \w[\w\+\-\.]+:// %(c)s* \[ %(c)s+ \] (?: %(c)s+ [\w/] )?  |

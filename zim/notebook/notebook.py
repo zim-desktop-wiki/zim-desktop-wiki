@@ -24,7 +24,7 @@ from zim.errors import Error
 from zim.utils import natural_sort_key
 from zim.newfs.helpers import TrashNotSupportedError
 from zim.config import HierarchicDict
-from zim.parsing import link_type, is_win32_path_re
+from zim.parsing import link_type, is_win32_path_re, valid_interwiki_key
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
@@ -305,6 +305,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.name = None
 		self.icon = None
 		self.document_root = None
+		self.interwiki = None
 
 		if folder.watcher is None:
 			from zim.newfs.helpers import FileTreeWatcher
@@ -408,6 +409,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			self.icon = None
 		self.document_root = document_root
+
+		self.interwiki = valid_interwiki_key(properties['interwiki'] or self.name)
 
 	def suggest_link(self, source, word):
 		'''Suggest a link Path for 'word' or return None if no suggestion is

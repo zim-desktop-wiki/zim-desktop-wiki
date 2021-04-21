@@ -52,7 +52,7 @@ def set_clipboard_image(file):
 class TestClipboard(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = self.setUpNotebook(name='firstnotebook', content=('Test',))
+		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',))
 
 	def testCopyPasteText(self):
 		text = 'test **123** \u2022' # text with non-ascii character
@@ -239,7 +239,7 @@ some <b>bold</b> text
 		othernotebook = self.setUpNotebook(name="othernotebook", content=('Test',))
 		page = self.notebook.get_page(Path('Test:wiki'))
 		Clipboard.set_pagelink(self.notebook, page)
-		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="firstnotebook?Test:wiki">firstnotebook?Test:wiki</link></zim-tree>'''
+		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="first_notebook?Test:wiki">first_notebook?Test:wiki</link></zim-tree>'''
 		newtree = Clipboard.get_parsetree(othernotebook, Path('Test'))
 		self.assertEqual(newtree.tostring(), wanted)
 

@@ -131,6 +131,17 @@ class TestParsing(tests.TestCase):
 			#~ print('>>', href)
 			self.assertEqual(link_type(href), type)
 
+	def testValidInterwikiKey(self):
+		for name, key in (
+			('Foo', 'Foo'),
+			('Foo Bar', 'Foo_Bar'),
+			('Foo*Bar', 'Foo_Bar'),
+			('Foo-Bar', 'Foo-Bar'),
+			('Foo.Bar', 'Foo.Bar'),
+			('.Foo.Bar', '_Foo.Bar'),
+		):
+			self.assertEqual(valid_interwiki_key(name), key)
+			self.assertTrue(is_interwiki_keyword_re.match(key))
 
 
 class TestEscapeStringFunctions(tests.TestCase):

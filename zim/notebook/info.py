@@ -13,7 +13,8 @@ import zim.fs
 
 from zim.fs import File, Dir, SEP
 from zim.config import ConfigManager, INIConfigFile, XDGConfigFileIter, String
-from zim.parsing import is_url_re, is_win32_path_re, url_encode
+from zim.parsing import is_url_re, is_win32_path_re, url_encode, \
+	is_interwiki_keyword_re, valid_interwiki_key
 
 from .notebook import NotebookConfig, _resolve_relative_config
 
@@ -85,7 +86,8 @@ def interwiki_link(link):
 	'''Convert an interwiki link into an url'''
 	assert isinstance(link, str) and '?' in link
 	key, page = link.split('?', 1)
-	lkey = key.lower()
+	if not is_interwiki_keyword_re.match(key):
+		return None
 
 	# First check known notebooks
 	list = get_notebook_list()
@@ -97,14 +99,18 @@ def interwiki_link(link):
 	else:
 		url = None
 		files = XDGConfigFileIter('urls.list') # FIXME, shouldn't this be passed in ?
+		lkey = key.lower()
 		for file in files:
 			for line in file.readlines():
 				if line.startswith('#') or line.isspace():
 					continue
+
 				try:
 					mykey, myurl = line.split(None, 1)
 				except ValueError:
 					continue
+
+				mykey = valid_interwiki_key(mykey)
 				if mykey.lower() == lkey:
 					url = myurl.strip()
 					break
@@ -474,9 +480,18 @@ class NotebookInfoList(list):
 		@param key: notebook name or interwiki key as string
 		@returns: a L{NotebookInfo} object or C{None}
 		'''
+		if not is_interwiki_keyword_re.match(key):
+			raise ValueError('Not a valid interwiki key: %s' % key)
+
 		lkey = key.lower()
+		by_name = []
 		for info in self:
-			if info.interwiki and info.interwiki.lower() == lkey:
+			if info.interwiki and valid_interwiki_key(info.interwiki.lower()) == lkey:
 				return info
+			elif valid_interwiki_key(info.name.lower()) == lkey:
+				by_name.append(info)
 		else:
-			return self.get_by_name(key)
+			if by_name:
+				return by_name[0]
+			else:
+				return None

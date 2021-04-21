@@ -295,7 +295,7 @@ def _link_tree(links, notebook, path):
 		type = link_type(link)
 		isimage = False
 		if type == 'interwiki':
-			prefix = notebook.name + '?'
+			prefix = notebook.interwiki + '?'
 			if link.startswith(prefix):
 				link = link[len(prefix):]
 				type = link_type(link)
@@ -473,12 +473,12 @@ class PageLinkData(ClipboardData):
 	targets = (PAGELIST_TARGET,) + TEXT_TARGETS
 
 	def __init__(self, notebook, path):
-		self.notebookname = notebook.name
+		self.interwiki = notebook.interwiki
 		self.path = path
 
 	def get_data_as(self, targetid):
 		if targetid == PAGELIST_TARGET_ID:
-			link = "%s?%s" % (self.notebookname, self.path.name)
+			link = "%s?%s" % (self.interwiki, self.path.name)
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:
 			return self.path.name
