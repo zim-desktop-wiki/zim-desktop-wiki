@@ -3556,8 +3556,13 @@ class TestDragAndDropFunctions(tests.TestCase):
 		xml = tree.tostring()
 		self.assertIn("pasted_image.png", xml) # FIXME: should use tree api to get image
 
+try:
+	import PIL
+except ImportError:
+	PIL = None
 
 @tests.slowTest
+@tests.skipUnless(PIL, 'PIL library not available')
 class TestWebPImageSupport(tests.TestCase):
 
 	def runTest(self):
