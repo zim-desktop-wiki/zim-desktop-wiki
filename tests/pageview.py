@@ -3555,3 +3555,23 @@ class TestDragAndDropFunctions(tests.TestCase):
 		tree = buffer.get_parsetree()
 		xml = tree.tostring()
 		self.assertIn("pasted_image.png", xml) # FIXME: should use tree api to get image
+
+
+@tests.slowTest
+class TestWebPImageSupport(tests.TestCase):
+
+	def runTest(self):
+		notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL)
+		page = notebook.get_page(Path('Test'))
+		file = page.attachments_folder.file('image_webp_test.webp')
+		src = LocalFile((os.getcwd(), './tests/data/image_webp_test/image_webp_test.webp'))
+		src.copyto(file)
+
+		pageview = setUpPageView(notebook, text='''
+====== test webp ======
+
+If the Pillow fallback works, images should be displayed below, with the right one being 2x smaller.
+
+{./image_webp_test.webp}} {{./image_webp_test.webp?width=240}}
+		''')
+		# No assert, just test it runs without errors / warnings

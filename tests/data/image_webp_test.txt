@@ -1,9 +1,0 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.6
-Creation-Date: 2020-08-19T16:32:19+02:00
-
-====== test webp ======
-
-If the Pillow fallback works, images should be displayed below, with the right one being 2x smaller.
-
-{{./image_webp_test.webp}} {{./image_webp_test.webp?width=240}}  
