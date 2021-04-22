@@ -153,7 +153,7 @@ class Dumper(DumperClass):
 			iter = self.context[-1].attrib.get('_iter')
 			if not iter:
 				# First item on this level
-				iter = self.context[-1].attrib.get('start', 1)
+				iter = self.context[-1].attrib.get('start', '1')
 			bullet = iter + '.'
 			self.context[-1].attrib['_iter'] = increase_list_iter(iter) or '1'
 		else:

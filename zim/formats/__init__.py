@@ -171,6 +171,25 @@ def increase_list_iter(listiter):
 		except IndexError: # wrap to start of list
 			return _letters[0]
 
+
+def convert_list_iter_letter_to_number(listiter):
+	'''Convert a "letter" numbered list to a digit numbered list
+	Usefull for export to formats that do not support letter lists.
+	Both "A." and "a." convert to "1." assumption is that this function
+	is used for start iter only, not whole list
+	'''
+	try:
+		i = int(listiter)
+		return listiter
+	except ValueError:
+		try:
+			i = _letters.index(listiter) + 1
+			i = i if i <= 26 else i % 26
+			return str(i)
+		except ValueError: # listiter is not a letter
+			return None
+
+
 def encode_xml(text):
 	'''Encode text such that it can be used in xml
 	@param text: label text as string

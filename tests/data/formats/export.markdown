@@ -101,8 +101,8 @@ A numbered list:
 
 1. foo
 2. bar
-	a. sub list
-	b. here
+	1. sub list
+	2. here
 3. hmmm
 
 
@@ -110,10 +110,10 @@ A numbered list:
 Start with number other that 1/a/A
 
 
-C. foo
-D. bar
+3. foo
+4. bar
 	3. sub item start with 3
-E. baz
+5. baz
 
 
 ##### head 5

@@ -83,6 +83,16 @@ class Dumper(TextDumper):
 	dump_ul = dump_list
 	dump_ol = dump_list
 
+	def dump_li(self, tag, attrib, strings):
+		# Markdown does not support letters as list bullets - convert to number
+		assert self.context[-1].tag in (BULLETLIST, NUMBEREDLIST), 'Do not support raw pageview output here'
+		if self.context[-1].tag == NUMBEREDLIST \
+			and not self.context[-1].attrib.get('_iter'):
+				# First item on this level
+				iter = self.context[-1].attrib.get('start', '1')
+				self.context[-1].attrib['_iter'] = convert_list_iter_letter_to_number(iter)
+		return TextDumper.dump_li(self, tag, attrib, strings)
+
 	def dump_pre(self, tag, attrib, strings):
 		# OPEN ISSUE: no indent for verbatim blocks
 		return self.prefix_lines('\t', strings)
