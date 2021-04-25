@@ -4418,16 +4418,18 @@ class TextView(Gtk.TextView):
 				buffer.apply_tag(tag, start, myend)
 				return True
 
-		def allow_bullet(iter):
+		def allow_bullet(iter, word):
 			if iter.starts_line():
 				return True
 			elif iter.get_line_offset() < 10:
 				home = buffer.get_iter_at_line(iter.get_line())
-				return buffer.iter_forward_past_bullet(home) and start.equal(iter)
+				return buffer.iter_forward_past_bullet(home) \
+				and start.equal(iter) \
+				and not is_numbered_bullet_re.match(word) # don't replace bullets with numbered bullets
 			else:
 				return False
 
-		if (char == ' ' or char == '\t') and allow_bullet(start) \
+		if (char == ' ' or char == '\t') and allow_bullet(start, word) \
 		and (word in autoformat_bullets or is_numbered_bullet_re.match(word)):
 			if buffer.range_has_tags(_is_heading_tag, start, end):
 				handled = False # No bullets in headings
