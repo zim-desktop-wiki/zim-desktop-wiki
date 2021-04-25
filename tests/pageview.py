@@ -2437,6 +2437,13 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.buffer.place_cursor(iter)
 		self.assertTyping('* ', '<li bullet="*" indent="0"> Test</li>')
 
+	def testNoAutoFormatNumberedWithinList(self):
+		self.set_buffer(self.buffer, '<li bullet="unchecked-box" indent="0"> Test</li>')
+		iter = self.buffer.get_start_iter()
+		iter.forward_chars(2) # put it behind the checkbox
+		self.buffer.place_cursor(iter)
+		self.assertTyping('1. ', '<li bullet="unchecked-box" indent="0"> 1. Test</li>')
+
 	def testNoAutoFormatBulletInHeading(self):
 		self.set_buffer(self.buffer, '<h level="1">test</h>\n')
 		self.buffer.place_cursor(self.buffer.get_iter_at_offset(0))
