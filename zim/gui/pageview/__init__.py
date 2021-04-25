@@ -4538,17 +4538,20 @@ class TextView(Gtk.TextView):
 				buffer.apply_tag(tag, start, myend)
 				return True
 
-		def allow_bullet(iter):
+		def allow_bullet(iter, is_replacement_numbered_bullet):
 			if iter.starts_line():
 				return True
 			elif iter.get_line_offset() < 10:
 				home = buffer.get_iter_at_line(iter.get_line())
-				return buffer.iter_forward_past_bullet(home) and start.equal(iter)
+				return buffer.iter_forward_past_bullet(home) \
+				and start.equal(iter) \
+				and not is_replacement_numbered_bullet # don't replace existing bullets with numbered bullets
 			else:
 				return False
-
-		if (char == ' ' or char == '\t') and allow_bullet(start) \
-		and (word in autoformat_bullets or is_numbered_bullet_re.match(word)):
+		word_is_numbered_bullet = is_numbered_bullet_re.match(word)
+		if (char == ' ' or char == '\t') \
+		and allow_bullet(start, word_is_numbered_bullet) \
+		and (word in autoformat_bullets or word_is_numbered_bullet):
 			if buffer.range_has_tags(_is_heading_tag, start, end):
 				handled = False # No bullets in headings
 			else:
