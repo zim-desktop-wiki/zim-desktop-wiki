@@ -14,12 +14,14 @@ from gi.repository import GdkPixbuf
 
 import logging
 
+from functools import partial
+
 from zim.fs import File, Dir, FS
 from zim.newfs import LocalFolder
-from zim.notebook import Path
+from zim.notebook import Path, HRef
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
-	FORMATTEDTEXT, IMAGE, LINK
+	FORMATTEDTEXT, IMAGE, LINK, VisitorSkip
 from zim.export.linker import StaticExportLinker
 
 
@@ -195,7 +197,7 @@ def deserialize_image(register_buf, content_buf, iter, data, length, create_tags
 	return True
 
 
-def parsetree_from_selectiondata(selectiondata, notebook=None, path=None, text_format='plain'):
+def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format='plain'):
 	'''Function to get a parsetree based on the selectiondata contents
 	if at all possible. Used by both copy-paste and drag-and-drop
 	methods.
@@ -223,7 +225,16 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None, text_f
 
 	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
-		return ParseTree().fromstring(selectiondata.get_data())
+		parsetree = ParseTree().fromstring(selectiondata.get_data())
+		src_notebook = parsetree._pop_root_attrib('notebook')
+		src_page = parsetree._pop_root_attrib('page')
+		if src_notebook and src_notebook != notebook.interwiki:
+			parsetree.replace(LINK, partial(_replace_links_to_interwiki, src_notebook))
+		elif src_page and path and src_page != path.name:
+			parsetree.replace(LINK, partial(_replace_links_to_page, notebook, path))
+		else:
+			pass # leave links untouched
+		return parsetree
 	elif targetname == PAGELIST_TARGET_NAME \
 	or targetname in URI_TARGET_NAMES:
 		links = selectiondata.get_uris()
@@ -333,6 +344,50 @@ def _link_tree(links, notebook, path):
 	tree.resolve_images(notebook, path)
 	tree.decode_urls()
 	return tree
+
+
+def _replace_links_to_interwiki(src_interwiki, node):
+	abs_href = node.get('_href')
+	if abs_href:
+		my_type = link_type(abs_href)
+		if my_type == 'page':
+			new_href = src_interwiki + '?' + abs_href
+		elif my_type == 'file':
+			# NOTE: no proper syntax for this type of link - just abs file link
+			#       should be improved - e.g. path:./file style links like in docuwiki
+			new_href = abs_href
+		else:
+			logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
+			raise VisitorSkip
+
+		if node.gettext() == node.get('href'): # *not* abs_href
+			node[:] = [new_href]
+		node.set('href', new_href)
+		return node
+
+	else:
+		raise VisitorSkip
+
+
+def _replace_links_to_page(notebook, new_path, node):
+	abs_href = node.get('_href')
+	if abs_href:
+		my_type = link_type(abs_href)
+		if my_type == 'page':
+			target = Path(abs_href)
+			oldhref = HRef.new_from_wiki_link(node.get('href')) # *not* abs_href
+			return notebook._update_link_tag(node, new_path, target, oldhref)
+		elif my_type == 'file':
+			new_href = notebook.relative_filepath(File(abs_href), new_path)
+			if node.gettext() == node.get('href'): # *not* abs_href
+				node[:] = [new_href]
+			node.set('href', new_href)
+			return node
+		else:
+			logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
+			raise VisitorSkip
+	else:
+		raise VisitorSkip
 
 
 def _get_image_info(targetname):
@@ -449,7 +504,9 @@ class ParseTreeData(ClipboardData):
 
 	def get_data_as(self, targetid):
 		if targetid == PARSETREE_TARGET_ID:
-			# TODO make links absolute (?)
+			self.parsetree._set_root_attrib('notebook', self.notebook.interwiki)
+			self.parsetree._set_root_attrib('page', self.path.name)
+			self.parsetree.replace(LINK, partial(_resolve_links, self.notebook, self.path))
 			return self.parsetree.tostring()
 		elif targetid == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
@@ -466,6 +523,18 @@ class ParseTreeData(ClipboardData):
 			return ''.join(dumper.dump(self.parsetree))
 		else:
 			raise ValueError('Unknown target id %i' % targetid)
+
+
+def _resolve_links(notebook, src_path, node):
+	href = node.get('href')
+	my_type = link_type(href)
+	if my_type == 'page':
+		target = notebook.pages.resolve_link(src_path, HRef.new_from_wiki_link(href))
+		node.set('_href', target)
+	elif my_type == 'file':
+		target = notebook.resolve_file(href, src_path)
+		node.set('_href', target.uri)
+	return node
 
 
 class PageLinkData(ClipboardData):

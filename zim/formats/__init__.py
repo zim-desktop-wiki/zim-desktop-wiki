@@ -304,6 +304,15 @@ class ParseTree(object):
 		'''
 		return self._etree.getroot().attrib.get('raw', False)
 
+	def _set_root_attrib(self, key, value):
+		self._etree.getroot().attrib[key] = value
+
+	def _get_root_attrib(self, key, default=None):
+		return self._etree.getroot().attrib.get(key, default)
+
+	def _pop_root_attrib(self, key, default=None):
+		return self._etree.getroot().attrib.pop(key, default)
+
 	def extend(self, tree):
 		# Do we need a deepcopy here ?
 		myroot = self._etree.getroot()
