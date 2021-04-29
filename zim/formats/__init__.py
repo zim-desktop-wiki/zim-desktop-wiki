@@ -623,11 +623,11 @@ class ParseTree(object):
 		for elt in self._etree.iter(tag):
 			yield Element.new_from_etree(elt)
 
-	def replace(self, tag, func):
+	def replace(self, tags, func):
 		'''Modify the tree by replacing all occurences of C{tag}
 		by the return value of C{func}.
 
-		@param tag: tag name
+		@param tags: tag name, or list of tag names
 		@param func: function to generate replacement values.
 		Function will be called as::
 
@@ -641,17 +641,19 @@ class ParseTree(object):
 		If the function raises L{VisitorStop} the replacement of all
 		nodes will stop.
 		'''
+		if not isinstance(tags, (tuple, list)):
+			tags = (tags,)
 		try:
-			self._replace(self._etree.getroot(), tag, func)
+			self._replace(self._etree.getroot(), tags, func)
 		except VisitorStop:
 			pass
 
-	def _replace(self, elt, tag, func):
+	def _replace(self, elt, tags, func):
 		# Two-step replace in order to do items in order
 		# of appearance.
 		replacements = []
 		for i, child in enumerate(elt):
-			if child.tag == tag:
+			if child.tag in tags:
 				try:
 					replacement = func(Element.new_from_etree(child))
 				except VisitorSkip:
@@ -659,10 +661,9 @@ class ParseTree(object):
 				else:
 					replacements.append((i, child, replacement))
 			elif len(child):
-				self._replace(child, tag, func) # recurs
+				self._replace(child, tags, func) # recurs
 			else:
 				pass
-
 
 		if replacements:
 			self._do_replace(elt, replacements)
@@ -671,7 +672,7 @@ class ParseTree(object):
 		offset = 0 # offset due to replacements
 		for i, child, node in replacements:
 			i += offset
-			if node is None or len(node) == 0:
+			if node is None:
 				# Remove element
 				tail = child.tail
 				elt.remove(child)
@@ -1507,7 +1508,7 @@ class Node(list):
 		if self.attrib:
 			strings.append('<%s' % self.tag)
 			for key in sorted(self.attrib):
-				strings.append(' %s="%s"' % (key, encode_xml(self.attrib[key])))
+				strings.append(' %s="%s"' % (key, encode_xml(str(self.attrib[key]))))
 			strings.append('>')
 		else:
 			strings.append("<%s>" % self.tag)

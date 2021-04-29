@@ -16,7 +16,7 @@ logger = logging.getLogger('zim.newfs')
 from . import FS_SUPPORT_NON_LOCAL_FILE_SHARES
 
 from zim.errors import Error
-from zim.parsing import url_encode
+from zim.parsing import url_encode, url_decode
 
 
 is_url_re = re.compile('^\w{2,}:/')
@@ -112,7 +112,7 @@ def _split_file_url(url):
 	else:
 		isshare = False # either 'file:/' or 'file:///'
 
-	return path.strip('/').split('/'), isshare
+	return url_decode(path).strip('/').split('/'), isshare
 
 
 def _splitnormpath(path, force_rel=False):

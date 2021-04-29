@@ -17,7 +17,7 @@ import logging
 from functools import partial
 
 from zim.fs import File, Dir, FS
-from zim.newfs import LocalFolder
+from zim.newfs import LocalFolder, LocalFile, SEP
 from zim.notebook import Path, HRef
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
@@ -206,9 +206,12 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 	links relative to the page which is the target for the pasting or
 	drop operation.
 
-	For image data, the parameters notebook and page are used
-	to save the image to the correct attachment folder and return a
-	parsetree with the correct image link.
+	NOTE: this method can have a side affect where files are placed in the
+	attachment folder of the page.
+
+		- For image data, a new image file is created
+		- For parsetree data containing inline images, the image files are
+	  	  copied to the attachment folder
 
 	@param selectiondata: a C{Gtk.SelectionData} object
 	@param notebook: a L{Notebook} object
@@ -221,17 +224,15 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 
 	@returns: a L{ParseTree} or C{None}
 	'''
-	# TODO: check relative linking for all parsetrees !!!
-
 	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
 		parsetree = ParseTree().fromstring(selectiondata.get_data())
 		src_notebook = parsetree._pop_root_attrib('notebook')
 		src_page = parsetree._pop_root_attrib('page')
 		if src_notebook and src_notebook != notebook.interwiki:
-			parsetree.replace(LINK, partial(_replace_links_to_interwiki, src_notebook))
+			parsetree.replace((LINK, IMAGE), partial(_replace_links_to_interwiki, src_notebook, notebook, path))
 		elif src_page and path and src_page != path.name:
-			parsetree.replace(LINK, partial(_replace_links_to_page, notebook, path))
+			parsetree.replace((LINK, IMAGE), partial(_replace_links_to_page_and_copy_images, notebook, path))
 		else:
 			pass # leave links untouched
 		return parsetree
@@ -346,48 +347,75 @@ def _link_tree(links, notebook, path):
 	return tree
 
 
-def _replace_links_to_interwiki(src_interwiki, node):
-	abs_href = node.get('_href')
-	if abs_href:
-		my_type = link_type(abs_href)
-		if my_type == 'page':
-			new_href = src_interwiki + '?' + abs_href
-		elif my_type == 'file':
-			# NOTE: no proper syntax for this type of link - just abs file link
-			#       should be improved - e.g. path:./file style links like in docuwiki
-			new_href = abs_href
-		else:
-			logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
-			raise VisitorSkip
+def _replace_links_to_interwiki(src_interwiki, notebook, new_path, node):
+	if node.tag == LINK:
+		abs_href = node.get('_href')
+		if abs_href:
+			my_type = link_type(abs_href)
+			if my_type == 'page':
+				new_href = src_interwiki + '?' + abs_href
+			elif my_type == 'file':
+				# NOTE: no proper syntax for this type of link - just abs file link
+				#       should be improved - e.g. path:./file style links like in docuwiki
+				new_href = abs_href
+			else:
+				logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
+				raise VisitorSkip
 
-		if node.gettext() == node.get('href'): # *not* abs_href
-			node[:] = [new_href]
-		node.set('href', new_href)
-		return node
-
-	else:
-		raise VisitorSkip
-
-
-def _replace_links_to_page(notebook, new_path, node):
-	abs_href = node.get('_href')
-	if abs_href:
-		my_type = link_type(abs_href)
-		if my_type == 'page':
-			target = Path(abs_href)
-			oldhref = HRef.new_from_wiki_link(node.get('href')) # *not* abs_href
-			return notebook._update_link_tag(node, new_path, target, oldhref)
-		elif my_type == 'file':
-			new_href = notebook.relative_filepath(File(abs_href), new_path)
 			if node.gettext() == node.get('href'): # *not* abs_href
 				node[:] = [new_href]
 			node.set('href', new_href)
 			return node
 		else:
-			logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
 			raise VisitorSkip
+	elif node.tag == IMAGE:
+		# Just copy all images - image links to other notebook don't make sense
+		return _copy_image(notebook, new_path, node)
 	else:
-		raise VisitorSkip
+		raise AssertionError('unknown tag')
+
+
+def _replace_links_to_page_and_copy_images(notebook, new_path, node):
+	if node.tag == LINK:
+		abs_href = node.get('_href')
+		if abs_href:
+			my_type = link_type(abs_href)
+			if my_type == 'page':
+				target = Path(abs_href)
+				oldhref = HRef.new_from_wiki_link(node.get('href')) # *not* abs_href
+				return notebook._update_link_tag(node, new_path, target, oldhref)
+			elif my_type == 'file':
+				new_href = notebook.relative_filepath(File(abs_href), new_path)
+				if node.gettext() == node.get('href'): # *not* abs_href
+					node[:] = [new_href]
+				node.set('href', new_href)
+				return node
+			else:
+				logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
+				raise VisitorSkip
+		else:
+			raise VisitorSkip
+	elif node.tag == IMAGE:
+		# Only copy direct attachments - else the image already was a link
+		# to a file outside of the attachment folder
+		if node.get('src').replace('\\', '/').startswith('./'):
+			return _copy_image(notebook, new_path, node)
+		else:
+			abs_src = node.get('_src')
+			new_src = notebook.relative_filepath(File(abs_src), new_path)
+			node.set('src', new_src)
+			return node
+	else:
+		raise AssertionError('unknown tag')
+
+
+def _copy_image(notebook, new_path, node):
+	src_file = LocalFile(node.attrib.pop('_src'))
+	folder = notebook.get_page(new_path).attachments_folder
+	new_file = folder.new_file(src_file.basename)
+	src_file.copyto(new_file)
+	node.set('src', '.' + SEP + new_file.basename)
+	return node
 
 
 def _get_image_info(targetname):
@@ -506,7 +534,7 @@ class ParseTreeData(ClipboardData):
 		if targetid == PARSETREE_TARGET_ID:
 			self.parsetree._set_root_attrib('notebook', self.notebook.interwiki)
 			self.parsetree._set_root_attrib('page', self.path.name)
-			self.parsetree.replace(LINK, partial(_resolve_links, self.notebook, self.path))
+			self.parsetree.replace((LINK, IMAGE), partial(_resolve_links_and_images, self.notebook, self.path))
 			return self.parsetree.tostring()
 		elif targetid == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
@@ -525,16 +553,23 @@ class ParseTreeData(ClipboardData):
 			raise ValueError('Unknown target id %i' % targetid)
 
 
-def _resolve_links(notebook, src_path, node):
-	href = node.get('href')
-	my_type = link_type(href)
-	if my_type == 'page':
-		target = notebook.pages.resolve_link(src_path, HRef.new_from_wiki_link(href))
-		node.set('_href', target)
-	elif my_type == 'file':
-		target = notebook.resolve_file(href, src_path)
-		node.set('_href', target.uri)
-	return node
+def _resolve_links_and_images(notebook, src_path, node):
+	if node.tag == LINK:
+		href = node.get('href')
+		my_type = link_type(href)
+		if my_type == 'page':
+			target = notebook.pages.resolve_link(src_path, HRef.new_from_wiki_link(href))
+			node.set('_href', target)
+		elif my_type == 'file':
+			target = notebook.resolve_file(href, src_path)
+			node.set('_href', target.uri)
+		return node
+	elif node.tag == IMAGE:
+		target = notebook.resolve_file(node.get('src'), src_path)
+		node.set('_src', target.uri)
+		return node
+	else:
+		raise AssertionError('unknown tag')
 
 
 class PageLinkData(ClipboardData):

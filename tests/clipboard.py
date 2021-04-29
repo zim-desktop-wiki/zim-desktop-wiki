@@ -335,6 +335,79 @@ some <b>bold</b> text
 			'</p></zim-tree>' % (file_uri, file_uri, file_uri)
 		) # Link updated to point to same target from new location
 
+	def testCopyPasteParseTreeWithImageInSamePage(self):
+		page = self.notebook.get_page(Path('Test'))
+		page.parse('wiki', '{{./attachment.png}}\n{{../OtherPage/otherimage.png}}')
+		parsetree = page.get_parsetree()
+		Clipboard.set_parsetree(self.notebook, page, parsetree)
+
+		file_uri_1 = page.attachments_folder.file('attachment.png').uri
+		file_uri_2 = self.notebook.folder.file('OtherPage/otherimage.png').uri
+		newtree = Clipboard.get_parsetree(self.notebook, page)
+		self.assertEqual(newtree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<img _src="%s" src="./attachment.png" />\n'
+			'<img _src="%s" src="../OtherPage/otherimage.png" />\n'
+			'</p></zim-tree>' % (file_uri_1, file_uri_2)
+		) # No need to update the images
+
+	def testCopyPasteParseTreeWithImageInDifferentPage(self):
+		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
+
+		page = self.notebook.get_page(Path('Test'))
+		page.parse('wiki', '{{./attachment.png}}\n{{../OtherPage/otherimage.png}}')
+		page.attachments_folder.file('attachment.png').touch()
+
+		newpage = self.notebook.get_page(Path('OtherPage'))
+		newfile = newpage.attachments_folder.file('attachment.png')
+		self.assertFalse(newfile.exists())
+
+		parsetree = page.get_parsetree()
+		Clipboard.set_parsetree(self.notebook, page, parsetree)
+
+		file_uri_2 = self.notebook.folder.file('OtherPage/otherimage.png').uri
+		newtree = Clipboard.get_parsetree(self.notebook, Path('OtherPage'))
+		self.assertEqual(newtree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<img src="./attachment.png" />\n'
+			'<img _src="%s" src="./otherimage.png" />\n'
+			'</p></zim-tree>' % file_uri_2
+		)
+		# No update on first image, *but* file is copied
+		# Second image is not copied, but src is updates
+		self.assertTrue(newfile.exists())
+
+	def testCopyPasteParseTreeWithImageInDifferentNotebook(self):
+		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
+
+		page = self.notebook.get_page(Path('Test'))
+		page.parse('wiki', '{{./attachment.png}}\n{{../OtherPage/otherimage.png}}')
+		page.attachments_folder.file('attachment.png').touch()
+		self.notebook.folder.file('OtherPage/otherimage.png').touch()
+
+		parsetree = page.get_parsetree()
+		Clipboard.set_parsetree(self.notebook, page, parsetree)
+
+		othernotebook = self.setUpNotebook(name="othernotebook", content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
+		newpage = othernotebook.get_page(Path('OtherPage'))
+		newfile_1 = newpage.attachments_folder.file('attachment.png')
+		newfile_2 = newpage.attachments_folder.file('otherimage.png')
+		self.assertFalse(newfile_1.exists())
+		self.assertFalse(newfile_2.exists())
+
+		newtree = Clipboard.get_parsetree(othernotebook, Path('OtherPage'))
+		self.assertEqual(newtree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<img src="./attachment.png" />\n'
+			'<img src="./otherimage.png" />\n'
+			'</p></zim-tree>'
+		) # For cross-notebook copy, copy update both images
+		self.assertTrue(newfile_1.exists())
+		self.assertTrue(newfile_2.exists())
+
 	def testCopyPasteParseTreeWithInterwikiLinkInDifferentPage(self):
 		# Does not need update - check it is left alone
 		page = self.notebook.get_page(Path('Test'))
