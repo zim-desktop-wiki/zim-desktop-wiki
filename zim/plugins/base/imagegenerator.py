@@ -18,6 +18,7 @@ from zim.config import String
 from zim.errors import show_error, Error
 from zim.applications import ApplicationError
 from zim.fs import File, Dir
+from zim.newfs import LocalFile
 from zim.formats import IMAGE
 
 from zim.gui.widgets import \
@@ -115,23 +116,17 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 		if attrib['src'] and not attrib['src'] == '_new_':
 			# File give, derive script
 			self.image_file = notebook.resolve_file(attrib['src'], page)
-			self.script_file = self._stitch_fileextension(self.image_file, scriptname)
+			self.script_file = _stitch_fileextension(self.image_file, scriptname)
 		else:
 			# Find available combo of script and image files
 			def check_image_file(new_script_file):
-				new_image_file = self._stitch_fileextension(new_script_file, imagefile_extension)
+				new_image_file = _stitch_fileextension(new_script_file, imagefile_extension)
 				return not new_image_file.exists()
 
 			folder = notebook.get_attachments_dir(page)
 			self.script_file = folder.new_file(scriptname, check_image_file)
-			self.image_file = self._stitch_fileextension(self.script_file, imagefile_extension)
+			self.image_file = _stitch_fileextension(self.script_file, imagefile_extension)
 			self.attrib['src'] = './' + self.image_file.basename
-
-	def _stitch_fileextension(self, file, basename):
-		# Take extension of basename, and put it on path from file
-		i = basename.rfind('.')
-		j = file.path.rfind('.')
-		return File(file.path[:j] + basename[i:])
 
 	def get_text(self):
 		if self.image_file is not None and self.script_file.exists():
@@ -150,6 +145,44 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 		elif self.image_file.exists():
 			self.image_file.remove()
 		self.emit('changed')
+
+
+def _stitch_fileextension(file, basename):
+	# Take extension of basename, and put it on path from file
+	i = basename.rfind('.')
+	j = file.path.rfind('.')
+	return File(file.path[:j] + basename[i:])
+
+
+def copy_imagegenerator_src_files(src_file, folder):
+	# Helper method to allow copy-paste dealing with image files generated
+	# by a BackwardImageGeneratorObjectType instance
+	# We want to be agnostic of the exact image object type, so we just look
+	# at any files that share the same basename as the image being copied
+	basename = src_file.basename
+	i = basename.rfind('.')
+	basename = basename[:i]
+
+	src_files = []
+	for f in src_file.parent():
+		if f.basename.startswith(basename) \
+			and not '.' in f.basename[len(basename)+1:]:
+				src_files.append(f)
+
+	def check_new_file(new_file):
+		for f in src_files:
+			new_f = _stitch_fileextension(new_file, f.basename)
+			if new_f.exists():
+				return False
+		else:
+			return True
+
+	new_file = folder.new_file(src_file.basename, check_new_file)
+	for f in src_files:
+		new_f = _stitch_fileextension(new_file, f.basename)
+		f.copyto(LocalFile(new_f.path))
+
+	return new_file
 
 
 class ImageGeneratorClass(object):

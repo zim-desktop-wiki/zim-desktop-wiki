@@ -409,7 +409,7 @@ class LocalFile(LocalFSObjectBase, File):
 		if isinstance(other, Folder):
 			other = other.file(self.basename)
 
-		assert isinstance(other, File)
+		assert isinstance(other, File), 'Not a file: %r' % other
 		assert other.path != self.path
 
 		logger.info('Copy %s to %s', self.path, other.path)

@@ -408,6 +408,78 @@ some <b>bold</b> text
 		self.assertTrue(newfile_1.exists())
 		self.assertTrue(newfile_2.exists())
 
+	def testCopyPasteParseTreeWithEquationFileInSamePage(self):
+		page = self.notebook.get_page(Path('Test'))
+		page.parse('wiki', '{{./foo.png?type=equation}}')
+		parsetree = page.get_parsetree()
+		Clipboard.set_parsetree(self.notebook, page, parsetree)
+
+		file_uri = page.attachments_folder.file('foo.png').uri
+		newtree = Clipboard.get_parsetree(self.notebook, page)
+		self.assertEqual(newtree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<object _src="%s" src="./foo.png" type="image+equation" />\n'
+			'</p></zim-tree>' % file_uri
+		) # No need to update the images
+
+	def testCopyPasteParseTreeWithEquationFileInDifferentPage(self):
+		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
+
+		page = self.notebook.get_page(Path('Test'))
+		page.parse('wiki', '{{./foo.png?type=equation}}')
+		page.attachments_folder.file('foo.png').touch()
+		page.attachments_folder.file('foo.tex').touch()
+
+		newpage = self.notebook.get_page(Path('OtherPage'))
+		newpage.attachments_folder.file('foo.png').touch() # Let file exist already
+		newpage.attachments_folder.file('foo001.tex').touch() # Let file exist already
+		newfile_1 = newpage.attachments_folder.file('foo002.png')
+		newfile_2 = newpage.attachments_folder.file('foo002.tex')
+		self.assertFalse(newfile_1.exists())
+		self.assertFalse(newfile_2.exists())
+
+		parsetree = page.get_parsetree()
+		Clipboard.set_parsetree(self.notebook, page, parsetree)
+
+		newtree = Clipboard.get_parsetree(self.notebook, Path('OtherPage'))
+		self.assertEqual(newtree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<object src="./foo002.png" type="image+equation" />\n'
+			'</p></zim-tree>'
+		) # Sources are copied and number is added due to existing files
+		self.assertTrue(newfile_1.exists())
+		self.assertTrue(newfile_2.exists())
+
+	def testCopyPasteParseTreeWithEquationFileInDifferentNotebook(self):
+		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
+
+		page = self.notebook.get_page(Path('Test'))
+		page.parse('wiki', '{{./foo.png?type=equation}}')
+		page.attachments_folder.file('foo.png').touch()
+		page.attachments_folder.file('foo.tex').touch()
+
+		othernotebook = self.setUpNotebook(name="othernotebook", content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
+		newpage = othernotebook.get_page(Path('OtherPage'))
+		newfile_1 = newpage.attachments_folder.file('foo.png')
+		newfile_2 = newpage.attachments_folder.file('foo.tex')
+		self.assertFalse(newfile_1.exists())
+		self.assertFalse(newfile_2.exists())
+
+		parsetree = page.get_parsetree()
+		Clipboard.set_parsetree(self.notebook, page, parsetree)
+
+		newtree = Clipboard.get_parsetree(othernotebook, Path('OtherPage'))
+		self.assertEqual(newtree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<object src="./foo.png" type="image+equation" />\n'
+			'</p></zim-tree>'
+		) # Sources are copied and number is added due to existing files
+		self.assertTrue(newfile_1.exists())
+		self.assertTrue(newfile_2.exists())
+
 	def testCopyPasteParseTreeWithInterwikiLinkInDifferentPage(self):
 		# Does not need update - check it is left alone
 		page = self.notebook.get_page(Path('Test'))
@@ -439,9 +511,3 @@ some <b>bold</b> text
 			'<link href="wp?Foo">wp?Foo</link>\n'
 			'</p></zim-tree>'
 		) # Does not need update - check it is left alone
-
-	#~ def testCopyPasteFile(self):
-		#~ assert False
-
-	#~ def testCopyPasteUrl(self):
-		#~ assert False

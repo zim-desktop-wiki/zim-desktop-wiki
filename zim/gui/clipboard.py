@@ -21,8 +21,9 @@ from zim.newfs import LocalFolder, LocalFile, SEP
 from zim.notebook import Path, HRef
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
-	FORMATTEDTEXT, IMAGE, LINK, VisitorSkip
+	FORMATTEDTEXT, IMAGE, LINK, OBJECT, VisitorSkip
 from zim.export.linker import StaticExportLinker
+from zim.plugins.base.imagegenerator import copy_imagegenerator_src_files
 
 
 logger = logging.getLogger('zim.gui.clipboard')
@@ -230,9 +231,15 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 		src_notebook = parsetree._pop_root_attrib('notebook')
 		src_page = parsetree._pop_root_attrib('page')
 		if src_notebook and src_notebook != notebook.interwiki:
-			parsetree.replace((LINK, IMAGE), partial(_replace_links_to_interwiki, src_notebook, notebook, path))
+			parsetree.replace(
+				(LINK, IMAGE, OBJECT),
+				partial(_replace_links_to_interwiki_and_copy_images, src_notebook, notebook, path)
+			)
 		elif src_page and path and src_page != path.name:
-			parsetree.replace((LINK, IMAGE), partial(_replace_links_to_page_and_copy_images, notebook, path))
+			parsetree.replace(
+				(LINK, IMAGE, OBJECT),
+				partial(_replace_links_to_page_and_copy_images, notebook, path)
+			)
 		else:
 			pass # leave links untouched
 		return parsetree
@@ -347,7 +354,7 @@ def _link_tree(links, notebook, path):
 	return tree
 
 
-def _replace_links_to_interwiki(src_interwiki, notebook, new_path, node):
+def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_path, node):
 	if node.tag == LINK:
 		abs_href = node.get('_href')
 		if abs_href:
@@ -371,6 +378,11 @@ def _replace_links_to_interwiki(src_interwiki, notebook, new_path, node):
 	elif node.tag == IMAGE:
 		# Just copy all images - image links to other notebook don't make sense
 		return _copy_image(notebook, new_path, node)
+	elif node.tag == OBJECT:
+		if node.get('type').startswith('image+'):
+			return _copy_image_object(notebook, new_path, node)
+		else:
+			raise VisitorSkip
 	else:
 		raise AssertionError('unknown tag')
 
@@ -401,12 +413,23 @@ def _replace_links_to_page_and_copy_images(notebook, new_path, node):
 		if node.get('src').replace('\\', '/').startswith('./'):
 			return _copy_image(notebook, new_path, node)
 		else:
-			abs_src = node.get('_src')
-			new_src = notebook.relative_filepath(File(abs_src), new_path)
-			node.set('src', new_src)
-			return node
+ 			return _update_image(notebook, new_path, node)
+	elif node.tag == OBJECT:
+		if node.get('type').startswith('image+'):
+			if node.get('src').replace('\\', '/').startswith('./'):
+				return _copy_image_object(notebook, new_path, node)
+			else:
+				return _update_image(notebook, new_path, node)
+		else:
+			raise VisitorSkip
 	else:
 		raise AssertionError('unknown tag')
+
+def _update_image(notebook, new_path, node):
+	abs_src = node.get('_src')
+	new_src = notebook.relative_filepath(File(abs_src), new_path)
+	node.set('src', new_src)
+	return node
 
 
 def _copy_image(notebook, new_path, node):
@@ -414,6 +437,14 @@ def _copy_image(notebook, new_path, node):
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = folder.new_file(src_file.basename)
 	src_file.copyto(new_file)
+	node.set('src', '.' + SEP + new_file.basename)
+	return node
+
+
+def _copy_image_object(notebook, new_path, node):
+	src_file = LocalFile(node.attrib.pop('_src'))
+	folder = notebook.get_page(new_path).attachments_folder
+	new_file = copy_imagegenerator_src_files(src_file, folder)
 	node.set('src', '.' + SEP + new_file.basename)
 	return node
 
@@ -534,7 +565,10 @@ class ParseTreeData(ClipboardData):
 		if targetid == PARSETREE_TARGET_ID:
 			self.parsetree._set_root_attrib('notebook', self.notebook.interwiki)
 			self.parsetree._set_root_attrib('page', self.path.name)
-			self.parsetree.replace((LINK, IMAGE), partial(_resolve_links_and_images, self.notebook, self.path))
+			self.parsetree.replace(
+				(LINK, IMAGE, OBJECT),
+				partial(_resolve_links_and_images, self.notebook, self.path)
+			)
 			return self.parsetree.tostring()
 		elif targetid == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
@@ -568,6 +602,14 @@ def _resolve_links_and_images(notebook, src_path, node):
 		target = notebook.resolve_file(node.get('src'), src_path)
 		node.set('_src', target.uri)
 		return node
+	elif node.tag == OBJECT:
+		if node.get('type').startswith('image+'):
+			# Objects based on generated images
+			target = notebook.resolve_file(node.get('src'), src_path)
+			node.set('_src', target.uri)
+			return node
+		else:
+			raise VisitorSkip
 	else:
 		raise AssertionError('unknown tag')
 
