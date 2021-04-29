@@ -231,17 +231,23 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 		src_notebook = parsetree._pop_root_attrib('notebook')
 		src_page = parsetree._pop_root_attrib('page')
 		if src_notebook and src_notebook != notebook.interwiki:
+			# Update for cross notebook link
 			parsetree.replace(
 				(LINK, IMAGE, OBJECT),
 				partial(_replace_links_to_interwiki_and_copy_images, src_notebook, notebook, path)
 			)
 		elif src_page and path and src_page != path.name:
+			# Update to new page
 			parsetree.replace(
 				(LINK, IMAGE, OBJECT),
 				partial(_replace_links_to_page_and_copy_images, notebook, path)
 			)
 		else:
-			pass # leave links untouched
+			# Leave links alone, remove "_href" attribs
+			parsetree.replace(
+				(LINK, IMAGE, OBJECT),
+				_strip_link_and_image_attribs
+			)
 		return parsetree
 	elif targetname == PAGELIST_TARGET_NAME \
 	or targetname in URI_TARGET_NAMES:
@@ -354,9 +360,21 @@ def _link_tree(links, notebook, path):
 	return tree
 
 
+def _strip_link_and_image_attribs(node):
+	if node.tag == LINK:
+		node.attrib.pop('_href')
+		return node
+	elif node.tag == IMAGE \
+		or (node.tag == OBJECT and node.get('type').startswith('image+')):
+			node.attrib.pop('_src')
+			return node
+	else:
+		raise VisitorSkip
+
+
 def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_path, node):
 	if node.tag == LINK:
-		abs_href = node.get('_href')
+		abs_href = node.attrib.pop('_href', None)
 		if abs_href:
 			my_type = link_type(abs_href)
 			if my_type == 'page':
@@ -389,7 +407,7 @@ def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_pat
 
 def _replace_links_to_page_and_copy_images(notebook, new_path, node):
 	if node.tag == LINK:
-		abs_href = node.get('_href')
+		abs_href = node.attrib.pop('_href', None)
 		if abs_href:
 			my_type = link_type(abs_href)
 			if my_type == 'page':
@@ -425,8 +443,9 @@ def _replace_links_to_page_and_copy_images(notebook, new_path, node):
 	else:
 		raise AssertionError('unknown tag')
 
+
 def _update_image(notebook, new_path, node):
-	abs_src = node.get('_src')
+	abs_src = node.attrib.pop('_src')
 	new_src = notebook.relative_filepath(File(abs_src), new_path)
 	node.set('src', new_src)
 	return node
