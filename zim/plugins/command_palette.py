@@ -19,6 +19,7 @@
 # 2021-02-18 Fixed display of keybindings
 # 2021-03-13 Improved search ability
 # 2021-04-16 Renamed project from "Zim Dash" to "Zim Command Palette" and changed keybinding from alt-x to ctrl-shift-p
+# 2021-04-29 Enhanced documentation
 
 import logging
 
@@ -41,8 +42,11 @@ class CommandPalettePlugin(PluginClass):
 	plugin_info = {
 		'name': _('Command Palette'),  # T: plugin name
 		'description': _('This plugin opens a search dialog to allow quickly '
-						 'executing menu entries.'),  # T: plugin description
-		'author': 'Thomas Engel <thomas.engel.web@gmail.com>',
+	 		'executing menu entries. The search dialog can be opened by '
+			'pressing the keyboard shortcut Ctrl+Shift+P which can be '
+			'customized via Zim\'s key bindings '
+			'preferences.'),  # T: plugin description
+		'author': 'Thomas Engel <realdatenwurm@gmail.com>',
 		'help': 'Plugins:CommandPalette',
 	}
 
