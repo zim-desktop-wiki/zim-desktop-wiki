@@ -10,19 +10,26 @@
 # You can add more InterWiki shortcuts here.
 
 wp        https://en.wikipedia.org/wiki/
+wpfr      https://fr.wikipedia.org/wiki/
 wpde      https://de.wikipedia.org/wiki/
-wpmeta    http://meta.wikipedia.org/wiki/
-doku      http://wiki.splitbrain.org/
-freecache http://freecache.org/{NAME}
-rfc       http://www.ietf.org/rfc/rfc{NAME}.txt
+wpes      https://es.wikipedia.org/wiki/
+wppl      https://pl.wikipedia.org/wiki/
+wpjp      https://ja.wikipedia.org/wiki/
+wpru      https://ru.wikipedia.org/wiki/
+wpmeta    https://meta.wikipedia.org/wiki/
+doku      https://www.dokuwiki.org/
+freecache https://freecache.org/
+rfc       https://www.ietf.org/rfc/rfc{NAME}.txt
+man       https://man.cx/
 amazon    https://www.amazon.com/exec/obidos/ASIN/
-amazon.de http://www.amazon.de/exec/obidos/ASIN/{URL}/ballermannsyndic/
+amazon.de https://www.amazon.de/exec/obidos/ASIN/{URL}/ballermannsyndic/
 amazon.uk https://www.amazon.co.uk/exec/obidos/ASIN/
-google    http://www.google.com/search?q=
-google.de http://www.google.de/search?q=
-phpfn     http://www.php.net/{NAME}
-go        http://www.google.com/search?q={URL}&btnI=lucky
-cpan      http://search.cpan.org/search?query={URL}&mode=all
+paypal    https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&amp;business=
+phpfn     https://www.php.net/
+google    https://www.google.com/search?q=
+google.de https://www.google.de/search?q=
+go        https://www.google.com/search?q={URL}&amp;btnI=lucky
+cpan      https://search.cpan.org/search?query={URL}&mode=all
 perldoc   https://perldoc.perl.org/search.html?q=
 
 
