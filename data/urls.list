@@ -33,6 +33,7 @@ cpan      https://search.cpan.org/search?query={URL}&mode=all
 perldoc   https://perldoc.perl.org/search.html?q=
 
 
+
 # Standards from http://usemod.com/intermap.txt follow
 
 AbbeNormal      http://www.ourpla.net/cgi-bin/pikie.cgi?
@@ -46,14 +47,14 @@ Annotation      http://bayle.stanford.edu/crit/nph-med.cgi/
 AnnotationWiki  http://www.seedwiki.com/page.cfm?wikiid=368&doc=
 AwarenessWiki   http://taoriver.net/aware/
 BenefitsWiki    https://www.benefitslink.com/cgi-bin/wiki.cgi?
-BridgesWiki     http://c2.com/w2/bridges/
+BridgesWiki     http://network-lawyers.org/bridges/
 C2find          https://c2.com/cgi/wiki?FindPage&value=
 Cache           https://www.google.com/search?q=cache:
 CLiki           https://ww.telent.net/cliki/
 CmWiki          http://www.ourpla.net/cgi-bin/wiki.pl?
 CreationMatters http://www.ourpla.net/cgi-bin/wiki.pl?
 DejaNews        http://www.deja.com/=dnc/getdoc.xp?AN=
-DeWikiPedia     https://www.wikipedia.de/wiki.cgi?
+DeWikiPedia     https://de.wikipedia.org/wiki/
 Dictionary      http://www.dict.org/bin/Dict?Database=*&Form=Dict1&Strategy=*&Query=
 DiveIntoOsx     http://diveintoosx.org/
 DocBook         https://docbook.org/wiki/moin.cgi/
@@ -74,7 +75,7 @@ GreenCheese     http://www.greencheese.org/
 HammondWiki     https://www.dairiki.org/HammondWiki/index.php3?
 Haribeau        http://wiki.haribeau.de/cgi-bin/wiki.pl?
 IAWiki          http://www.IAwiki.net/
-IMDB            http://us.imdb.com/Title?
+IMDB            https://www.imdb.com/find?q=
 JargonFile      http://sunir.org/apps/meta.pl?wiki=JargonFile&redirect=
 JiniWiki        http://www.cdegroot.com/cgi-bin/jini?
 JspWiki         https://www.ecyrd.com/JSPWiki/Wiki.jsp?page=
