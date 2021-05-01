@@ -10,7 +10,7 @@ stored in a folder structure, like in an outliner, and can have attachments.
 Creating a new page is as easy as linking to a nonexistent page. All data is
 stored in plain text files with wiki formatting. Various plugins provide
 additional functionality, like a task list manager, an equation editor, a tray
-icon, and support for version control.****
+icon, and support for version control.
 
 ![Screenshot](./website/files/screenshots/zim-normal.png)
 
