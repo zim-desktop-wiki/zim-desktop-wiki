@@ -9,6 +9,7 @@ The following plugins are standard included with zim:
 * [[+Attachment Browser|Attachment Browser]]
 * [[+BackLinks Pane|BackLinks Pane]]
 * [[+BookmarksBar|BookmarksBar]]
+* [[+Command Palette|Command Palette]]
 * [[+Diagram Editor|Diagram Editor]]
 * [[+Distraction Free Editing|Distraction Free Editing]]
 * [[+Ditaa Editor|Ditaa Editor]]

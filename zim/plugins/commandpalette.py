@@ -35,7 +35,7 @@ from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog
 from zim.plugins import PluginClass
 
-logger = logging.getLogger('zim.plugins.command_palette')
+logger = logging.getLogger('zim.plugins.commandpalette')
 
 
 class CommandPalettePlugin(PluginClass):
@@ -47,7 +47,7 @@ class CommandPalettePlugin(PluginClass):
 			'customized via Zim\'s key bindings '
 			'preferences.'),  # T: plugin description
 		'author': 'Thomas Engel <realdatenwurm@gmail.com>',
-		'help': 'Plugins:CommandPalette',
+		'help': 'Plugins:Command Palette',
 	}
 
 

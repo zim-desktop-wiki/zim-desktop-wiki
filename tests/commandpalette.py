@@ -11,4 +11,4 @@ class TestCommandPalette(tests.TestCase):
 
 	def setUp(self):
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		plugin = PluginManager.load_plugin('command_palette')
+		plugin = PluginManager.load_plugin('commandpalette')
