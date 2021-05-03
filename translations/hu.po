@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2020-10-15 17:43+0000\n"
+"PO-Revision-Date: 2021-05-04 09:31+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
-"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/"
-">\n"
+"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
+"\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.3-dev\n"
+"X-Generator: Weblate 4.7-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
@@ -997,10 +997,8 @@ msgstr "Másolás _mint..."
 
 #. menu item for context menu of editor
 #: zim/gui/pageview.py:6119
-#, fuzzy
-#| msgid "_Verbatim"
 msgid "Paste As _Verbatim"
-msgstr "_Kód"
+msgstr "Beszúrás, mint _kód"
 
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:6127
@@ -1208,7 +1206,8 @@ msgid ""
 "does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"A(z) %s\n"
+"A(z) \n"
+"%s\n"
 "könyvtár még nem létezik.\n"
 "Létrehozzuk most?"
 
@@ -1656,20 +1655,15 @@ msgstr "Alapértelmezett szövegszerkesztő beállítása"
 
 #. help text in preferences dialog for modifying keybindings
 #: zim/gui/preferencesdialog.py:490
-#, fuzzy
-#| msgid ""
-#| "Key bindings can be changed by selecting the action in the list and "
-#| "pressing the new key binding.\n"
-#| "To disable a keybinding, select it in the list and use <tt>&lt;"
-#| "Backspace&gt;</tt>."
 msgid ""
 "Key bindings can be changed by clicking on a field with a key combination\n"
 "in the list and then press the new key binding.\n"
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
-"A billentyűkombinációk megváltoztathatóak, ha kiválasztod a megfelelő "
-"műveletet a listából és lenyomod az új billentyűkombinációt.\n"
+"A billentyűkombinációk megváltoztathatóak, ha rákattintasz a megfelelő "
+"műveletre\n"
+"a listában és lenyomod az új billentyűkombinációt.\n"
 "A billentyűkombináció törléséhez válasszad ki a listából és nyomd le a "
 "<tt>&lt;Backspace&gt;</tt> -t."
 
@@ -2382,7 +2376,7 @@ msgid ""
 "This plugin shows the attachments folder of the current page as an\n"
 "icon view at bottom pane.\n"
 msgstr ""
-"Ez a kiegészítő a mellékletek mappát ikonként mutatja az\n"
+"Ez a kiegészítő a mellékletek mappát ikonként mutatja\n"
 "az alsó panelon.\n"
 
 #. option for plugin preferences | 
