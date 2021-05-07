@@ -43,15 +43,15 @@ and add it to the preferences dialog.
 Example plugin class:
 
 ```python3
-  from zim.plugins import PluginClass
+from zim.plugins import PluginClass
 
-  class MyPlugin(PluginClass):
+class MyPlugin(PluginClass):
 
-    plugin_info = {
-      'name': _('My Plugin'),
-      'description': _('My first plugin')
-      'author': 'Your Name',
-    }
+  plugin_info = {
+    'name': _('My Plugin'),
+    'description': _('My first plugin'),
+    'author': 'Your Name',
+  }
 ```
 
 **NOTE:** when testing your plugin you will have to quit zim and restart after
