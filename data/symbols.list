@@ -268,26 +268,26 @@
 !=	8800  # not equal to sign (may also use =/= )
 
 # Numbers inside circles
-(1)     9312
-(2)     9313
-(3)     9314
-(4)     9315
-(5)     9316
-(6)     9317
-(7)     9318
-(8)     9319
-(9)     9320
-(10)    9321
-(11)    9322
-(12)    9323
-(13)    9324
-(14)    9325
-(15)    9326
-(16)    9327
-(17)    9328
-(18)    9329
-(19)    9330
-(20)    9331
+(1)	9312
+(2)	9313
+(3)	9314
+(4)	9315
+(5)	9316
+(6)	9317
+(7)	9318
+(8)	9319
+(9)	9320
+(10)	9321
+(11)	9322
+(12)	9323
+(13)	9324
+(14)	9325
+(15)	9326
+(16)	9327
+(17)	9328
+(18)	9329
+(19)	9330
+(20)	9331
 
 # Quotes
 <<	171   # left quotes
@@ -300,28 +300,28 @@
 \down	8595
 
 ## units ##
-\ohm	937	 # same as \omega
+\ohm	937   # same as \omega
 
 ## Additional typography ##
 # See https://en.wikipedia.org/wiki/Arrow_%28symbol%29 for more codes
 # convert hex -> decimal before using here
 -->	8594  # same as \right
-<-- 8592  # same as \left
-<-> 8596
-<--> 8596
+<--	8592  # same as \left
+<->	8596
+<-->	8596
 ==>	8658
-<=> 8660
-<==> 8660
-<== 8656
+<=>	8660
+<==>	8660
+<==	8656
 --	8212  # em dash aka &mdash; in HTML
 =/=	8800  # not equal to sign (may also use \neq)
 +-	177   # +- sign
 +_	177   # +- sign
 
-<3		9825 # Heart empty
+<3	9825 # Heart empty
 \music	9835 # Beamed Eighth Notes
 \warn	9888 # Warning
-:)		9786 # Smiley  - have a nice day!
+:)	9786 # Smiley  - have a nice day!
 \smile	9786 # Smiley  - have a nice day!
 \mail	9993 # Envelope - Mail
 \tel	9990 # Telephone Sign

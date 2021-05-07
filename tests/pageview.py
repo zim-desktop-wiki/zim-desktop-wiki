@@ -3577,6 +3577,6 @@ class TestWebPImageSupport(tests.TestCase):
 
 If the Pillow fallback works, images should be displayed below, with the right one being 2x smaller.
 
-{./image_webp_test.webp}} {{./image_webp_test.webp?width=240}}
+{{./image_webp_test.webp}} {{./image_webp_test.webp?width=240}}
 		''')
 		# No assert, just test it runs without errors / warnings
