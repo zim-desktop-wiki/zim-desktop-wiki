@@ -75,7 +75,6 @@ def collect_data_files():
 		('share/man/man1', ['man/zim.1']),
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
-		('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
 		('share/metainfo', ['xdg/org.zim_wiki.Zim.appdata.xml']),
 	]
 
