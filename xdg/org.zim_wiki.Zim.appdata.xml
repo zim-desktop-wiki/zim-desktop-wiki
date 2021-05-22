@@ -31,6 +31,8 @@
   </description>
   <launchable type="desktop-id">zim.desktop</launchable>
   <url type="homepage">http://zim-wiki.org/</url>
+  <url type="bugtracker">https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues</url>
+  <url type="help">https://zim-wiki.org/manual/Start.html</url>
   <screenshots>
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
