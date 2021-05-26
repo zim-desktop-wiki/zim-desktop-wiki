@@ -7,15 +7,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2020-11-12 17:28+0000\n"
-"Last-Translator: Vibo Lavida <vibo@firemail.cc>\n"
+"PO-Revision-Date: 2021-05-27 00:35+0000\n"
+"Last-Translator: Adolfo Jayme Barrientos <fitojb@ubuntu.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/zim/master/es/>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.4-dev\n"
+"X-Generator: Weblate 4.7-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -1569,7 +1569,7 @@ msgstr "Aplicaciones"
 #. option in preferences dialog
 #: zim/gui/preferencesdialog.py:134
 msgid "Use a custom font"
-msgstr "Usar tipografía personalizada"
+msgstr "Utilizar tipo de letra personalizado"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:245
@@ -1994,7 +1994,7 @@ msgstr "Acerca _de"
 #: zim/gui/uiactions.py:461
 #, python-format
 msgid "New Page in %s"
-msgstr "Nueva Página en %s"
+msgstr "Página nueva en %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:463
@@ -2007,8 +2007,8 @@ msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
 msgstr ""
-"Por favor, note que enlazando a una página inexistente\n"
-"también crea una nueva página automáticamente."
+"Observe que si enlaza a una página inexistente\n"
+"también crea una página nueva automáticamente."
 
 #. Input label
 #: zim/gui/uiactions.py:481
@@ -2028,7 +2028,7 @@ msgstr "Importar página"
 #. File filter for '*.txt'
 #: zim/gui/uiactions.py:521
 msgid "Text Files"
-msgstr "Archivos de Texto"
+msgstr "Archivos de texto"
 
 #. Dialog title of file save dialog
 #: zim/gui/uiactions.py:550
@@ -2037,24 +2037,22 @@ msgstr "Guardar una copia"
 
 #. Dialog title
 #: zim/gui/uiactions.py:574
-#, fuzzy
-#| msgid "Rename Page"
 msgid "Rename or Move Page"
-msgstr "Renombrar Página"
+msgstr "Cambiar nombre o mover página"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/uiactions.py:579
 #, python-format
 msgid "Rename page \"%s\""
-msgstr "Renombrar página \"%s\""
+msgstr "Cambiar nombre de página «%s»"
 
 #. label in MovePage dialog - %i is number of backlinks
 #: zim/gui/uiactions.py:590
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
-msgstr[0] "Actualizar %i página enlazando a ésta"
-msgstr[1] "Actualizar %i páginas enlazando a ésta"
+msgstr[0] "Actualizar %i página que enlaza a esta"
+msgstr[1] "Actualizar %i páginas que enlazan a esta"
 
 #. option in 'move page' dialog
 #: zim/gui/uiactions.py:599
@@ -2069,13 +2067,13 @@ msgstr "Actualizando enlaces"
 #. Dialog title
 #: zim/gui/uiactions.py:652
 msgid "Delete Page"
-msgstr "Borrar página"
+msgstr "Eliminar página"
 
 #. Heading in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:667
 #, python-format
 msgid "Delete page \"%s\"?"
-msgstr "Borrar página \"%s\"?"
+msgstr "¿Quiere eliminar la página «%s»?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:669
@@ -2084,21 +2082,21 @@ msgid ""
 "Page \"%s\" and all of it's\n"
 "sub-pages and attachments will be deleted"
 msgstr ""
-"La página «%s» y todas sus\n"
-"sub-páginas serán borradas"
+"Se eliminará tanto la página «%s»\n"
+"como todas sus subpáginas y adjuntos"
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:683
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
-msgstr[0] "%i archivo será borrado"
-msgstr[1] "%i archivos serán borrados"
+msgstr[0] "Se eliminará %i archivo"
+msgstr[1] "Se eliminarán %i archivos"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:732
 msgid "A desktop wiki"
-msgstr "Una wiki de escritorio"
+msgstr "Un wiki de escritorio"
 
 #. This string needs to be translated with names of the translators for this language
 #: zim/gui/uiactions.py:740
@@ -2445,7 +2443,7 @@ msgstr "Usar miniaturas"
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
 msgid "Support thumbnails for SVG"
-msgstr ""
+msgstr "Permitir miniaturas en SVG"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:128
@@ -3190,7 +3188,7 @@ msgstr "Ocurrió un error al ejecutar «%s»"
 #. plugin name
 #: zim/plugins/sequencediagrameditor.py:20
 msgid "Insert Sequence Diagram"
-msgstr "Insertar Diagrama de Secuencia"
+msgstr "Insertar diagrama de secuencia"
 
 #. plugin description
 #: zim/plugins/sequencediagrameditor.py:21
@@ -3205,7 +3203,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/sequencediagrameditor.py:38
 msgid "Sequence Diagram"
-msgstr "Diagrama de secuencias"
+msgstr "Diagrama de secuencia"
 
 #. plugin name
 #: zim/plugins/sourceview.py:63
@@ -3224,10 +3222,8 @@ msgstr ""
 
 #. option value
 #: zim/plugins/sourceview.py:73
-#, fuzzy
-#| msgid "vertical lines"
 msgid "Never wrap lines"
-msgstr "líneas verticales"
+msgstr "Nunca ajustar renglones"
 
 #. option value
 #: zim/plugins/sourceview.py:74
@@ -3237,12 +3233,12 @@ msgstr ""
 #. option value
 #: zim/plugins/sourceview.py:75
 msgid "Always wrap at character"
-msgstr ""
+msgstr "Ajustar siempre por carácter"
 
 #. option value
 #: zim/plugins/sourceview.py:76
 msgid "Always wrap at word boundaries"
-msgstr ""
+msgstr "Ajustar siempre por límites de palabra"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:80
@@ -3272,17 +3268,17 @@ msgstr "Posición del margen derecho"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:90
 msgid "Tab width"
-msgstr "Ancho de la pestaña"
+msgstr "Anchura de tabulador"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:92
 msgid "Text wrap mode"
-msgstr ""
+msgstr "Modo de ajuste de texto"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:94
 msgid "Theme"
-msgstr ""
+msgstr "Tema"
 
 #. menu item
 #: zim/plugins/sourceview.py:109
@@ -3307,7 +3303,7 @@ msgstr "Insertar bloque de código"
 #. input checkbox
 #: zim/plugins/sourceview.py:359
 msgid "Display line numbers"
-msgstr ""
+msgstr "Mostrar números de renglón"
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3506,8 +3502,8 @@ msgid ""
 "Auto\n"
 "Wrap"
 msgstr ""
-"Auto\n"
-"Ajustar"
+"Ajuste\n"
+"autom."
 
 #. table header
 #: zim/plugins/tableeditor.py:940
@@ -3542,7 +3538,7 @@ msgstr "Una tabla debe tener al menos una columna."
 #. plugin name
 #: zim/plugins/tableofcontents.py:102
 msgid "Table of Contents"
-msgstr "Índice de contenidos"
+msgstr "Sumario"
 
 #. plugin description
 #: zim/plugins/tableofcontents.py:103
@@ -3552,32 +3548,30 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Esta extensión añade un espacio extra que muestra una tabla de contenidos "
-"para la página actual.\n"
+"Este complemento añade un elemento gráfico adicional que\n"
+"muestra el contenido de la página actual.\n"
+"\n"
+"Es un complemento básico incluido con zim.\n"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr ""
-"Mostrar Tabla_de_Contenido como un espacio a parte en lugar de en el panel "
-"principal"
+msgstr "Mostrar sumario como elemento flotante en lugar de en el panel lateral"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
 msgid "Show the page title heading in the ToC"
-msgstr "Mostrar el título de la página en dirección en el ToC"
+msgstr "Mostrar título de la página en el sumario"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:122
-#, fuzzy
-#| msgid "horizontal lines"
 msgid "Include horizontal lines in the ToC"
-msgstr "líneas horizontales"
+msgstr "Incluir líneas horizontales en el sumario"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
 msgid "Set ToC fontsize"
-msgstr ""
+msgstr "Establecer tamaño de letra de sumario"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:386
@@ -3592,7 +3586,7 @@ msgstr "Superior"
 #. widget label
 #: zim/plugins/tableofcontents.py:482 zim/plugins/tableofcontents.py:512
 msgid "ToC"
-msgstr "Tabla_de_Contenido"
+msgstr "Sumario"
 
 #. plugin name | 
 #. title for sidepane tab | 
@@ -3608,7 +3602,7 @@ msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
 msgstr ""
-"Este plugin ofrece un índice filtrado seleccionado de las etiquetas en una "
+"Este complemento ofrece un índice filtrado al seleccionar etiquetas en una "
 "nube.\n"
 
 #. menu option
@@ -3629,17 +3623,17 @@ msgstr "Ordenar alfabéticamente"
 #. Checkbox in task list - hides parent items
 #: zim/plugins/tasklist/gui.py:36
 msgid "Show Tasks as Flat List"
-msgstr "Mostrar Tareas como un Lista Plana"
+msgstr "Mostrar tareas como lista plana"
 
 #. Checkbox in task list - this options hides tasks that are not yet started
 #: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:172
 msgid "Only Show Active Tasks"
-msgstr "Mostrar Sólo Tareas Activas"
+msgstr "Mostrar solo tareas activas"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tasks"
-msgstr "Etiqueta de la pestaña para el panel lateral"
+msgstr "Tareas"
 
 #. label for filtering/searching tasks | 
 #. Input label
@@ -3671,7 +3665,7 @@ msgstr "Todas las tareas"
 #. label in tasklist plugins for tasks without a tag
 #: zim/plugins/tasklist/gui.py:321
 msgid "Untagged"
-msgstr "Sin Etiqueta"
+msgstr "Sin etiqueta"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist/gui.py:435
