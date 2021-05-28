@@ -95,6 +95,7 @@ TODO list:
 
 
 * ▷ Migrated checkbox
+* ◁ Transmigrated checkbox
 
 
 A numbered list:
