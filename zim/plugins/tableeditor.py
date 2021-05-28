@@ -324,6 +324,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def __init__(self, model):
 		InsertedObjectWidget.__init__(self)
+		self.expand = False
 		self.textarea_width = 0
 		self.model = model
 
@@ -477,7 +478,7 @@ class TableViewWidget(InsertedObjectWidget):
 				button.set_tooltip_text(tooltip)
 				toolbar.insert(button, pos)
 
-		toolbar.set_size_request(300, -1)
+		toolbar.set_size_request(-1, -1)
 		toolbar.set_icon_size(Gtk.IconSize.MENU)
 
 		return toolbar
