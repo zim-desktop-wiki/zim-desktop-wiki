@@ -39,6 +39,7 @@
 				<menuitem action='toggle_checkbox'/>
 				<menuitem action='xtoggle_checkbox'/>
 				<menuitem action='migrate_checkbox'/>
+				<menuitem action='transmigrate_checkbox'/>
 			</menu>
 			<menuitem action='edit_object'/>
 			<menuitem action='remove_link'/>
