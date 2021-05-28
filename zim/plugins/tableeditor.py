@@ -323,6 +323,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def __init__(self, model):
 		InsertedObjectWidget.__init__(self)
+		InsertedObjectWidget.expand = False;
 		self.textarea_width = 0
 		self.model = model
 
@@ -476,7 +477,7 @@ class TableViewWidget(InsertedObjectWidget):
 				button.set_tooltip_text(tooltip)
 				toolbar.insert(button, pos)
 
-		toolbar.set_size_request(300, -1)
+		toolbar.set_size_request(-1, -1)
 		toolbar.set_icon_size(Gtk.IconSize.MENU)
 
 		return toolbar
@@ -506,6 +507,8 @@ class TableViewWidget(InsertedObjectWidget):
 			cell = Gtk.CellRendererText()
 			tview_column = Gtk.TreeViewColumn(headcol, cell)
 			tview_column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)  # allow column shrinks
+			tview_column.set_resizable(True);
+			tview_column.set_reorderable(True);
 			treeview.append_column(tview_column)
 
 			# set title as label
