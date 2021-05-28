@@ -36,6 +36,8 @@ This is a core plugin shipping with zim.
 			# T: option for plugin preferences
 		('show_count', 'bool', _('Show BackLink count in title'), False),
 			# T: option for plugin preferences
+		('show_full_paths', 'bool', _('Show full Page Names'), False),
+			# T: option for plugin preferences
 	)
 
 
@@ -44,6 +46,7 @@ class BackLinksPanePageViewExtension(PageViewExtension):
 	def __init__(self, plugin, window):
 		PageViewExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
+		self.preferences.connect('changed', self.on_preferences_changed)
 
 		self.widget = BackLinksWidget(self.navigation, self.preferences)
 
@@ -56,6 +59,9 @@ class BackLinksPanePageViewExtension(PageViewExtension):
 	def on_page_changed(self, window, page):
 		self.widget.set_page(window.notebook, page)
 
+	def on_preferences_changed(self, *a):
+		# updates both backlink count and link text
+		self.on_page_changed(self.pageview, self.pageview.page)
 
 PAGE_COL = 0
 TEXT_COL = 1
@@ -71,15 +77,11 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 
 		self.opener = opener
 		self.preferences = preferences
-		self.preferences.connect('changed', self.on_preferences_changed)
 
 		self.treeview = LinksTreeView()
 		self.add(self.treeview)
 		self.treeview.connect('row-activated', self.on_link_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
-
-	def on_preferences_changed(self, *a):
-		self.update_title()
 
 	def set_page(self, notebook, page):
 		model = self.treeview.get_model()
@@ -91,12 +93,16 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		except IndexNotFoundError:
 			backlinks = []
 
-		for link in backlinks:
-			href = notebook.pages.create_link(link.target, link.source)
-				# relative link from target *back* to source
-			text = href.to_wiki_link().strip(':')
-			#~ model.append(None, (link.source, text))
-			model.append((link.source, text))
+		if self.preferences['show_full_paths']:
+			for link in backlinks:
+				model.append((link.source, str(link.source)))
+		else:
+			for link in backlinks:
+				href = notebook.pages.create_link(link.target, link.source)
+					# relative link from target *back* to source
+				text = href.to_wiki_link().strip(':')
+				#~ model.append(None, (link.source, text))
+				model.append((link.source, text))
 
 		self.update_title(model)
 
@@ -104,10 +110,8 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		## use link.type attribute
 		#self.treeview.expand_all()
 
-	def update_title(self, treeview_model=None):
+	def update_title(self, treeview_model):
 		if self.preferences['show_count']:
-			if treeview_model is None: # get a model if we weren't given one
-				treeview_model = self.treeview.get_model()
 			n = len(treeview_model)
 			self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
 			# T: Label for the statusbar, %i is the number of BackLinks to the current page
