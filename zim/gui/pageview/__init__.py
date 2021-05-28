@@ -7570,8 +7570,8 @@ class EditImageDialog(Dialog):
 
 		reset_button.connect_object('clicked',
 			self.__class__.reset_dimensions, self)
-		#~ self.form.widgets['file'].connect_object('activate',
-			#~ self.__class__.reset_dimensions, self)
+		self.form.widgets['file'].connect_object('changed',
+			self.__class__.do_file_changed, self)
 		self.form.widgets['width'].connect_object('value-changed',
 			self.__class__.do_width_changed, self)
 		self.form.widgets['height'].connect_object('value-changed',
@@ -7610,6 +7610,11 @@ class EditImageDialog(Dialog):
 			height.set_value(h)
 			self._block = False
 			self._ratio = float(w) / h
+
+	def do_file_changed(self):
+		# Prevent images becoming one pixel wide
+		if self._image_data['width'] is 1:
+			self.reset_dimensions()
 
 	def do_width_changed(self):
 		if hasattr(self, '_block') and self._block:
