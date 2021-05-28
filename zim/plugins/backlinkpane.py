@@ -90,9 +90,16 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 			#~ model.append(None, (link.source, text))
 			model.append((link.source, text))
 
+		self.update_title(model)
+
 		## TODO make hierarchy by link type ?
 		## use link.type attribute
 		#self.treeview.expand_all()
+
+	def update_title(self, treeview_model):
+		n = len(treeview_model)
+		self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
+		# T: Label for the statusbar, %i is the number of BackLinks to the current page
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
