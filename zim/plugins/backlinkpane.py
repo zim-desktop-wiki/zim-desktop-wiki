@@ -34,6 +34,8 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
+		('show_count', 'bool', _('Show BackLink count in title'), False),
+			# T: option for plugin preferences
 	)
 
 
@@ -41,8 +43,9 @@ class BackLinksPanePageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, window):
 		PageViewExtension.__init__(self, plugin, window)
+		self.preferences = plugin.preferences
 
-		self.widget = BackLinksWidget(self.navigation)
+		self.widget = BackLinksWidget(self.navigation, self.preferences)
 
 		if self.pageview.page is not None:
 			self.on_page_changed(self.pageview, self.pageview.page)
@@ -61,17 +64,22 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 
 	title = _('BackLinks') # T: widget label
 
-	def __init__(self, opener):
+	def __init__(self, opener, preferences):
 		GObject.GObject.__init__(self)
 		self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 		self.set_shadow_type(Gtk.ShadowType.IN)
 
 		self.opener = opener
+		self.preferences = preferences
+		self.preferences.connect('changed', self.on_preferences_changed)
 
 		self.treeview = LinksTreeView()
 		self.add(self.treeview)
 		self.treeview.connect('row-activated', self.on_link_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
+
+	def on_preferences_changed(self, *a):
+		self.update_title()
 
 	def set_page(self, notebook, page):
 		model = self.treeview.get_model()
@@ -96,10 +104,15 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		## use link.type attribute
 		#self.treeview.expand_all()
 
-	def update_title(self, treeview_model):
-		n = len(treeview_model)
-		self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
-		# T: Label for the statusbar, %i is the number of BackLinks to the current page
+	def update_title(self, treeview_model=None):
+		if self.preferences['show_count']:
+			if treeview_model is None: # get a model if we weren't given one
+				treeview_model = self.treeview.get_model()
+			n = len(treeview_model)
+			self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
+			# T: Label for the statusbar, %i is the number of BackLinks to the current page
+		else:
+			self.set_title(_('BackLinks')) # T: widget label
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
