@@ -70,7 +70,7 @@ and also <strike>strike through</strike>
 
 <p>TODO list:
 <ul><li bullet="unchecked-box">foo</li><li bullet="checked-box">bar</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="checked-box">sub item 2</li></ul><li bullet="xchecked-box">baz</li></ul></p>
-<p><ul><li bullet="migrated-box">Migrated checkbox</li></ul></p>
+<p><ul><li bullet="migrated-box">Migrated checkbox</li><li bullet="transmigrated-box">Transmigrated checkbox</li></ul></p>
 <p>A numbered list:
 <ol start="1"><li>foo</li><li>bar</li><ol start="a"><li>sub list</li><li>here</li></ol><li>hmmm</li></ol></p>
 

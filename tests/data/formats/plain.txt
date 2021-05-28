@@ -88,6 +88,7 @@ TODO list:
 [x] baz
 
 [>] Migrated checkbox
+[<] Transmigrated checkbox
 
 A numbered list:
 1. foo

@@ -100,6 +100,9 @@ Toggle a [[Check Boxes|checkbox]] using the "NOK" checkmark.
 **Toggle Checkbox '>'**
 Toggle a [[Check Boxes|checkbox]] using the "Moved" checkmark.
 
+**Toggle Checkbox '<'**
+Toggle a [[Check Boxes|checkbox]] using the "Moved Elsewhere" checkmark.
+
 **Edit Link or Object <Ctrl><E>**
 Prompt a dialog to edit the properties of a link or other object. This also shows the property editor for an image when the cursor is next to an image.
 

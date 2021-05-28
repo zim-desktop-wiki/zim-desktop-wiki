@@ -2572,6 +2572,7 @@ class TextBuffer(Gtk.TextBuffer):
 				CHECKED_BOX
 				XCHECKED_BOX
 				MIGRATED_BOX
+				TRANSMIGRATED_BOX
 		or a numbered list bullet (test with L{is_numbered_bullet_re})
 		'''
 		iter = self.get_iter_at_line(line)
@@ -3132,7 +3133,8 @@ class TextBuffer(Gtk.TextBuffer):
 
 		@param line: the line number
 		@param checkbox_type: the checkbox type that we want to toggle:
-		one of C{CHECKED_BOX}, C{XCHECKED_BOX}, C{MIGRATED_BOX}.
+		one of C{CHECKED_BOX}, C{XCHECKED_BOX}, C{MIGRATED_BOX},
+		C{TRANSMIGRATED_BOX}.
 		If C{checkbox_type} is given, it toggles between this type and
 		unchecked. Otherwise it rotates through unchecked, checked
 		and xchecked.
@@ -3606,6 +3608,7 @@ class TextBufferList(list):
 			UNCHECKED_BOX
 			XCHECKED_BOX
 			MIGRATED_BOX
+			TRANSMIGRATED_BOX
 		'''
 		assert bullet in BULLETS
 		with self.buffer.user_action:
@@ -3614,7 +3617,7 @@ class TextBufferList(list):
 				pass
 			elif bullet == UNCHECKED_BOX:
 				self._checkbox_unchecked(row)
-			else: # CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX
+			else: # CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANSMIGRATED_BOX
 				self._checkbox_checked(row, bullet)
 
 	def _checkbox_unchecked(self, row):
@@ -6400,11 +6403,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('migrate_checkbox').set_sensitive(True)
+			self.actiongroup.get_action('transmigrate_checkbox').set_sensitive(True)
 		else:
 			self.actiongroup.get_action('uncheck_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('migrate_checkbox').set_sensitive(False)
+			self.actiongroup.get_action('transmigrate_checkbox').set_sensitive(False)
 
 		if buffer.get_link_tag(iter):
 			self.actiongroup.get_action('remove_link').set_sensitive(True)
@@ -6740,8 +6745,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		menu.prepend(Gtk.SeparatorMenuItem())
 
 		for bullet, label in (
-			(MIGRATED_BOX, _('Check Checkbox \'>\'')), # T: popup menu menuitem
 			(TRANSMIGRATED_BOX, _('Check Checkbox \'<\'')), # T: popup menu menuitem
+			(MIGRATED_BOX, _('Check Checkbox \'>\'')), # T: popup menu menuitem
 			(XCHECKED_BOX, _('Check Checkbox \'X\'')), # T: popup menu menuitem
 			(CHECKED_BOX, _('Check Checkbox \'V\'')), # T: popup menu menuitem
 			(UNCHECKED_BOX, _('Un-check Checkbox')), # T: popup menu menuitem

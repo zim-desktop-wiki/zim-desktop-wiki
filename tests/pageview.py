@@ -3054,6 +3054,11 @@ class TestPageViewActions(tests.TestCase):
 		pageview.migrate_checkbox()
 		self.assertEqual(pageview.page.dump('wiki'), ['[>] my task\n'])
 
+	def testTransmigrateCheckBox(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')
+		pageview.transmigrate_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[<] my task\n'])
+
 	def testEditObjectForLink(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
 
