@@ -63,4 +63,4 @@ The zim notebooks you added in the "Open notebook" dialog are automatically reco
 ===== Back links =====
 "Back links" are the reverse of normal links. For example when page //A// links to page //B// then page //B// will have "back link" to page //A//. The list with back links is the answer the question "What links here".
 
-In the status bar at the bottom of the window you can see how many back links there are for the current page. To view which pages link here you can open the "Search Back links" menu item (//Search//->//Search Back links//) or click the area in the status bar that gives info about back links. 
+To view which pages link here you can open the "Search Back links" menu item (//Search//->//Search Back links//) or use the [[Plugins:BackLinks Pane|BackLinks Pane]] plugin.
