@@ -34,6 +34,10 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
+		('show_count', 'bool', _('Show BackLink count in title'), True),
+			# T: option for plugin preferences
+		('show_full_paths', 'bool', _('Show full Page Names'), False),
+			# T: option for plugin preferences
 	)
 
 
@@ -41,8 +45,10 @@ class BackLinksPanePageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, window):
 		PageViewExtension.__init__(self, plugin, window)
+		self.preferences = plugin.preferences
+		self.preferences.connect('changed', self.on_preferences_changed)
 
-		self.widget = BackLinksWidget(self.navigation)
+		self.widget = BackLinksWidget(self.navigation, self.preferences)
 
 		if self.pageview.page is not None:
 			self.on_page_changed(self.pageview, self.pageview.page)
@@ -53,6 +59,9 @@ class BackLinksPanePageViewExtension(PageViewExtension):
 	def on_page_changed(self, window, page):
 		self.widget.set_page(window.notebook, page)
 
+	def on_preferences_changed(self, *a):
+		# updates both backlink count and link text
+		self.on_page_changed(self.pageview, self.pageview.page)
 
 PAGE_COL = 0
 TEXT_COL = 1
@@ -61,12 +70,13 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 
 	title = _('BackLinks') # T: widget label
 
-	def __init__(self, opener):
+	def __init__(self, opener, preferences):
 		GObject.GObject.__init__(self)
 		self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 		self.set_shadow_type(Gtk.ShadowType.IN)
 
 		self.opener = opener
+		self.preferences = preferences
 
 		self.treeview = LinksTreeView()
 		self.add(self.treeview)
@@ -83,16 +93,30 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		except IndexNotFoundError:
 			backlinks = []
 
-		for link in backlinks:
-			href = notebook.pages.create_link(link.target, link.source)
-				# relative link from target *back* to source
-			text = href.to_wiki_link().strip(':')
-			#~ model.append(None, (link.source, text))
-			model.append((link.source, text))
+		if self.preferences['show_full_paths']:
+			for link in backlinks:
+				model.append((link.source, str(link.source)))
+		else:
+			for link in backlinks:
+				href = notebook.pages.create_link(link.target, link.source)
+					# relative link from target *back* to source
+				text = href.to_wiki_link().strip(':')
+				#~ model.append(None, (link.source, text))
+				model.append((link.source, text))
+
+		self.update_title(model)
 
 		## TODO make hierarchy by link type ?
 		## use link.type attribute
 		#self.treeview.expand_all()
+
+	def update_title(self, treeview_model):
+		if self.preferences['show_count']:
+			n = len(treeview_model)
+			self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
+			# T: Label for the statusbar, %i is the number of BackLinks to the current page
+		else:
+			self.set_title(_('BackLinks')) # T: widget label
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
