@@ -75,7 +75,6 @@ def collect_data_files():
 		('share/man/man1', ['man/zim.1']),
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
-		('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
 		('share/metainfo', ['xdg/org.zim_wiki.Zim.appdata.xml']),
 	]
 
@@ -126,7 +125,6 @@ def fix_dist():
 	# Copy the zim icons a couple of times
 	# Paths for mimeicons taken from xdg-icon-resource
 	# xdg-icon-resource installs:
-	# /usr/local/share/icons/hicolor/.../mimetypes/gnome-mime-application-x-zim-notebook.png
 	# /usr/local/share/icons/hicolor/.../mimetypes/application-x-zim-notebook.png
 	# /usr/local/share/icons/hicolor/.../apps/zim.png
 
@@ -136,7 +134,6 @@ def fix_dist():
 	os.makedirs('xdg/hicolor/scalable/mimetypes')
 	for name in (
 		'apps/zim.svg',
-		'mimetypes/gnome-mime-application-x-zim-notebook.svg',
 		'mimetypes/application-x-zim-notebook.svg'
 	):
 		shutil.copy('icons/zim48.svg', 'xdg/hicolor/scalable/' + name)
@@ -146,7 +143,6 @@ def fix_dist():
 		os.makedirs('xdg/hicolor/%s/mimetypes' % dir)
 		for name in (
 			'apps/zim.png',
-			'mimetypes/gnome-mime-application-x-zim-notebook.png',
 			'mimetypes/application-x-zim-notebook.png'
 		):
 			shutil.copy('icons/zim%s.png' % size, 'xdg/hicolor/' + dir + '/' + name)
