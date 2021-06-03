@@ -13,4 +13,4 @@ Creation-Date: 2012-02-20T22:13:04+01:00
 
 ===== Community =====
 
-Channel ''#zim-wiki'' on the Freenode IRC network. (Access from your web browser at https://webchat.freenode.net/?channels=%23zim-wiki .)
+Channel ''#zim-wiki'' on the Libera Chat IRC network. (Access from your web browser at https://web.libera.chat/#zim-wiki .)
