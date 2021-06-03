@@ -25,7 +25,7 @@ and [Development Planning](https://github.com/zim-desktop-wiki/zim-desktop-wiki/
 * Mailing list:
   https://launchpad.net/~zim-wiki
 * IRC Channel:
-  #zim-wiki on Freenode IRC network. (Access from your web browser https://webchat.freenode.net/?channels=%23zim-wiki .)
+  #zim-wiki on the Libera Chat IRC network. (Access from your web browser https://web.libera.chat/#zim-wiki .)
 
 
 ## Filing a bug report
