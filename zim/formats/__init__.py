@@ -271,8 +271,7 @@ def get_dumper(name, *arg, **kwarg):
 
 def heading_to_anchor(name):
 	"""Derive an anchor name from a heading"""
-	name = name.lower()
-	name = name.replace(' ', '-')
+	name = re.sub(r'\s', '-', name.strip().lower())
 	return re.sub(r'[^\w\-_]', '', name)
 
 

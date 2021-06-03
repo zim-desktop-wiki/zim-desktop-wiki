@@ -617,13 +617,6 @@ C
 		buffer.toggle_textstyle('code')
 		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
 
-	def testToggleTextStyleCodeOverAnchor(self):
-		buffer = TextBuffer(None, None)
-		self.set_buffer(buffer, 'foo <anchor name="test">test</anchor> bar')
-		buffer.select_line(0)
-		buffer.toggle_textstyle('code')
-		self.assertBufferEquals(buffer, '<code>foo test bar</code>')
-
 	def testMergeLinesWithBullet(self):
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -735,6 +728,12 @@ C
 				# FIXME: first <h level="2" /> should not be there, but does not seem to affect user behavior
 				#        maybe removed by refactoring serialization
 
+	def testFormatHeadingOnAnchor(self):
+		buffer = self.get_buffer('Foo bar <anchor name="bar">bar</anchor>')
+		buffer.select_line(0)
+		buffer.toggle_textstyle('h2')
+		self.assertBufferEquals(buffer, '<h level="2">Foo bar <anchor name="bar">bar</anchor></h>')
+
 	def testFindAnchor(self):
 		buffer = self.get_buffer()
 		self.assertIsNone(buffer.find_anchor('test'))
@@ -776,6 +775,44 @@ C
 		# with styled text
 		buffer = self.get_buffer('<h level="2"><code>foo</code> bar</h>\n')
 		self.assertIsNotNone(buffer.find_anchor('foo-bar'))
+
+	def testGetAnchorAtSameIter(self):
+		buffer = self.get_buffer('Some text <anchor name="test">test</anchor>\n')
+		iter = buffer.get_iter_at_offset(10)
+		anchor = buffer.get_anchor_for_location(iter)
+		self.assertEqual(anchor, 'test') # pick one at iter
+
+	def testGetAnchorNearbyIter(self):
+		buffer = self.get_buffer('Some <anchor name="anchor1">anchor1</anchor> text <anchor name="test">test</anchor>\n')
+		iter = buffer.get_iter_at_offset(8)
+		anchor = buffer.get_anchor_for_location(iter)
+		self.assertEqual(anchor, 'anchor1') # pick closest one
+
+	def testGetAnchorAtSameIterForImage(self):
+		with FilterNoSuchImageWarning():
+			buffer = self.get_buffer('Some text <img src="./foo.png" id="anchor1" />\n')
+			iter = buffer.get_iter_at_offset(10)
+			anchor = buffer.get_anchor_for_location(iter)
+			self.assertEqual(anchor, 'anchor1') # pick one at iter
+
+	def testGetAnchorNearbyIterForImage(self):
+		with FilterNoSuchImageWarning():
+			buffer = self.get_buffer('Some <img src="./foo.png" id="anchor1" /> text <anchor name="test">test</anchor>\n')
+			iter = buffer.get_iter_at_offset(8)
+			anchor = buffer.get_anchor_for_location(iter)
+			self.assertEqual(anchor, 'anchor1') # pick closest one
+
+	def testGetAnchorForHeadingExplicit(self):
+		buffer = self.get_buffer('<h level="2">Some heading <anchor name="test">test</anchor></h>\n')
+		iter = buffer.get_iter_at_offset(2)
+		anchor = buffer.get_anchor_for_location(iter)
+		self.assertEqual(anchor, 'test') # prefer explicit over implicit
+
+	def testGetAnchorForHeadingImplicit(self):
+		buffer = self.get_buffer('<h level="2">Some heading</h>\n')
+		iter = buffer.get_iter_at_offset(2)
+		anchor = buffer.get_anchor_for_location(iter)
+		self.assertEqual(anchor, 'some-heading') # implicit heading anchor
 
 	def testReNumberList(self):
 		buffer = self.get_buffer(

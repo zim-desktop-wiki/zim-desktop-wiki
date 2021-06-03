@@ -368,7 +368,7 @@ class InsertCodeBlockDialog(Dialog):
 
 		grid.attach(self.combobox, 1, 0, 1, 1)
 
-		label = Gtk.Label(_('Identifier') + ':')
+		label = Gtk.Label(_('Id') + ':') # T: input label for object ID
 		grid.attach(label, 0, 1, 1, 1)
 		self.entry = InputEntry()
 		grid.attach(self.entry, 1, 1, 1, 1)

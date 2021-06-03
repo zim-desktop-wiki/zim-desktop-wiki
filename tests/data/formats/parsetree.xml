@@ -61,7 +61,7 @@ and also <strike>strike through</strike>
 <p>Anchors: <anchor name="foo">foo</anchor>  <link href="#foo">#foo</link>  <link href="page#foo">page#foo</link>
 </p>
 
-<h level="4">head 4</h>
+<h level="4">head 4 <anchor name="head-4-anchor">head-4-anchor</anchor></h>
 
 <p><ul><li bullet="*">item 1</li><li bullet="*">item 2</li><li bullet="*">item 3</li><ul><li bullet="*">item a</li><li bullet="*">item b</li></ul><li bullet="*">item 4</li></ul></p>
 

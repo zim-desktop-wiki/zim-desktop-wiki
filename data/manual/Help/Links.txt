@@ -9,6 +9,7 @@ You can either link pages or urls. Urls are recognized because they start with e
 * Links containing a '/' are considered links to external files
 * Links that start with a ':' are resolved from the top level of the notebook
 * Links that start with a '+' are resolved as sub-pages below the current page
+* Links that start with a '#' are resolved as links within the page to a heading or an object
 * Links that contain a '?' are interwiki links, see below.
 * All other links are resolved within the path from the root to the current page
 
@@ -20,6 +21,16 @@ All links to other pages are relative to the current page unless they start with
 For example you have a page "''Zim:Examples:Linking:Relative''" now you just use "''Absolute''" to link to "''Zim:Examples:Linking:Absolute''", but you also use "''Examples:Calendar''" to link to "''Zim:Examples:Calendar''". This link works because the first part of the link ("''Examples''") is resolved relatively in the tree above the current page.
 
 To create relative links to sub-page of the current page start the link with an "''+''".
+
+==== Link to a heading or object ====
+To link to a heading or an object you can use "''#heading-id''" within the same page or "''pagename#heading-id''" from another page. 
+
+Headings have an implicit id which consist of the heading text in lowercase with spaces replaces by "-" and all special characters removed. For example the heading of this section can be links as [[#link-to-a-heading-or-object]]. 
+
+Objects like images and other inline objects can have an explicit "id" attribute, which can be used in the same way.
+
+Finally there is a special "anchor" object to place a link anywhere in the text or to e.g. set an explicit id for a heading. This can be inserted by typing "''##name''" and is rendered like this: {{id: name}} .
+
 
 ==== File Links ====
 You can link to files from zim. File names always need to contain a "''/''" character (even if your operations system uses another path separator). You can link relative to your home directory using "~/foo"  or relative to the page using "./foo". When you want to "attach" a file to a page you can use "//Tools//->//Open folder//" to open the file browser in the appropriate directory. Once you have copied or moved the file to this directory you can drag and drop from your file browser to the zim page, this will create a link.

@@ -60,7 +60,7 @@ Tags: @foo @bar
 Anchors: {{id: foo}}  [[#foo]]  [[page#foo]]
 
 
-=== head 4 ===
+=== head 4 {{id: head-4-anchor}} ===
 
 * item 1
 * item 2
