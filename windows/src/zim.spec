@@ -71,6 +71,7 @@ icon_names.update({
     'image-missing',
     'index',
     'list-add',
+    'list-remove',
     'system-help',
     'text-x-generic',
     'view-fullscreen',
