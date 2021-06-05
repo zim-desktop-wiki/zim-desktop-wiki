@@ -40,6 +40,9 @@ class InsertedObjectType(object):
 			# Prevent referencing and modifying class attribute of parent class
 		self.object_attr['type'] = String(self.name)
 
+		# each inserted object has an id attribute usable as anchor for linking
+		self.object_attr['id'] = String(None)
+
 		for name in ('model_from_data', 'data_from_model', 'format'):
 			orig = getattr(self, name)
 			wrapper = getattr(self, '_' + name + '_wrapper')

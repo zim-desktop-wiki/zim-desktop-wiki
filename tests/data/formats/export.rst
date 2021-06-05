@@ -83,9 +83,11 @@ External links like `http://nongnu.org <http://nongnu.org>`_ and `foo@bar.org <m
 
 Tags: @foo @bar
 
+Anchors: [id: foo]  `#foo <#foo>`_  `page#foo <page#foo>`_
 
-head 4
-""""""
+
+head 4 [id: head-4-anchor]
+""""""""""""""""""""""""""
 
 - item 1
 - item 2

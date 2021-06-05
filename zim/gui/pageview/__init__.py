@@ -38,7 +38,7 @@ from zim.config import String, Float, Integer, Boolean, Choice, ConfigManager
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re
-from zim.formats import get_format, increase_list_iter, \
+from zim.formats import heading_to_anchor, get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, TRANSMIGRATED_BOX, MIGRATED_BOX, LINE, OBJECT, \
 	HEADING, LISTITEM, BLOCK_LEVEL
@@ -163,6 +163,7 @@ MENU_ACTIONS = (
 )
 
 COPY_FORMATS = zim.formats.list_formats(zim.formats.TEXT_FORMAT)
+
 ui_preferences = (
 	# key, type, category, label, default
 	('follow_on_enter', 'bool', 'Interface',
@@ -228,11 +229,14 @@ SCROLL_TO_MARK_MARGIN = 0.2
 
 # Regexes used for autoformatting
 heading_re = Re(r'^(={2,7})\s*(.*?)(\s=+)?$')
+
 page_re = Re(r'''(
 	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
 	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )*:?
 )$''', re.X | re.U) # e.g. namespace:page or +subpage, but not word without ':' or '+'
+
 interwiki_re = Re(r'\w[\w\+\-\.]+\?\w\S+$', re.U) # name?page, where page can be any url style
+
 file_re = Re(r'''(
 	  ~/[^/\s]
 	| ~[^/\s]*/
@@ -252,6 +256,10 @@ markup_re = [
 	('style-sup', re.compile(r'(?<=\w)\^(\S*)$')),
 	('style-sub', re.compile(r'(?<=\w)_\{(\S*)}$')),
 ]
+
+link_to_anchor_re = Re(r'^(#\w[\w_-]+)$', re.U)
+
+anchor_re = Re(r'^(##\w[\w_-]+)$', re.U)
 
 tag_re = Re(r'^(@\w+)$', re.U)
 
@@ -415,7 +423,7 @@ class SaveCursorContext(object):
 
 
 def image_file_get_dimensions(file_path):
-	""" 
+	"""
 	Replacement for GdkPixbuf.Pixbuf.get_file_info
 	@return (width, height) in pixels
 		or None if file does not exist or failed to load
@@ -436,9 +444,9 @@ def image_file_get_dimensions(file_path):
 
 
 def image_file_load_pixels(file, width_override=-1, height_override=-1):
-	""" 
+	"""
 	Replacement for GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, w, h)
-	When file does not exist or fails to load, this throws exceptions.	
+	When file does not exist or fails to load, this throws exceptions.
 	"""
 
 	if not file.exists():
@@ -453,16 +461,16 @@ def image_file_load_pixels(file, width_override=-1, height_override=-1):
 			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, width_override, height_override)
 		else:
 			pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
-		
+
 		pixbuf = rotate_pixbuf(pixbuf)
-	
+
 	except:
 		logger.debug('GTK failed to read image, using Pillow fallback: %s', file.path)
-	
+
 		from PIL import Image # load Pillow only if necessary
 
 		with Image.open(file.path) as img_pil:
-			
+
 			# resize if a specific size was requested
 			if b_size_override:
 				if height_override <= 0:
@@ -482,12 +490,12 @@ def image_file_load_pixels(file, width_override=-1, height_override=-1):
 				raise ValueError('Pixel format {fmt} can not be converted to Pixbuf for image {p}'.format(
 					fmt = img_pil.mode, p = file.path,
 				))
-			
+
 			# convert to GTK pixbuf
 			data_gtk = GLib.Bytes.new_take(img_pil.tobytes())
 
 			pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
-				data = data_gtk, 
+				data = data_gtk,
 				colorspace = GdkPixbuf.Colorspace.RGB,
 				has_alpha = has_alpha,
 				# GTK docs: "Currently only RGB images with 8 bits per sample are supported"
@@ -733,7 +741,7 @@ class TextBuffer(Gtk.TextBuffer):
 			return not start.equal(end)
 
 	def do_end_user_action(self):
-		#~ print('<<<< USER ACTION')
+		#print('<<<< USER ACTION')
 		if self._deleted_editmode_mark is not None:
 			self.delete_mark(self._deleted_editmode_mark)
 			self._deleted_editmode_mark = None
@@ -1018,6 +1026,9 @@ class TextBuffer(Gtk.TextBuffer):
 			elif element.tag == 'tag':
 				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
 				self.insert_tag_at_cursor(element.text, **element.attrib)
+			elif element.tag == 'anchor':
+				self.set_textstyles(textstyles)
+				self.insert_anchor_at_cursor(element.attrib['name'])
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, **element.attrib)
@@ -1077,6 +1088,8 @@ class TextBuffer(Gtk.TextBuffer):
 
 			if element.tail:
 				self.insert_at_cursor(element.tail)
+
+	#region Links
 
 	def insert_link(self, iter, text, href, **attrib):
 		'''Insert a link into the buffer
@@ -1145,6 +1158,10 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return None
 
+	def get_link_text(self, iter):
+		tag = self.get_link_tag(iter)
+		return self.get_tag_text(iter, tag) if tag else None
+
 	def get_link_data(self, iter, raw=False):
 		'''Get the link attributes for a link at a specific position, if any
 
@@ -1167,6 +1184,24 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return None
 
+	#endregion
+
+	#region TextTags
+
+	def get_tag(self, iter, type):
+		'''Get the C{Gtk.TextTag} for a zim type at a specific position, if any
+
+		@param iter: a C{Gtk.TextIter}
+		@param type: the zim type to look for ('style', 'link', 'tag', 'indent', 'anchor')
+		@returns: a C{Gtk.TextTag} if there is a tag at C{iter},
+		C{None} otherwise
+		'''
+		for tag in iter.get_tags():
+			if hasattr(tag, 'zim_type') and tag.zim_type == type:
+				return tag
+		else:
+			return None
+
 	def get_tag_bounds(self, iter, tag):
 		start = iter.copy()
 		if not start.begins_tag(tag):
@@ -1175,6 +1210,14 @@ class TextBuffer(Gtk.TextBuffer):
 		if not end.ends_tag(tag):
 			end.forward_to_tag_toggle(tag)
 		return start, end
+
+	def get_tag_text(self, iter, tag):
+		start, end = self.get_tag_bounds(iter, tag)
+		return start.get_text(end)
+
+	#endregion
+
+	#region Tags
 
 	def insert_tag(self, iter, text, **attrib):
 		'''Insert a tag into the buffer
@@ -1208,7 +1251,7 @@ class TextBuffer(Gtk.TextBuffer):
 		self._editmode_tags = self._editmode_tags[:-1]
 
 	def _create_tag_tag(self, text, **attrib):
-		'''Creates an annonymous TextTag for a tag'''
+		'''Creates an anonymous TextTag for a tag'''
 		# These are created after __init__, so higher priority for Formatting
 		# properties than any of the _static_style_tags
 		tag = self.create_tag(None, **self.tag_styles['tag'])
@@ -1260,6 +1303,102 @@ class TextBuffer(Gtk.TextBuffer):
 			return attrib
 		else:
 			return None
+
+	#endregion
+
+	#region Anchors
+
+	def insert_anchor(self, iter, name, **attrib):
+		'''Insert a "link anchor" with id C{name} at C{iter}'''
+		widget = Gtk.HBox() # Need *some* widget here...
+		pixbuf = widget.render_icon('zim-pilcrow', self.bullet_icon_size)
+		pixbuf.zim_type = 'anchor'
+		pixbuf.zim_attrib = attrib
+		pixbuf.zim_attrib['name'] = name
+		self.insert_pixbuf(iter, pixbuf)
+
+	def insert_anchor_at_cursor(self, name):
+		'''Insert a "link anchor" with id C{name}'''
+		iter = self.get_iter_at_mark(self.get_insert())
+		self.insert_anchor(iter, name)
+
+	def get_anchor_data(self, iter):
+		pixbuf = iter.get_pixbuf()
+		if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
+			return pixbuf.zim_attrib.copy()
+		else:
+			return None
+
+	def get_anchor_or_object_id(self, iter):
+		# anchor or image
+		pixbuf = iter.get_pixbuf()
+		if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
+			return pixbuf.zim_attrib.get('name', None)
+		elif pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'image':
+			return pixbuf.zim_attrib.get('id', None)
+
+		# object?
+		anchor = iter.get_child_anchor()
+		if anchor and isinstance(anchor, PluginInsertedObjectAnchor):
+			object_type = anchor.objecttype
+			object_model = anchor.objectmodel
+			attrib, _ = object_type.data_from_model(object_model)
+			return attrib.get('id', None)
+
+	def iter_anchors_for_range(self, start, end):
+		iter = start.copy()
+		match = iter.forward_search(PIXBUF_CHR, 0, limit=end)
+		while match:
+			iter, mend = match
+			name = self.get_anchor_or_object_id(iter)
+			if name:
+				yield (iter.copy(), name)
+			match = mend.forward_search(PIXBUF_CHR, 0, limit=end)
+
+	def get_anchor_for_location(self, iter):
+		'''Returns an anchor name that refers to C{iter} or the same line
+		Uses C{iter} to return id of explicit anchor on the same line closest
+		to C{iter}. If no explicit anchor is found and C{iter} is within a heading
+		line, the implicit anchor for the heading is returned.
+		@param iter: the location to refer to
+		@returns: an anchor name if any anchor object or heading is found, else C{None}
+		'''
+		return self.get_anchor_or_object_id(iter) \
+			or self._get_close_anchor_or_object_id(iter) \
+				or self._get_implict_anchor_if_heading(iter)
+
+	def _get_close_anchor_or_object_id(self, iter):
+		line_start = iter.copy() if iter.starts_line() else self.get_iter_at_line(iter.get_line())
+		line_end = line_start.copy()
+		line_end.forward_line()
+		line_offset = iter.get_line_offset()
+		anchors = [
+			(abs(myiter.get_line_offset() - line_offset), name)
+				for myiter, name in self.iter_anchors_for_range(line_start, line_end)
+		]
+		if anchors:
+			anchors.sort()
+			return anchors[0][1]
+		else:
+			return None
+
+	def _get_implict_anchor_if_heading(self, iter):
+		text = self._get_heading_text(iter)
+		return heading_to_anchor(text) if text else None
+
+	def _get_heading_text(self, iter):
+		line_start = iter.copy() if iter.starts_line() else self.get_iter_at_line(iter.get_line())
+		is_heading = any(filter(_is_heading_tag, line_start.get_tags()))
+		if not is_heading:
+			return None
+
+		line_end = line_start.copy()
+		line_end.forward_line()
+		return line_start.get_text(line_end)
+
+	#endregion
+
+	#region Images
 
 	def insert_image(self, iter, file, src, **attrib):
 		'''Insert an image in the buffer
@@ -1317,6 +1456,10 @@ class TextBuffer(Gtk.TextBuffer):
 			return pixbuf.zim_attrib.copy()
 		else:
 			return None
+
+	#endregion
+
+	#region Objects
 
 	def insert_object_at_cursor(self, attrib, data):
 		'''Inserts a custom object in the page
@@ -1390,6 +1533,10 @@ class TextBuffer(Gtk.TextBuffer):
 			if anchor and isinstance(anchor, InsertedObjectAnchor):
 				yield anchor
 			match = end.forward_search(PIXBUF_CHR, 0)
+
+	#endregion
+
+	#region Bullets
 
 	def set_bullet(self, line, bullet, indent=None):
 		'''Sets the bullet type for a line
@@ -1644,6 +1791,10 @@ class TextBuffer(Gtk.TextBuffer):
 
 			line += 1
 
+	#endregion
+
+	#region Text Styles
+
 	def set_textstyles(self, names):
 		'''Sets the current text format style.
 
@@ -1683,6 +1834,8 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return []
 
+	#endregion
+
 	def update_editmode(self):
 		'''Updates the text style and indenting applied to newly indented
 		text based on the current cursor position
@@ -1703,7 +1856,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 		tags = list(tags)
 		if not tags == self._editmode_tags:
-			#~ print('>', [(t.zim_type, t.get_property('name')) for t in tags])
+			#print('> %r' % [(t.zim_type, t.get_property('name')) for t in tags])
 			self._editmode_tags = tags
 			self.emit('textstyle-changed', [tag.get_property('name')[6:] for tag in tags if tag.zim_type == 'style'])
 
@@ -2198,7 +2351,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def do_insert_text(self, iter, string, length):
 		'''Signal handler for insert-text signal'''
-		#~ print('INSERT', string)
+		#print("INSERT %r %d" % (string, length))
 
 		if self._deleted_editmode_mark is not None:
 			# Use mark if we are the same postion, clear it anyway
@@ -2303,8 +2456,12 @@ class TextBuffer(Gtk.TextBuffer):
 		start = iter.copy()
 		start.backward_char()
 		self.remove_all_tags(start, iter)
-		for tag in filter(_is_indent_tag, self._editmode_tags):
-			self.apply_tag(tag, start, iter)
+		if hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
+			for tag in self._editmode_tags:
+				self.apply_tag(tag, start, iter)
+		else:
+			for tag in filter(_is_indent_tag, self._editmode_tags):
+				self.apply_tag(tag, start, iter)
 
 	def do_pre_delete_range(self, start, end):
 		# (Interactive) deleting a formatted word with <del>, or <backspace>
@@ -2639,8 +2796,10 @@ class TextBuffer(Gtk.TextBuffer):
 					if open_tags:
 						break_tags(open_tags[0][1])
 					set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
+				elif pixbuf.zim_type == 'anchor':
+					pass # allow as object nested in e.g. header tag
 				else:
-					pass # reset all tags except indenting
+					# reset all tags except indenting
 					set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
 
 				pixbuf = iter.get_pixbuf() # iter may have moved
@@ -2653,6 +2812,11 @@ class TextBuffer(Gtk.TextBuffer):
 					attrib = pixbuf.zim_attrib.copy()
 					builder.start('img', attrib or {})
 					builder.end('img')
+				elif pixbuf.zim_type == 'anchor':
+					attrib = pixbuf.zim_attrib.copy()
+					builder.start('anchor', attrib)
+					builder.data(attrib['name']) # HACK for OldParseTreeBuilder cleanup
+					builder.end('anchor')
 				else:
 					assert False, 'BUG: unknown pixbuf type'
 
@@ -2920,6 +3084,44 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		self.smart_remove_tags(_is_link_tag, start, end)
 		self.update_editmode()
+
+	def find_implicit_anchor(self, name):
+		"""Search the current page for a heading who's derived (implicit) anchor name is
+		matching the provided parameter.
+		@param name: the name of the anchor
+		@returns: a C{Gtk.TextIter} pointing to the start of the heading or C{None}.
+		"""
+		iter = self.get_start_iter()
+		while True:
+			tags = list(filter(_is_heading_tag, iter.get_tags()))
+			if tags:
+				tag = tags[0]
+				end = iter.copy()
+				end.forward_to_tag_toggle(tag)
+				text = iter.get_text(end)
+				if heading_to_anchor(text) == name:
+					return iter
+			if not iter.forward_line():
+				break
+		return None
+
+	def find_anchor(self, name):
+		"""Searches the current page for an anchor with the requested name.
+
+		Explicit anchors are being searched with precedence over implicit
+		anchors derived from heading elements.
+
+		@param name: the name of the anchor to look for
+		@returns: a C{Gtk.TextIter} pointing to the start of the heading or C{None}.
+		"""
+		# look for explicit anchors tags including image or object tags
+		start, end = self.get_bounds()
+		for iter, myname in self.iter_anchors_for_range(start, end):
+			if myname == name:
+				return iter
+
+		# look for an implicit heading anchor
+		return self.find_implicit_anchor(name)
 
 	def toggle_checkbox(self, line, checkbox_type=None, recursive=False):
 		'''Toggles the state of the checkbox at a specific line, if any
@@ -3970,7 +4172,7 @@ class TextView(Gtk.TextView):
 	def do_button_press_event(self, event):
 		# Handle middle click for pasting and right click for context menu
 		# Needed to override these because implementation details of
-		# gtktextview.c do not use proper ignals for these actions.
+		# gtktextview.c do not use proper signals for these actions.
 		#
 		# Note that clicking links is in button-release to avoid
 		# conflict with making selections
@@ -3995,9 +4197,9 @@ class TextView(Gtk.TextView):
 					if self.preferences['cycle_checkbox_type']:
 						# Cycle through all states - more useful for
 						# single click input devices
-						self.click_link() or self.click_checkbox()
+						self.click_link() or self.click_checkbox() or self.click_anchor()
 					else:
-						self.click_link() or self.click_checkbox(CHECKED_BOX)
+						self.click_link() or self.click_checkbox(CHECKED_BOX) or self.click_anchor()
 			elif event.button == 1:
 				# no changing checkboxes for read-only content
 				self.click_link()
@@ -4392,6 +4594,8 @@ class TextView(Gtk.TextView):
 			if pixbuf:
 				if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in bullets:
 					self._set_cursor(CURSOR_WIDGET)
+				elif pixbuf.zim_type == 'anchor':
+					self._set_cursor(CURSOR_WIDGET)
 				elif 'href' in pixbuf.zim_attrib:
 					self._set_cursor(CURSOR_LINK, link={'href': pixbuf.zim_attrib['href']})
 				else:
@@ -4473,6 +4677,15 @@ class TextView(Gtk.TextView):
 		else:
 			return False
 
+	def click_anchor(self):
+		'''Show popover for anchor under the cursor'''
+		iter, coords = self._get_pointer_location()
+		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
+		if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
+			return False # TODO: add popover wo copy to clipboard and edit the anchor
+		else:
+			return False
+
 	def get_visual_home_positions(self, iter):
 		'''Get the TextIters for the visuale start of the line
 
@@ -4509,10 +4722,29 @@ class TextView(Gtk.TextView):
 		# Default handler with built-in auto-formatting options
 		buffer = self.get_buffer()
 		handled = False
-		#~ print('WORD >>%s<< CHAR >>%s<<' % (word, char))
+		#print('WORD >>%s<< CHAR >>%s<<' % (word, char))
+
+		def apply_anchor(match):
+			#print("ANCHOR >>%s<<" % word)
+			if buffer.range_has_tags(_is_non_nesting_tag, start, end):
+				return False
+			name = match[2:]
+			buffer.delete(start, end)
+			buffer.insert_anchor(start, name)
+			return True
+
+		def apply_link_to_anchor(match):
+			#print("LINK TO ANCHOR >>%s<<" % word)
+			if buffer.range_has_tags(_is_non_nesting_tag, start, end):
+				return False
+			text = match[1:]
+			buffer.delete(start, end)
+			tag = buffer._create_link_tag(text, word)
+			buffer.insert_with_tags(start, text, tag)
+			return True
 
 		def apply_tag(match):
-			#~ print("TAG >>%s<<" % word)
+			#print("TAG >>%s<<" % word)
 			start = end.copy()
 			if not start.backward_chars(len(match)):
 				return False
@@ -4524,7 +4756,7 @@ class TextView(Gtk.TextView):
 				return True
 
 		def apply_link(match, offset_end=0):
-			#~ print("LINK >>%s<<" % word)
+			#print("LINK >>%s<<" % word)
 			myend = end.copy()
 			myend.backward_chars(offset_end)
 			start = myend.copy()
@@ -4564,6 +4796,10 @@ class TextView(Gtk.TextView):
 				handled = True
 		elif tag_re.match(word):
 			handled = apply_tag(tag_re[0])
+		elif anchor_re.match(word):
+			handled = apply_anchor(anchor_re[0])
+		elif link_to_anchor_re.match(word):
+			handled = apply_link_to_anchor(link_to_anchor_re[0])
 		elif url_re.search(word):
 			if char == ')':
 				handled = False # to early to call
@@ -4616,7 +4852,6 @@ class TextView(Gtk.TextView):
 			return # empty line
 
 		buffer = self.get_buffer()
-
 		start = buffer.get_iter_at_line(end.get_line())
 		if any(_is_pre_or_code_tag(t) for t in start.get_tags()):
 			logger.debug('pre-formatted code')
@@ -4693,12 +4928,20 @@ class TextView(Gtk.TextView):
 			pixbuf = self._get_pixbuf_at_pointer(iter, (x, y))
 			if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'image':
 				data = pixbuf.zim_attrib.copy()
-				text = data['src']
+				text = data['src'] + '\n\n'
 				if 'href' in data:
-					text += '\n<b>' + data['href'] + '</b>'
+					text += '<b>%s:</b> %s\n' % (_('Link'), data['href']) # T: tooltip label for image with href
+				if 'id' in data:
+					text += '<b>%s:</b> %s\n' % (_('Id'), data['id']) # T: tooltip label for image with anchor id
+				tooltip.set_markup(text.strip())
+				return True
+			elif pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
+				text = '#' + pixbuf.zim_attrib['name']
 				tooltip.set_markup(text)
 				return True
+
 		return False
+
 
 class UndoActionGroup(list):
 	'''Group of actions that should un-done or re-done in a single step
@@ -5832,10 +6075,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def on_link_enter(self, view, link):
 		href = normalize_file_uris(link['href'])
 		if link_type(href) == 'page':
-			path = self.notebook.pages.resolve_link(
-				self.page, HRef.new_from_wiki_link(href)
-			)
-			self._overlay_label.set_text('Go to "%s"' % path.name)# T: tooltip text for links to pages
+			href = HRef.new_from_wiki_link(href)
+			path = self.notebook.pages.resolve_link(self.page, href)
+			name = path.name + '#' + href.anchor if href.anchor else path.name
+			self._overlay_label.set_text('Go to "%s"' % name)# T: tooltip text for links to pages
 		else:
 			self._overlay_label.set_text('Open "%s"' % href) # T: tooltip text for links to files/URLs etc.
 
@@ -6231,10 +6474,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		type = link_type(link)
 
 		if type == 'page':
-			path = self.notebook.pages.resolve_link(
-				self.page, HRef.new_from_wiki_link(link)
-			)
-			self.navigation.open_page(path, new_window=hints.get('new_window', False))
+			href = HRef.new_from_wiki_link(link)
+			path = self.notebook.pages.resolve_link(self.page, href)
+			self.navigation.open_page(path, anchor=href.anchor, new_window=hints.get('new_window', False))
 		elif type == 'file':
 			path = self.notebook.resolve_file(link, self.page)
 			open_file(self, path)
@@ -6258,6 +6500,23 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		return True # handled
 
+	def navigate_to_anchor(self, name, select_line=False):
+		"""Navigate to an anchor on the current page.
+		@param name: The name of the anchor to navigate to
+		@param select_line: Select the whole line after
+		"""
+		logger.debug("navigating to anchor '%s'", name)
+		textview = self.textview
+		buffer = textview.get_buffer()
+		iter = buffer.find_anchor(name)
+		if not iter:
+			ErrorDialog(self, _('Id "%s" not found on the current page') % name).run()
+			return
+		buffer.place_cursor(iter)
+		if select_line:
+			buffer.select_line()
+		textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+
 	def do_populate_popup(self, menu):
 		buffer = self.textview.get_buffer()
 		if not buffer.get_has_selection():
@@ -6274,6 +6533,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 					self._default_do_populate_popup(menu)
 		else:
 			self._default_do_populate_popup(menu)
+		menu.show_all()
 
 	def _default_do_populate_popup(self, menu):
 		# Add custom tool
@@ -6308,7 +6568,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _As...')) # T: menu item for context menu of editor
 		item.set_submenu(copy_as_menu)
-		item.show_all()
 		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
 			# FIXME get code from test to seek stock item
 
@@ -6323,7 +6582,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		### Move text to new page ###
 		item = Gtk.MenuItem.new_with_mnemonic(_('Move Selected Text...'))
 			# T: Context menu item for pageview to move selected text to new/other page
-		item.show_all() # FIXME should not be needed here
 		menu.insert(item, 7) # position after Copy in the standard menu - may not be robust...
 			# FIXME get code from test to seek stock item
 
@@ -6334,13 +6592,28 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			item.set_sensitive(False)
 		###
 
-
 		iter = self.textview._get_popup_menu_mark()
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called
 		if iter is None:
 			return
 
+		def _copy_link_to_anchor(o, anchor, text):
+			path = self.page
+			Clipboard.set_pagelink(self.notebook, path, anchor, text)
+			SelectionClipboard.set_pagelink(self.notebook, path, anchor, text)
+
+		# copy link to anchor or heading
+		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _link to this location'))
+		anchor = buffer.get_anchor_for_location(iter)
+		if anchor:
+			heading_text = buffer._get_heading_text(iter) # can be None if not a heading
+			item.connect('activate', _copy_link_to_anchor, anchor, heading_text)
+		else:
+			item.set_sensitive(False)
+		menu.insert(item, 3)
+
+		# link
 		link = buffer.get_link_data(iter)
 		if link:
 			type = link_type(link['href'])
@@ -6364,7 +6637,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if file:
 			file = self.notebook.resolve_file(file, self.page)
 
-
 		menu.prepend(Gtk.SeparatorMenuItem())
 
 		# remove link
@@ -6384,9 +6656,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		menu.prepend(item)
 
 		# copy
-		def set_pagelink(o, path):
-			Clipboard.set_pagelink(self.notebook, path)
-			SelectionClipboard.set_pagelink(self.notebook, path)
+		def set_pagelink(o, path, anchor):
+			Clipboard.set_pagelink(self.notebook, path, anchor)
+			SelectionClipboard.set_pagelink(self.notebook, path, anchor)
 
 		def set_interwikilink(o, data):
 			href, url = data
@@ -6399,10 +6671,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if type == 'page':
 			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
-			path = self.notebook.pages.resolve_link(
-				self.page, HRef.new_from_wiki_link(link['href'])
-			)
-			item.connect('activate', set_pagelink, path)
+			href = HRef.new_from_wiki_link(link['href'])
+			path = self.notebook.pages.resolve_link(self.page, href)
+			item.connect('activate', set_pagelink, path, href.anchor)
 		elif type == 'interwiki':
 			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
 			url = interwiki_link(link['href'])
@@ -6467,8 +6738,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			item.connect_object(
 				'activate', PageView.activate_link, self, link)
 		menu.prepend(item)
-
-		menu.show_all()
 
 	def _checkbox_do_populate_popup(self, menu, buffer, iter):
 		line = iter.get_line()
@@ -7372,7 +7641,7 @@ class InsertImageDialog(FileDialog):
 			return False
 
 		if not image_file_get_dimensions(file.path):
-			ErrorDialog(self, _('File type not supported: %s' % file.get_mimetype())).run()
+			ErrorDialog(self, _('File type not supported: %s') % file.get_mimetype()).run()
 				# T: Error message when trying to insert a not supported file as image
 			return False
 
@@ -7550,13 +7819,15 @@ class EditImageDialog(Dialog):
 			i = src.find('?')
 			src = src[:i]
 		href = image_data.get('href', '')
+		anchor = image_data.get('id', '')
 		self.add_form([
-			('file', 'image', _('Location')), # T: Input in 'edit image' dialog
-			('href', 'link', _('Link to'), path), # T: Input in 'edit image' dialog
-			('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
-			('height', 'int', _('Height'), (0, 1)) # T: Input in 'edit image' dialog
-		],
-			{'file': src, 'href': href}
+				('file', 'image', _('Location')), # T: Input in 'edit image' dialog
+				('href', 'link', _('Link to'), path), # T: Input in 'edit image' dialog
+				('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
+				('height', 'int', _('Height'), (0, 1)), # T: Input in 'edit image' dialog
+				('anchor', 'string', _('Id'))
+			],
+			{'file': src, 'href': href, 'anchor': anchor}
 			# range for width and height are set in set_ranges()
 		)
 		self.form.widgets['file'].set_use_relative_paths(notebook, path)
@@ -7570,8 +7841,8 @@ class EditImageDialog(Dialog):
 
 		reset_button.connect_object('clicked',
 			self.__class__.reset_dimensions, self)
-		#~ self.form.widgets['file'].connect_object('activate',
-			#~ self.__class__.reset_dimensions, self)
+		self.form.widgets['file'].connect_object('changed',
+			self.__class__.do_file_changed, self)
 		self.form.widgets['width'].connect_object('value-changed',
 			self.__class__.do_width_changed, self)
 		self.form.widgets['height'].connect_object('value-changed',
@@ -7611,6 +7882,11 @@ class EditImageDialog(Dialog):
 			self._block = False
 			self._ratio = float(w) / h
 
+	def do_file_changed(self):
+		# Prevent images becoming one pixel wide
+		if self._image_data['width'] is 1:
+			self.reset_dimensions()
+
 	def do_width_changed(self):
 		if hasattr(self, '_block') and self._block:
 			return
@@ -7644,6 +7920,12 @@ class EditImageDialog(Dialog):
 				linkfile = self.form.widgets['href'].get_file()
 				href = self.notebook.relative_filepath(linkfile, self.path) or linkfile.uri
 			attrib['href'] = href
+
+		id = self.form['anchor']
+		if id:
+			attrib['id'] = id
+		else:
+			attrib.pop('id', None)
 
 		iter = self.buffer.get_iter_at_offset(self._iter)
 		bound = iter.copy()

@@ -34,7 +34,7 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
-		('show_count', 'bool', _('Show BackLink count in title'), False),
+		('show_count', 'bool', _('Show BackLink count in title'), True),
 			# T: option for plugin preferences
 		('show_full_paths', 'bool', _('Show full Page Names'), False),
 			# T: option for plugin preferences

@@ -179,6 +179,10 @@ class Dumper(DumperClass):
 
 		return strings
 
+	def dump_anchor(self, tag, attrib, strings=None):
+		name = attrib['name']
+		return ['<a id="%s" class="anchor" />' % name]
+
 	def dump_link(self, tag, attrib, strings=None):
 		href = self.linker.link(attrib['href'])
 		type = link_type(attrib['href'])

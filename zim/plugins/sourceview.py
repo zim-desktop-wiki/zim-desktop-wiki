@@ -19,7 +19,14 @@ except:
 
 try:
 	import gi
-	gi.require_version('GtkSource', '3.0')
+
+	# Allow using GtkSourceView 4.x (requires Gtk 3.24) for systems that no
+	# longer provide 3.x.
+	try:
+		gi.require_version('GtkSource', '3.0')
+	except:
+		gi.require_version('GtkSource', '4')
+
 	from gi.repository import GtkSource
 except:
 	GtkSource = None
@@ -29,7 +36,7 @@ from zim.actions import action
 from zim.config import String, Boolean, ConfigManager
 from zim.formats.html import html_encode
 
-from zim.gui.widgets import Dialog, ScrolledWindow
+from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
 from zim.gui.insertedobjects import TextViewWidget
 
 if GtkSource:
@@ -118,15 +125,19 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 	def __init__(self, plugin, objmap):
 		self._widgets = weakref.WeakSet()
 		self.preferences = plugin.preferences
-		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
+		super().__init__(plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def new_model_interactive(self, parent, notebook, page):
-		lang, linenumbers = InsertCodeBlockDialog(parent).run()
+		id, lang, linenumbers = InsertCodeBlockDialog(parent).run()
 		if lang is None:
 			raise ValueError # dialog cancelled
 		else:
-			attrib = self.parse_attrib({'lang': lang, 'linenumbers': linenumbers})
+			attrib = self.parse_attrib({
+				'id': id,
+				'lang': lang,
+				'linenumbers': linenumbers
+			})
 			return SourceViewBuffer(attrib, '')
 
 	def model_from_data(self, notebook, page, attrib, text):
@@ -175,6 +186,7 @@ else:
 class SourceViewBuffer(_bufferclass):
 
 	def __init__(self, attrib, text):
+		#logger.debug("SourceViewBuffer attrib=%r", attrib)
 		GtkSource.Buffer.__init__(self)
 		self.set_highlight_matching_brackets(True)
 		if attrib['lang']:
@@ -332,16 +344,18 @@ class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
-		self.result = (None, None)
+		self.result = (None, None, None)
+		self.uistate.define(id=String(None))
 		self.uistate.define(lang=String(None))
 		self.uistate.define(line_numbers=Boolean(True))
 
-		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-		hbox.set_spacing(5)
-		label = Gtk.Label(_('Syntax') +':') # T: input label
-		hbox.add(label)
+		grid = Gtk.Grid()
+		grid.set_column_spacing(5)
+		grid.set_row_spacing(5)
 
-		# Setup combobox with autocompletion
+		label = Gtk.Label(_('Syntax') + ':') # T: input label
+		grid.add(label)
+
 		self.combobox = Gtk.ComboBox.new_with_model_and_entry(self.init_combobox_model())
 		self.combobox.set_entry_text_column(0)
 		entry = self.combobox.get_child()
@@ -359,12 +373,18 @@ class InsertCodeBlockDialog(Dialog):
 
 		self.combobox.connect("changed", self.on_combobox_changed)
 
-		hbox.add(self.combobox)
-		self.vbox.add(hbox)
+		grid.attach(self.combobox, 1, 0, 1, 1)
+
+		label = Gtk.Label(_('Id') + ':') # T: input label for object ID
+		grid.attach(label, 0, 1, 1, 1)
+		self.entry = InputEntry()
+		grid.attach(self.entry, 1, 1, 1, 1)
 
 		self.checkbox = Gtk.CheckButton(_('Display line numbers')) # T: input checkbox
 		self.checkbox.set_active(self.uistate['line_numbers'])
-		self.vbox.add(self.checkbox)
+		grid.attach(self.checkbox, 1, 2, 1, 1)
+
+		self.vbox.add(grid)
 
 		# Set ok button as default.
 		self.btn_ok = self.get_widget_for_response(response_id=Gtk.ResponseType.OK)
@@ -406,8 +426,9 @@ class InsertCodeBlockDialog(Dialog):
 	def do_response_ok(self):
 		if self.combobox.get_child().get_text() in LANGUAGES:
 			self.uistate['lang'] = LANGUAGES[self.combobox.get_child().get_text()]
+			self.uistate['id'] = self.entry.get_text()
 			self.uistate['line_numbers'] = self.checkbox.get_active()
-			self.result = (self.uistate['lang'], self.uistate['line_numbers'])
+			self.result = (self.uistate['id'], self.uistate['lang'], self.uistate['line_numbers'])
 			return True
 		else:
 			return False # no syntax selected

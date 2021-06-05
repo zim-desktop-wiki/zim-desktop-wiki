@@ -40,7 +40,14 @@ import locale
 
 try:
 	import gi
-	gi.require_version('GtkSource', '3.0')
+
+	# Allow using GtkSourceView 4.x (requires Gtk 3.24) for systems that no
+	# longer provide 3.x.
+	try:
+		gi.require_version('GtkSource', '3.0')
+	except:
+		gi.require_version('GtkSource', '4')
+
 	from gi.repository import GtkSource
 except:
 	GtkSource = None

@@ -213,14 +213,22 @@ class Dumper(TextDumper):
 		else:
 			return [image]
 
+	def dump_anchor(self, tag, attrib, strings=None):
+		return ("\\label{", attrib['name'], "}")
+
 	def dump_link(self, tag, attrib, strings=None):
+		# TODO: how do you do page links within an exported document
+		#       use \label{} per page start and \ref to link it ??
 		href = self.linker.link(attrib['href'])
-		href = url_encode(href, URL_ENCODE_READABLE)
-		if strings:
-			text = ''.join(strings)
+		if href.startswith('#'):
+			return ['\\ref{%s}' % href.lstrip('#')]
 		else:
-			text = href
-		return ['\\href{%s}{%s}' % (href, text)]
+			href = url_encode(href, URL_ENCODE_READABLE)
+			if strings:
+				text = ''.join(strings)
+			else:
+				text = href
+			return ['\\href{%s}{%s}' % (href, text)]
 
 	def dump_code(self, tag, attrib, strings):
 		# Here we try several possible delimiters for the inline verb

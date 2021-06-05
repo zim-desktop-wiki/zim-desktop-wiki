@@ -593,12 +593,12 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 	def testFloatingLink(self):
 		self.movePage(
 			pre=(
-				{'A': 'test 123\n', 'B': '[[A]]\n'},
+				{'A': 'test 123\n', 'B': '[[A]]\n[[A|page a]]\n[[A#anchor]]\n'},
 				[('B', 'A')]
 			),
 			move=('A', 'C'),
 			post=(
-				{'C': 'test 123\n', 'B': '[[C]]\n'},
+				{'C': 'test 123\n', 'B': '[[C]]\n[[C|page a]]\n[[C#anchor]]\n'},
 				[('B', 'C')]
 			)
 		)
@@ -1065,6 +1065,10 @@ class TestHRefFromWikiLink(tests.TestCase):
 			('Child2:AAA', HREF_REL_FLOATING, 'Child2:AAA', 'Child2:AAA'),
 			('Foo Bar', HREF_REL_FLOATING, 'Foo Bar', 'Foo Bar'),
 			('Foo_Bar', HREF_REL_FLOATING, 'Foo Bar', 'Foo Bar'),
+			('#anchor', HREF_REL_FLOATING, '', '#anchor'),
+			(':Foo#anchor', HREF_REL_ABSOLUTE, 'Foo', ':Foo#anchor'),
+			('+Foo#anchor', HREF_REL_RELATIVE, 'Foo', '+Foo#anchor'),
+			('#anchor', HREF_REL_FLOATING, '', '#anchor'),
 		):
 			href = HRef.new_from_wiki_link(link)
 			self.assertEqual(href.rel, rel)
@@ -1088,6 +1092,7 @@ class TestPage(TestPath):
 <link href='foo:bar'>foo:bar</link>
 <link href='bar'>bar</link>
 <tag name='baz'>@baz</tag>
+<anchor name='bottom'>#bottom</anchor>
 </zim-tree>
 '''		)
 		page = self.generator('Foo')
@@ -1102,6 +1107,11 @@ class TestPage(TestPath):
 		tags = list(page.get_tags())
 		self.assertEqual(tags, [
 			('baz', {'name': 'baz'}),
+		])
+
+		anchors = list(page.get_anchors())
+		self.assertEqual(anchors, [
+			('#bottom', {'name': 'bottom'}),
 		])
 
 		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
@@ -1149,6 +1159,7 @@ class TestPage(TestPath):
 <link href='foo:bar'>foo:bar</link>
 <link href='bar'>bar</link>
 <tag name='baz'>@baz</tag>
+<anchor name='bottom'>#bottom</anchor>
 </zim-tree>
 '''		)
 		page.set_parsetree(tree)

@@ -229,6 +229,20 @@ some <b>bold</b> text
 		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
 		self.assertEqual(newtree.tostring(), wanted)
 
+	def testCopyPageLinkWithAnchorPasteAsParseTree(self):
+		page = self.notebook.get_page(Path('Test:wiki'))
+		Clipboard.set_pagelink(self.notebook, page, 'anchor')
+		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki#anchor">+wiki#anchor</link></zim-tree>'''
+		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
+		self.assertEqual(newtree.tostring(), wanted)
+
+	def testCopyPageLinkWithAnchorAndTextPasteAsParseTree(self):
+		page = self.notebook.get_page(Path('Test:wiki'))
+		Clipboard.set_pagelink(self.notebook, page, 'anchor', 'My anchor')
+		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki#anchor">My anchor</link></zim-tree>'''
+		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
+		self.assertEqual(newtree.tostring(), wanted)
+
 	def testCopyPageLinkPasteAsText(self):
 		page = self.notebook.get_page(Path('Test:wiki'))
 		Clipboard.set_pagelink(self.notebook, page)
@@ -245,7 +259,7 @@ some <b>bold</b> text
 
 	def testCopyPasteParseTreeWithLinkInSamePage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[+Foo]]')
+		page.parse('wiki', '[[+Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -253,13 +267,15 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<link _href="Test:Foo" href="+Foo">+Foo</link>\n'
+			'<link href="+Foo">+Foo</link>\n'
+			'<link href="+Foo">my foo link</link>\n'
+			'<link href="+Foo#anchor">+Foo#anchor</link>\n'
 			'</p></zim-tree>'
 		) # No need to update the link
 
 	def testCopyPasteParseTreeWithLinkInDifferentPage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[+Foo]]')
+		page.parse('wiki', '[[+Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -267,13 +283,15 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<link _href="Test:Foo" href="Test:Foo">Test:Foo</link>\n'
+			'<link href="Test:Foo">Test:Foo</link>\n'
+			'<link href="Test:Foo">my foo link</link>\n'
+			'<link href="Test:Foo#anchor">Test:Foo#anchor</link>\n'
 			'</p></zim-tree>'
 		) # Link updated to point to same target from new location
 
 	def testCopyPasteParseTreeWithLinkInDifferentNotebook(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[+Foo]]')
+		page.parse('wiki', '[[+Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -282,38 +300,40 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<link _href="Test:Foo" href="first_notebook?Test:Foo">first_notebook?Test:Foo</link>\n'
+			'<link href="first_notebook?Test:Foo">first_notebook?Test:Foo</link>\n'
+			'<link href="first_notebook?Test:Foo">my foo link</link>\n'
+			'<link href="first_notebook?Test:Foo#anchor">first_notebook?Test:Foo#anchor</link>\n'
 			'</p></zim-tree>'
 		) # Link updated to point to same target from new location
 
 	def testCopyPasteParseTreeWithFileLinkInSamePage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[./attachment.pdf]]')
+		page.parse('wiki', '[[./attachment.pdf]]\n[[./attachment.pdf|my attachment]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
-		file_uri = page.attachments_folder.file('attachment.pdf').uri
 		newtree = Clipboard.get_parsetree(self.notebook, page)
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<link _href="%s" href="./attachment.pdf">./attachment.pdf</link>\n'
-			'</p></zim-tree>' % file_uri
+			'<link href="./attachment.pdf">./attachment.pdf</link>\n'
+			'<link href="./attachment.pdf">my attachment</link>\n'
+			'</p></zim-tree>'
 		) # No need to update the link
 
 	def testCopyPasteParseTreeWithFileLinkInDifferentPage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[./attachment.pdf]]')
+		page.parse('wiki', '[[./attachment.pdf]]\n[[./attachment.pdf|my attachment]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
-		file_uri = page.attachments_folder.file('attachment.pdf').uri
 		newtree = Clipboard.get_parsetree(self.notebook, Path('OtherPage'))
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<link _href="%s" href="../Test/attachment.pdf">../Test/attachment.pdf</link>\n'
-			'</p></zim-tree>' % file_uri
+			'<link href="../Test/attachment.pdf">../Test/attachment.pdf</link>\n'
+			'<link href="../Test/attachment.pdf">my attachment</link>\n'
+			'</p></zim-tree>'
 		) # Link updated to point to same target from new location
 
 	def testCopyPasteParseTreeWithFileLinkInDifferentNotebook(self):
@@ -321,7 +341,7 @@ some <b>bold</b> text
 		#       should be improved - e.g. path:./file style links like in docuwiki
 
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[./attachment.pdf]]')
+		page.parse('wiki', '[[./attachment.pdf]]\n[[./attachment.pdf|my attachment]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -331,8 +351,9 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<link _href="%s" href="%s">%s</link>\n'
-			'</p></zim-tree>' % (file_uri, file_uri, file_uri)
+			'<link href="%(file_uri)s">%(file_uri)s</link>\n'
+			'<link href="%(file_uri)s">my attachment</link>\n'
+			'</p></zim-tree>' % {'file_uri': file_uri}
 		) # Link updated to point to same target from new location
 
 	def testCopyPasteParseTreeWithImageInSamePage(self):
@@ -341,15 +362,13 @@ some <b>bold</b> text
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
-		file_uri_1 = page.attachments_folder.file('attachment.png').uri
-		file_uri_2 = self.notebook.folder.file('OtherPage/otherimage.png').uri
 		newtree = Clipboard.get_parsetree(self.notebook, page)
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<img _src="%s" src="./attachment.png" />\n'
-			'<img _src="%s" src="../OtherPage/otherimage.png" />\n'
-			'</p></zim-tree>' % (file_uri_1, file_uri_2)
+			'<img src="./attachment.png" />\n'
+			'<img src="../OtherPage/otherimage.png" />\n'
+			'</p></zim-tree>'
 		) # No need to update the images
 
 	def testCopyPasteParseTreeWithImageInDifferentPage(self):
@@ -366,14 +385,13 @@ some <b>bold</b> text
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
-		file_uri_2 = self.notebook.folder.file('OtherPage/otherimage.png').uri
 		newtree = Clipboard.get_parsetree(self.notebook, Path('OtherPage'))
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<img src="./attachment.png" />\n'
-			'<img _src="%s" src="./otherimage.png" />\n'
-			'</p></zim-tree>' % file_uri_2
+			'<img src="./otherimage.png" />\n'
+			'</p></zim-tree>'
 		)
 		# No update on first image, *but* file is copied
 		# Second image is not copied, but src is updates
@@ -414,13 +432,12 @@ some <b>bold</b> text
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
-		file_uri = page.attachments_folder.file('foo.png').uri
 		newtree = Clipboard.get_parsetree(self.notebook, page)
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<object _src="%s" src="./foo.png" type="image+equation" />\n'
-			'</p></zim-tree>' % file_uri
+			'<object src="./foo.png" type="image+equation" />\n'
+			'</p></zim-tree>'
 		) # No need to update the images
 
 	def testCopyPasteParseTreeWithEquationFileInDifferentPage(self):
@@ -483,7 +500,7 @@ some <b>bold</b> text
 	def testCopyPasteParseTreeWithInterwikiLinkInDifferentPage(self):
 		# Does not need update - check it is left alone
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[wp?Foo]]')
+		page.parse('wiki', '[[wp?Foo]]\n[[wp?Foo|wikipedia Foo]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -492,6 +509,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<link href="wp?Foo">wp?Foo</link>\n'
+			'<link href="wp?Foo">wikipedia Foo</link>\n'
 			'</p></zim-tree>'
 		) # Does not need update - check it is left alone
 
@@ -499,7 +517,7 @@ some <b>bold</b> text
 		# Does not need update - check it is left alone
 
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[wp?Foo]]')
+		page.parse('wiki', '[[wp?Foo]]\n[[wp?Foo|wikipedia Foo]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -509,5 +527,6 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<link href="wp?Foo">wp?Foo</link>\n'
+			'<link href="wp?Foo">wikipedia Foo</link>\n'
 			'</p></zim-tree>'
 		) # Does not need update - check it is left alone

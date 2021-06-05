@@ -702,6 +702,15 @@ hmmm
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
+	def testAnchor(self):
+		text = '{{id: test}}'
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><anchor name="test">test</anchor>
+</p></zim-tree>'''
+		tree = self.format.Parser().parse(text)
+		self.assertEqual(tree.tostring(), xml)
+
 
 class TestGFMAutolinks(tests.TestCase):
 	# See https://github.github.com/gfm/#autolinks-extension-

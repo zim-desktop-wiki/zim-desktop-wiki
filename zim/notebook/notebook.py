@@ -29,7 +29,7 @@ from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
 from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
-from .index import IndexNotFoundError, LINK_DIR_BACKWARD
+from .index import IndexNotFoundError, LINK_DIR_BACKWARD, ROOT_PATH
 
 DATA_FORMAT_VERSION = (0, 4)
 
@@ -331,6 +331,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		self.connectto(self.properties, 'changed', self.on_properties_changed)
 		self.on_properties_changed(self.properties)
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.name)
 
 	def _reload_pages_in_cache(self, path):
 		p = path.name
@@ -823,13 +826,18 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			newhref = self.pages.create_link(source, target)
 
+		newhref.anchor = oldhref.anchor
+
 		text = newhref.to_wiki_link()
 		if elt.gettext() == elt.get('href'):
 			elt[:] = [text]
 		elif self.config['Notebook']['short_relative_links'] and elt.gettext() == oldhref.parts()[-1] and len(elt) == 1:
 			# we are using short links and the link text was short link
 			# and there were no sub-node (like bold text) that would be cancelled
-			elt[:] = [newhref.parts()[-1]]  # 'Journal:2020:01:20' -> '20'
+			short = newhref.parts()[-1]
+			if newhref.anchor:
+				short += '#' + newhref.anchor
+			elt[:] = [short]  # 'Journal:2020:01:20' -> '20'
 
 		elt.set('href', text)
 		return elt
