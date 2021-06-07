@@ -7885,8 +7885,12 @@ class EditImageDialog(Dialog):
 
 	def do_file_changed(self):
 		# Prevent images becoming one pixel wide
-		if self._image_data['width'] is 1:
-			self.reset_dimensions()
+		try:
+			if self._image_data['width'] == 1:
+				self.reset_dimensions()
+		except KeyError:
+			# width hasn't been set
+			pass
 
 	def do_width_changed(self):
 		if hasattr(self, '_block') and self._block:
