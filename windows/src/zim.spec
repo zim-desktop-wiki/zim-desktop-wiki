@@ -85,6 +85,9 @@ icon_names.update({
     'pan-end-symbolic',
     'pan-down-symbolic',
     'pan-up-symbolic',
+    'process-working-symbolic',
+    'folder-new',
+    'drive-harddisk',
 })
 
 a = Analysis( # noqa
