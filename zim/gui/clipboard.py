@@ -658,17 +658,17 @@ class PageLinkData(ClipboardData):
 		if targetid == PAGELIST_TARGET_ID:
 			link = "%s?%s" % (self.notebook.interwiki, self.path.name)
 			if self.anchor:
-				link = f"{link}#{self.anchor}"
+				link += "#" + self.anchor
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:
 			link = self.path.name
 			if self.anchor:
-				link = f"{link}#{self.anchor}"
+				link += "#" + self.anchor
 			return link
 		elif targetid == PARSETREE_TARGET_ID:
 			link = self.path.name
 			if self.anchor:
-				link = f"{link}#{self.anchor}"
+				link += "#" + self.anchor
 			text = self.text if self.text else link
 			builder = ParseTreeBuilder()
 			builder.start(FORMATTEDTEXT)
