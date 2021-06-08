@@ -4680,11 +4680,12 @@ class TextView(Gtk.TextView):
 	def click_anchor(self):
 		'''Show popover for anchor under the cursor'''
 		iter, coords = self._get_pointer_location()
-		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
-		if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
-			return False # TODO: add popover wo copy to clipboard and edit the anchor
-		else:
-			return False
+		if iter:
+			pixbuf = self._get_pixbuf_at_pointer(iter, coords)
+			if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
+				return False # TODO: add popover wo copy to clipboard and edit the anchor
+			else:
+				return False
 
 	def get_visual_home_positions(self, iter):
 		'''Get the TextIters for the visuale start of the line
