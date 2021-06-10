@@ -366,11 +366,11 @@ def _link_tree(links, notebook, path):
 
 def _strip_link_and_image_attribs(node):
 	if node.tag == LINK:
-		node.attrib.pop('_href')
+		node.attrib.pop('_href', None)
 		return node
 	elif node.tag == IMAGE \
 		or (node.tag == OBJECT and node.get('type').startswith('image+')):
-			node.attrib.pop('_src')
+			node.attrib.pop('_src', None)
 			return node
 	else:
 		raise VisitorSkip
@@ -401,10 +401,15 @@ def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_pat
 			raise VisitorSkip
 	elif node.tag == IMAGE:
 		# Just copy all images - image links to other notebook don't make sense
-		return _copy_image(notebook, new_path, node)
+		abs_src = node.attrib.pop('_src', None)
+		if abs_src:
+			return _copy_image(notebook, new_path, abs_src, node)
+		else:
+			raise VisitorSkip
 	elif node.tag == OBJECT:
-		if node.get('type').startswith('image+'):
-			return _copy_image_object(notebook, new_path, node)
+		abs_src = node.attrib.pop('_src', None)
+		if abs_src and node.get('type').startswith('image+'):
+			return _copy_image_object(notebook, new_path, abs_src, node)
 		else:
 			raise VisitorSkip
 	else:
@@ -434,31 +439,35 @@ def _replace_links_to_page_and_copy_images(notebook, new_path, node):
 	elif node.tag == IMAGE:
 		# Only copy direct attachments - else the image already was a link
 		# to a file outside of the attachment folder
-		if node.get('src').replace('\\', '/').startswith('./'):
-			return _copy_image(notebook, new_path, node)
-		else:
- 			return _update_image(notebook, new_path, node)
-	elif node.tag == OBJECT:
-		if node.get('type').startswith('image+'):
+		abs_src = node.attrib.pop('_src', None)
+		if abs_src:
 			if node.get('src').replace('\\', '/').startswith('./'):
-				return _copy_image_object(notebook, new_path, node)
+				return _copy_image(notebook, new_path, abs_src, node)
 			else:
-				return _update_image(notebook, new_path, node)
+				return _update_image(notebook, new_path, abs_src, node)
+		else:
+			raise VisitorSkip
+	elif node.tag == OBJECT:
+		abs_src = node.attrib.pop('_src', None)
+		if abs_src and node.get('type').startswith('image+'):
+			if node.get('src').replace('\\', '/').startswith('./'):
+				return _copy_image_object(notebook, new_path, abs_src, node)
+			else:
+				return _update_image(notebook, new_path, abs_src, node)
 		else:
 			raise VisitorSkip
 	else:
 		raise AssertionError('unknown tag')
 
 
-def _update_image(notebook, new_path, node):
-	abs_src = node.attrib.pop('_src')
+def _update_image(notebook, new_path, abs_src, node):
 	new_src = notebook.relative_filepath(File(abs_src), new_path)
 	node.set('src', new_src)
 	return node
 
 
-def _copy_image(notebook, new_path, node):
-	src_file = LocalFile(node.attrib.pop('_src'))
+def _copy_image(notebook, new_path, abs_src, node):
+	src_file = LocalFile(abs_src)
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = folder.new_file(src_file.basename)
 	src_file.copyto(new_file)
@@ -466,8 +475,8 @@ def _copy_image(notebook, new_path, node):
 	return node
 
 
-def _copy_image_object(notebook, new_path, node):
-	src_file = LocalFile(node.attrib.pop('_src'))
+def _copy_image_object(notebook, new_path, abs_src, node):
+	src_file = LocalFile(abs_src)
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = copy_imagegenerator_src_files(src_file, folder)
 	node.set('src', '.' + SEP + new_file.basename)
