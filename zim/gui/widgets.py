@@ -145,13 +145,14 @@ def gtk_window_set_default_icon():
 	else:
 		sizes = ['16x16', '32x32', '48x48']
 		for dir in [XDG_DATA_HOME] + XDG_DATA_DIRS:
+			found = False
 			for size in sizes:
 				file = dir.file('icons/hicolor/%s/apps/zim.png' % size)
 				if file.exists():
-					sizes.remove(size)
+					found = True
 					pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 					iconlist.append(pixbuf)
-			if not sizes:
+			if found: # Use icons from first folder where we find any of them
 				break
 
 	if not iconlist:
