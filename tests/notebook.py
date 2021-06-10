@@ -907,6 +907,21 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 			)
 		)
 
+	def testShortNamesAsTextUpdated(self):
+		# Short link name behavior in this case is *not* depending on notebook
+		# property - should always do the logical thing
+		self.movePage(
+			pre=(
+				{'SomePage:A': 'test 123\n', 'B': '[[SomePage:A|A]]\n'},
+				[('B', 'SomePage:A')]
+			),
+			move=('SomePage:A', 'SomePage:C'),
+			post=(
+				{'SomePage': '', 'SomePage:C': 'test 123\n', 'B': '[[SomePage:C|C]]\n'},
+				[('B', 'SomePage:C')]
+			)
+		)
+
 	def testOtherLinksNotChanged(self):
 		self.movePage(
 			pre=(

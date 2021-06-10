@@ -53,7 +53,7 @@ class NotebookConfig(INIConfigFile):
 			('home', ConfigDefinitionByClass(Path('Home'))),
 			('icon', String(None)), # XXX should be file, but resolves relative
 			('document_root', String(None)), # XXX should be dir, but resolves relative
-			('short_relative_links', Boolean(False)),
+			('short_links', Boolean(False)),
 			('shared', Boolean(True)),
 			('endofline', Choice(endofline, {'dos', 'unix'})),
 			('disable_trash', Boolean(False)),
@@ -831,9 +831,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		text = newhref.to_wiki_link()
 		if elt.gettext() == elt.get('href'):
 			elt[:] = [text]
-		elif self.config['Notebook']['short_relative_links'] and elt.gettext() == oldhref.parts()[-1] and len(elt) == 1:
-			# we are using short links and the link text was short link
-			# and there were no sub-node (like bold text) that would be cancelled
+		elif elt.gettext() == oldhref.parts()[-1] and len(elt) == 1:
+			# We are using short links and the link text was short link
+			# and there were no sub-node (like bold text) that would be cancelled.
+			# Related to 'short_links' but not checking the property here.
 			short = newhref.parts()[-1]
 			if newhref.anchor:
 				short += '#' + newhref.anchor

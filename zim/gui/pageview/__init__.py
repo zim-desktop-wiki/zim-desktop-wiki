@@ -7979,13 +7979,16 @@ class InsertLinkDialog(Dialog):
 
 		Dialog.__init__(self, parent, title, button=_('_Link'))  # T: Dialog button
 
+		self.uistate.setdefault('short_links', pageview.notebook.config['Notebook']['short_links'])
 		self.add_form(
 			[
 				('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
-				('text', 'string', _('Text')) # T: Input in 'insert link' dialog
+				('text', 'string', _('Text')), # T: Input in 'insert link' dialog
+				('short_links', 'bool', _('Prefer short link names for pages')), # T: Input in 'insert link' dialog
 			], {
 				'href': href,
 				'text': text,
+				'short_links': self.uistate['short_links'],
 			},
 			notebook=pageview.notebook
 		)
@@ -7993,10 +7996,9 @@ class InsertLinkDialog(Dialog):
 		# Hook text entry to copy text from link when apropriate
 		self.form.widgets['href'].connect('changed', self.on_href_changed)
 		self.form.widgets['text'].connect('changed', self.on_text_changed)
-		if self._selected_text or (text and text != href):
-			self._copy_text = False
-		else:
-			self._copy_text = True
+		self.form.widgets['short_links'].connect('toggled', self.on_short_link_pref_changed)
+		self._text_for_link = self._link_to_text(href)
+		self._copy_text = self._text_for_link == text and not self._selected_text
 
 	def _get_link_from_buffer(self):
 		# Get link and text from the text buffer
@@ -8032,21 +8034,31 @@ class InsertLinkDialog(Dialog):
 
 	def on_href_changed(self, o):
 		# Check if we can also update text
-		if not self._copy_text:
-			return
-
-		self._copy_text = False # block on_text_changed()
-		self.form['text'] = self.form['href']
-		self._copy_text = True
+		self._text_for_link = self._link_to_text(self.form['href'])
+		if self._copy_text:
+			self.form['text'] = self._text_for_link
+			self._copy_text = True # just to be sure
 
 	def on_text_changed(self, o):
 		# Check if we should stop updating text
-		if not self._copy_text:
-			return
+		self._copy_text = self.form['text'] == self._text_for_link
 
-		self._copy_text = self.form['href'] == self.form['text']
+	def on_short_link_pref_changed(self, o):
+		self.on_href_changed(None)
+
+	def _link_to_text(self, link):
+		if not link:
+			return ''
+		if self.form['short_links'] and link_type(link) == 'page':
+				# Similar to 'short_links' notebook property but using uistate instead
+				href = HRef.new_from_wiki_link(link)
+				return href.parts()[-1]
+		else:
+			return link
 
 	def do_response_ok(self):
+		self.uistate['short_links'] = self.form['short_links']
+
 		href = self.form['href']
 		if not href:
 			self.form.widgets['href'].set_input_valid(False)

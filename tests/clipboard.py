@@ -229,6 +229,14 @@ some <b>bold</b> text
 		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
 		self.assertEqual(newtree.tostring(), wanted)
 
+	def testCopyPageLinkPasteAsParseTreeWithShortName(self):
+		self.notebook.config['Notebook']['short_links'] = True
+		page = self.notebook.get_page(Path('Test:wiki:Foo'))
+		Clipboard.set_pagelink(self.notebook, page)
+		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki:Foo">Foo</link></zim-tree>'''
+		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
+		self.assertEqual(newtree.tostring(), wanted)
+
 	def testCopyPageLinkWithAnchorPasteAsParseTree(self):
 		page = self.notebook.get_page(Path('Test:wiki'))
 		Clipboard.set_pagelink(self.notebook, page, 'anchor')
@@ -275,7 +283,7 @@ some <b>bold</b> text
 
 	def testCopyPasteParseTreeWithLinkInDifferentPage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[+Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]')
+		page.parse('wiki', '[[+Foo]]\n[[+Foo|Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -284,6 +292,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<link href="Test:Foo">Test:Foo</link>\n'
+			'<link href="Test:Foo">Foo</link>\n'
 			'<link href="Test:Foo">my foo link</link>\n'
 			'<link href="Test:Foo#anchor">Test:Foo#anchor</link>\n'
 			'</p></zim-tree>'

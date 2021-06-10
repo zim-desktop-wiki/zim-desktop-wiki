@@ -3515,13 +3515,60 @@ dus bar bazzz baz
 		dialog.destroy() # nothing to test really
 
 	def testInsertLinkDialog(self):
-		# Insert Link dialog
 		pageview = setUpPageView(self.setUpNotebook())
 		dialog = InsertLinkDialog(None, pageview)
-		dialog.form.widgets['href'].set_text('Foo')
+		dialog.form.widgets['href'].set_text('Foo:Bar')
 		dialog.assert_response_ok()
 		buffer = pageview.textview.get_buffer()
-		self.assertEqual(get_text(buffer), 'Foo\n')
+		self.assertEqual(
+			buffer.get_parsetree().tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p><link href="Foo:Bar">Foo:Bar</link>\n'
+			'</p></zim-tree>'
+		)
+
+	def testInsertLinkDialogShortLinkName(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		dialog = InsertLinkDialog(None, pageview)
+		dialog.form.widgets['href'].set_text('Foo:Bar')
+		dialog.form.widgets['short_links'].set_active(True)
+		dialog.assert_response_ok()
+		buffer = pageview.textview.get_buffer()
+		self.assertEqual(
+			buffer.get_parsetree().tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p><link href="Foo:Bar">Bar</link>\n'
+			'</p></zim-tree>'
+		)
+
+	def testInsertLinkDialogUpdateText(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		dialog = InsertLinkDialog(None, pageview)
+		dialog.form.widgets['href'].set_text('Foo:Bar')
+		self.assertEqual(dialog.form.widgets['text'].get_text(), 'Foo:Bar') # Updated automatically
+
+		dialog.form.widgets['text'].set_text('Some text') # Text no longer matches
+		dialog.form.widgets['href'].set_text('Foo:Bar:Baz')
+		self.assertEqual(dialog.form.widgets['text'].get_text(), 'Some text') # Did *not* change
+
+		dialog.form.widgets['text'].set_text('Foo:Bar:Baz') # Now they match again
+		dialog.form.widgets['href'].set_text('Foo:Bar')
+		self.assertEqual(dialog.form.widgets['text'].get_text(), 'Foo:Bar') # Updated automatically
+
+	def testInsertLinkDialogUpdateTextShortLinkName(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		dialog = InsertLinkDialog(None, pageview)
+		dialog.form.widgets['short_links'].set_active(True)
+		dialog.form.widgets['href'].set_text('Foo:Bar')
+		self.assertEqual(dialog.form.widgets['text'].get_text(), 'Bar') # Updated automatically
+
+		dialog.form.widgets['text'].set_text('Some text') # Text no longer matches
+		dialog.form.widgets['href'].set_text('Foo:Bar:Baz')
+		self.assertEqual(dialog.form.widgets['text'].get_text(), 'Some text') # Did *not* change
+
+		dialog.form.widgets['text'].set_text('Baz') # Now they match again
+		dialog.form.widgets['href'].set_text('Foo:Bar')
+		self.assertEqual(dialog.form.widgets['text'].get_text(), 'Bar') # Updated automatically
 
 
 class TestCamelCase(tests.TestCase):

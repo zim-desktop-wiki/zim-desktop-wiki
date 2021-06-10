@@ -347,7 +347,7 @@ def _link_tree(links, notebook, path):
 				href = notebook.pages.create_link(path, target)
 				href.anchor = anchor
 				link = href.to_wiki_link()
-				if notebook.config['Notebook']['short_relative_links']:
+				if notebook.config['Notebook']['short_links']:
 					name = href.parts()[-1]
 					if anchor:
 						name += '#' + anchor
@@ -678,7 +678,15 @@ class PageLinkData(ClipboardData):
 			link = self.path.name
 			if self.anchor:
 				link += "#" + self.anchor
-			text = self.text if self.text else link
+			if self.text:
+				text = self.text
+			elif self.notebook.config['Notebook']['short_links']:
+				href = HRef.new_from_wiki_link(link)
+				text = href.parts()[-1]
+				if self.anchor:
+					text += '#' + self.anchor
+			else:
+				text = link
 			builder = ParseTreeBuilder()
 			builder.start(FORMATTEDTEXT)
 			builder.append(LINK, {'href': link}, text)
