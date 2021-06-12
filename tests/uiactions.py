@@ -928,7 +928,7 @@ class TestUIActionsRealFile(tests.TestCase):
 
 		self.assertIsNone(self.notebook.document_root)
 
-		with tests.LoggingFilter('zim', 'No document root defined'):
+		with tests.LoggingFilter('zim', _('No document root defined for this notebook')):
 			with tests.ApplicationContext():
 				with tests.DialogContext(ErrorDialog):
 					self.uiactions.open_document_root()

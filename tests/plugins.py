@@ -3,6 +3,7 @@
 
 import tests
 
+import builtins
 import os
 
 from zim.plugins import *
@@ -33,7 +34,11 @@ class TestPluginClasses(tests.TestCase):
 		}
 		for name in plugins:
 			#~ print('>>', name)
+			# temporarily remove gettext.gettext definition from builtin namespace
+			old_underscore = builtins.__dict__['_']
+			builtins.__dict__['_'] = lambda x: x
 			klass = PluginManager.get_plugin_class(name)
+			builtins.__dict__['_'] = old_underscore
 
 			# test plugin info
 			for key in ('name', 'description', 'author'):
