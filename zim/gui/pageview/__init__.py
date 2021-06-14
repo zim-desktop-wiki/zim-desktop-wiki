@@ -6934,10 +6934,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	@action(_('Horizontal _Line'), menuhints='insert') # T: Menu item for Insert menu
 	def insert_line(self):
-		'''
-                This function is called from menu action.
-                Insert a line at the cursor position.
-		'''
+		'''Menu action to insert a line at the cursor position'''
 		buffer = self.textview.get_buffer()
 		with buffer.user_action:
 			buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
