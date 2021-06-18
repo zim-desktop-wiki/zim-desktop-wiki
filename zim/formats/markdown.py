@@ -40,6 +40,7 @@ class Dumper(TextDumper):
 		XCHECKED_BOX: '* \u2612',
 		CHECKED_BOX: '* \u2611',
 		MIGRATED_BOX: '* \u25B7',
+		TRANSMIGRATED_BOX: '* \u25C1',
 		BULLET: '*',
 	}
 
