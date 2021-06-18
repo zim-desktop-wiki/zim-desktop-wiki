@@ -36,6 +36,21 @@ def html_encode(text):
 		return ''
 
 
+def html_decode(text):
+	if not text is None:
+		text = text.replace('&amp;', '&')
+		text = text.replace('&lt;',  '<')
+		text = text.replace('&gt;',  '>')
+		return text
+	else:
+		return ''
+
+
+def html_to_text(html):
+	text = re.sub('<.*?>', '', html) # remove html tags
+	return html_decode(text)
+
+
 class Dumper(DumperClass):
 
 	TAGS = {
@@ -90,12 +105,13 @@ class Dumper(DumperClass):
 
 	def dump_h(self, tag, attrib, strings):
 		h = 'h' + str(attrib['level'])
+		id = heading_to_anchor(html_to_text(''.join(strings)))
 		if self._isrtl:
-			start = '<' + h + ' dir=\'rtl\'>'
+			start = '<%s dir=\'rtl\'>' % h
 		else:
-			start = '<' + h + '>'
+			start = '<%s>' % h
 		self._isrtl = None # reset
-		end = '</' + h + '>\n'
+		end = '<a id="%s" class="h_anchor"/></%s>\n' % (id, h)
 		strings.insert(0, start)
 		strings.append(end)
 		return strings

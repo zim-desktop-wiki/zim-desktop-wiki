@@ -20,4 +20,4 @@ class TestPrintToBrowser(tests.TestCase):
 		file = plugin.print_to_file(notebook, page)
 		self.assertTrue(file.exists())
 		content = file.read()
-		self.assertTrue('<h1>Foo</h1>' in content)
+		self.assertTrue('<h1>Foo' in content)
