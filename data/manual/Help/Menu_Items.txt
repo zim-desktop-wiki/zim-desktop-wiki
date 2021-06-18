@@ -9,7 +9,7 @@ Wiki-Format: zim 0.4
 **New Page <Ctrl><N>**
 Prompt for a page name and create a new page.
 
-**New Sub Page**
+**New Sub Page <Shift><Ctrl><N>**
 Prompt for a page name and create a new page as a child of the current page.
 
 **Open Another Notebook <Ctrl><O>**
@@ -43,14 +43,14 @@ Show the [[Export|export dialog]].
 **Print to Browser <Ctrl><P>**
 Export the current page to a temporary file and open it with the browser. This is a work around for the lack of printing support in zim. You can print the page from the browser, so pressing <ctrl><P> twice will print the current page.
 
+Only available if the [[Plugins:Print_to_browser|Print to browser plugin]] is enabled.
+
 **Send To**
 Open a new email with the current page as the email text using your email application.
 
-**Rename Page**
-Prompt for a new name for the current page. Optionally the page heading is also changed on the fly. Links to this page can be updated automatically.
-
-**Move Page**
-Prompts for a new section to store the current page. Alternatively you can move pages by drag and drop in the side pane. Moving a page also moves all of it's child pages as well as any [[Help:Attachments|attachments]]. Links to this page can be updated automatically.
+**Rename or Move Page <F2>**
+Prompt for a new name and location of the current page. Optionally the page heading is also changed on the fly. Links to this page can be updated automatically.
+Alternatively you can move pages by drag and drop in the side pane. Moving a page also moves all of its child pages as well as any [[Help:Attachments|attachments]].
 
 **Delete Page**
 Delete the current page and all of it's child pages and [[Help:Attachments|attachments]]. Unless the current page has been stored in a saved version this can not be undone.
@@ -85,11 +85,20 @@ Paste content from the clipboard.
 **Delete**
 Delete selection or next character in the editor.
 
+**Checkbox**
+Opens a submenu for changing checkbox states.
+
+**Un-check Checkbox**
+Un-check a [[Check Boxes|checkbox]].
+
 **Toggle Checkbox 'V' <F12>**
 Toggle a [[Check Boxes|checkbox]] using the "OK" checkmark.
 
 **Toggle Checkbox 'X' <Shift><F12>**
 Toggle a [[Check Boxes|checkbox]] using the "NOK" checkmark.
+
+**Toggle Checkbox '>'**
+Toggle a [[Check Boxes|checkbox]] using the "Moved" checkmark.
 
 **Edit Link or Object <Ctrl><E>**
 Prompt a dialog to edit the properties of a link or other object. This also shows the property editor for an image when the cursor is next to an image.
@@ -97,10 +106,16 @@ Prompt a dialog to edit the properties of a link or other object. This also show
 **Remove Link**
 Remove a link at the cursor.
 
+**Copy Line <Shift><Ctrl><C>**
+Copy the whole line an put it on the clipboard.
+
 **Copy Location <Shift><Ctrl><L>**
 Copy the page name for the current page on the clipboard.
 
-**Preferences**
+**Templates**
+Opens the Template Editor Dialog with list of available templates to view and/or edit them.
+
+**Preferences <Ctrl><,>**
 Show the [[Preferences|preferences dialog]].
 
 
@@ -114,7 +129,7 @@ Toggle the visibility of the side pane(s).
 
 You can also use the <Alt><Space> (or <Ctrl><Space>) [[Key Bindings|keybinding]] to switch focus between the editor and the side pane. Even if the side pane is hidden, this key binding will show it temporarily.
 
-**All Side Panes <Ctrl><F9>**
+**All Panes <Ctrl><F9>**
 This action will show all side panes that are being used.
 
 **Pathbar**
@@ -143,6 +158,15 @@ Show the calendar dialog.
 
 Only available if the [[Plugins:Journal|Journal plugin]] is enabled.
 
+**Zoom In <Ctrl><><>**
+Increase the font size by 1 point.
+
+**Zoom Out <Ctrl><->**
+Decrease the font size by 1 point.
+
+**Normal Size <Ctrl><0>**
+Restore the original font size.
+
 **Reload <Ctrl><R>**
 Reload the current page. This means the page is saved and then reloaded from source. Any wiki formatting in the page that is not yet rendered will be rendered after reloading.
 
@@ -152,8 +176,23 @@ Reload the current page. This means the page is saved and then reloaded from sou
 **Date and Time <Ctrl><D>**
 Insert a date or a date and timestamp. If the [[Plugins:Journal|Journal plugin]] is enabled the date can be linked automatically to the journal page.
 
+**Bullet List**
+Insert a bullet list.
+
+**Numbered List**
+Insert a numbered list.
+
+**Checkbox List**
+Insert a list of checkboxes.
+
+**Horizontal Line**
+Insert a horizontal line.
+
 **Image**
 Insert an image.
+
+**Attachment**
+Attach a file to the current page. Will prompt for a file, the file will then be copied to the notebook folder and a link inserted in the current page.
 
 **Screenshot**
 Prompt with options to take a screenshot and insert it as an image.
@@ -173,8 +212,11 @@ Only available if the [[Plugins:Diagram Editor|Diagram Editor plugin]] is enable
 **Text From File**
 Prompt for a text file and insert the text from that file into the current page.
 
-**New Attachment (submenu)**
+**New Attachment**
 This submenu shows a number of file templates for new attachments, see [[Attachments]] for details.
+
+**File Templates**
+Open a dialog to choose a file template. See [[Attachments]] for details
 
 **Link <Ctrl><L>**
 Prompt for a link and insert it in the current page. Selected text will be used as default value.
@@ -189,6 +231,11 @@ Prompt for a link and insert it in the current page. Selected text will be used 
 **Heading 5 <Ctrl><5>**
 Toggle formatting used while typing. Selected text will also be formatted. If the "auto select" [[Preferences|preference]] is set toggling the will automatically select the current line and turn it in a heading.
 
+**Bullet List**
+**Numbered List**
+**Checkbox List**
+Format selected text as list.
+
 **Strong <Ctrl><B>**
 **Emphasis <Ctrl><I>**
 **Mark <Ctrl><U>**
@@ -196,7 +243,11 @@ Toggle formatting used while typing. Selected text will also be formatted. If th
 **Verbatim <Ctrl><T>**
 Toggle formatting used while typing. Selected text will also be formatted. If the "auto select" [[Preferences|preference]] is set toggling the format while the cursor is in the middle of a word will automatically select the word and format it.
 
-**Clear Formatting <Ctrl><0>**
+**Subscript <Shift><Ctrl><B>**
+**Superscript <Shift><Ctrl><P>**
+Format selected text as subscript or superscript, respectively. If the "auto select" [[Preferences|preference]] is set it will and the cursor is in the middle of a word it will automatically select the word and format it.
+
+**Clear Formatting <Ctrl><9>**
 Remove all formatting from the selected text.
 
 
@@ -210,22 +261,27 @@ Remove all formatting from the selected text.
 **Search Backlinks**
 Search for pages linking this page. Uses the standard Search dialog.
 
+**Recent Changes**
+Open a list with recently changed pages and the time stamps of the last modification.
 
 ===== Tools =====
+
+**Word Count**
+Show number of lines, words, characters if current page, paragraph and selection.
 
 **Check Spelling <F7>**
 Turn on spell checking.
 
 Only available if the [[Plugins:Spell Checker|Spell Checker plugin]] is enabled.
 
-**Attach File**
-Attach a file to the current page. Will prompt for a file, the file will then be copied to the notebook folder and a link inserted in the current page.
-
 **Open Attachments Folder**
 Open the folder with [[Help:Attachments|attachments]] for the current page in a file browser. Typically this will be a folder below the notebook folder.
 
 **Open Notebook Folder**
 Open the folder for the current notebook in a file browser.
+
+**View debug log**
+Open ''zim.log'' in the external editor (see [[Preferences]] to set the text editor).
 
 **Cleanup Attachments**
 Starts a dialog to search for orphaned files.  When an [[Help:Attachments|attachment]] link is removed, the file still exists in the attachment directory. From time to time it may be useful do find and delete this "orphaned" files.
@@ -239,6 +295,11 @@ Open the document root folder in a file browser.
 **Update Index**
 Double check the page index against the folder contents of the notebook. This can be used when the index is by accident out of sync with the notebook contents.
 
+**Edit Source**
+Open the current page in the external editor to directly edit its source code.
+
+**Custom Tools**
+Open the [[Custom Tools]] dialog.
 
 ===== Go =====
 
@@ -254,10 +315,10 @@ Go to the parent page.
 **Child <Alt><Down>**
 Go to a child page. If there is a recent child page in the history that page will opened, otherwise the first child in the index is opened.
 
-**Next in Index <Alt><PgDn>**
+**Next in Index <Alt><Page Down>**
 Go to the next page in the index. This traverses all children of pages recursively and only goes to the next page on the same level after the last child.
 
-**Previous in Index <Alt><PgUp>**
+**Previous in Index <Alt><Page Up>**
 Go to the next page in the index. This traverses all children of pages recursively and only goes to the next page on the same level after the last child.
 
 **Today <Alt><D>**
@@ -267,7 +328,7 @@ Only available if the [[Plugins:Journal|Journal Plugin]] is enabled.
 **Home <Alt><Home>**
 Go to the home page of this notebook. You can change the home page in the [[Properties|properties dialog]].
 
-**Jump to <Ctrl><J>**
+**Jump To <Ctrl><J>**
 Prompt for a page name and jump to that page. The page name is resolved relative to the current page. You can also use this to open pages that do not yet exist. In contrast to "New Page" opening a page that does not exist will not directly create the page, it will only be saved after you edit it.
 
 
