@@ -183,7 +183,7 @@ class UIActions(object):
 		)
 		_callback(self.widget, url)
 
-	@action(_('_Rename or move Page...'), accelerator='F2', menuhints='notebook:edit') # T: Menu item
+	@action(_('_Rename or Move Page...'), accelerator='F2', menuhints='notebook:edit') # T: Menu item
 	def move_page(self, path=None):
 		'''Menu action to show the L{MovePageDialog}
 		@param path: a L{Path} object, or C{None} to move to current

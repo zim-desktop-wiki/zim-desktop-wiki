@@ -802,7 +802,7 @@ class MainWindow(WindowBaseMixin, Window):
 				child = self.notebook.pages.get_next(path)
 				self.open_page(child)
 
-	@action(_('_Previous in index'), accelerator='<alt>Page_Up') # T: Menu item
+	@action(_('_Previous in Index'), accelerator='<alt>Page_Up') # T: Menu item
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
 		@returns: C{True} if successfull
@@ -811,7 +811,7 @@ class MainWindow(WindowBaseMixin, Window):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Next in index'), accelerator='<alt>Page_Down') # T: Menu item
+	@action(_('_Next in Index'), accelerator='<alt>Page_Down') # T: Menu item
 	def open_page_next(self):
 		'''Menu action to open the next page from the index
 		@returns: C{True} if successfull

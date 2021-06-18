@@ -1,15 +1,15 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-
+from gi.repository.Gtk import ImageMenuItem
 
 import tests
 
+from zim.fs import File
 from zim.notebook import Path
 from zim.plugins import PluginManager
 
 from zim.gui.mainwindow import *
-
 
 is_sensitive = lambda w: w.get_property('sensitive')
 
@@ -255,3 +255,34 @@ class TestSavingPages(tests.TestCase):
 		self.assertTrue(self.mainwindow.page.modified)
 		self.mainwindow.destroy()
 		self.assertFalse(self.mainwindow.page.modified)
+
+
+class TestMenuDocs(tests.TestCase):
+
+	def setUp(self):
+		self.mainwindow = setUpMainWindow(self.setUpNotebook())
+		self.manual = File('data/manual/Help/Menu_Items.txt').read()
+
+	def testAllMenuItemsAreDocumented(self):
+		def menuitems(parent, level=0):
+			for mi in parent.get_children():
+				if isinstance(mi, ImageMenuItem):
+					yield mi, level
+				sm = mi.get_submenu()
+				if sm:
+					for mi_sm in menuitems(sm, level+1):
+						yield mi_sm
+
+		for menuitem,level in menuitems(self.mainwindow.menubar):
+			label = menuitem.get_label().replace('_','').rstrip('.')
+			accel_path = menuitem.get_accel_path()
+			accel_label = Gtk.accelerator_get_label(
+				Gtk.AccelMap().lookup_entry(accel_path).key.accel_key,
+				Gtk.AccelMap().lookup_entry(accel_path).key.accel_mods)
+			if accel_label:
+				label += ' <' + accel_label.replace('+', '><') + '>'
+			if level:
+				label = '**' + label + '**'
+			else:
+				label = '===== ' + label + ' ====='
+			self.assertTrue(label in self.manual, 'Menu item "{}" not documented'.format(label))
