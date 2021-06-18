@@ -129,7 +129,7 @@ def natural_sort_key(string, numeric_padding=5):
 	@returns: string transformed to sorting key
 	'''
 	templ = '%0' + str(numeric_padding) + 'i'
-	string.strip()
+	string = unicodedata.normalize('NFC', string.strip())
 	string = _num_re.sub(lambda m: templ % int(m.group()), string)
 	string = string.lower() # sort case insensitive
 

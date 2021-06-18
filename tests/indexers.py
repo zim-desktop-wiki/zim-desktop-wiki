@@ -490,6 +490,61 @@ class TestLinksIndexer(tests.TestCase):
 		self.assertEqual(rows, [])
 
 
+class TestUnicodeRepresentationAlternatives(tests.TestCase):
+
+	# Write "Glück" as either
+	#    "Gl\u00fcck" using 'LATIN SMALL LETTER U WITH DIAERESIS' (U+00FC)
+	# or "GLu\u0308ck" using 'COMBINING DIAERESIS' (U+0308)
+	#
+	# Both are valid unicode and should be recognized as the same page.
+	# Gtk input methods seem to prefer single character
+	# Specifically Mac OS X seems to prefer combination character for filesystem
+
+	def testNotebook(self):
+		self._test_notebook("Gl\u00fcck", "GLu\u0308ck")
+		self._test_notebook("GLu\u0308ck", "Gl\u00fcck")
+
+	def _test_notebook(self, file_rep, link_rep):
+		# Create a notebook with different unicode representations for
+		# the page and the link name and check they get linked correctly
+
+		notebook = self.setUpNotebook(content={
+			'page A': 'Link [[%s]]' % link_rep,
+			'page B': 'Link [[%s]]' % file_rep,
+			file_rep: 'Test 123'
+		})
+
+		# Now check both page a and page b link to "file_rep", not placeholder
+		links_a = list(notebook.links.list_links(Path('page A')))
+		links_b = list(notebook.links.list_links(Path('page B')))
+		self.assertEqual(len(links_a), 1)
+		self.assertEqual(links_a[0].target, Path(file_rep))
+		self.assertEqual(len(links_b), 1)
+		self.assertEqual(links_b[0].target, Path(file_rep))
+
+	def testPlaceHolderFirst(self):
+		self._test_placeholder_first("Gl\u00fcck", "GLu\u0308ck")
+		self._test_placeholder_first("GLu\u0308ck", "Gl\u00fcck")
+
+	def _test_placeholder_first(self, file_rep, link_rep):
+		# First create a placeholder, then test placeholder is updated correctly
+		# when page is created
+		notebook = self.setUpNotebook(content={
+			'page A': 'Link [[%s]]' % link_rep,
+		})
+		links_a = list(notebook.links.list_links(Path('page A')))
+		self.assertEqual(len(links_a), 1)
+		self.assertEqual(links_a[0].target, Path(link_rep))
+
+		page = notebook.get_page(Path(file_rep))
+		page.parse('wiki', 'test 123')
+		notebook.store_page(page)
+
+		links_a = list(notebook.links.list_links(Path('page A')))
+		self.assertEqual(len(links_a), 1)
+		self.assertEqual(links_a[0].target, Path(file_rep))
+
+
 class TestTagsIndexer(tests.TestCase):
 
 	PAGES = (
