@@ -64,6 +64,8 @@ This plugin adds the page index pane to the main window.
 			# T: preferences option
 		('autocollapse', 'bool', _('Automatically collapse sections on close page'), True),
 			# T: preferences option
+		('use_hscroll', 'bool', _('Use horizontal scrollbar'), False),
+			# T: preferences option
 	)
 
 
@@ -89,6 +91,13 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 
 		# self.pageindex.treeview.connect('insert-link',
 		# 	lambda v, p: self.pageview.insert_links([p]))
+
+		self.on_preferences_changed(self.plugin.preferences)
+		self.plugin.preferences.connect('changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
+		self.treeview.set_use_ellipsize(not preferences['use_hscroll'])
+			# To use horizontal scrolling, turn off ellipsize
 
 	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
@@ -388,7 +397,7 @@ class PageTreeView(BrowserTreeView):
 		self.append_column(column)
 
 		cr1 = Gtk.CellRendererText()
-		cr1.set_property('ellipsize', Pango.EllipsizeMode.END)
+		self._cr1 = cr1
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=NAME_COL,
 			style=STYLE_COL, sensitive=EXISTS_COL, weight=WEIGHT_COL)
@@ -416,6 +425,13 @@ class PageTreeView(BrowserTreeView):
 
 		if model:
 			self.set_model(model)
+
+	def set_use_ellipsize(self, use_ellipsize):
+		'''Set whether to use ellipsize ("...") for page names that are longer
+		than the window size. If disabled the horizontal scrollbar will take over
+		'''
+		value = Pango.EllipsizeMode.END if use_ellipsize else Pango.EllipsizeMode.NONE
+		self._cr1.set_property('ellipsize', value)
 
 	def disconnect_index(self):
 		'''Stop the widget from listening to the index. Used e.g. to

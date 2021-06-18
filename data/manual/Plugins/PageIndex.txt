@@ -18,6 +18,11 @@ sections that are automatically expanded are also collapsed again on moving
 away from the page. It does not affect sections that where expanded manually
 by clicking on the expand arrow.
 
+The option **Use horizontal scrollbar** sets the preference whether to use
+horizontal scrolling or not. Without horizontal scrollbar long page names get
+shortened by ellipsis ("..."). When you change this option, you may need to
+restart Zim to see the correct rendering.
+
 ===== Style =====
 
 This plugin uses a widget name to allow CSS styling for the floating widget:
