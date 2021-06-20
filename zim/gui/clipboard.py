@@ -154,7 +154,10 @@ def deserialize_parse_tree(register_buf, content_buf, iter, data, length, create
 def deserialize_urilist(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	notebook, path = user_data
 	links = unpack_urilist(data)
-	tree = _link_tree(links, notebook, path)
+	linkDicts = {}
+	for k in links:
+		linkDicts[k] = {}
+	tree = _link_tree(linkDicts, notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
@@ -190,8 +193,8 @@ def deserialize_image(register_buf, content_buf, iter, data, length, create_tags
 	FS.emit('path-created', file) # notify version control
 
 	# and insert it in the page
-	links = [file.uri]
-	tree = _link_tree(links, notebook, path)
+	linkDicts = {file.uri: {}}
+	tree = _link_tree(linkDicts, notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
@@ -250,7 +253,10 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 	elif targetname == PAGELIST_TARGET_NAME \
 	or targetname in URI_TARGET_NAMES:
 		links = selectiondata.get_uris()
-		return _link_tree(links, notebook, path)
+		linkDicts = {}
+		for k in links:
+			linkDicts[k] = {}
+		return _link_tree(linkDicts, notebook, path)
 	elif targetname in TEXT_TARGET_NAMES:
 		# plain text parser should highlight urls etc.
 		# FIXME some apps drop text/uri-list as a text/plain mimetype
@@ -298,8 +304,12 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 		pixbuf.savev(file.path, format, [], [])
 		FS.emit('path-created', file) # notify version control
 
-		links = [file.uri]
-		return _link_tree(links, notebook, path)
+		maxwidth = 1024   # TODO: user should be able to configure this setting
+		attrib = {}
+		if pixbuf.get_width() > maxwidth:
+			attrib = {"width": maxwidth}
+		linkDicts = {file.uri: attrib}
+		return _link_tree(linkDicts, notebook, path)
 	else:
 		return None
 
@@ -310,11 +320,16 @@ def _link_tree(links, notebook, path):
 	#~ print('NOTEBOOK and PATH:', notebook, path)
 	builder = ParseTreeBuilder()
 	builder.start(FORMATTEDTEXT)
-	for i in range(len(links)):
-		if i > 0:
+	isFirst = True
+	for link, attribs in links.items():
+		if not isFirst:
 			builder.text(' ')
+		isFirst = False
 
-		link = links[i]
+		attrib = {}
+		for k, v in attribs.items():
+			attrib[k] = v
+
 		type = link_type(link)
 		isimage = False
 		if type == 'interwiki':
@@ -333,10 +348,12 @@ def _link_tree(links, notebook, path):
 
 		if isimage:
 			src = notebook.relative_filepath(file, path) or file.uri
-			builder.append(IMAGE, {'src': src})
+			attrib['src'] = src
+			builder.append(IMAGE, attrib)
 		elif link.startswith('@'):
 			# FIXME - is this ever used ??
-			builder.append(TAG, {'name': links[i][1:]}, links[i])
+			attrib['name'] = link[1:]
+			builder.append(TAG, attrib, link)
 		else:
 			name = None
 			if type == 'page':
@@ -355,7 +372,8 @@ def _link_tree(links, notebook, path):
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
 
-			builder.append(LINK, {'href': link}, name or link)
+			attrib['href'] = link
+			builder.append(LINK, attrib, name or link)
 
 	builder.end(FORMATTEDTEXT)
 	tree = builder.get_parsetree()
@@ -579,7 +597,8 @@ class InterWikiLinkData(UriData):
 
 	def get_data_as(self, targetid):
 		if targetid == PARSETREE_TARGET_ID:
-			parsetree = _link_tree((self.interwiki_href,), None, None)
+			linkDicts = {self.interwiki_href: {}}
+			parsetree = _link_tree(linkDicts, None, None)
 			return parsetree.tostring()
 		else:
 			return UriData.get_data_as(self, targetid)
