@@ -14,16 +14,13 @@ from gi.repository import GdkPixbuf
 
 import logging
 
-from functools import partial
-
 from zim.fs import File, Dir, FS
-from zim.newfs import LocalFolder, LocalFile, SEP
-from zim.notebook import Path, HRef
+from zim.newfs import LocalFolder
+from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
-	FORMATTEDTEXT, IMAGE, LINK, TAG, OBJECT, VisitorSkip
+	FORMATTEDTEXT, IMAGE, LINK
 from zim.export.linker import StaticExportLinker
-from zim.plugins.base.imagegenerator import copy_imagegenerator_src_files
 
 
 logger = logging.getLogger('zim.gui.clipboard')
@@ -34,6 +31,11 @@ logger = logging.getLogger('zim.gui.clipboard')
 PARSETREE_TARGET_ID = 1
 PARSETREE_TARGET_NAME = 'text/x-zim-parsetree'
 PARSETREE_TARGET = (PARSETREE_TARGET_NAME, 0, PARSETREE_TARGET_ID)
+
+INTERNAL_PAGELIST_TARGET_ID = 2
+INTERNAL_PAGELIST_TARGET_NAME = 'text/x-zim-page-list-internal'
+INTERNAL_PAGELIST_TARGET = \
+	(INTERNAL_PAGELIST_TARGET_NAME, Gtk.TargetFlags.SAME_APP, INTERNAL_PAGELIST_TARGET_ID)
 
 PAGELIST_TARGET_ID = 3
 PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
@@ -93,8 +95,10 @@ TEXT_TARGETS = tuple(
 TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
 
 # All targets that we can convert to a parsetree, in order of choice
-PARSETREE_ACCEPT_TARGETS = (PARSETREE_TARGET, PAGELIST_TARGET) \
-	+ IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
+PARSETREE_ACCEPT_TARGETS = (
+        PARSETREE_TARGET,
+        INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
+) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print('ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES)
 
@@ -134,7 +138,7 @@ def unpack_urilist(text):
 def textbuffer_register_serialize_formats(buffer, notebook, page):
 	buffer.register_serialize_format('text/x-zim-parsetree', serialize_parse_tree)
 	buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
-	for name in (PAGELIST_TARGET_NAME,) + URI_TARGET_NAMES:
+	for name in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) + URI_TARGET_NAMES:
 		buffer.register_deserialize_format(name, deserialize_urilist, (notebook, page))
 	for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
 		buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
@@ -154,7 +158,10 @@ def deserialize_parse_tree(register_buf, content_buf, iter, data, length, create
 def deserialize_urilist(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	notebook, path = user_data
 	links = unpack_urilist(data)
-	tree = _link_tree(links, notebook, path)
+	linkDicts = {}
+	for k in links:
+		linkDicts[k] = {}
+	tree = _link_tree(linkDicts, notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
@@ -190,13 +197,13 @@ def deserialize_image(register_buf, content_buf, iter, data, length, create_tags
 	FS.emit('path-created', file) # notify version control
 
 	# and insert it in the page
-	links = [file.uri]
-	tree = _link_tree(links, notebook, path)
+	linkDicts = {file.uri: {}}
+	tree = _link_tree(linkDicts, notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
 
-def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format='plain'):
+def parsetree_from_selectiondata(selectiondata, notebook=None, path=None, text_format='plain'):
 	'''Function to get a parsetree based on the selectiondata contents
 	if at all possible. Used by both copy-paste and drag-and-drop
 	methods.
@@ -205,12 +212,9 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 	links relative to the page which is the target for the pasting or
 	drop operation.
 
-	NOTE: this method can have a side affect where files are placed in the
-	attachment folder of the page.
-
-		- For image data, a new image file is created
-		- For parsetree data containing inline images, the image files are
-	  	  copied to the attachment folder
+	For image data, the parameters notebook and page are used
+	to save the image to the correct attachment folder and return a
+	parsetree with the correct image link.
 
 	@param selectiondata: a C{Gtk.SelectionData} object
 	@param notebook: a L{Notebook} object
@@ -223,34 +227,18 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 
 	@returns: a L{ParseTree} or C{None}
 	'''
+	# TODO: check relative linking for all parsetrees !!!
+
 	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
-		parsetree = ParseTree().fromstring(selectiondata.get_data())
-		src_notebook = parsetree._pop_root_attrib('notebook')
-		src_page = parsetree._pop_root_attrib('page')
-		if src_notebook and src_notebook != notebook.interwiki:
-			# Update for cross notebook link
-			parsetree.replace(
-				(LINK, IMAGE, OBJECT),
-				partial(_replace_links_to_interwiki_and_copy_images, src_notebook, notebook, path)
-			)
-		elif src_page and path and src_page != path.name:
-			# Update to new page
-			parsetree.replace(
-				(LINK, IMAGE, OBJECT),
-				partial(_replace_links_to_page_and_copy_images, notebook, path)
-			)
-		else:
-			# Leave links alone, remove "_href" attribs
-			parsetree.replace(
-				(LINK, IMAGE, OBJECT),
-				_strip_link_and_image_attribs
-			)
-		return parsetree
-	elif targetname == PAGELIST_TARGET_NAME \
+		return ParseTree().fromstring(selectiondata.get_data())
+	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
 		links = selectiondata.get_uris()
-		return _link_tree(links, notebook, path)
+		linkDicts = {}
+		for k in links:
+			linkDicts[k] = {}
+		return _link_tree(linkDicts, notebook, path)
 	elif targetname in TEXT_TARGET_NAMES:
 		# plain text parser should highlight urls etc.
 		# FIXME some apps drop text/uri-list as a text/plain mimetype
@@ -298,31 +286,35 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 		pixbuf.savev(file.path, format, [], [])
 		FS.emit('path-created', file) # notify version control
 
-		links = [file.uri]
-		return _link_tree(links, notebook, path)
+		maxwidth = 1024   # TODO: user should be able to configure this setting
+		attrib = {}
+		if pixbuf.get_width() > maxwidth:
+			attrib = {"width": maxwidth}
+		linkDicts = {file.uri: attrib}
+		return _link_tree(linkDicts, notebook, path)
 	else:
 		return None
 
 
 def _link_tree(links, notebook, path):
-	# Convert a list of links (of any type) into a parsetree
+	# Convert a dict of links (of any type) into a parsetree
 	#~ print('LINKS: ', links)
 	#~ print('NOTEBOOK and PATH:', notebook, path)
 	builder = ParseTreeBuilder()
 	builder.start(FORMATTEDTEXT)
-	for i in range(len(links)):
-		if i > 0:
+	isFirst = True
+	for link, attribs in links.items():
+		if not isFirst:
 			builder.text(' ')
+		isFirst = False
 
-		link = links[i]
+		attrib = {}
+		for k, v in attribs.items():
+			attrib[k] = v
+
 		type = link_type(link)
 		isimage = False
-		if type == 'interwiki':
-			prefix = notebook.interwiki + '?'
-			if link.startswith(prefix):
-				link = link[len(prefix):]
-				type = link_type(link)
-		elif type == 'file':
+		if type == 'file':
 			try:
 				file = File(link)
 				isimage = file.isimage()
@@ -333,154 +325,29 @@ def _link_tree(links, notebook, path):
 
 		if isimage:
 			src = notebook.relative_filepath(file, path) or file.uri
-			builder.append(IMAGE, {'src': src})
+			attrib['src'] = src
+			builder.append(IMAGE, attrib)
 		elif link.startswith('@'):
 			# FIXME - is this ever used ??
-			builder.append(TAG, {'name': links[i][1:]}, links[i])
+			attrib['name'] = link[1:]
+			builder.append(TAG, attrib, link)
 		else:
-			name = None
 			if type == 'page':
-				anchor = None
-				if '#' in link:
-					link, anchor = link.split('#', 1)
 				target = Path(Path.makeValidPageName(link)) # Assume links are always absolute
 				href = notebook.pages.create_link(path, target)
-				href.anchor = anchor
 				link = href.to_wiki_link()
-				if notebook.config['Notebook']['short_links']:
-					name = href.parts()[-1]
-					if anchor:
-						name += '#' + anchor
 			elif type == 'file':
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
 
-			builder.append(LINK, {'href': link}, name or link)
+			attrib['href'] = link
+			builder.append(LINK, attrib, link)
 
 	builder.end(FORMATTEDTEXT)
 	tree = builder.get_parsetree()
 	tree.resolve_images(notebook, path)
 	tree.decode_urls()
 	return tree
-
-
-def _strip_link_and_image_attribs(node):
-	if node.tag == LINK:
-		node.attrib.pop('_href', None)
-		return node
-	elif node.tag == IMAGE \
-		or (node.tag == OBJECT and node.get('type').startswith('image+')):
-			node.attrib.pop('_src', None)
-			return node
-	else:
-		raise VisitorSkip
-
-
-def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_path, node):
-	if node.tag == LINK:
-		abs_href = node.attrib.pop('_href', None)
-		if abs_href:
-			my_type = link_type(abs_href)
-			if my_type == 'page':
-				oldhref = HRef.new_from_wiki_link(node.get('href')) # *not* abs_href
-				new_href = src_interwiki + '?' + abs_href
-				new_href += '#' + oldhref.anchor if oldhref.anchor else ''
-			elif my_type == 'file':
-				# NOTE: no proper syntax for this type of link - just abs file link
-				#       should be improved - e.g. path:./file style links like in docuwiki
-				new_href = abs_href
-			else:
-				logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
-				raise VisitorSkip
-
-			if node.gettext() == node.get('href'): # *not* abs_href
-				node[:] = [new_href]
-			node.set('href', new_href)
-			return node
-		else:
-			raise VisitorSkip
-	elif node.tag == IMAGE:
-		# Just copy all images - image links to other notebook don't make sense
-		abs_src = node.attrib.pop('_src', None)
-		if abs_src:
-			return _copy_image(notebook, new_path, abs_src, node)
-		else:
-			raise VisitorSkip
-	elif node.tag == OBJECT:
-		abs_src = node.attrib.pop('_src', None)
-		if abs_src and node.get('type').startswith('image+'):
-			return _copy_image_object(notebook, new_path, abs_src, node)
-		else:
-			raise VisitorSkip
-	else:
-		raise AssertionError('unknown tag')
-
-
-def _replace_links_to_page_and_copy_images(notebook, new_path, node):
-	if node.tag == LINK:
-		abs_href = node.attrib.pop('_href', None)
-		if abs_href:
-			my_type = link_type(abs_href)
-			if my_type == 'page':
-				target = Path(abs_href)
-				oldhref = HRef.new_from_wiki_link(node.get('href')) # *not* abs_href
-				return notebook._update_link_tag(node, new_path, target, oldhref)
-			elif my_type == 'file':
-				new_href = notebook.relative_filepath(File(abs_href), new_path)
-				if node.gettext() == node.get('href'): # *not* abs_href
-					node[:] = [new_href]
-				node.set('href', new_href)
-				return node
-			else:
-				logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
-				raise VisitorSkip
-		else:
-			raise VisitorSkip
-	elif node.tag == IMAGE:
-		# Only copy direct attachments - else the image already was a link
-		# to a file outside of the attachment folder
-		abs_src = node.attrib.pop('_src', None)
-		if abs_src:
-			if node.get('src').replace('\\', '/').startswith('./'):
-				return _copy_image(notebook, new_path, abs_src, node)
-			else:
-				return _update_image(notebook, new_path, abs_src, node)
-		else:
-			raise VisitorSkip
-	elif node.tag == OBJECT:
-		abs_src = node.attrib.pop('_src', None)
-		if abs_src and node.get('type').startswith('image+'):
-			if node.get('src').replace('\\', '/').startswith('./'):
-				return _copy_image_object(notebook, new_path, abs_src, node)
-			else:
-				return _update_image(notebook, new_path, abs_src, node)
-		else:
-			raise VisitorSkip
-	else:
-		raise AssertionError('unknown tag')
-
-
-def _update_image(notebook, new_path, abs_src, node):
-	new_src = notebook.relative_filepath(File(abs_src), new_path)
-	node.set('src', new_src)
-	return node
-
-
-def _copy_image(notebook, new_path, abs_src, node):
-	src_file = LocalFile(abs_src)
-	folder = notebook.get_page(new_path).attachments_folder
-	new_file = folder.new_file(src_file.basename)
-	src_file.copyto(new_file)
-	node.set('src', '.' + SEP + new_file.basename)
-	return node
-
-
-def _copy_image_object(notebook, new_path, abs_src, node):
-	src_file = LocalFile(abs_src)
-	folder = notebook.get_page(new_path).attachments_folder
-	new_file = copy_imagegenerator_src_files(src_file, folder)
-	node.set('src', '.' + SEP + new_file.basename)
-	return node
 
 
 def _get_image_info(targetname):
@@ -579,7 +446,8 @@ class InterWikiLinkData(UriData):
 
 	def get_data_as(self, targetid):
 		if targetid == PARSETREE_TARGET_ID:
-			parsetree = _link_tree((self.interwiki_href,), None, None)
+			linkDicts = {self.interwiki_href: {}}
+			parsetree = _link_tree(linkDicts, None, None)
 			return parsetree.tostring()
 		else:
 			return UriData.get_data_as(self, targetid)
@@ -597,13 +465,13 @@ class ParseTreeData(ClipboardData):
 
 	def get_data_as(self, targetid):
 		if targetid == PARSETREE_TARGET_ID:
-			_set_attributes_to_resolve_links(self.parsetree, self.notebook, self.path)
+			# TODO make links absolute (?)
 			return self.parsetree.tostring()
 		elif targetid == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
 				linker=StaticExportLinker(self.notebook, source=self.path))
 			html = ''.join(dumper.dump(self.parsetree))
-			return wrap_html(html, self.format)
+			return wrap_html(html, target=selectiondata.get_target().name())
 		elif targetid == TEXT_TARGET_ID:
 			if self.format in ('wiki', 'plain'):
 				dumper = get_format(self.format).Dumper()
@@ -616,84 +484,22 @@ class ParseTreeData(ClipboardData):
 			raise ValueError('Unknown target id %i' % targetid)
 
 
-def _set_attributes_to_resolve_links(parsetree, notebook, path):
-	parsetree._set_root_attrib('notebook', notebook.interwiki)
-	parsetree._set_root_attrib('page', path.name)
-	parsetree.replace(
-		(LINK, IMAGE, OBJECT),
-		partial(_resolve_links_and_images, notebook, path)
-	)
-
-
-def _resolve_links_and_images(notebook, src_path, node):
-	if node.tag == LINK:
-		href = node.get('href')
-		my_type = link_type(href)
-		if my_type == 'page':
-			target = notebook.pages.resolve_link(src_path, HRef.new_from_wiki_link(href))
-			node.set('_href', target)
-		elif my_type == 'file':
-			target = notebook.resolve_file(href, src_path)
-			node.set('_href', target.uri)
-		return node
-	elif node.tag == IMAGE:
-		target = notebook.resolve_file(node.get('src'), src_path)
-		node.set('_src', target.uri)
-		return node
-	elif node.tag == OBJECT:
-		if node.get('type').startswith('image+'):
-			# Objects based on generated images
-			target = notebook.resolve_file(node.get('src'), src_path)
-			node.set('_src', target.uri)
-			return node
-		else:
-			raise VisitorSkip
-	else:
-		raise AssertionError('unknown tag')
-
-
 class PageLinkData(ClipboardData):
 
-	targets = (PARSETREE_TARGET, PAGELIST_TARGET) + TEXT_TARGETS
+	targets = (INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET) + TEXT_TARGETS
 
-	def __init__(self, notebook, path, anchor=None, text=None):
-		assert isinstance(path, Path)
-		self.notebook = notebook
+	def __init__(self, notebook, path):
+		self.notebookname = notebook.name
 		self.path = path
-		self.anchor = anchor
-		self.text = text
 
 	def get_data_as(self, targetid):
-		if targetid == PAGELIST_TARGET_ID:
-			link = "%s?%s" % (self.notebook.interwiki, self.path.name)
-			if self.anchor:
-				link += "#" + self.anchor
+		if targetid == INTERNAL_PAGELIST_TARGET_ID:
+			return pack_urilist((self.path.name,))
+		elif targetid == PAGELIST_TARGET_ID:
+			link = "%s?%s" % (self.notebookname, self.path.name)
 			return pack_urilist((link,))
 		elif targetid == TEXT_TARGET_ID:
-			link = self.path.name
-			if self.anchor:
-				link += "#" + self.anchor
-			return link
-		elif targetid == PARSETREE_TARGET_ID:
-			link = self.path.name
-			if self.anchor:
-				link += "#" + self.anchor
-			if self.text:
-				text = self.text
-			elif self.notebook.config['Notebook']['short_links']:
-				href = HRef.new_from_wiki_link(link)
-				text = href.parts()[-1]
-				if self.anchor:
-					text += '#' + self.anchor
-			else:
-				text = link
-			builder = ParseTreeBuilder()
-			builder.start(FORMATTEDTEXT)
-			builder.append(LINK, {'href': link}, text)
-			builder.end(FORMATTEDTEXT)
-			parsetree = builder.get_parsetree()
-			_set_attributes_to_resolve_links(parsetree, self.notebook, self.path)
-			return parsetree.tostring()
+			return self.path.name
 		else:
 			raise ValueError('Unknown target id %i' % targetid)
 
@@ -832,14 +638,13 @@ class ClipboardManager(object):
 			logger.warn('Could not paste - no compatible data types on clipboard')
 			return None
 
-	def set_pagelink(self, notebook, path, anchor=None, text=None):
-		'''Copy a page name to the clipboard. The page name can be pasted by the
+	def set_pagelink(self, notebook, path):
+		'''Copy a pagename to the clipboard. The pagename can be pasted by the
 		user either as a link within zim or as text outside zim.
 		@param notebook: a L{Notebook} object
 		@param path: a L{Path} object
 		'''
-		logger.debug("set_pagelink %r %r anchor=%s text=%s", notebook, path, anchor, text)
-		self.set_clipboard_data(PageLinkData(notebook, path, anchor, text))
+		self.set_clipboard_data(PageLinkData(notebook, path))
 
 	def set_interwikilink(self, href, url):
 		'''Copy an interwiki link to the clipboard
