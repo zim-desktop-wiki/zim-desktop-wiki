@@ -19,15 +19,15 @@ The following templates are supplied:
 
 **"Report"**
 
-This templates is based (and depends) on the KOMA-Script Report Class ''scrreprt''. It generates a title page and a table of contents and is therefore more suitable for longer pages. To display checkboxes it depends on the ''wasysym'' package.
+This template is based (and depends) on the KOMA-Script Report Class ''scrreprt''. It generates a title page and a table of contents and is, therefore, more suitable for longer pages. To display checkboxes it depends on the ''wasysym'' package.
 
 **"Article"**
 
-This templates is based (and depends) on the KOMA-Script Report Class ''scrartcl''. It omits the lowest heading and is therefore not suitable for deeply structured documents.  To display checkboxes it depends on the ''wasysym'' package.
+This template is based (and depends) on the KOMA-Script Report Class ''scrartcl''. It omits the lowest heading and is therefore not suitable for deeply structured documents.  To display checkboxes it depends on the ''wasysym'' package.
 
 **"Part"**
 
-The result from this template can not be compiled on its own, it is designed to be one part of a larger document and be included (''\include{}'') in a master document.
+The result from this template can not be compiled on its own: it is designed to be a part of a larger document and be included (''\include{}'') in a master document.
 
 ===== Template Options =====
 
@@ -41,6 +41,6 @@ The exported LaTeX code will use only commands suitable for the given document c
 
 
 
- 
+
 
 

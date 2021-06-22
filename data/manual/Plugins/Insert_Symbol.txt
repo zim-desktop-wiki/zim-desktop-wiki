@@ -10,6 +10,6 @@ Shortcut codes for autoformatting are shown in the tooltip in the dialog. So for
 
 In some cases you want to be able to type a character without the trailing whitespace, e.g. when you want to type a formula with several greek letters. In this case the ";" can be used to close the sequence, so typing "\alpha;" will result in the greek letter alpha without any trailing whitespace.
 
-The list with shortcuts can be edited using the button in the dialog or by opening the config file "''symbols.list''" in a text editor. You may need to restart zim in order to load the edited file.
+The list with shortcuts can be edited using the button in the dialog or by opening the config file "''symbols.list''" in a text editor. You may need to restart zim in order  load the edited file.
 
 **Dependencies:** This plugin has no additional dependencies.

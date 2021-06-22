@@ -92,7 +92,7 @@ def _iswritable(dir):
 		f = dir.file('.zim.tmp')
 		try:
 			f.write('Test')
-			f.remove(cleanup=False)
+			f.remove()
 		except:
 			return False
 		else:
@@ -257,6 +257,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			cache_dir = _cache_dir_for_dir(dir)
 		else:
 			cache_dir = dir.subdir('.zim')
+			cache_dir.touch()
 			if not (cache_dir.exists() and _iswritable(cache_dir)):
 				cache_dir = _cache_dir_for_dir(dir)
 

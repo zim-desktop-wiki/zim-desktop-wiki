@@ -5,7 +5,7 @@ Creation-Date: Unknown
 ====== Config Files ======
 
 This page documents the various config files used.
-Also see [[preferences]] for documentation of the preferences dialog.
+Also, see [[preferences]] for documentation of the preferences dialog.
 
 ===== Paths =====
 
@@ -18,9 +18,9 @@ $XDG_DATA_HOME   = HOME/.local/share/
 $XDG_DATA_DIRS   = /usr/local/share/:/usr/share/
 '''
 
-These can be overloaded with the coresponding environment variables.
+These can be overloaded with the corresponding environment variables.
 
-When zim writes config files it always uses ''$XDG_CONFIG_HOME''. Data files are read only and are searched for in ''$XDG_DATA_HOME'' and ''$XDG_DATA_DIRS''. The installation defaults for config files are also installed in ''$XDG_DATA_DIRS'', but these are copied on first use to ''$XDG_CONFIG_HOME''.
+When zim writes config files, it always uses ''$XDG_CONFIG_HOME''. Data files are read-only and are searched for in ''$XDG_DATA_HOME'' and ''$XDG_DATA_DIRS''. The installation defaults for config files are also installed in ''$XDG_DATA_DIRS'', but these are copied on first use to ''$XDG_CONFIG_HOME''.
 
 ==== Windows ====
 On Windows the default paths are:
@@ -35,18 +35,24 @@ Where ''%appdata%'' is the default Windows path to store application data, typic
 
 When there is no ''%HOME%'' environment parameter defined on Windows either the ''%USERPROFILE%'' parameter or ''%HOMEDRIVE%'' + ''%HOMEPATH%'' are used. Make sure to define ''%HOME%'' or ''%USERPROFILE%'' including a drive letter.
 
+==== macOS ====
+On macOS the default paths are:
 
+'''
+ $XDG_CONFIG_HOME = ~/Application Support/org.zim-wiki.Zim/
+ $XDG_DATA_HOME = ~/Application Support/org.zim-wiki.Zim/share/
+'''
 
 ===== Global Config Files =====
 
-These config files determine various aspects of how zim behaves. They are global in the sense that they are not specific for one notebook.
+These config files determine various aspects of how zim behaves. They are global in the sense that they are not specific to one notebook.
 
 ==== Main config file ====
 The default config file is ''$XDG_CONFIG_HOME/zim/preferences.conf''.
 
 The config file is written automatically when you close zim. So if you want to change it manually you need to close all instances of zim first.
 
-There is a hidden option here called "''autosave_timeout''" which gives the interval for autosaving in seconds, default is 10.
+There is a hidden option here called "''autosave_timeout''" which gives the interval for autosaving in seconds, the default is 10.
 
 ==== Interwiki URL list ====
 The file ''$XDG_DATA/zim/urls.list'' gives a list of urls which are used for the [[Links|interwiki]] function. All files in the ''$XDG_DATA'' path are read when looking for a URL, so you can use $XDG_DATA_HOME to override the installation defaults.
@@ -78,9 +84,9 @@ The config file ''$XDG_CONFIG_HOME/zim/automount.conf'' can be used to configure
 The config file ''environ.ini'' can be used to modify environment parameters before any of the zim modules are loaded. See [[Portable Install]] for details.
 
 ==== GUI style config file ====
-Zim has certain defaults on how to display styles. For example it displays links as blue text without underline. To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.
+Zim has certain defaults on how to display styles. For example, it displays links as blue text without underline. To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key-value pairs for the various display properties.
 
-**NOTE: **The display styles for the GUI are not used when exporting to HTML. If you want your HTML to show certain custom styles you should write a HTML [[Templates|template]] with a CSS stylesheet.
+**NOTE: **The display styles for the GUI is not used when exporting to HTML. If you want your HTML to show certain custom styles, you should write an HTML [[Templates|template]] with a CSS stylesheet.
 
 Example:
 
@@ -141,13 +147,13 @@ Known properties for Tags:
 
 To change the look of the application beyond what can be done with the ''style.conf'' file you need to modify the Gtk theming. With Gtk3 this can be done using the CSS language similar to how e.g. webpages are styled.
 
-The file location of this configuration is: ''$XDG_CONFIG_HOME/gtk-3.0/gtk.css'' . You need to re-start zim to see it take effect. For examples of common things, like changing font or color please use you search engine of choice. The developer documentation is here: https://developer.gnome.org/gtk3/stable/GtkCssProvider.html
+The file location of this configuration is: ''$XDG_CONFIG_HOME/gtk-3.0/gtk.css'' . You need to re-start zim to see it take effect. For examples of common things, like changing font or color, please use your search engine of choice. The developer documentation is here: https://developer.gnome.org/gtk3/stable/GtkCssProvider.html
 
-In addition there are some settings that are not in CSS but can be configured via  ''$XDG_CONFIG_HOME/gtk-3.0/settings.ini'' . The developer documentation is here: https://developer.gnome.org/gtk3/stable/GtkSettings.html
+Also, some settings are not in CSS but can be configured via  ''$XDG_CONFIG_HOME/gtk-3.0/settings.ini'' . The developer documentation is here: https://developer.gnome.org/gtk3/stable/GtkSettings.html
 
 	**NOTE:** if you installed zim on Windows using the installer, the location for these files are ''<zim-installation-dir>\etc\gtk-3.0\gtk.css'' and ''<zim-installation-dir>\etc\gtk-3.0\settings.ini ''respectively.
 
-Specifically the Gtk theme can be configured via the ''settings.ini'' file by setting ''gtk-theme-name'' after installing a custom theme on your system.
+Specifically, the Gtk theme can be configured via the ''settings.ini'' file by setting ''gtk-theme-name'' after installing a custom theme on your system.
 
 Also the ''settings.ini'' can be used to request the dark version of any theme like this:
 
@@ -205,8 +211,8 @@ The following snippets that can be used directly in ''~/.config/gtk-3.0/gtk.css'
 
 There is a notebook specific config files called "''notebook.zim''" which should be in the notebook folder. This file contains a section "''[Notebook]''" which contains the properties that can be set in the [[properties|properties dialog]].
 
-One hidden property is "''end_of_line''" which determines the end-of-line convention for files written by zim within the scope of this notebook. The value can be either "''dos''" or "''unix''". For newly created notebooks this value is set depending on the platform on which zim is running. Main purpose of this property is to ensure that a notebook which is shared between e.g. linux and windows machines does not change the full file on every write. When desired the property can be changed manually, which will affect all pages edited after the change.
+One hidden property is "''end_of_line''" which determines the end-of-line convention for files written by zim within the scope of this notebook. The value can be either "''dos''" or "''unix''". For newly created notebooks this value is set depending on the platform on which zim is running. The main purpose of this property is to ensure that a notebook that is shared between e.g. Linux and Windows machines does not change the full file on every write. When desired the property can be changed manually, which will affect all pages edited after the change.
 
 A second hidden option is "''disable_trash''" which defaults to ''False''. If enabled this will cause zim to avoid using the system trash for this notebook, see the section about deleting in [[Pages]].
 
-A third hidden option is "''shared" which defaults to True'' (however will be ''False'' for older notebooks). If ''True'', zim stores the notebook cache in the home folder (''$XDG_CACHE_HOME''). Usually this is what you want, however in particular cases, e.g. when the notebook resides in an encrypted folder, you may want to set this to ''False'' in order to make sure the cache is actually stored in the notebook folder (using a ".zim" hidden folder).
+A third hidden option is "''shared" which defaults to True'' (however will be ''False'' for older notebooks). If ''True'', zim stores the notebook cache in the home folder (''$XDG_CACHE_HOME''). Usually, this is what you want, however in particular cases, e.g. when the notebook resides in an encrypted folder, you may want to set this to ''False'' in order to make sure the cache is actually stored in the notebook folder (using a ".zim" hidden folder).
