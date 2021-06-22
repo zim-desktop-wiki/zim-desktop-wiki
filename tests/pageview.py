@@ -2451,13 +2451,16 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping('##case_2 ', '<anchor name="case_2">case_2</anchor> ')
 
 	def testAutoFormatAnchorLink(self):
-		self.assertTyping('#test ', '<link href="#test">test</link> ')
+		self.assertTyping('#test ', '<link href="">#test</link> ')
+
+	def testAutoFormatPageWithAnchorLink(self):
+		self.assertTyping('foo#test ', '<link href="">foo#test</link> ')
 
 	def testAutoFormatAnchorLink2(self):
-		self.assertTyping('#test-1 ', '<link href="#test-2">test-1</link> ')
+		self.assertTyping('#test-1 ', '<link href="">#test-1</link> ')
 
 	def testAutoFormatAnchorLink2(self):
-		self.assertTyping('#test_2 ', '<link href="#test_2">test_2</link> ')
+		self.assertTyping('#test_2 ', '<link href="">#test_2</link> ')
 
 	def testAutoFormatURL(self):
 		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
@@ -2473,6 +2476,15 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testAutoFormatPageLink(self):
 		self.assertTyping('Foo:Bar ', '<link href="">Foo:Bar</link> ')
+
+	def testAutoFormatPageLinkWithAnchor(self):
+		self.assertTyping('Foo:Bar#anchor ', '<link href="">Foo:Bar#anchor</link> ')
+
+	def testAutoFormatSubPageLink(self):
+		self.assertTyping('+Foo ', '<link href="">+Foo</link> ')
+
+	def testAutoFormatSubPageLinkWithAnchor(self):
+		self.assertTyping('+Foo#anchor ', '<link href="">+Foo#anchor</link> ')
 
 	def testNoAutoFormatTimeAsPageLink(self):
 		self.assertTyping('10:20 ', '10:20 ')

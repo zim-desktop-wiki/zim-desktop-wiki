@@ -230,10 +230,13 @@ SCROLL_TO_MARK_MARGIN = 0.2
 # Regexes used for autoformatting
 heading_re = Re(r'^(={2,7})\s*(.*?)(\s=+)?$')
 
-page_re = Re(r'''(
-	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
-	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )*:?
-)$''', re.X | re.U) # e.g. namespace:page or +subpage, but not word without ':' or '+'
+link_to_page_re = Re(r'''(
+	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+ (?: : | \#\w[\w_-]+)?
+	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )* (?: : | \#\w[\w_-]+)?
+)$''', re.X | re.U)
+	# e.g. namespace:page or +subpage, but not word without ':' or '+'
+	#      optionally followed by anchor id
+	#      links with only anchor id or page (without ':' or '+') and achor id are matched by 'link_to_anchor_re'
 
 interwiki_re = Re(r'\w[\w\+\-\.]+\?\w\S+$', re.U) # name?page, where page can be any url style
 
@@ -257,7 +260,7 @@ markup_re = [
 	('style-sub', re.compile(r'(?<=\w)_\{(\S*)}$')),
 ]
 
-link_to_anchor_re = Re(r'^(#\w[\w_-]+)$', re.U)
+link_to_anchor_re = Re(r'^([\w\.\-\(\)]*#\w[\w_-]+)$', re.U) # before the "#" can be a page name, needs to match logic in 'link_to_page_re'
 
 anchor_re = Re(r'^(##\w[\w_-]+)$', re.U)
 
@@ -4734,16 +4737,6 @@ class TextView(Gtk.TextView):
 			buffer.insert_anchor(start, name)
 			return True
 
-		def apply_link_to_anchor(match):
-			#print("LINK TO ANCHOR >>%s<<" % word)
-			if buffer.range_has_tags(_is_non_nesting_tag, start, end):
-				return False
-			text = match[1:]
-			buffer.delete(start, end)
-			tag = buffer._create_link_tag(text, word)
-			buffer.insert_with_tags(start, text, tag)
-			return True
-
 		def apply_tag(match):
 			#print("TAG >>%s<<" % word)
 			start = end.copy()
@@ -4799,8 +4792,6 @@ class TextView(Gtk.TextView):
 			handled = apply_tag(tag_re[0])
 		elif anchor_re.match(word):
 			handled = apply_anchor(anchor_re[0])
-		elif link_to_anchor_re.match(word):
-			handled = apply_link_to_anchor(link_to_anchor_re[0])
 		elif url_re.search(word):
 			if char == ')':
 				handled = False # to early to call
@@ -4809,11 +4800,13 @@ class TextView(Gtk.TextView):
 				url = match_url(m.group(0))
 				tail = word[m.start()+len(url):]
 				handled = apply_link(url, offset_end=len(tail))
-		elif page_re.match(word):
+		elif link_to_anchor_re.match(word):
+			handled = apply_link(link_to_anchor_re[0])
+		elif link_to_page_re.match(word):
 			# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
 			w = word.strip(':').split(':')
 			if w and twoletter_re.search(w[0]):
-				handled = apply_link(page_re[0])
+				handled = apply_link(link_to_page_re[0])
 			else:
 				handled = False
 		elif interwiki_re.match(word):
