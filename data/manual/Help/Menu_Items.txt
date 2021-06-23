@@ -158,7 +158,7 @@ Show the calendar dialog.
 
 Only available if the [[Plugins:Journal|Journal plugin]] is enabled.
 
-**Zoom In <Ctrl><><>**
+**Zoom In <Ctrl><+>**
 Increase the font size by 1 point.
 
 **Zoom Out <Ctrl><->**
