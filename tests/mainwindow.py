@@ -280,7 +280,10 @@ class TestMenuDocs(tests.TestCase):
 				Gtk.AccelMap().lookup_entry(accel_path).key.accel_key,
 				Gtk.AccelMap().lookup_entry(accel_path).key.accel_mods)
 			if accel_label:
-				label += ' <' + accel_label.replace('+', '><') + '>'
+				if '++' in accel_label:
+					label += ' <' + accel_label.replace('++', '><+') + '>'
+				else:
+					label += ' <' + accel_label.replace('+', '><') + '>'
 			if level:
 				label = '**' + label + '**'
 			else:
