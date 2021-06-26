@@ -335,11 +335,11 @@ class LocalFile(LocalFSObjectBase, File):
 			else:
 				raise
 
-	def read(self):
+	def read(self, size=-1):
 		try:
 			with open(self.path, mode='r', encoding='UTF-8') as fh:
 				try:
-					text = fh.read()
+					text = fh.read(size)
 				except UnicodeDecodeError as err:
 					raise FileUnicodeError(self, err)
 				else:
@@ -352,10 +352,11 @@ class LocalFile(LocalFSObjectBase, File):
 			else:
 				raise
 
-	def readline(self):
+	def readline(self, size=-1):
+		size = -1 if size is None else size
 		try:
 			with open(self.path, mode='r', encoding='UTF-8') as fh:
-				l = fh.readline()
+				l = fh.readline(size)
 				return l.lstrip('\ufeff').replace('\x00', '')
 				# Strip unicode byte order mark
 				# And remove any NULL byte since they screw up parsing

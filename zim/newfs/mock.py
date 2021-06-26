@@ -392,11 +392,14 @@ class MockFile(MockFSObjectBase, File):
 	def read_binary(self):
 		return self._node().data
 
-	def read(self):
-		return self._node().data.decode('UTF-8').replace('\r\n', '\n')
+	def read(self, size=-1):
+		text = self._node().data.decode('UTF-8').replace('\r\n', '\n')
+		if size and size > 0:
+			text = text[:size]
+		return text
 
-	def readline(self):
-		return self.read().splitlines(True)[0]
+	def readline(self, size=-1):
+		return self.read(size).splitlines(True)[0]
 
 	def readlines(self):
 		return self.read().splitlines(True)

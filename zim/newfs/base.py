@@ -654,10 +654,10 @@ class File(FSObjectBase):
 	def size(self):
 		raise NotImplementedError
 
-	def read(self):
+	def read(self, size=-1):
 		raise NotImplementedError
 
-	def readline(self):
+	def readline(self, size=-1):
 		raise NotImplementedError
 
 	def readlines(self):

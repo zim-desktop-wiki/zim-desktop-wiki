@@ -302,13 +302,22 @@ class TestFS(object):
 		self.assertEqual(file.read(), '')
 		self.assertEqual(file.read_binary(), b'')
 
-		file.write('test 123\n')
-		self.assertEqual(file.read(), 'test 123\n')
-		self.assertEqual(list(file.readlines()), ['test 123\n'])
-		self.assertEqual(list(file), ['test 123\n'])
+		file.write('test 123\ntest abc\n')
+		self.assertEqual(file.read(), 'test 123\ntest abc\n')
+		self.assertEqual(file.read(size=4), 'test')
+		self.assertEqual(file.read(size=100), 'test 123\ntest abc\n')
+		self.assertEqual(file.read(size=-1), 'test 123\ntest abc\n')
+		self.assertEqual(file.read(size=None), 'test 123\ntest abc\n')
+		self.assertEqual(file.readline(), 'test 123\n')
+		self.assertEqual(file.readline(size=4), 'test')
+		self.assertEqual(file.readline(size=100), 'test 123\n')
+		self.assertEqual(file.readline(size=-1), 'test 123\n')
+		self.assertEqual(file.readline(size=None), 'test 123\n')
+		self.assertEqual(list(file.readlines()), ['test 123\n', 'test abc\n'])
+		self.assertEqual(list(file), ['test 123\n', 'test abc\n'])
 
 		file.touch()
-		self.assertEqual(file.read(), 'test 123\n') # no trucation!
+		self.assertEqual(file.read(), 'test 123\ntest abc\n') # no trucation!
 
 		mylines = ['lines1\n', 'lines2\n', 'lines3\n']
 		file.writelines(mylines)
