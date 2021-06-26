@@ -166,8 +166,8 @@ URL_ENCODE_DATA = 0 # all
 URL_ENCODE_PATH = 1	# all except '/'
 URL_ENCODE_READABLE = 2 # only space and utf-8
 
-_url_encode_re = re.compile(r'[^A-Za-z0-9\-_.!~*\'()]') # unreserved
-_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_.!~*\'()/]') # unreserved + /
+_url_encode_re = re.compile(r'[^A-Za-z0-9\-_.~]') # unreserved (see rfc3986)
+_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_.~/]') # unreserved + /
 
 
 def _url_encode_on_error(error):
