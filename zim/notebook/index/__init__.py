@@ -83,6 +83,9 @@ class Index(SignalEmitter):
 		# NOTE: for a locked database, different errors happen on linux and
 		# on windows, so test both platforms when modifying here
 
+		if self.dbpath != ':memory:':
+			file = LocalFile(self.dbpath)
+			file.parent().touch()
 		try:
 			self._db = sqlite3.Connection(self.dbpath)
 		except:
@@ -112,8 +115,9 @@ class Index(SignalEmitter):
 
 	def _db_recover(self):
 		assert not self.dbpath == ':memory:'
-		logger.warning('Overwriting possibly corrupt database: %s', self.dbpath)
 		file = LocalFile(self.dbpath)
+		if file.exists():
+			logger.warning('Overwriting possibly corrupt database: %s', self.dbpath)
 		try:
 			file.remove(cleanup=False)
 		except:

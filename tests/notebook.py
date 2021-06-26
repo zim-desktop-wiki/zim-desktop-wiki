@@ -565,6 +565,42 @@ class TestEndOfLine(tests.TestCase):
 		self._test_eol('dos', b'\r\n')
 
 
+@tests.slowTest
+class TestNotebookSharedProperty(tests.TestCase):
+
+	def _create_notebook(self, shared):
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		dir = Dir(folder.path)
+		config = NotebookConfig(dir.file('notebook.zim'))
+		config['Notebook']['shared'] = shared
+		config.write()
+		notebook = Notebook.new_from_dir(dir)
+		return notebook
+
+	def testSharedTrue(self):
+		notebook = self._create_notebook(shared=True)
+		self.assertFalse(notebook.cache_dir.ischild(notebook.folder))
+
+	def testSharedFalse(self):
+		notebook = self._create_notebook(shared=False)
+		self.assertTrue(notebook.cache_dir.ischild(notebook.folder))
+
+
+@tests.slowTest
+class TestEmptyNotebookFolderNotRemoved(tests.TestCase):
+	# Due to "clenup" on removing tmp files an emty folder can be removed
+	# ensure this does not happen during initalization when using an empty
+	# folder as notebook
+
+	def runTest(self):
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		dir = Dir(folder.path)
+		dir.touch()
+		self.assertTrue(dir.exists())
+		notebook = Notebook.new_from_dir(dir)
+		self.assertTrue(dir.exists())
+
+
 class TestUpdateLinksOnMovePage(tests.TestCase):
 
 	def getNotebookContent(self, notebook):

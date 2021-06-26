@@ -87,12 +87,13 @@ def _resolve_relative_config(dir, config):
 
 def _iswritable(dir):
 	if os.name == 'nt':
-		# Test access - (iswritable turns out to be unreliable
-		# for folders on windows..)
+		# Test access - (iswritable turns out to be unreliable for folders on windows..)
+		if isinstance(dir, Dir):
+			dir = LocalFolder(dir.path) # only newfs supports cleanup=False
 		f = dir.file('.zim.tmp')
 		try:
 			f.write('Test')
-			f.remove()
+			f.remove(cleanup=False)
 		except:
 			return False
 		else:

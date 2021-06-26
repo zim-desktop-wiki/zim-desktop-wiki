@@ -314,14 +314,13 @@ class TestCase(unittest.TestCase):
 		cache_dir = folder.folder('.zim')
 		layout = FilesLayout(folder, endofline='unix')
 
+		conffile = folder.file('notebook.zim')
+		config = NotebookConfig(conffile)
+		config.write()
 		if isinstance(folder, MockFolder):
-			conffile = folder.file('notebook.zim')
-			config = NotebookConfig(conffile)
 			index = Index(':memory:', layout)
 		else:
-			conffile = folder.file('notebook.zim')
-			config = NotebookConfig(conffile)
-			cache_dir.touch()
+			f = cache_dir.file('index.db')
 			index = Index(cache_dir.file('index.db').path, layout)
 
 		if isinstance(content, (list, tuple)):

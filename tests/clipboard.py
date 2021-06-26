@@ -3,6 +3,8 @@
 
 import tests
 
+import os
+
 from gi.repository import Gtk
 from gi.repository import Gdk
 
@@ -47,6 +49,13 @@ def set_clipboard_image(file):
 		pass
 
 	myclipboard.set_with_data(targets, my_get_data, my_clear_data, file)
+
+
+def convert_path_sep(path):
+	if os.name == 'nt':
+		return path.replace('/', '\\')
+	else:
+		return path
 
 
 class TestClipboard(tests.TestCase):
@@ -340,9 +349,13 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<link href="../Test/attachment.pdf">../Test/attachment.pdf</link>\n'
-			'<link href="../Test/attachment.pdf">my attachment</link>\n'
-			'</p></zim-tree>'
+			'<link href="%s">%s</link>\n'
+			'<link href="%s">my attachment</link>\n'
+			'</p></zim-tree>' % (
+				convert_path_sep('../Test/attachment.pdf'),
+				convert_path_sep('../Test/attachment.pdf'),
+				convert_path_sep('../Test/attachment.pdf')
+			)
 		) # Link updated to point to same target from new location
 
 	def testCopyPasteParseTreeWithFileLinkInDifferentNotebook(self):
@@ -398,9 +411,12 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<img src="./attachment.png" />\n'
-			'<img src="./otherimage.png" />\n'
-			'</p></zim-tree>'
+			'<img src="%s" />\n'
+			'<img src="%s" />\n'
+			'</p></zim-tree>' % (
+				convert_path_sep('./attachment.png'),
+				convert_path_sep('./otherimage.png')
+			)
 		)
 		# No update on first image, *but* file is copied
 		# Second image is not copied, but src is updates
@@ -428,9 +444,12 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<img src="./attachment.png" />\n'
-			'<img src="./otherimage.png" />\n'
-			'</p></zim-tree>'
+			'<img src="%s" />\n'
+			'<img src="%s" />\n'
+			'</p></zim-tree>' % (
+				convert_path_sep('./attachment.png'),
+				convert_path_sep('./otherimage.png')
+			)
 		) # For cross-notebook copy, copy update both images
 		self.assertTrue(newfile_1.exists())
 		self.assertTrue(newfile_2.exists())
@@ -472,8 +491,8 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<object src="./foo002.png" type="image+equation" />\n'
-			'</p></zim-tree>'
+			'<object src="%s" type="image+equation" />\n'
+			'</p></zim-tree>' % convert_path_sep('./foo002.png')
 		) # Sources are copied and number is added due to existing files
 		self.assertTrue(newfile_1.exists())
 		self.assertTrue(newfile_2.exists())
@@ -500,8 +519,8 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<object src="./foo.png" type="image+equation" />\n'
-			'</p></zim-tree>'
+			'<object src="%s" type="image+equation" />\n'
+			'</p></zim-tree>' % convert_path_sep('./foo.png')
 		) # Sources are copied and number is added due to existing files
 		self.assertTrue(newfile_1.exists())
 		self.assertTrue(newfile_2.exists())

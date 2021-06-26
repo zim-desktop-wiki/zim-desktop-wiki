@@ -120,11 +120,12 @@ class FilesIndexer(SignalEmitter):
 					else:
 						self.delete_file(node_id)
 			except:
-				logger.exception('Error while indexing: %s', path)
 				self.db.execute( # avoid looping
 					'UPDATE files SET index_status = ? WHERE id = ?',
 					(STATUS_UPTODATE, node_id)
 				)
+				logger.exception('Error while indexing: %s', path)
+					# do this logging *after* above update - else test suite still loops due to log-to-error handler
 
 			self.db.commit()
 			yield
@@ -273,7 +274,7 @@ class FilesIndexer(SignalEmitter):
 		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
 
 	def delete_folder(self, node_id):
-		assert node_id != 1, 'BUG: notebook folder went missing ?'
+		assert node_id != 1, 'BUG: notebook folder went missing ? - folder: %s' % self.folder.path
 		for child_id, child_type in self.db.execute(
 			'SELECT id, node_type FROM files WHERE parent == ?',
 			(node_id,)

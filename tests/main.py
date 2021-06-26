@@ -118,16 +118,18 @@ class TestGui(tests.TestCase):
 			cmd.run() # Exits without running due to no notebook given in dialog
 
 		### Try again with argument
-		dir = self.create_tmp_dir()
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		folder.touch()
+
 		cmd = GuiCommand('gui')
-		cmd.parse_options(dir)
+		cmd.parse_options(folder.path)
 		with tests.WindowContext(MainWindow):
 			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
 				window = cmd.run()
 				self.addCleanup(window.destroy)
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
-		self.assertEqual(window.notebook.uri, Dir(dir).uri) # XXX
+		self.assertEqual(window.notebook.uri, folder.uri)
 		self.assertGreaterEqual(len(ConfigManager.preferences['General']['plugins']), 3)
 		self.assertGreaterEqual(len(window.pageview.__zim_extension_objects__), 3)
 
