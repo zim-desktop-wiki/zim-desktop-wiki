@@ -46,6 +46,8 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
+		('use_hscroll', 'bool', _('Use horizontal scrollbar (may need restart)'), False),
+			# T: preferences option
 	)
 
 
@@ -73,6 +75,13 @@ class TagsNotebookViewExtension(NotebookViewExtension):
 		#	('end-index-update', lambda o: self.reconnect_model()),
 		#))
 		self.connectto(pageview, 'page-changed', lambda o, p: self.widget.set_page(p))
+
+		self.on_preferences_changed(self.plugin.preferences)
+		self.plugin.preferences.connect('changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
+		self.widget.treeview.set_use_ellipsize(not preferences['use_hscroll'])
+			# To use horizontal scrolling, turn off ellipsize
 
 
 class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):

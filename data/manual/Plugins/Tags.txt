@@ -15,6 +15,11 @@ The tag cloud allows toggling the selection of tags that are shown in the page i
 ===== Options =====
 The option **Position in the window** determines in which side pane the tag list is shown.
 
+The option **Use horizontal scrollbar (may need restart)** sets the preference whether to use
+horizontal scrolling or not. Without horizontal scrollbar long page names get
+shortened by ellipsis ("..."). When you change this option, you may need to
+restart Zim to see the correct rendering.
+
 ===== Usage =====
 The tag index has 3 views:
 

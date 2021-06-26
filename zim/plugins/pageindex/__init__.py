@@ -64,7 +64,7 @@ This plugin adds the page index pane to the main window.
 			# T: preferences option
 		('autocollapse', 'bool', _('Automatically collapse sections on close page'), True),
 			# T: preferences option
-		('use_hscroll', 'bool', _('Use horizontal scrollbar'), False),
+		('use_hscroll', 'bool', _('Use horizontal scrollbar (may need restart)'), False),
 			# T: preferences option
 	)
 
