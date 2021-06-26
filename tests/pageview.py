@@ -2465,6 +2465,9 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 	def testAutoFormatURL(self):
 		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
 
+	def testAutoFormatURLLocalHost(self):
+		self.assertTyping('http://localhost ', '<link href="">http://localhost</link> ')
+
 	def testAutoFormatURLTrailingPunctuation(self):
 		self.assertTyping('www.commonmark.org/a.b. ', '<link href="">www.commonmark.org/a.b</link>. ')
 

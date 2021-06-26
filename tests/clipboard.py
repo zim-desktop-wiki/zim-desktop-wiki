@@ -163,6 +163,13 @@ some <b>bold</b> text
 		newtree = Clipboard.get_parsetree(self.notebook, text_format='verbatim-pre')
 		self.assertEqual(newtree.tostring(), wanted)
 
+	def testCopyURLasTextPasteAsParseTree(self):
+		# Special case, e.g. copy URL from browser address bar as text
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True"><link href="https://localhost">https://localhost</link></zim-tree>'''
+		Clipboard.set_text('https://localhost')
+		newtree = Clipboard.get_parsetree(self.notebook)
+		self.assertEqual(newtree.tostring(), wanted)
+
 	@tests.expectedFailure
 	def testCopyFileURIPasteAsParseTree1(self):
 		self._testCopyFileURIPasteAsParseTree(set_clipboard_uris)

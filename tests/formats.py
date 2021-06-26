@@ -765,6 +765,14 @@ class TestGFMAutolinks(tests.TestCase):
 		('https://bugs.kde.org/buglist.cgi?resolution=---', True, None),
 		('https://vimhelp.org/options.txt.html#\'iskeyword\'', True, None),
 		('https://example.com/foo]', True, None),
+
+		# Zim extensions
+		('https://localhost', True, None),
+		('https://localhost/path', True, None),
+		('file:///home/foo', True, None),
+		('file://home/foo', True, None),
+		('file:/home/foo', True, None),
+		('foo://bar', True, None),
 	)
 
 	def testFunctions(self):

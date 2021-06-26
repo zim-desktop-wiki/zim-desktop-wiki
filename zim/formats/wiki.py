@@ -79,6 +79,7 @@ def _remove_indent(text, indent):
 
 # NOTE: we follow rules of GFM spec, except:
 #  - we allow any URL scheme
+#  - we allow only one domain section (e.g. "localhost")
 #  - we add a file URI match
 #  - do not allow to start with "__" because of conflict with mark markup parsing
 # For GFM Markdown parser, remove these exceptions
@@ -88,7 +89,7 @@ def _remove_indent(text, indent):
 # So restrict matching " < > and also '
 _url = r'''
 	(www\.|https?://|\w+://)			# autolink & autourl prefix
-	(?P<domain>([\w\-]+\.)+[\w\-]+)		# 2 or more domain sections
+	(?P<domain>([\w\-]+\.)*[\w\-]+)		# domain sections (GFM says "2 or more", so "+" instead of "*")
 	[^\s<]*								# any non-space char except "<"
 	'''
 _email = r'''
@@ -149,7 +150,7 @@ def match_url(text):
 		# continue processing regular URL or file URI
 		if m.lastgroup == 'url':
 			domain = m.group('domain').split('.')
-			if '_' in domain[-1] or '_' in domain[-2]:
+			if '_' in domain[-1] or (len(domain) > 1 and '_' in domain[-2]):
 				# Last two domain sections cannot contain "_"
 				return None
 	else:
