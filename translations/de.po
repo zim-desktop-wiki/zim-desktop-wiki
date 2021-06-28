@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2021-06-03 21:51+0000\n"
-"Last-Translator: Steffen Rehberg <steffen.rehberg@googlemail.com>\n"
+"PO-Revision-Date: 2021-06-29 11:34+0000\n"
+"Last-Translator: Andreas Klostermaier <andreas.klostermaier@appendx.de>\n"
 "Language-Team: German <https://hosted.weblate.org/projects/zim/master/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.7-dev\n"
+"X-Generator: Weblate 4.7.1-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -273,12 +273,12 @@ msgid ""
 "<b>%T</b> the selected text including wiki formatting\n"
 "</tt>\n"
 msgstr ""
-"Die folgenden Parameter werden ersetzt\n"
-"in dem Befehl, wenn er ausgeführt wird:\n"
+"Die folgenden Parameter werden bei\n"
+"Ausführung des Befehls ersetzt:\n"
 "<tt>\n"
-"<b>%f</b> der Quelltext der Seite als temporäre Datei\n"
+"<b>%f</b> der Pfadname der Seite als temporäre Datei\n"
 "<b>%d</b> das Anhangsverzeichnis der aktuellen Seite\n"
-"<b>%s</b> der eigentliche Quelltext der Seite (falls vorhanden)\n"
+"<b>%s</b> der Pfadname der eigentlichen Seite (falls vorhanden)\n"
 "<b>%p</b> der Seitenname\n"
 "<b>%n</b> der Speicherort des Notizbuchs (Datei oder Ordner)\n"
 "<b>%D</b> das Wurzelverzeichnis (falls vorhanden)\n"
@@ -323,7 +323,7 @@ msgid ""
 "This file already exists.\n"
 "Do you want to overwrite it?"
 msgstr ""
-"Diese Datei existierst bereits.\n"
+"Diese Datei existiert bereits.\n"
 "Soll sie überschrieben werden?"
 
 #. title of step in export dialog
@@ -358,7 +358,7 @@ msgstr "Seite"
 #. Input field in export dialog
 #: zim/gui/exportdialog.py:182
 msgid "Include subpages"
-msgstr "Unterpakete einschließen"
+msgstr "Unterseiten einschließen"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:209
@@ -1651,7 +1651,7 @@ msgstr "Weitere Einstellungen finden sich in den Notizbuch-Einstellungen!"
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:461
 msgid "Set default text editor"
-msgstr "Vorgegebene Textbearbeitung festlegen"
+msgstr "Programm für Textbearbeitung festlegen"
 
 #. help text in preferences dialog for modifying keybindings
 #: zim/gui/preferencesdialog.py:490
@@ -2484,7 +2484,7 @@ msgid ""
 "An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
-"Während des Erstellen der Grafik trat ein Fehler auf.\n"
+"Beim Erstellen der Grafik trat ein Fehler auf.\n"
 "Möchten Sie den Quelltext trotzdem speichern?"
 
 #. plugin name
@@ -2759,12 +2759,12 @@ msgstr ""
 #. error message
 #: zim/plugins/inlinecalculator.py:271
 msgid "Could not parse expression"
-msgstr "Kann Ausdruck nichtz auswerten"
+msgstr "Kann Ausdruck nicht auswerten"
 
 #. menu item
 #: zim/plugins/inlinecalculator.py:293
 msgid "Evaluate _Math"
-msgstr "_Mathematischen Ausdruck ausrechnen"
+msgstr "_Mathematischen Ausdruck auswerten"
 
 #. plugin name | 
 #. Dialog title
