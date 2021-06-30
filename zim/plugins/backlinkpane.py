@@ -83,40 +83,69 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		self.treeview.connect('row-activated', self.on_link_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 
-	def set_page(self, notebook, page):
+		self.linked_to_pageview = True
+		self.currentNotebook = None
+		self.currentPage = None
+		self.update_title()
+
+	def updateModel(self):
 		model = self.treeview.get_model()
 		model.clear()
 
-		try:
-			backlinks = notebook.links.list_links(page, LINK_DIR_BACKWARD)
-				# XXX allow access through page object
-		except IndexNotFoundError:
-			backlinks = []
+		if self.currentNotebook is not None and self.currentPage is not None:
+			try:
+				backlinks = self.currentNotebook.links.list_links(self.currentPage, LINK_DIR_BACKWARD)
+					# XXX allow access through page object
+			except IndexNotFoundError:
+				backlinks = []
 
-		if self.preferences['show_full_paths']:
-			for link in backlinks:
-				model.append((link.source, str(link.source)))
-		else:
-			for link in backlinks:
-				href = notebook.pages.create_link(link.target, link.source)
-					# relative link from target *back* to source
-				text = href.to_wiki_link().strip(':')
-				#~ model.append(None, (link.source, text))
-				model.append((link.source, text))
+			if self.preferences['show_full_paths']:
+				for link in backlinks:
+					model.append((link.source, str(link.source)))
+			else:
+				for link in backlinks:
+					href = self.currentNotebook.pages.create_link(link.target, link.source)
+						# relative link from target *back* to source
+					text = href.to_wiki_link().strip(':')
+					#~ model.append(None, (link.source, text))
+					model.append((link.source, text))
 
-		self.update_title(model)
+			self.update_title(model)
 
-		## TODO make hierarchy by link type ?
-		## use link.type attribute
-		#self.treeview.expand_all()
+			## TODO make hierarchy by link type ?
+			## use link.type attribute
+			#self.treeview.expand_all()
 
-	def update_title(self, treeview_model):
+	def set_page(self, notebook, page):
+		self.currentNotebook = notebook
+		self.currentPage = page
+		if self.linked_to_pageview:
+			self.updateModel()
+
+	def update_title(self, treeview_model=None):
+		thetitle = ""
 		if self.preferences['show_count']:
+			if treeview_model is None:
+				treeview_model = self.treeview.get_model()
 			n = len(treeview_model)
-			self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
+			thetitle = (ngettext('%i BackLink', '%i BackLinks', n) % n)
 			# T: Label for the statusbar, %i is the number of BackLinks to the current page
 		else:
-			self.set_title(_('BackLinks')) # T: widget label
+			thetitle = _('BackLinks') # T: widget label
+
+		if self.linked_to_pageview:
+			thetitle = '⇄' + thetitle
+		else:
+			pagestr = '' if self.currentPage is None else (' [' + self.currentPage.name + ']')
+			thetitle = '⇹' + thetitle + pagestr
+
+		self.set_title(thetitle)
+
+	def toggle_link_to_pageview(self):
+		self.linked_to_pageview = not self.linked_to_pageview
+		self.update_title()
+		if self.linked_to_pageview:
+			self.updateModel()
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
@@ -129,6 +158,13 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		item = Gtk.MenuItem.new_with_mnemonic(_('Open in New _Window'))
 		item.connect('activate', self.on_open_new_window, treeview)
 		menu.append(item)
+
+		item = Gtk.CheckMenuItem(_('Link to pageview')) # T: menu option
+		item.set_active(self.linked_to_pageview)
+		item.connect_object('toggled', self.__class__.toggle_link_to_pageview, self)
+		menu.append(item)
+
+		menu.show_all()
 
 		# Other per page menu items do not really apply here...
 
