@@ -78,7 +78,6 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.treeview = PageTreeView(pageview.notebook, self.navigation)
 		self.treeview.set_model(model)
 		self.widget = PageIndexWidget(self.treeview)
-		self._autoexpanded = None
 
 		# Connect to ui signals
 		#window.connect('start-index-update', lambda o: self.disconnect_model())
@@ -98,24 +97,10 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 	def on_preferences_changed(self, preferences):
 		self.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
+		self.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'])
 
 	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
-
-		if self._autoexpanded and self.plugin.preferences['autocollapse']:
-			ref1, ref2 = self._autoexpanded
-			if ref1.valid() and (ref2 is None or ref2.valid()):
-				prev_treepath = ref1.get_path()
-				prev_expanded_path = ref2.get_path() if ref2 else None
-				self.treeview.restore_expanded_path(prev_treepath, prev_expanded_path)
-
-		if treepath and self.plugin.preferences['autoexpand']:
-			expanded_path = self.treeview.get_expanded_path(treepath)
-			model = self.treeview.get_model()
-			ref1 = Gtk.TreeRowReference(model, treepath)
-			ref2 = Gtk.TreeRowReference(model, expanded_path) if expanded_path else None
-			self._autoexpanded = (ref1, ref2)
-			self.treeview.select_treepath(treepath)
 
 	def disconnect_model(self):
 		'''Stop the widget from listening to the index. Used e.g. to
@@ -391,6 +376,9 @@ class PageTreeView(BrowserTreeView):
 		self.set_name('zim-pageindex')
 		self.notebook = notebook
 		self.navigation = navigation
+		self._autoexpanded = None
+		self._autoexpand = True
+		self._autocollapse = True
 
 		column = Gtk.TreeViewColumn('_pages_')
 		column.set_expand(True)
@@ -433,6 +421,10 @@ class PageTreeView(BrowserTreeView):
 		value = Pango.EllipsizeMode.END if use_ellipsize else Pango.EllipsizeMode.NONE
 		self._cr1.set_property('ellipsize', value)
 
+	def set_autoexpand(self, autoexpand, autocollapse):
+		self._autoexpand = autoexpand
+		self._autocollapse = autocollapse
+
 	def disconnect_index(self):
 		'''Stop the widget from listening to the index. Used e.g. to
 		unhook the model before reloading the index, thus avoiding
@@ -451,6 +443,13 @@ class PageTreeView(BrowserTreeView):
 		model = self.get_model()
 		treeiter = model.get_iter(treepath)
 		mytreeiter = model.get_user_data(treeiter)
+
+		if self._autocollapse:
+			self.restore_autoexpanded_path()
+
+		if self._autoexpand:
+			self.select_treepath(model.get_path(treeiter))
+
 		if mytreeiter.hint == IS_PAGE:
 			path = model.get_indexpath(treeiter)
 			if path:
@@ -595,6 +594,16 @@ class PageTreeView(BrowserTreeView):
 			return None # index not yet initialized ...
 
 		treepath = model.set_current_page(path) # highlight in model
+
+		if treepath:
+			selected_path = self.get_selected_path()
+			if selected_path != path:
+				if self._autocollapse:
+					self.restore_autoexpanded_path()
+
+				if self._autoexpand:
+					self.select_treepath(treepath)
+
 		return treepath # can be None
 
 	def select_treepath(self, treepath):
@@ -602,12 +611,20 @@ class PageTreeView(BrowserTreeView):
 
 		@param treepath: a gtk TreePath (tuple of integers)
 		'''
+		self._store_expanded_path(treepath)
 		self.expand_to_path(treepath)
 		self.get_selection().select_path(treepath)
 		self.set_cursor(treepath)
 		#~ self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
 		# BUG: align 0.9 doesn't behave as one would expect..
 		self.scroll_to_cell(treepath)
+
+	def get_selected_treepath(self):
+		model, iter = self.get_selection().get_selected()
+		if model is None or iter is None:
+			return None
+		else:
+			return model.get_path(iter)
 
 	def get_selected_path(self):
 		'''Get the selected notebook path
@@ -630,7 +647,23 @@ class PageTreeView(BrowserTreeView):
 				path.up()
 		return path
 
-	def restore_expanded_path(self, path, expanded_path):
+	def restore_autoexpanded_path(self):
+		if self._autoexpanded:
+			ref1, ref2 = self._autoexpanded
+			if ref1.valid() and (ref2 is None or ref2.valid()):
+				prev_treepath = ref1.get_path()
+				prev_expanded_path = ref2.get_path() if ref2 else None
+				self._restore_expanded_path(prev_treepath, prev_expanded_path)
+				self._autoexpanded = None
+
+	def _store_expanded_path(self, path):
+		expanded_path = self.get_expanded_path(path)
+		model = self.get_model()
+		ref1 = Gtk.TreeRowReference(model, path)
+		ref2 = Gtk.TreeRowReference(model, expanded_path) if expanded_path else None
+		self._autoexpanded = (ref1, ref2)
+
+	def _restore_expanded_path(self, path, expanded_path):
 		'''Collaps path between C{path} and C{expanded_path}'''
 		path = path.copy()
 		if expanded_path is None:

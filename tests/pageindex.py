@@ -324,14 +324,14 @@ class TestPageTreeView(tests.TestCase):
 		self.assertEqual(treeview.get_expanded_path(treepath).to_string(), treepath.to_string())
 		self.assertTrue(treeview.row_expanded(treepath))
 
-		treeview.restore_expanded_path(treepath, treepath)
+		treeview._restore_expanded_path(treepath, treepath)
 		self.assertTrue(treeview.row_expanded(treepath))
 
-		treeview.restore_expanded_path(treepath, parent)
+		treeview._restore_expanded_path(treepath, parent)
 		self.assertTrue(treeview.row_expanded(parent))
 		self.assertFalse(treeview.row_expanded(treepath))
 
-		treeview.restore_expanded_path(treepath, None)
+		treeview._restore_expanded_path(treepath, None)
 		self.assertFalse(treeview.row_expanded(parent))
 
 	def testDragAndDropCallbacks(self):

@@ -1,6 +1,6 @@
 
 # Copyright 2010 Fabian Stanke
-# Copyright 2011-2017 Jaap Karssenberg
+# Copyright 2011-2021 Jaap Karssenberg
 
 
 from gi.repository import GObject
@@ -46,6 +46,10 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
+		('autoexpand', 'bool', _('Automatically expand sections on open page'), True),
+			# T: preferences option
+		('autocollapse', 'bool', _('Automatically collapse sections on close page'), True),
+			# T: preferences option
 		('use_hscroll', 'bool', _('Use horizontal scrollbar (may need restart)'), False),
 			# T: preferences option
 	)
@@ -82,6 +86,7 @@ class TagsNotebookViewExtension(NotebookViewExtension):
 	def on_preferences_changed(self, preferences):
 		self.widget.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
+		self.widget.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'])
 
 
 class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
