@@ -27,6 +27,7 @@ from gi.repository import Pango
 
 import re
 import string
+import os
 import zim.datetimetz as datetime
 
 import zim.formats
@@ -7916,10 +7917,7 @@ class MoveTextDialog(Dialog):
 		Will not match {{./foo/bar.jpeg}} as it is not directly in ./
 		See regexr.com/614cl
 		"""
-		import re
 		pattern = "(?!{{)((?:\.\/){1}[^\/]*)(?=}})"
-		import shutil
-		import os
 
 		new_page_attachment_dir = self.notebook.get_attachments_dir(newpage)
 		new_attachment_dir_path = adapt_from_newfs(new_page_attachment_dir)
