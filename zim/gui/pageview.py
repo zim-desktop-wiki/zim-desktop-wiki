@@ -7909,6 +7909,35 @@ class MoveTextDialog(Dialog):
 			newpage.parse('wiki', self.text) # FIXME: probably should use parsetree here instead
 			self.notebook.store_page(newpage)
 
+		# check if text contains image
+		"""
+		Matches a file pattern inside ./
+		like {{./pasted_image.jpeg}} ==> matches ./pasted_image.jpeg
+		Will not match {{./foo/bar.jpeg}} as it is not directly in ./
+		See regexr.com/614cl
+		"""
+		import re
+		pattern = "(?!{{)((?:\.\/){1}[^\/]*)(?=}})"
+		import shutil
+		import os
+
+		new_page_attachment_dir = self.notebook.get_attachments_dir(newpage)
+		new_attachment_dir_path = adapt_from_newfs(new_page_attachment_dir)
+		if not new_attachment_dir_path.exists():
+			new_attachment_dir_path.touch()
+
+		old_page_attachment_dir = self.notebook.get_attachments_dir(self.page)
+		old_attachment_dir_path = adapt_from_newfs(old_page_attachment_dir)
+		if not old_attachment_dir_path.exists():
+			old_attachment_dir_path.touch()
+
+		matches = re.findall(pattern, self.text)
+		for match in matches:
+			basename_ = os.path.basename(match)
+			src = os.path.join(old_attachment_dir_path.path, basename_)
+			dst = new_attachment_dir_path.path
+			shutil.move(src, dst)
+
 		# Delete text (after copy was successfulll..)
 		bounds = list(map(self.buffer.get_iter_at_offset, self.bounds))
 		self.buffer.delete(*bounds)
@@ -7950,3 +7979,4 @@ class NewFileDialog(Dialog):
 	def do_response_ok(self):
 		self.result = self.form['basename']
 		return True
+
