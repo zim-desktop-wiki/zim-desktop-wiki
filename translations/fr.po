@@ -3384,7 +3384,7 @@ msgstr ""
 "Avec ce greffon, vous pouvez insérer un tableau dans une page wiki. Les "
 "tableaux seront représentés par \n"
 "un composant GTK TreeView. Ils pourront être exportés en différents formats "
-"(HYML/LaTex par exemple).\n"
+"(HTML/LaTex par exemple).\n"
 
 #. option value
 #: zim/plugins/tableeditor.py:92

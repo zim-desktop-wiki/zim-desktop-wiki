@@ -1,12 +1,12 @@
 Contributing
 ============
 
-Thank you for considering to contribute to the zim desktop wiki project. Zim
-is an open source project and run by volunteers, so all help is welcome.
+Thank you for considering contributing to the zim desktop wiki project. Zim
+is an open-source project and run by volunteers, so all help is welcome.
 
 
 **Help wanted:** there are many issues in the bug tracker that need someone to pick
-them up. To get started please have a look at the
+them up. To get started, please have a look at the
 [good first issue](https://github.com/zim-desktop-wiki/zim-desktop-wiki/labels/good%20first%20issue)
 and
 [plugin idea](https://github.com/zim-desktop-wiki/zim-desktop-wiki/labels/plugin%20idea) labels.
@@ -32,7 +32,7 @@ and [Development Planning](https://github.com/zim-desktop-wiki/zim-desktop-wiki/
 To file a bug report, please go to the bug tracker at
 https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues
 
-* Make sure the issue is not already in the list by trying out a few key words
+* Make sure the issue is not already in the list by trying out a few keywords
   in the search box
 * Describe what you did and what happened in such a way that another user can
   follow step by step and reproduce the same result
@@ -40,13 +40,13 @@ https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues
   other relevant context information
 
 ## Requesting new functionality
-Also feature requests can go in the bug tracker. In this case:
+Also, feature requests can go in the bug tracker. In this case:
 
 * Please provide a use case description, explain the problem you are trying to
-  solve with the proposed feature before describing the solution. This allows
+solve with the proposed feature before describing the solution. This allows
   other users to think along and maybe improve on your solution.
 * Make sure the use case is generic enough that it will benefit other users
-  as well. If it is highly tailored for your specific work flow, chances are
+  as well. If it is highly tailored for your specific work-flow, chances are
   that no-one will work on it (and no-one will want to maintain it in working
   state over the years).
 
@@ -54,51 +54,51 @@ Also feature requests can go in the bug tracker. In this case:
 ## Getting started with the code
 
 See [README.md](./README.md) for instructions to setup zim from source code. Checkout
-the github repository at https://github.com/zim-desktop-wiki/zim-desktop-wiki
+the GitHub repository at https://github.com/zim-desktop-wiki/zim-desktop-wiki
 to get the latest development branch.
 
-The zim code is kept under version control using the git version control system.
+zim code is kept under version control using the git version control system.
 See the website for documentation on using this system: https://git-scm.com/
 
-For indenting of python code the code base uses TABs (not spaces) with a
-tabstop set to the equivalent of 4 spaces. (Yes I know this breaks the PEP8
+For indenting of python code, the code base uses TABs (not spaces) with a
+tabstop set to the equivalent of 4 spaces. (Yes, I know this breaks the PEP8
 recommendation.)
 
 
 ## Bug fixes
-For obvious bugs with simple fixes a merge request can be opened directly.
+For obvious bugs with simple fixes, a merge request can be opened directly.
 These should be very easy to review and merge. If you consider something a bug
-even though the code does what it is supposed to do, please discuss first on
+even though the code does what it is supposed to do, please discuss it first on
 the mailing list or through an issue ticket.
 
 
 ## Adding new features
 Many features can be added through a plugin. Where possible this is the
-preferred way of extending zim. Using a plugins allows adding lot of
+preferred way of extending zim. Using a plugin greatly increases
 configurability via the plugin preferences and properties while keeping the
 core interfaces simple.
 
 See [PLUGIN_WRITING.md](./PLUGIN_WRITING.md) for documentation on writing plugins. Also if you want
-to work on the core functionality, this is a good introduction on the code
+to work on the core functionality, this is a good introduction to the code
 structure.
 
 Only very generic features that are obviously useful for all users should be
 part of the core package. When in doubt please discuss first - either via the
-mailing list or via a github issue ticket.
+mailing list or via a GitHub issue ticket.
 
-In some cases there is a good compromise by extending the core functionality
+In some cases, there is a good compromise by extending the core functionality
 with certain capabilities, but exposing the user interface to take advantage of
 these capabilities via a plugin. An example of this is the support for tags;
-tags are part of the core wiki parsing methods, however to see a special index
+tags are part of the core wiki parsing methods, however, to see a special index
 view for tags you need to enable a plugin.
 
 ### Test suite
 
-Zim comes with a full test suite, it can be executed using the `test.py`
-script. See `test.py --help` for it's commandline options.
+Zim comes with a full test suite, that can be executed using the `test.py`
+script. See `test.py --help` for its commandline options.
 
 It is good practice to run the full suite before committing to a development
-branch and especially before generating a merge request. This should ensures the
+branch and especially before generating a merge request. This should ensure that a
 new patch doesn't break any existing code.
 
 For any but the most trivial fixes test cases should be written to ensure the
@@ -107,31 +107,31 @@ You'll be surprised how often the same bug comes back after some time if there i
 no test case in place to detect it. Some bugs are just waiting to happen
 again and again.
 
-For writing tests have a look at the existing test code or check the
+For writing tests, have a look at the existing test code or check the
 documentation for the "unittest" module in the python library.
 
 A most useful tool for developing tests is looking at test **coverage**. When
 you run `test.py` with the `--coverage` option the "coverage" module
-will be loaded and a set of html pages will be generated in `./coverage`. In
-these pages you can see line by line what code is called during the test run and
-what lines of code go untested. It is hard to really get to 100% coverage, but
-the target should be to get the coverage above at least 80% for each module.
+will be loaded and a set of HTML pages will be generated in `./coverage`. In
+these pages, you can see line by line what code is called during the test run and
+what lines of code go untested. It is hard to really get 100% coverage, so
+the target should be to get a coverage of at least 80% for each module.
 
-If you added e.g. a new class and wrote a test case for it have a look at the
-coverage to see what additional tests are needed to cover all code.
+If you added e.g. a new class and wrote a test case for it, have a look at the
+coverage to see what additional tests are needed to cover all of the code.
 
-Of course having full coverage is no guarantee we cover all possible inputs, but
+Of course, having full coverage is no guarantee that we covered all possible inputs, but
 looking at coverage combined with writing tests for reported bugs should ensure
 good project quality and satisfaction for all Zim users.
 
 
 ## Merge requests
-Please use github to upload your patches and file a merge request towards the
-zim repository. If you mention relevant issue numbers in the merge request it
+Please use GitHub to upload your patches and file a merge request towards the
+zim repository. If you mention relevant issue numbers in the merge request, it
 will automatically be flagged in those issue tickets as well.
 
 ## Known Zim limitations
-Main assumption about the whole file handling and page rendering is that files
+The main assumption about file handling and page rendering is that files
 are small enough that we can load them into memory several times. This seems a
 valid assumption as notebooks are spread over many files. Having really huge
 files as wiki content is outside the scope of the design. If this is what you want
@@ -145,7 +145,7 @@ To contribute to translations online please go to either
 https://hosted.weblate.org/projects/zim/master/
 or https://hosted.weblate.org/projects/zim/develop/.
 
-The first one (ending in "master") contains translation strings for the current / upcoming releases. The second one (ending in "develop") could contain strings for new features.
+The first one (ending in "master") contains translation strings for the current/upcoming releases. The second one (ending in "develop") could contain strings for new features.
 
 Or you can edit the template zim.pot with your favorite editor. In that case you should add you new .po file to the po/ directory.
 

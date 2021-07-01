@@ -104,7 +104,8 @@ class TestFilePath(tests.TestCase):
 
 		# Test home folder fallback
 		f = FilePath('~non-existing-user/foo')
-		self.assertEqual(f.path, P('/'.join((HOME.dirname, 'non-existing-user', 'foo'))))
+		homedirname = HOME.dirname or '' # Build environments may have HOME set as e.g. '/builddir'
+		self.assertEqual(f.path, P('/'.join((homedirname, 'non-existing-user', 'foo'))))
 
 
 	def testShareDrivePath(self):
@@ -179,7 +180,9 @@ class TestFilePath(tests.TestCase):
 			self.assertEqual(f.get_abspath(p).path, want)
 
 	def testUserpath(self):
-		self.assertTrue(len(HOME.pathnames) >= 2)
+		# Not always true, e.g. a build environment may have home set to
+		# /builddir.
+		#self.assertTrue(len(HOME.pathnames) >= 2)
 
 		f = FilePath('~/foo')
 		self.assertEqual(f.path, HOME.get_childpath('foo').path)

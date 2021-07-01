@@ -22,6 +22,10 @@ import zim.gui
 
 from zim.gui.uiactions import UIActions, PAGE_EDIT_ACTIONS
 
+def strip_file_url_prefix(str):
+	if str.startswith('file://'): return str[7:]
+	return str
+
 
 class EmptyWindowObject(object):
 	# Any other method than get_toplevel() should raise to prevent
@@ -853,7 +857,7 @@ class TestUIActionsRealFile(tests.TestCase):
 		folder.touch()
 
 		def open_folder(cmd):
-			self.assertEqual(cmd[-1], folder.path)
+			self.assertEqual(strip_file_url_prefix(cmd[-1]), folder.path)
 
 		with tests.ApplicationContext(open_folder):
 			with tests.DialogContext():
@@ -867,7 +871,7 @@ class TestUIActionsRealFile(tests.TestCase):
 			dialog.answer_yes()
 
 		def open_folder(cmd):
-			self.assertEqual(cmd[-1], folder.path)
+			self.assertEqual(strip_file_url_prefix(cmd[-1]), folder.path)
 
 		with tests.ApplicationContext(open_folder):
 			with tests.DialogContext(create_folder):
@@ -875,7 +879,7 @@ class TestUIActionsRealFile(tests.TestCase):
 
 	def testOpenNotebookFolder(self):
 		def open_folder(cmd):
-			self.assertEqual(cmd[-1], self.notebook.folder.path)
+			self.assertEqual(strip_file_url_prefix(cmd[-1]), self.notebook.folder.path)
 
 		with tests.ApplicationContext(open_folder):
 			self.uiactions.open_notebook_folder()
@@ -886,7 +890,7 @@ class TestUIActionsRealFile(tests.TestCase):
 		self.notebook.document_root.touch()
 
 		def open_folder(cmd):
-			self.assertEqual(cmd[-1], self.notebook.document_root.path)
+			self.assertEqual(strip_file_url_prefix(cmd[-1]), self.notebook.document_root.path)
 
 		with tests.ApplicationContext(open_folder):
 			with tests.DialogContext():

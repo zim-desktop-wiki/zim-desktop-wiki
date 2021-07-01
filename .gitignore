@@ -96,3 +96,6 @@ ENV/
 # debian pybuild
 .pybuild/
 debian/python-module-stampdir/
+
+# PyCharm
+.idea

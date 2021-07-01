@@ -3,10 +3,10 @@ Plugins
 
 Plugins are one of the two extension mechanisms supported by zim. Plugins are loaded
 as part of the application code and can modify key components of the interface.
-In fact one of our design goals is to keep the core functionality limited and
+One of our design goals is to keep the core functionality limited and
 ship default plugins for anything a user would want to be able to disable.
 
-( The other extension mechanism being "custom tools". The later allows defining
+( The other extension mechanism being "custom tools". The latter allows defining
 tools in the zim menu that call an external script or application. This can be
 used to add some simple functions that only act on the files in the notebook. )
 
@@ -30,11 +30,11 @@ To allow plugins to be installed locally, the `$XDG_DATA_HOME/zim/plugins`
 folder and all `$XDG_DATA_DIRS/zim/plugins` folders are added to the search
 path for `zim.plugins`.
 
-By default the home folder would be `~/.local/share/zim/plugins`.
+By default, the home folder would be `~/.local/share/zim/plugins`.
 
 The best for packaging is then is to organize your plugin as a folder with a
 `__init__.py` containing the main plugin class. Users can then directly unpack
-this folder to `~/.local/share/zim/plugins` or directly branch you git
+this folder to `~/.local/share/zim/plugins` or directly branch your git
 repository to this location.
 
 The main plugin class should provide information for Zim to recognize the plugin
@@ -43,35 +43,35 @@ and add it to the preferences dialog.
 Example plugin class:
 
 ```python3
-  from zim.plugins import PluginClass
+from zim.plugins import PluginClass
 
-  class MyPlugin(PluginClass):
+class MyPlugin(PluginClass):
 
-    plugin_info = {
-      'name': _('My Plugin'),
-      'description': _('My first plugin')
-      'author': 'Your Name',
-    }
+  plugin_info = {
+    'name': _('My Plugin'),
+    'description': _('My first plugin'),
+    'author': 'Your Name',
+  }
 ```
 
-**NOTE:** when testing your plugin you will have to quite zim and restart after
-changing the plugin code because once a plugin is loaded it keeps using the copy
+**NOTE:** when testing your plugin you will have to quit zim and restart after
+changing the plugin code because once a plugin is loaded, it keeps using the copy
 from memory.
 
 ## Adding functionality to your plugin
 
 The plugin class itself does not do much other than providing information about
-the plugin and it's preferences.
+the plugin and its preferences.
 
 To add functionality to your plugin you need to define one or more classes that
-do the actual work. These will be "extension" classes and must derive from a
+do the actual work. These will be "extension" classes and must derive from an
 extension base-class.
 
 You can find all extension points in the application by searching for the
 `@extendable` class decorator. Classes that are extendable have this decorator
 and thus declare what extension base class they support.
 
-For example to add functionality to the `PageView` class, you must define a
+For example, to add functionality to the `PageView` class, you must define a
 class derived from `PageViewExtension`.
 
 At the time of writing these extension base-classes are defined:
@@ -79,18 +79,18 @@ At the time of writing these extension base-classes are defined:
   - `PageViewExtension`: for functions that add functionality to the editor
     window, or want to add side panes next to the editor
   - `InsertedObjectTypeExtension`: special extension for plugins that want to
-    define an object type (e.g. equation) that can be rendered in line in the
+    define an object type (e.g. equation) that can be rendered inline in the
     text -- see also to `zim.plugins.base.imagegenerator` module
   - `MainWindowExtension`: for any other changes to the mainwindow that are not
     handled by a `PageViewExtension`
 
-When you define a subclass of such an extension class it will be loaded
+When you define a subclass of such an extension class, it will be loaded
 automatically by the plugin for each instance of the target component.
 
 Key interfaces for extensions are: adding actions, adding widgets, connecting
 to signals and calling methods on the extended object.
 
-Apart from extensions there is one other class that will also be used
+Apart from extensions, there is one other class that will also be used
 automatically: Classes derived from the `Command` class are used to handle
 commandline arguments in the form "`zim --plugin yourplugin`".
 
@@ -99,18 +99,18 @@ commandline arguments in the form "`zim --plugin yourplugin`".
 
 Preferences are maintained by the plugin object and are global for the
 application. That means that they apply in the same way for all notebooks.
-If your plugin has behavior that should be different per notebook you need to
+If your plugin has a behavior that should be different per notebook, you need to
 use the notebook properties instead.
 
 Preferences can be defined by adding a list of `plugin_preferences` to your
 plugin class. Within the plugin these are accessible through the `preferences`
-dict and in the user interface they will show up in the plugin configuration
+dict and in the user interface, they will show up in the plugin configuration
 in the preferences dialog.
 
 Notebook properties can be defined similarly by adding a list of
 `plugin_notebook_properties` to the plugin class. To obtain the properties
 for a specific notebook as a dict you need to call the plugin method
-`notebook_properties()`. In the user interface they will show up in the
+`notebook_properties()`. In the user interface, they will show up in the
 properties dialog.
 
 ## Actions
@@ -130,15 +130,15 @@ extensions and actions defined by other plugins.
 Zim is build using the Gtk / GObject toolkit. This toolkit relies heavily on
 the concept of "signals" to collaborate between classes.
 
-In short this means that any class can define a number of signals that are
+In short, this means that any class can define a number of signals that are
 emitted for various events. Objects that are interested in these events can
 register an event handler using the `connect()` method.
 
 Zim defines a `SignalConnectorMixin` class in `zim.signals` with some
 convenience methods for classes that want to connect to signals.
 
-For classes that do not derive for GObject classes but do want to emit their
-own signales zim has it's own `SignalEmitter`class in `zim.signals`.
+For classes that do not derive from GObject classes but do want to emit their
+own signals zim has its own `SignalEmitter`class in `zim.signals`.
 
 
 Keep in mind that with each `connect()` an object reference is created to the
@@ -163,18 +163,18 @@ See the python style guide for best practices. Some additional remarks:
   statements could be optimized away
 * Writing test cases is good, full test coverage is better.
   Run `./test.py --cover` to get a coverage report.
-* Use signals for colaboration between classes where possible
+* Use signals for collaboration between classes where possible
 * Signal handlers have a method name starting with "do_" (for signals of the
-  same classe) or "on_" (for signals of collaborating classes)
+  same class) or "on_" (for signals of collaborating classes)
 
 
 ### Test suite
 
 Zim comes with a full test suite, it can be executed using the `test.py`
-script. See `test.py --help` for it's commandline options.
+script. See `test.py --help` for its commandline options.
 
-This test suite will at least test for all plugins that they can be loaded
-and contain proper information.
+This test suite will at least test all plugins that can be loaded
+and contain the proper information.
 
 To test the specific functions of your plugin, you need to write your own test
 case. Have a look at test cases of existing plugins for ideas how to do that.
@@ -188,7 +188,7 @@ and open a merge request.
 Some things to consider:
 * Make sure the plugin not only solves your own problem, but is also applicable
   for a more generic use case that many people may have
-* Each plugin should have it's own page in the user manual that explains what
+* Each plugin should have its own page in the user manual that explains what
   it does and how to use it.
 * Each plugin should come with its own test cases for the test suite. Other
   developers may not use your plugin, so if it breaks later on it may go

@@ -58,7 +58,7 @@ Esc		Close sidepane (when focus is on a side pane)
 
 '''
 <Ctrl>L		Link selected text
-		Follow selected text as link when read-only
+		Follow selected text as a link when read-only
 <Shift><Ctrl>L	Copy a link to the current page to the clipboard
 		In the side pane copies a link to the selected page
 		(Paste this link in a page with <Ctrl>V)
@@ -100,7 +100,7 @@ F12		Toggle checkbox item to 'OK'
 <Shift>F12	Toggle checkbox item to 'NOK'
 '''
 
-Also all the usual keybindings apply for the gtk text edit widget, thus bindings like
+, all the usual keybindings apply for the gtk text edit widget, thus bindings like
 ''<Ctrl>C'', ''<Ctrl>X'', ''<Ctrl>V'', ''<Ctrl>A'' etc. work as expected.
 
 ==== Side pane tree ====
@@ -117,7 +117,7 @@ The following key bindings works when the tree in the side pane is focussed:
 
 
 === Keyboard navigation of the index ===
-When you click a page in the index with the mouse, this page is opened. However when you navigate the index with keyboard cursor keys, the page that is focused is not actually opened until you press ''<Space>'' or ''<Enter>''. This means that there will be two pages highlighted, the page that has the focus and the page that is open. The page that is open is highlighted with **bold** text, while the focus is typically highlighted in the color of your desktop theme.
+When you click a page in the index with the mouse, this page is opened. However, when you navigate the index with keyboard cursor keys, the page that is focused is not actually opened until you press ''<Space>'' or ''<Enter>''. This means that there will be two pages highlighted, the page that has the focus and the page that is open. The page that is open is highlighted with **bold** text, while the focus is typically highlighted in the color of your desktop theme.
 
 ==== Text selections ====
 For selected text the following keybindings are added:
