@@ -229,7 +229,7 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 			builder.end(tag)
 
 		builder.start(TABLE, dict(attrib))
-		builder.start(HEADROW)
+		builder.start(HEADROW, {})
 		for header in headers:
 			append(HEADDATA, header)
 		builder.end(HEADROW)
