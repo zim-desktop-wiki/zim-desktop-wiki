@@ -1613,9 +1613,10 @@ class TextBuffer(Gtk.TextBuffer):
 			assert insert.starts_line(), 'BUG: bullet not at line start'
 
 			# Turning into list item removes heading
-			end = insert.copy()
-			end.forward_to_line_end()
-			self.smart_remove_tags(_is_heading_tag, insert, end)
+			if not insert.ends_line():
+				end = insert.copy()
+				end.forward_to_line_end()
+				self.smart_remove_tags(_is_heading_tag, insert, end)
 
 			# TODO: convert 'pre' to 'code' ?
 
