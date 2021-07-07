@@ -195,8 +195,7 @@ class UIActions(object):
 	@action(_('_Delete Page'), menuhints='notebook:edit') # T: Menu item
 	def delete_page(self, path=None):
 		'''Delete a page by either trashing it, or permanent deletion after
-		confirmation of a L{DeletePageDialog}. When trashing the update behavior
-		depends on the "remove_links_on_delete" preference.
+		confirmation of a L{TrashPageDialog} or L{DeletePageDialog}.
 
 		@param path: a L{Path} object, or C{None} for the current selected page
 		'''
@@ -204,14 +203,6 @@ class UIActions(object):
 		# So ideally we want to know whether trash is supported, but we only
 		# know for sure when we try. Thus we risk prompting twice: once for
 		# trash and once for deletion if trash fails.
-		# On windows the system will also prompt to confirm trashing, once
-		# for the file and once for the folder. So adding our own prompt
-		# will make it worse.
-		# So we first attempt to trash and only if it fails we prompt for
-		# to confirm for permanent deletion. From the application point of
-		# view this is not perfect since we can't undo deletion from within
-		# the application.
-		from zim.newfs.helpers import TrashNotSupportedError
 
 		path = path or self.page
 		assert path is not None
@@ -219,22 +210,21 @@ class UIActions(object):
 		if not self.ensure_index_uptodate():
 			return
 
-		preferences = ConfigManager.preferences['GtkInterface']
-		update_links = preferences.setdefault('remove_links_on_delete', True)
-		op = NotebookOperation(
-			self.notebook,
-			_('Removing Links'), # T: Title of progressbar dialog
-			self.notebook.trash_page_iter(path, update_links)
-		)
-		dialog = ProgressDialog(self.widget, op)
-		try:
-			dialog.run()
-		except TrashNotSupportedError:
-			pass # only during test, else error happens in idle handler
+		# TODO: if page is placeholder, present different dialog ?
+		#       explain no file is deleted, only links can be removed, which is not reversable
 
-		if op.exception and isinstance(op.exception, TrashNotSupportedError):
-			logger.info('Trash not supported: %s', op.exception.msg)
-			DeletePageDialog(self.widget, self.notebook, path, update_links=update_links).run()
+		if self.notebook.config['Notebook']['disable_trash']:
+			return DeletePageDialog(self.widget, self.notebook, path).run()
+		else:
+			# Try to trash - if fail, go to delete anyway
+			error = TrashPageDialog(self.widget, self.notebook, path).run()
+			if error:
+				if QuestionDialog(
+					self.widget,
+					_("Trash failed, do you want to permanently delete instead ?")
+				).run():
+					return DeletePageDialog(self.widget, self.notebook, path).run()
+
 
 	@action(_('Proper_ties')) # T: Menu item
 	def show_properties(self):
@@ -665,14 +655,13 @@ class MovePageDialog(Dialog):
 		return True
 
 
-class DeletePageDialog(Dialog):
+class DeletePageDialogBase(Dialog):
 
-	def __init__(self, widget, notebook, path, update_links=True):
+	def __init__(self, widget, notebook, path):
 		assert path, 'Need a page here'
-		Dialog.__init__(self, widget, _('Delete Page')) # T: Dialog title
+		Dialog.__init__(self, widget, self.title)
 		self.notebook = notebook
 		self.path = path
-		self.update_links = update_links
 
 		hbox = Gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
@@ -684,12 +673,15 @@ class DeletePageDialog(Dialog):
 		hbox.pack_start(vbox, False, True, 0)
 
 		label = Gtk.Label()
-		short = _('Delete page "%s"?') % self.path.basename
-			# T: Heading in 'delete page' dialog - %s is the page name
-		longmsg = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
-			# T: Text in 'delete page' dialog - %s is the page name
-		label.set_markup('<b>' + short + '</b>\n\n' + longmsg)
-		vbox.pack_start(label, False, True, 0)
+		string = '<b>' + (self.shortmsg % self.path.basename) + '</b>\n\n' + (self.longmsg  % self.path.name)
+		label.set_markup(string)
+		vbox.pack_start(label, False, True, 5)
+
+		string = _('Remove links to %s') % self.path # T: label in DeletePageDialog
+		self.uistate.setdefault('update_links', True)
+		self.update_links_checkbutton = Gtk.CheckButton.new_with_mnemonic(string)
+		self.update_links_checkbutton.set_active(self.uistate['update_links'])
+		vbox.pack_start(self.update_links_checkbutton, False, True, 0)
 
 		# TODO use expander here
 		page = self.notebook.get_page(self.path)
@@ -700,8 +692,7 @@ class DeletePageDialog(Dialog):
 			text += self._get_file_tree_as_text(dir)
 			n = len([l for l in text.splitlines() if l.strip() and not l.endswith('/')])
 
-		string = ngettext('%i file will be deleted', '%i files will be deleted', n) % n
-			# T: label in the DeletePage dialog to warn user of attachments being deleted
+		string = self._ngettext_label_n_files(n)
 		if n > 0:
 			string = '<b>' + string + '</b>'
 
@@ -727,16 +718,76 @@ class DeletePageDialog(Dialog):
 			text += path + '\n'
 		return text
 
+
+class TrashPageDialog(DeletePageDialogBase):
+
+	title = _('Trash Page') # T: Dialog title
+	shortmsg = _('Move page "%s" to trash?')
+		# T: Heading in 'trash page' dialog - %s is the page name
+	longmsg = _('Page "%s" and all of it\'s sub-pages and\nattachments will be moved to your system\'s trash.\n\nTo undo later, go to your system\'s trashcan.')
+		# T: Text in 'trash page' dialog - %s is the page name
+
+	def _ngettext_label_n_files(self, n):
+		return ngettext('%i file will be trashed', '%i files will be trashed', n) % n
+			# T: label in the TrashPage dialog to warn user of attachments being deleted
+
 	def do_response_ok(self):
+		from zim.newfs.helpers import TrashNotSupportedError
+
+		self.uistate['update_links'] = self.update_links_checkbutton.get_active()
+
 		op = NotebookOperation(
 			self.notebook,
 			_('Removing Links'), # T: Title of progressbar dialog
-			self.notebook.delete_page_iter(self.path, self.update_links)
+			self.notebook.trash_page_iter(self.path, self.uistate['update_links'])
+		)
+		dialog = ProgressDialog(self, op)
+		try:
+			dialog.run()
+		except TrashNotSupportedError:
+			# only during test, else error happens in idle handler
+			logger.info('Trash not supported: %s', op.exception.msg)
+			self.result = TrashNotSupportedError
+		else:
+			if op.exception and isinstance(op.exception, TrashNotSupportedError):
+				logger.info('Trash not supported: %s', op.exception.msg)
+				self.result = TrashNotSupportedError
+			elif op.exception:
+				self.result = op.exception
+				raise op.exception
+			else:
+				pass
+
+		return not self.result # no news is good news
+
+
+class DeletePageDialog(DeletePageDialogBase):
+
+	title = _('Delete Page') # T: Dialog title
+	shortmsg = _('Delete page "%s"?')
+		# T: Heading in 'delete page' dialog - %s is the page name
+	longmsg = _('Page "%s" and all of it\'s sub-pages and\nattachments will be deleted.\n\nThis deletion is permanent and cannot be un-done.')
+		# T: Text in 'delete page' dialog - %s is the page name
+
+	def _ngettext_label_n_files(self, n):
+		return ngettext('%i file will be deleted', '%i files will be deleted', n) % n
+			# T: label in the DeletePage dialog to warn user of attachments being deleted
+
+	def do_response_ok(self):
+		self.uistate['update_links'] = self.update_links_checkbutton.get_active()
+
+		op = NotebookOperation(
+			self.notebook,
+			_('Removing Links'), # T: Title of progressbar dialog
+			self.notebook.delete_page_iter(self.path, self.uistate['update_links'])
 		)
 		dialog = ProgressDialog(self, op)
 		dialog.run()
 
-		return True
+		if op.exception:
+			raise op.exception
+		else:
+			return True
 
 
 class MyAboutDialog(Gtk.AboutDialog):

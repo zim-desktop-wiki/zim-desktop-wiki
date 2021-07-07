@@ -62,8 +62,6 @@ ui_preferences = (
 		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
-	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
-		# T: Option in the preferences dialog
 	('always_use_last_cursor_pos', 'bool', 'Interface', _('Always use last cursor position when opening a page'), True),
 		# T: Option in the preferences dialog
 )
@@ -249,7 +247,6 @@ class MainWindow(WindowBaseMixin, Window):
 		self.preferences = ConfigManager.preferences['GtkInterface']
 		self.preferences.define(
 			toggle_on_ctrlspace=Boolean(False),
-			remove_links_on_delete=Boolean(True),
 			always_use_last_cursor_pos=Boolean(True),
 		)
 		self.preferences.connect('changed', self.do_preferences_changed)

@@ -467,12 +467,17 @@ class DialogContext(object):
 
 		if isinstance(handler, type): # is a class
 			self._default_handler(handler, dialog)
+		elif isinstance(handler, tuple):
+			klass, func = handler
+			self._default_handler(klass, dialog, func)
 		else: # assume a function
 			handler(dialog)
 
-	def _default_handler(self, cls, dialog):
+	def _default_handler(self, cls, dialog, func=None):
 		if not isinstance(dialog, cls):
 			raise AssertionError('Expected dialog of class %s, but got %s instead' % (cls, dialog.__class__))
+		if func:
+			func(dialog)
 		dialog.assert_response_ok()
 
 	def __exit__(self, *error):

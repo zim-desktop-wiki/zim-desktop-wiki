@@ -16,3 +16,5 @@ The notebook **Icon** is an image that is used together with the name to identif
 The **Document Root** is a special folder containing documents that can be linked to from the notebook. To link files in this folder start the links with a "/" (see [[Links]] for more details). This folder is typically used for notebooks to be published as a webpage. When [[Export|exporting]] the notebook to HTML, the document root can be mapped as a special URL.
 
 The property **Prefer short names for page links** controls the behavior e.g. when pasting a page link. When enabled a link like "''CustomerA:ProjectB''" will be inserted with "''ProjectB''" as link text.
+
+When the property **Do not use system trash for this notebook** is enabled, the "//Delete page//" menu action will perform a permanent delete instead of a moving files to trash.

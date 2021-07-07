@@ -20,7 +20,7 @@ from zim.gui.clipboard import Clipboard
 import zim.gui
 
 
-from zim.gui.uiactions import UIActions, PAGE_EDIT_ACTIONS
+from zim.gui.uiactions import UIActions, PAGE_EDIT_ACTIONS, TrashPageDialog, DeletePageDialog
 
 def strip_file_url_prefix(str):
 	if str.startswith('file://'): return str[7:]
@@ -762,27 +762,78 @@ class TestUIActionsRealFile(tests.TestCase):
 			self.navigation,
 		)
 
-	def testDeletePageWithTrash(self):
+	def testTrashPage(self):
 		self.assertTrue(self.page.exists())
 
-		with tests.DialogContext(): # fails if dialog shown
+		with tests.DialogContext(TrashPageDialog):
 			self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 
-	def testDeletePageWithoutTrash(self):
+	def testTrashPageCancel(self):
+		self.assertTrue(self.page.exists())
+
+		def cancel_delete(dialog):
+			assert isinstance(dialog, TrashPageDialog)
+			dialog.do_response_cancel()
+
+		with tests.DialogContext(cancel_delete):
+			self.uiactions.delete_page()
+
+		self.assertTrue(self.page.exists())
+
+	def testTrashPageFallbackToDelete(self):
+		from zim.newfs.helpers import TrashNotSupportedError
+		self.assertTrue(self.page.exists())
+
+		def mock_trash_iter(*a, **k):
+			yield
+			raise TrashNotSupportedError('Test')
+		self.notebook.trash_page_iter = mock_trash_iter
+
+		def fail_trash(dialog):
+			assert isinstance(dialog, TrashPageDialog)
+			dialog.do_response_ok() # NOT assert_repsonse_ok - we want to fail
+
+		def question_yes(dialog):
+			dialog.answer_yes()
+
+		with tests.DialogContext(fail_trash, question_yes, DeletePageDialog):
+			self.uiactions.delete_page()
+
+		self.assertFalse(self.page.exists())
+
+	def testTrashPageFallbackToDeleteCancel(self):
+		from zim.newfs.helpers import TrashNotSupportedError
+		self.assertTrue(self.page.exists())
+
+		def mock_trash_iter(*a, **k):
+			yield
+			raise TrashNotSupportedError('Test')
+		self.notebook.trash_page_iter = mock_trash_iter
+
+		def fail_trash(dialog):
+			assert isinstance(dialog, TrashPageDialog)
+			dialog.do_response_ok() # NOT assert_repsonse_ok - we want to fail
+
+		def question_no(dialog):
+			dialog.answer_no()
+
+		with tests.DialogContext(fail_trash, question_no):
+			self.uiactions.delete_page()
+
+		self.assertTrue(self.page.exists())
+
+	def testDeletePage(self):
 		self.notebook.config['Notebook']['disable_trash'] = True
 		self.assertTrue(self.page.exists())
 
-		def do_delete(dialog):
-			dialog.assert_response_ok()
-
-		with tests.DialogContext(do_delete):
+		with tests.DialogContext(DeletePageDialog):
 			self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 
-	def testDeletePageWithoutTrashAndChildren(self):
+	def testDeletePageAndChildren(self):
 		self.notebook.config['Notebook']['disable_trash'] = True
 		self.assertTrue(self.page.exists())
 		child = self.notebook.get_page(Path('Test:Child'))
@@ -792,93 +843,83 @@ class TestUIActionsRealFile(tests.TestCase):
 		self.assertTrue(dir.exists())
 		dir.folder('foo').touch()
 
-		def do_delete(dialog):
-			dialog.assert_response_ok()
-
-		with tests.DialogContext(do_delete):
+		with tests.DialogContext(DeletePageDialog):
 			self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 		self.assertFalse(dir.exists())
 
-	def testDeletePageWithoutTrashCancel(self):
+	def testDeletePageCancel(self):
 		self.notebook.config['Notebook']['disable_trash'] = True
 		self.assertTrue(self.page.exists())
 
-		def do_delete(dialog):
+		def cancel_delete(dialog):
+			assert isinstance(dialog, DeletePageDialog)
 			dialog.do_response_cancel()
 
-		with tests.DialogContext(do_delete):
+		with tests.DialogContext(cancel_delete):
 			self.uiactions.delete_page()
 
 		self.assertTrue(self.page.exists())
 
-	def testDeletePageWithTrashUpdateLinks(self):
-		from zim.config import ConfigManager
-		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=True)
+	def testTrashPageUpdateLinks(self):
 		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
 		self.notebook.store_page(referrer)
 
-		with tests.DialogContext(): # fails if dialog shown
-			self.uiactions.delete_page()
+		with tests.DialogContext(
+				(TrashPageDialog, lambda d: d.update_links_checkbutton.set_active(True))
+			):
+				self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 		self.assertEqual(referrer.dump('wiki'), ['Test Test\n'])
 
-	def testDeletePageWithTrashNoUpdateLinks(self):
-		from zim.config import ConfigManager
-		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=False)
+	def testTrashPageNoUpdateLinks(self):
 		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
 		self.notebook.store_page(referrer)
 
-		with tests.DialogContext(): # fails if dialog shown
-			self.uiactions.delete_page()
+		with tests.DialogContext(
+				(TrashPageDialog, lambda d: d.update_links_checkbutton.set_active(False))
+			):
+				self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 		self.assertEqual(referrer.dump('wiki'), ['Test [[Test]]\n'])
 
-	def testDeletePageWithoutTrashUpdateLinks(self):
-		from zim.config import ConfigManager
-
+	def testDeletePageUpdateLinks(self):
 		self.notebook.config['Notebook']['disable_trash'] = True
-		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=True)
 		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
 		self.notebook.store_page(referrer)
 
-		def do_delete(dialog):
-			dialog.assert_response_ok()
-
-		with tests.DialogContext(do_delete):
-			self.uiactions.delete_page()
+		with tests.DialogContext(
+				(DeletePageDialog, lambda d: d.update_links_checkbutton.set_active(True))
+			):
+				self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 		self.assertEqual(referrer.dump('wiki'), ['Test Test\n'])
 
-	def testDeletePageWithoutTrashNoUpdateLinks(self):
-		from zim.config import ConfigManager
-
+	def testDeletePageNoUpdateLinks(self):
 		self.notebook.config['Notebook']['disable_trash'] = True
-		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=False)
 		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
 		self.notebook.store_page(referrer)
 
-		def do_delete(dialog):
-			dialog.assert_response_ok()
-
-		with tests.DialogContext(do_delete):
-			self.uiactions.delete_page()
+		with tests.DialogContext(
+				(DeletePageDialog, lambda d: d.update_links_checkbutton.set_active(False))
+			):
+				self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 		self.assertEqual(referrer.dump('wiki'), ['Test [[Test]]\n'])
