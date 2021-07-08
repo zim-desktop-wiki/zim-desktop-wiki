@@ -490,45 +490,36 @@ class TestUIActions(tests.TestCase):
 		self.assertEqual(referrer.dump('wiki'), ['Test [[Test]]\n'])
 
 	def testEditProperties(self):
-		from zim.gui.preferencesdialog import PreferencesDialog
-		from zim.plugins import PluginManager
-
+		from zim.gui.propertiesdialog import PropertiesDialog
 		self.uiactions.widget = Gtk.Window()
 
-		def edit_properties(dialog):
-			dialog.set_input(home='NewHome')
-			dialog.assert_response_ok()
-
-		with tests.DialogContext(edit_properties):
+		with tests.DialogContext(
+			(PropertiesDialog, lambda d: d.set_input(home='NewHome'))
+		):
 			self.uiactions.show_properties()
 
 		self.assertEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
 
 	def testEditPropertiesReadOnly(self):
-		from zim.gui.preferencesdialog import PreferencesDialog
-		from zim.plugins import PluginManager
-
+		from zim.gui.propertiesdialog import PropertiesDialog
 		self.uiactions.widget = Gtk.Window()
 
 		self.assertFalse(self.notebook.readonly) # implies attribute exists ..
 		self.notebook.readonly = True
 
-		def edit_properties(dialog):
-			self.assertFalse(dialog.get_input_enabled('home'))
-			dialog.assert_response_ok()
-
-		with tests.DialogContext(edit_properties):
+		with tests.DialogContext(
+			(PropertiesDialog, lambda d: self.assertFalse(d.get_input_enabled('home')))
+		):
 			self.uiactions.show_properties()
 
 	def testPropertiesNotChangedOnCancel(self):
-		from zim.gui.preferencesdialog import PreferencesDialog
-		from zim.plugins import PluginManager
-
+		from zim.gui.propertiesdialog import PropertiesDialog
 		self.uiactions.widget = Gtk.Window()
 
 		# In fact this is testig the "cancel" button for all dialogs
 		# which have one ..
 		def edit_properties(dialog):
+			assert isinstance(dialog, PropertiesDialog)
 			dialog.set_input(home='NewHome')
 			dialog.do_response_cancel()
 
@@ -1002,3 +993,19 @@ class TestUIActionsRealFile(tests.TestCase):
 		newtext = self.page.dump('plain')
 		self.assertEqual(signals['storage-changed'], [(True,)]) # boolean for external change
 		self.assertNotEqual(oldtext, newtext)
+
+
+class TestManualProperties(tests.TestCase):
+
+	def runTest(self):
+		from zim.gui.propertiesdialog import notebook_properties
+
+		with open('./data/manual/Help/Properties.txt') as fh:
+			manual = fh.read()
+
+		for pref in notebook_properties:
+			label = pref[2]
+			if '\n' in label:
+				label, x = label.split('\n', 1)
+				label = label.rstrip(',')
+			self.assertTrue(label in manual, 'Property "%s" not documented in manual page' % label)

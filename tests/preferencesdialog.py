@@ -17,6 +17,25 @@ def MyWindow():
 	return window
 
 
+class TestManual(tests.TestCase):
+
+	def runTest(self):
+		from zim.gui.mainwindow import ui_preferences as interface_preferences
+		from zim.gui.pageview import ui_preferences as pageview_preferences
+
+		with open('./data/manual/Help/Preferences.txt') as fh:
+			manual = fh.read()
+
+		for section in (interface_preferences, pageview_preferences):
+			for pref in section:
+				label = pref[3]
+				if '\n' in label:
+					label, x = label.split('\n', 1)
+					label = label.rstrip(',')
+				label = label.replace('<Primary>', '<Ctrl>').replace('<Command>', '<Ctrl>')
+				self.assertTrue(label in manual, 'Preference "%s" not documented in manual page' % label)
+
+
 class TestPreferencesDialog(tests.TestCase):
 
 	def setUp(self):

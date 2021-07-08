@@ -188,10 +188,10 @@ ui_preferences = (
 		_('Repeated clicking a checkbox cycles through the checkbox states'), True),
 		# T: option in preferences dialog
 	('recursive_indentlist', 'bool', 'Editing',
-		_('(Un-)Indenting a list item also change any sub-items'), True),
+		_('(Un-)indenting a list item also changes any sub-items'), True),
 		# T: option in preferences dialog
 	('recursive_checklist', 'bool', 'Editing',
-		_('Checking a checkbox also change any sub-items'), False),
+		_('Checking a checkbox also changes any sub-items'), False),
 		# T: option in preferences dialog
 	('auto_reformat', 'bool', 'Editing',
 		_('Reformat wiki markup on the fly'), False),

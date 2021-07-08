@@ -7,7 +7,7 @@ The dialog with notebook properties can be accessed with the menu item "//File//
 
 The notebook **Name** is used in the "[[Notebooks|Open Notebook]]" dialog and e.g. in the menu for the [[Plugins:Tray Icon|Tray Icon]]. This name is also used for the window title.
 
-The notebook **Interwiki keyword** can be used to link to this notebook for other notebooks. See "Interwiki" in [[Links]] for more info.
+The notebook **Interwiki Keyword** can be used to link to this notebook for other notebooks. See "Interwiki" in [[Links]] for more info.
 
 The **Home Page** is the first page to open in a notebook if you have no history yet. It can be accessed with the icon button for the home page and the <Alt><Home> key binding. Typically the home page should be an index page linking to other pages.
 

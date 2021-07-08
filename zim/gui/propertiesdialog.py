@@ -18,7 +18,7 @@ notebook_properties = (
 	('home', 'page', _('Home Page')), # T: label for properties dialog
 	('icon', 'image', _('Icon')), # T: label for properties dialog
 	('document_root', 'dir', _('Document Root')), # T: label for properties dialog
-	('short_links', 'bool', _('Prefer short link names for pages'), False), # T: label for properties dialog
+	('short_links', 'bool', _('Prefer short names for page links'), False), # T: label for properties dialog
 	('disable_trash', 'bool', _('Do not use system trash for this notebook'), False) # T: label for properties dialog
 	# 'shared' property is not shown in properties anymore
 )

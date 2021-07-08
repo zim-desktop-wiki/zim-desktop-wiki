@@ -63,14 +63,14 @@ class TestPluginClasses(tests.TestCase):
 
 			manual = file.read()
 			ignore = getattr(klass, 'hide_preferences', [])
-			for pref in klass.plugin_preferences:
-				if pref[0] in ignore:
-					continue
+			prefs = [p for p in klass.plugin_preferences if not p[0] in ignore]
+			props = [p for p in klass.plugin_notebook_properties]
+			for pref in prefs + props:
 				label = pref[2]
 				if '\n' in label:
 					label, x = label.split('\n', 1)
 					label = label.rstrip(',')
-				self.assertIn(label, manual, 'Preference "%s" for %s plugin not documented in manual page' % (label, name))
+				self.assertTrue(label in manual, 'Preference or property "%s" for %s plugin not documented in manual page' % (label, name))
 
 			# test dependencies data
 			dep = klass.check_dependencies()
