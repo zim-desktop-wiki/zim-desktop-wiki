@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2021-05-29 06:32+0000\n"
+"PO-Revision-Date: 2021-07-11 06:32+0000\n"
 "Last-Translator: HelaBasa <R45XvezA@protonmail.ch>\n"
 "Language-Team: Sinhala <https://hosted.weblate.org/projects/zim/master/si/>\n"
 "Language: si\n"
@@ -16,13 +16,13 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.7-dev\n"
+"X-Generator: Weblate 4.8-dev\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
 #, python-format
 msgid "Failed to run application: %s"
-msgstr ""
+msgstr "යෙදුම ධාවනයට අපොහොසත් විය: %s"
 
 #. Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
 #: zim/applications.py:89
@@ -47,7 +47,7 @@ msgstr ""
 #. Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
 #: zim/datetimetz.py:98
 msgid "calendar:week_start:0"
-msgstr ""
+msgstr "දින දසුන:week_start: 0"
 
 #. generic error dialog
 #: zim/errors.py:46
@@ -108,7 +108,7 @@ msgstr ""
 #: zim/gui/applications.py:570 zim/gui/applications.py:644
 #, python-format
 msgid "Could not open: %s"
-msgstr ""
+msgstr "විවෘත කළ නොහැකි විය: %s"
 
 #. main text for dialog for editing external files
 #: zim/gui/applications.py:635
@@ -137,13 +137,13 @@ msgstr ""
 #: zim/gui/applications.py:982
 #, python-format
 msgid "Open with \"%s\""
-msgstr ""
+msgstr "\"%s\" මගින් විවෘත කරන්න"
 
 #. Text in the 'custom command' dialog, "%s" will be URL scheme like "http://" or "ssh://"
 #: zim/gui/applications.py:991
 #, python-format
 msgid "Configure an application to open \"%s\" links"
-msgstr ""
+msgstr "\"%s\" සබැඳි විවෘත කිරීමට යෙදුමක් වින්‍යාසගත කරන්න"
 
 #. Text in the 'custom command' dialog, "%s" will be mimetype like "text/plain"
 #: zim/gui/applications.py:994
@@ -156,13 +156,13 @@ msgstr ""
 #. Dialog title
 #: zim/gui/applications.py:1006
 msgid "Configure Applications"
-msgstr ""
+msgstr "යෙදුම් වින්‍යාසගත කරන්න"
 
 #. Button for adding a new application to the 'open with' menu | 
 #. Dialog title
 #: zim/gui/applications.py:1020 zim/gui/applications.py:1128
 msgid "Add Application"
-msgstr ""
+msgstr "යෙදුම එකතු කරන්න"
 
 #. Label for default application handler
 #: zim/gui/applications.py:1068
@@ -206,7 +206,7 @@ msgstr ""
 #. Dialog title
 #: zim/gui/customtools.py:510
 msgid "Custom Tools"
-msgstr ""
+msgstr "අභිරුචි මෙවලම්"
 
 #. help text in "Custom Tools" dialog
 #: zim/gui/customtools.py:515
@@ -218,13 +218,13 @@ msgstr ""
 #. Dialog title
 #: zim/gui/customtools.py:631
 msgid "Edit Custom Tool"
-msgstr ""
+msgstr "අභිරුචි මෙවලම සංස්කරණය කරන්න"
 
 #. Input in "Edit Custom Tool" dialog | 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/customtools.py:652 zim/gui/preferencesdialog.py:302
 msgid "Description"
-msgstr ""
+msgstr "සවිස්තරය"
 
 #. Input in "Edit Custom Tool" dialog | 
 #. label for properties dialog
@@ -245,7 +245,7 @@ msgstr ""
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:678
 msgid "Show in the toolbar"
-msgstr ""
+msgstr "මෙවලම් පටියෙහි පෙන්වන්න"
 
 #. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 #: zim/gui/customtools.py:686
@@ -267,18 +267,18 @@ msgstr ""
 #. dialog title
 #: zim/gui/exportdialog.py:32
 msgid "Export"
-msgstr ""
+msgstr "නිර්යාත කරන්න"
 
 #. Title for progressbar window
 #: zim/gui/exportdialog.py:55
 msgid "Exporting notebook"
-msgstr ""
+msgstr "සටහන්පොත නිර්යාත වෙමින්"
 
 #. message heading
 #: zim/gui/exportdialog.py:141
 #, python-format
 msgid "Folder exists: %s"
-msgstr ""
+msgstr "බහාලුම පවතී: %s"
 
 #. detailed message, answers are Yes and No
 #: zim/gui/exportdialog.py:142
@@ -290,7 +290,7 @@ msgstr ""
 #. message heading
 #: zim/gui/exportdialog.py:155
 msgid "File exists"
-msgstr ""
+msgstr "ගොනුව පවතී"
 
 #. detailed message, answers are Yes and No
 #: zim/gui/exportdialog.py:156
@@ -298,22 +298,24 @@ msgid ""
 "This file already exists.\n"
 "Do you want to overwrite it?"
 msgstr ""
+"මෙම ගොනුව දැනටමත් පවතී.\n"
+"ඔබට එයට උඩින්-ලිවීමට අවශ්‍යද?"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:167
 msgid "Select the pages to export"
-msgstr ""
+msgstr "නිර්යාත කිරීමට පිටු තෝරන්න"
 
 #. Option in export dialog to export complete notebook | 
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:173 zim/plugins/versioncontrol/__init__.py:824
 msgid "Complete _notebook"
-msgstr ""
+msgstr "සම්පූර්ණ සටහන්පොත"
 
 #. Option in export dialog to export selection
 #: zim/gui/exportdialog.py:178
 msgid "Single _page"
-msgstr ""
+msgstr "තනි පිටුව"
 
 #. Input field in export dialog | 
 #. label in word count dialog | 
@@ -326,7 +328,7 @@ msgstr ""
 #: zim/plugins/quicknote.py:247 zim/plugins/tasklist/gui.py:495
 #: zim/plugins/tasklist/gui.py:801
 msgid "Page"
-msgstr ""
+msgstr "පිටුව"
 
 #. Input field in export dialog
 #: zim/gui/exportdialog.py:182
@@ -341,7 +343,7 @@ msgstr ""
 #. Option in drop down menu to specify another file
 #: zim/gui/exportdialog.py:211
 msgid "Other..."
-msgstr ""
+msgstr "වෙනත්..."
 
 #. Input label in the export dialog | 
 #. label in "insert date" dialog
@@ -373,32 +375,32 @@ msgstr ""
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:310
 msgid "Select the output file or folder"
-msgstr ""
+msgstr "ප්‍රතිදාන ගොනුව හෝ බහාලුම තෝරන්න"
 
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:316
 msgid "Export each page to a separate file"
-msgstr ""
+msgstr "සෑම පිටුවක්ම වෙනම ගොනුවකට නිර්යාත කරන්න"
 
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:318
 msgid "Export all pages to a single file"
-msgstr ""
+msgstr "සියලුම පිටු තනි ගොනුවකට නිර්යාත කරන්න"
 
 #. Label for folder selection in export dialog
 #: zim/gui/exportdialog.py:321
 msgid "Output folder"
-msgstr ""
+msgstr "ප්‍රතිදාන බහාලුම"
 
 #. Label for setting a name for the index of exported pages
 #: zim/gui/exportdialog.py:323
 msgid "Index page"
-msgstr ""
+msgstr "සූචි පිටුව"
 
 #. Label for file selection in export dialog
 #: zim/gui/exportdialog.py:326
 msgid "Output file"
-msgstr ""
+msgstr "ප්‍රතිදාන ගොනුව"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:415
@@ -421,7 +423,7 @@ msgstr ""
 #. label in export dialog
 #: zim/gui/exportdialog.py:426
 msgid "Export completed"
-msgstr ""
+msgstr "නිර්යාත කිරීම සම්පූර්ණයි"
 
 #. button in export dialog | 
 #. button in e.g. equation editor dialog
@@ -459,14 +461,14 @@ msgstr ""
 #. Menu title
 #: zim/gui/mainwindow.py:52
 msgid "_File"
-msgstr ""
+msgstr "ගොනුව (_F)"
 
 #. Menu title | 
 #. Button label
 #: zim/gui/mainwindow.py:53 zim/gui/pageview.py:6988
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
-msgstr ""
+msgstr "සංස්කරණය කරන්න"
 
 #. Menu title | 
 #. button label
@@ -479,12 +481,12 @@ msgstr ""
 #: zim/gui/mainwindow.py:55 zim/gui/pageview.py:6938
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
-msgstr ""
+msgstr "ඇතුළු කරන්න"
 
 #. Menu title
 #: zim/gui/mainwindow.py:56
 msgid "_Search"
-msgstr ""
+msgstr "සොයන්න (_S)"
 
 #. Menu title
 #: zim/gui/mainwindow.py:57
@@ -494,24 +496,24 @@ msgstr ""
 #. Menu title
 #: zim/gui/mainwindow.py:58
 msgid "_Tools"
-msgstr ""
+msgstr "මෙවලම් (_T)"
 
 #. Menu title
 #: zim/gui/mainwindow.py:59
 msgid "_Go"
-msgstr ""
+msgstr "යන්න (_G)"
 
 #. Menu title | 
 #. Button label
 #: zim/gui/mainwindow.py:60 zim/gui/widgets.py:2926
 msgid "_Help"
-msgstr ""
+msgstr "උදව් (_H)"
 
 #. Menu title | 
 #. Menu item
 #: zim/gui/mainwindow.py:61 zim/gui/mainwindow.py:441
 msgid "_Toolbar"
-msgstr ""
+msgstr "මෙවලම් පටිය"
 
 #. Menu title
 #: zim/gui/mainwindow.py:62
@@ -538,12 +540,12 @@ msgstr ""
 #. Button label
 #: zim/gui/mainwindow.py:344 zim/gui/widgets.py:2887
 msgid "_Close"
-msgstr ""
+msgstr "වසන්න (_C)"
 
 #. page status in statusbar
 #: zim/gui/mainwindow.py:386
 msgid "readonly"
-msgstr ""
+msgstr "කියවීමට පමණයි"
 
 #. label for View->Menubar menu item
 #: zim/gui/mainwindow.py:428
@@ -553,12 +555,12 @@ msgstr ""
 #. Menu item
 #: zim/gui/mainwindow.py:458
 msgid "_Statusbar"
-msgstr ""
+msgstr "තත්ත්ව පටිය"
 
 #. Menu item
 #: zim/gui/mainwindow.py:470
 msgid "_Fullscreen"
-msgstr ""
+msgstr "පූර්ණ තිරය (_F)"
 
 #. Menu item
 #: zim/gui/mainwindow.py:488
@@ -578,7 +580,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/mainwindow.py:540
 msgid "_Text Only"
-msgstr ""
+msgstr "පාඨ පමණි"
 
 #. Menu item
 #: zim/gui/mainwindow.py:562
@@ -605,12 +607,12 @@ msgstr ""
 #: zim/gui/mainwindow.py:672 zim/gui/searchdialog.py:25
 #: zim/gui/searchdialog.py:33
 msgid "Search"
-msgstr ""
+msgstr "සොයන්න"
 
 #. label in search entry
 #: zim/gui/mainwindow.py:675
 msgid "Search Pages..."
-msgstr ""
+msgstr "පිටු සොයන්න..."
 
 #. Menu item
 #: zim/gui/mainwindow.py:839
@@ -621,7 +623,7 @@ msgstr ""
 #. Button label
 #: zim/gui/mainwindow.py:844 zim/gui/widgets.py:3803
 msgid "_Back"
-msgstr ""
+msgstr "ආපසු (_B)"
 
 #. Menu item | 
 #. Button label
@@ -652,12 +654,12 @@ msgstr ""
 #. Menu item
 #: zim/gui/mainwindow.py:910
 msgid "_Home"
-msgstr ""
+msgstr "මුල (_H)"
 
 #. Menu item
 #: zim/gui/mainwindow.py:915
 msgid "_Reload"
-msgstr ""
+msgstr "යලි පුරන්න (_R)"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:944
@@ -688,42 +690,42 @@ msgstr ""
 #: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:50
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:222
 msgid "Notebook"
-msgstr ""
+msgstr "සටහන්පොත"
 
 #. dialog title
 #: zim/gui/notebookdialog.py:299
 msgid "Open Notebook"
-msgstr ""
+msgstr "සටහන් පොත විවෘත කරන්න"
 
 #. Button label
 #: zim/gui/notebookdialog.py:328
 msgid "_Add"
-msgstr ""
+msgstr "එකතු කරන්න (_A)"
 
 #. Button label
 #: zim/gui/notebookdialog.py:332 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "ඉවත් කරන්න (_R)"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:348
 msgid "Default notebook"
-msgstr ""
+msgstr "පොදු සටහන්පොත"
 
 #. Dialog window title
 #: zim/gui/notebookdialog.py:405
 msgid "Add Notebook"
-msgstr ""
+msgstr "සටහන්පොත එකතු කරන්න"
 
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:407
 msgid "Please select a name and a folder for the notebook."
-msgstr ""
+msgstr "කරුණාකර සටහන් පොත සඳහා නමක් සහ බහාලුමක් තෝරන්න."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:423
 msgid "Folder"
-msgstr ""
+msgstr "බහාලුම"
 
 #. help text in the 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:429
@@ -731,61 +733,63 @@ msgid ""
 "To create a new notebook you need to select an empty folder.\n"
 "Of course you can also select an existing zim notebook folder.\n"
 msgstr ""
+"නව සටහන් පොතක් සෑදීමට ඔබ හිස් බහාලුමක් තෝරා ගත යුතුය.\n"
+"සැබැවින්ම ඔබට පවතින සිම් සටහන්පොත් බහාලුමක් ද තෝරා ගත හැකිය.\n"
 
 #. Menu title
 #: zim/gui/pageview.py:151
 msgid "New _Attachment"
-msgstr ""
+msgstr "නව ඇමුණුම"
 
 #. Menu item
 #: zim/gui/pageview.py:156
 msgid "Heading _1"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය _1"
 
 #. Menu item
 #: zim/gui/pageview.py:156
 msgid "Heading 1"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය 1"
 
 #. Menu item
 #: zim/gui/pageview.py:157
 msgid "Heading _2"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය _2"
 
 #. Menu item
 #: zim/gui/pageview.py:157
 msgid "Heading 2"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය 2"
 
 #. Menu item
 #: zim/gui/pageview.py:158
 msgid "Heading _3"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය _3"
 
 #. Menu item
 #: zim/gui/pageview.py:158
 msgid "Heading 3"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය 3"
 
 #. Menu item
 #: zim/gui/pageview.py:159
 msgid "Heading _4"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය _4"
 
 #. Menu item
 #: zim/gui/pageview.py:159
 msgid "Heading 4"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය 4"
 
 #. Menu item
 #: zim/gui/pageview.py:160
 msgid "Heading _5"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය _5"
 
 #. Menu item
 #: zim/gui/pageview.py:160
 msgid "Heading 5"
-msgstr ""
+msgstr "ශ්‍රීර්ෂය 5"
 
 #. Menu item
 #: zim/gui/pageview.py:161 zim/gui/pageview.py:172
@@ -915,7 +919,7 @@ msgstr ""
 #: zim/gui/pageview.py:5092
 #, python-format
 msgid "Could not save page: %s"
-msgstr ""
+msgstr "පිටුව සුරැකීමට නොහැකි විය: %s"
 
 #. text in error dialog when saving page failed
 #: zim/gui/pageview.py:5096
@@ -929,17 +933,17 @@ msgstr ""
 #: zim/gui/pageview.py:5115 zim/gui/pageview.py:7225 zim/gui/searchdialog.py:42
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න (_C)"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:5120
 msgid "_Discard Changes"
-msgstr ""
+msgstr "වෙනස්කම් ඉවතලන්න (_D)"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:5125
 msgid "_Save Copy"
-msgstr ""
+msgstr "පිටපත සුරකින්න"
 
 #. error when unknown interwiki link is clicked
 #: zim/gui/pageview.py:6019
@@ -950,7 +954,7 @@ msgstr ""
 #. menu item for context menu of editor
 #: zim/gui/pageview.py:6112
 msgid "Copy _As..."
-msgstr ""
+msgstr "ලෙස පිටපත් කරන්න..."
 
 #. menu item for context menu of editor
 #: zim/gui/pageview.py:6119
@@ -960,12 +964,12 @@ msgstr ""
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:6127
 msgid "Move Selected Text..."
-msgstr ""
+msgstr "තෝරාගත් පාඨ ගෙනයන්න..."
 
 #. Menu item
 #: zim/gui/pageview.py:6175 zim/gui/pageview.py:6407
 msgid "_Remove Link"
-msgstr ""
+msgstr "සබැඳිය ඉවත් කරන්න"
 
 #. menu item in context menu for image
 #: zim/gui/pageview.py:6182
@@ -975,22 +979,22 @@ msgstr ""
 #. menu item in context menu
 #: zim/gui/pageview.py:6184
 msgid "_Edit Link"
-msgstr ""
+msgstr "සබැඳිය සංස්කරණය කරන්න"
 
 #. context menu item
 #: zim/gui/pageview.py:6204 zim/gui/pageview.py:6210 zim/gui/pageview.py:6217
 msgid "Copy _Link"
-msgstr ""
+msgstr "සබැඳිය පිටපත් කරන්න"
 
 #. context menu item
 #: zim/gui/pageview.py:6214
 msgid "Copy Email Address"
-msgstr ""
+msgstr "වි-තැපැල් ලිපිනය පිටපත් කරන්න"
 
 #. menu item to open containing folder of files
 #: zim/gui/pageview.py:6225
 msgid "Open Folder"
-msgstr ""
+msgstr "බහාලුම විවෘත කරන්න"
 
 #. menu item for sub menu with applications | 
 #. menu item
@@ -1004,7 +1008,7 @@ msgstr ""
 #: zim/gui/pageview.py:6255 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:105
 msgid "Open in New _Window"
-msgstr ""
+msgstr "නව කවුළුවකින් විවෘත කරන්න"
 
 #. menu item to open a link or file | 
 #. Button label | 
@@ -1012,7 +1016,7 @@ msgstr ""
 #: zim/gui/pageview.py:6265 zim/gui/widgets.py:3481
 #: zim/plugins/attachmentbrowser/filebrowser.py:354
 msgid "_Open"
-msgstr ""
+msgstr "විවෘත කරන්න"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:6282
@@ -1041,22 +1045,22 @@ msgstr ""
 #: zim/gui/pageview.py:6294 zim/gui/widgets.py:3483
 #: zim/plugins/versioncontrol/__init__.py:756
 msgid "_Save"
-msgstr ""
+msgstr "සුරකින්න (_S)"
 
 #. Menu item
 #: zim/gui/pageview.py:6304
 msgid "_Undo"
-msgstr ""
+msgstr "පෙරසේ (_U)"
 
 #. Menu item
 #: zim/gui/pageview.py:6310
 msgid "_Redo"
-msgstr ""
+msgstr "පසුසේ (_R)"
 
 #. Menu item
 #: zim/gui/pageview.py:6316
 msgid "Cu_t"
-msgstr ""
+msgstr "කපන්න (_T)"
 
 #. Menu item | 
 #. Button label | 
@@ -1064,12 +1068,12 @@ msgstr ""
 #: zim/gui/pageview.py:6321 zim/gui/templateeditordialog.py:46
 #: zim/plugins/tasklist/gui.py:773
 msgid "_Copy"
-msgstr ""
+msgstr "පිටපත් කරන්න (_C)"
 
 #. Menu item
 #: zim/gui/pageview.py:6326
 msgid "_Paste"
-msgstr ""
+msgstr "අලවන්න (_P)"
 
 #. Menu item
 #: zim/gui/pageview.py:6331
@@ -1099,7 +1103,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/pageview.py:6425
 msgid "_Date and Time..."
-msgstr ""
+msgstr "දිනය සහ වේලාව..."
 
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:6440
@@ -1114,7 +1118,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/pageview.py:6459
 msgid "_Attachment..."
-msgstr ""
+msgstr "ඇමුණුම..."
 
 #. Menu item | 
 #. Menu item,
@@ -1142,7 +1146,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/pageview.py:6566
 msgid "_Link..."
-msgstr ""
+msgstr "සබැඳිය..."
 
 #. message when no file templates are found in ~/Templates
 #: zim/gui/pageview.py:6595
@@ -1163,6 +1167,10 @@ msgid ""
 "does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
+"බහාලුම\n"
+"%s\n"
+"තවම නොපවතී.\n"
+"ඔබට දැන් එය සෑදීමට අවශ්‍යද?"
 
 #. Menu item
 #: zim/gui/pageview.py:6667
@@ -1192,27 +1200,27 @@ msgstr ""
 #. Menu item
 #: zim/gui/pageview.py:6812
 msgid "Word Count..."
-msgstr ""
+msgstr "වචන ගණනය..."
 
 #. Menu item
 #: zim/gui/pageview.py:6817
 msgid "_Zoom In"
-msgstr ""
+msgstr "විශාලනය කරන්න"
 
 #. Menu item
 #: zim/gui/pageview.py:6822
 msgid "Zoom _Out"
-msgstr ""
+msgstr "කුඩාලනය කරන්න"
 
 #. Menu item to reset zoom
 #: zim/gui/pageview.py:6850
 msgid "_Normal Size"
-msgstr ""
+msgstr "සාමාන්‍ය ප්‍රමාණය"
 
 #. Dialog title
 #: zim/gui/pageview.py:6937
 msgid "Insert Date and Time"
-msgstr ""
+msgstr "දිනය සහ වේලාව ඇතුළු කරන්න"
 
 #. label in "insert date" dialog | 
 #. Column header Task List dialog | 
@@ -1220,12 +1228,12 @@ msgstr ""
 #: zim/gui/pageview.py:6953 zim/plugins/tasklist/gui.py:486
 #: zim/plugins/versioncontrol/__init__.py:1069
 msgid "Date"
-msgstr ""
+msgstr "දිනය"
 
 #. check box in InsertDate dialog
 #: zim/gui/pageview.py:6983
 msgid "_Link to date"
-msgstr ""
+msgstr "දිනයට සබැඳිය"
 
 #. Dialog title
 #: zim/gui/pageview.py:7076
@@ -1241,23 +1249,23 @@ msgstr ""
 #: zim/gui/pageview.py:7105
 #, python-format
 msgid "File type not supported: %s"
-msgstr ""
+msgstr "ගොනු වර්ගයට සහය නොදක්වයි: %s"
 
 #. Dialog title
 #: zim/gui/pageview.py:7130
 msgid "Attach File"
-msgstr ""
+msgstr "ගොනුව අමුණන්න"
 
 #. Error dialog - %s is the full page name
 #: zim/gui/pageview.py:7137
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr ""
+msgstr "\"%s\" පිටුවට ඇමුණුම් සඳහා බහාලුමක් නැත"
 
 #. Dialog title
 #: zim/gui/pageview.py:7197
 msgid "File Exists"
-msgstr ""
+msgstr "ගොනුව පවතී"
 
 #. Dialog text in 'new filename' dialog
 #: zim/gui/pageview.py:7198
@@ -1266,26 +1274,28 @@ msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
 "You can use another name or overwrite the existing file."
 msgstr ""
+"<b>\"%s\"</b> යන නම සහිත ගොනුවක් දැනටමත් පවතී.\n"
+"ඔබට වෙනත් නමක් භාවිතා කිරීමට හෝ පවතින ගොනුව උඩින්-ලිවීමට හැකිය."
 
 #. Input label
 #: zim/gui/pageview.py:7207
 msgid "Filename"
-msgstr ""
+msgstr "ගොනුවේ නම"
 
 #. Button label
 #: zim/gui/pageview.py:7216 zim/gui/widgets.py:1069 zim/gui/widgets.py:1093
 msgid "_Browse"
-msgstr ""
+msgstr "පිරික්සන්න (_B)"
 
 #. Button label
 #: zim/gui/pageview.py:7221
 msgid "Overwrite"
-msgstr ""
+msgstr "උඩින්-ලියන්න"
 
 #. Button label
 #: zim/gui/pageview.py:7226 zim/gui/widgets.py:85
 msgid "_OK"
-msgstr ""
+msgstr "හරි"
 
 #. Dialog title
 #: zim/gui/pageview.py:7264
@@ -1296,23 +1306,23 @@ msgstr ""
 #. Input label for the section to move a page to
 #: zim/gui/pageview.py:7284 zim/gui/uiactions.py:597
 msgid "Location"
-msgstr ""
+msgstr "ස්ථානය"
 
 #. Input in 'edit image' dialog | 
 #. Input in 'insert link' dialog
 #: zim/gui/pageview.py:7285 zim/gui/pageview.py:7427
 msgid "Link to"
-msgstr ""
+msgstr "වෙත සබැඳිය"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:7286
 msgid "Width"
-msgstr ""
+msgstr "පළල"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:7287
 msgid "Height"
-msgstr ""
+msgstr "උස"
 
 #. Button in 'edit image' dialog
 #: zim/gui/pageview.py:7295
@@ -1327,32 +1337,32 @@ msgstr ""
 #. Dialog title
 #: zim/gui/pageview.py:7419
 msgid "Edit Link"
-msgstr ""
+msgstr "සබැඳිය සංස්කරණය කරන්න"
 
 #. Dialog title
 #: zim/gui/pageview.py:7421
 msgid "Insert Link"
-msgstr ""
+msgstr "සබැඳිය ඇතුළු කරන්න"
 
 #. Dialog button
 #: zim/gui/pageview.py:7423
 msgid "_Link"
-msgstr ""
+msgstr "සබැඳිය (_L)"
 
 #. Input in 'insert link' dialog
 #: zim/gui/pageview.py:7428
 msgid "Text"
-msgstr ""
+msgstr "පාඨය"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview.py:7531
 msgid "_Next"
-msgstr ""
+msgstr "ඊළඟ (_N)"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview.py:7537
 msgid "_Previous"
-msgstr ""
+msgstr "පෙර (_P)"
 
 #. checkbox option in find bar and find & replace dialog
 #: zim/gui/pageview.py:7543
@@ -1362,7 +1372,7 @@ msgstr ""
 #. checkbox option in find bar and find & replace dialog
 #: zim/gui/pageview.py:7548
 msgid "Whole _word"
-msgstr ""
+msgstr "සමස්ත වචනය"
 
 #. checkbox option in find bar and find & replace dialog
 #: zim/gui/pageview.py:7553
@@ -1407,22 +1417,22 @@ msgstr ""
 #. Dialog title
 #: zim/gui/pageview.py:7767
 msgid "Word Count"
-msgstr ""
+msgstr "වචන ගණනය"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:7810
 msgid "Paragraph"
-msgstr ""
+msgstr "ඡේදය"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:7811
 msgid "Selection"
-msgstr ""
+msgstr "තේරීම"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:7812
 msgid "Words"
-msgstr ""
+msgstr "වචන"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:7813
@@ -1447,12 +1457,12 @@ msgstr ""
 #. Button label
 #: zim/gui/pageview.py:7859
 msgid "_Move"
-msgstr ""
+msgstr "ගෙනයන්න"
 
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:7875
 msgid "Move text to"
-msgstr ""
+msgstr "පාඨය වෙත ගෙන යන්න"
 
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:7876
@@ -1462,17 +1472,17 @@ msgstr ""
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:7877
 msgid "Open new page"
-msgstr ""
+msgstr "නව පිටුව විවෘත කරන්න"
 
 #. Dialog title
 #: zim/gui/pageview.py:7922
 msgid "New File"
-msgstr ""
+msgstr "නව ගොනුව"
 
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:31
 msgid "Interface"
-msgstr ""
+msgstr "අතුරුමුහුණත"
 
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:32
@@ -1507,7 +1517,7 @@ msgstr ""
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:127
 msgid "Applications"
-msgstr ""
+msgstr "යෙදුම්"
 
 #. option in preferences dialog
 #: zim/gui/preferencesdialog.py:134
@@ -1517,12 +1527,12 @@ msgstr ""
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:245
 msgid "_More"
-msgstr ""
+msgstr "තව"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:250
 msgid "C_onfigure"
-msgstr ""
+msgstr "වින්‍යාසගත කරන්න"
 
 #. button label
 #: zim/gui/preferencesdialog.py:265
@@ -1537,17 +1547,17 @@ msgstr ""
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:304
 msgid "Dependencies"
-msgstr ""
+msgstr "පරායත්ත"
 
 #. label in plugin info in preferences dialog
 #: zim/gui/preferencesdialog.py:308
 msgid "No dependencies"
-msgstr ""
+msgstr "පරායත්ත නැත"
 
 #. dependency is OK
 #: zim/gui/preferencesdialog.py:314
 msgid "OK"
-msgstr ""
+msgstr "හරි"
 
 #. dependency failed
 #: zim/gui/preferencesdialog.py:316 zim/gui/preferencesdialog.py:319
@@ -1568,7 +1578,7 @@ msgstr ""
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:408
 msgid "Enabled"
-msgstr ""
+msgstr "සබල කර ඇත"
 
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:411
@@ -1774,17 +1784,17 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:165
 msgid "E_xport..."
-msgstr ""
+msgstr "නිර්යාත කරන්න..."
 
 #. Menu item
 #: zim/gui/uiactions.py:172
 msgid "_Send To..."
-msgstr ""
+msgstr "වෙත යවන්න..."
 
 #. Menu item
 #: zim/gui/uiactions.py:185
 msgid "_Rename or move Page..."
-msgstr ""
+msgstr "පිටුව නැවත නම් කරන්න හෝ ගෙනයන්න..."
 
 #. Menu item
 #: zim/gui/uiactions.py:194
@@ -1794,7 +1804,7 @@ msgstr ""
 #. Title of progressbar dialog
 #: zim/gui/uiactions.py:225 zim/gui/uiactions.py:713
 msgid "Removing Links"
-msgstr ""
+msgstr "සබැඳි ඉවත් වෙමින්"
 
 #. Menu item
 #: zim/gui/uiactions.py:238
@@ -1805,12 +1815,12 @@ msgstr ""
 #. menu item in tray icon menu
 #: zim/gui/uiactions.py:248 zim/plugins/trayicon.py:148
 msgid "_Quit"
-msgstr ""
+msgstr "ඉවත් වන්න (_Q)"
 
 #. Menu item
 #: zim/gui/uiactions.py:258
 msgid "Copy _Location"
-msgstr ""
+msgstr "ස්ථානය පිටපත් කරන්න"
 
 #. Menu item
 #: zim/gui/uiactions.py:264
@@ -1825,7 +1835,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:280
 msgid "_Search..."
-msgstr ""
+msgstr "සොයන්න..."
 
 #. Menu item for search a sub-set of the notebook
 #: zim/gui/uiactions.py:295
@@ -1840,22 +1850,22 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:308
 msgid "Recent Changes..."
-msgstr ""
+msgstr "මෑත වෙනස්කම්..."
 
 #. Menu item
 #: zim/gui/uiactions.py:315
 msgid "Open Attachments _Folder"
-msgstr ""
+msgstr "ඇමුණුම් බහාලුම විවෘත කරන්න"
 
 #. Error message
 #: zim/gui/uiactions.py:320
 msgid "This page does not have an attachments folder"
-msgstr ""
+msgstr "මෙම පිටුවට ඇමුණුම් බහාලුමක් නැත"
 
 #. Menu item
 #: zim/gui/uiactions.py:326
 msgid "Open _Notebook Folder"
-msgstr ""
+msgstr "සටහන්පොත් බහාලුම විවෘත කරන්න"
 
 #. Menu item
 #: zim/gui/uiactions.py:331
@@ -1875,7 +1885,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:359
 msgid "Start _Web Server"
-msgstr ""
+msgstr "වියමන සේවාදායකය අරඹන්න"
 
 #. menu item
 #: zim/gui/uiactions.py:366
@@ -1885,22 +1895,22 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:380
 msgid "Update Index"
-msgstr ""
+msgstr "සූචිය යාවත්කාල කරන්න"
 
 #. Menu item
 #: zim/gui/uiactions.py:413
 msgid "Custom _Tools"
-msgstr ""
+msgstr "අභිරුචි මෙවලම්"
 
 #. Menu item
 #: zim/gui/uiactions.py:419
 msgid "_Contents"
-msgstr ""
+msgstr "අන්තර්ගතයන්"
 
 #. Menu item
 #: zim/gui/uiactions.py:430
 msgid "_FAQ"
-msgstr ""
+msgstr "නිති අසන පැණ"
 
 #. Menu item
 #: zim/gui/uiactions.py:435
@@ -1915,18 +1925,18 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:445
 msgid "_About"
-msgstr ""
+msgstr "පිළිබඳව"
 
 #. Dialog title
 #: zim/gui/uiactions.py:461
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "%s හි නව පිටුව"
 
 #. Dialog title
 #: zim/gui/uiactions.py:463
 msgid "New Page"
-msgstr ""
+msgstr "නව පිටුව"
 
 #. Dialog text in 'new page' dialog
 #: zim/gui/uiactions.py:467
@@ -1934,11 +1944,13 @@ msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
 msgstr ""
+"නොපවතින පිටුවකට සබැඳි වන බව කරුණාවෙන් සලකන්න\n"
+"එසේම ස්වයංක්‍රීයව නව පිටුවක් සාදනු ලැබේ."
 
 #. Input label
 #: zim/gui/uiactions.py:481
 msgid "Page Name"
-msgstr ""
+msgstr "පිටුවේ නම"
 
 #. Choice label
 #: zim/gui/uiactions.py:482
@@ -1948,36 +1960,36 @@ msgstr ""
 #. Dialog title
 #: zim/gui/uiactions.py:517
 msgid "Import Page"
-msgstr ""
+msgstr "පිටුව ආයාත කරන්න"
 
 #. File filter for '*.txt'
 #: zim/gui/uiactions.py:521
 msgid "Text Files"
-msgstr ""
+msgstr "පාඨ ගොනු"
 
 #. Dialog title of file save dialog
 #: zim/gui/uiactions.py:550
 msgid "Save Copy"
-msgstr ""
+msgstr "පිටපත සුරකින්න"
 
 #. Dialog title
 #: zim/gui/uiactions.py:574
 msgid "Rename or Move Page"
-msgstr ""
+msgstr "පිටුව නැවත නම් කරන්න හෝ ගෙනයන්න"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/uiactions.py:579
 #, python-format
 msgid "Rename page \"%s\""
-msgstr ""
+msgstr "\"%s\" පිටුව නැවත නම් කරන්න"
 
 #. label in MovePage dialog - %i is number of backlinks
 #: zim/gui/uiactions.py:590
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "මෙම පිටුවට සබැඳි %i පිටුව යාවත්කාල කරන්න"
+msgstr[1] "මෙම පිටුවට සබැඳි %i පිටු යාවත්කාල කරන්න"
 
 #. option in 'move page' dialog
 #: zim/gui/uiactions.py:599
@@ -1987,7 +1999,7 @@ msgstr ""
 #. label for progress dialog
 #: zim/gui/uiactions.py:634
 msgid "Updating Links"
-msgstr ""
+msgstr "සබැඳි යාවත්කාල වෙමින්"
 
 #. Dialog title
 #: zim/gui/uiactions.py:652
@@ -2029,7 +2041,7 @@ msgstr ""
 #. dialog title
 #: zim/gui/widgets.py:533 zim/gui/widgets.py:1615
 msgid "Select File"
-msgstr ""
+msgstr "ගොනුව තෝරන්න"
 
 #. menu item in context menu
 #: zim/gui/widgets.py:661
@@ -2044,12 +2056,12 @@ msgstr ""
 #. tooltip for the inline icon to clear a text entry widget
 #: zim/gui/widgets.py:1471
 msgid "Clear"
-msgstr ""
+msgstr "හිස් කරන්න"
 
 #. dialog title
 #: zim/gui/widgets.py:1611
 msgid "Select Folder"
-msgstr ""
+msgstr "බහාලුම තෝරන්න"
 
 #. dialog title
 #: zim/gui/widgets.py:1613
@@ -2096,7 +2108,7 @@ msgstr ""
 #. Filter in open file dialog, shows all files (*)
 #: zim/gui/widgets.py:3614
 msgid "All Files"
-msgstr ""
+msgstr "සියලුම ගොනු"
 
 #. Filter in open file dialog, shows image files only
 #: zim/gui/widgets.py:3641
@@ -2168,7 +2180,7 @@ msgstr ""
 #: zim/newfs/local.py:49
 #, python-format
 msgid "File name too long: %s"
-msgstr ""
+msgstr "ගොනුවේ නම ඉතා දිගු ය: %s"
 
 #. Error explanation
 #: zim/newfs/local.py:54
@@ -2187,13 +2199,13 @@ msgstr ""
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:420
 msgid "Updating index"
-msgstr ""
+msgstr "සූචිය යාවත්කාල වෙමින්"
 
 #. message for PageNotFoundError
 #: zim/notebook/notebook.py:120
 #, python-format
 msgid "No such page: %s"
-msgstr ""
+msgstr "එවැනි පිටුවක් නැත: %s"
 
 #. message for PageNotAllowedError
 #: zim/notebook/notebook.py:124
@@ -2211,7 +2223,7 @@ msgstr ""
 #: zim/notebook/notebook.py:130
 #, python-format
 msgid "Page already exists: %s"
-msgstr ""
+msgstr "පිටුව දැනටමත් පවතී: %s"
 
 #. error message for read-only pages
 #: zim/notebook/notebook.py:134
@@ -2251,17 +2263,17 @@ msgstr ""
 #. unspecified value for file modification time
 #: zim/plugins/attachmentbrowser/filebrowser.py:376
 msgid "Unknown"
-msgstr ""
+msgstr "නොදනී"
 
 #. label for file type
 #: zim/plugins/attachmentbrowser/filebrowser.py:389
 msgid "Type"
-msgstr ""
+msgstr "වර්ගය"
 
 #. label for file size
 #: zim/plugins/attachmentbrowser/filebrowser.py:390
 msgid "Size"
-msgstr ""
+msgstr "ප්‍රමාණය"
 
 #. label for file modification date
 #: zim/plugins/attachmentbrowser/filebrowser.py:391
@@ -2281,7 +2293,7 @@ msgstr ""
 #. popup menu action on drag-drop of a file
 #: zim/plugins/attachmentbrowser/filebrowser.py:436
 msgid "Cancel"
-msgstr ""
+msgstr "අවලංගු කරන්න"
 
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
@@ -2317,15 +2329,15 @@ msgstr ""
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:128
 msgid "Attachments"
-msgstr ""
+msgstr "ඇමුණුම්:"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:180
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "ඇමුණුම් %i"
+msgstr[1] "ඇමුණුම් %i"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2349,18 +2361,18 @@ msgstr ""
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:261
 msgid "_Edit..."
-msgstr ""
+msgstr "සංස්කරණය කරන්න..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:289
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "%s සංස්කරණය කරන්න"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:314
 msgid "_Preview"
-msgstr ""
+msgstr "පෙරදසුන (_P)"
 
 #. Question prompt when e.g. equation editor encountered an error generating the image to insert
 #: zim/plugins/base/imagegenerator.py:368
@@ -2384,12 +2396,12 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:45
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "උපරිම පොත්යොමු ගණන"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:46
 msgid "Save bookmarks"
-msgstr ""
+msgstr "පොත්යොමු සුරකින්න"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:47
@@ -2399,17 +2411,17 @@ msgstr ""
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:99 zim/plugins/bookmarksbar.py:160
 msgid "Add Bookmark"
-msgstr ""
+msgstr "පොත් යොමුව එකතු කරන්න"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:149
 msgid "Bookmarks"
-msgstr ""
+msgstr "පොත්යොමු"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:184
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "පොත්යොමුව එකතු කරන්න/සැකසුම් පෙන්වන්න"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:294
@@ -2419,7 +2431,7 @@ msgstr ""
 #. menu item for context menu
 #: zim/plugins/bookmarksbar.py:375
 msgid "Show full Page Name"
-msgstr ""
+msgstr "පිටුවේ සම්පූර්ණ නම පෙන්වන්න"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:397
@@ -2429,32 +2441,32 @@ msgstr ""
 #. button label
 #: zim/plugins/bookmarksbar.py:399
 msgid "Back to Original Name"
-msgstr ""
+msgstr "මුල් නමට ආපසු යන්න"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:404
 msgid "Remove"
-msgstr ""
+msgstr "ඉවත් කරන්න"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:405
 msgid "Remove All"
-msgstr ""
+msgstr "සියල්ල ඉවත් කරන්න"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "පිටපත් කරන්න"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "අලවන්න"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
 msgid "Open in New Window"
-msgstr ""
+msgstr "නව කවුළුවකින් විවෘත කරන්න"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:413
@@ -2660,22 +2672,22 @@ msgstr ""
 #. option value
 #: zim/plugins/journal.py:109
 msgid "Day"
-msgstr ""
+msgstr "දිනය"
 
 #. option value
 #: zim/plugins/journal.py:110
 msgid "Week"
-msgstr ""
+msgstr "සතිය"
 
 #. option value
 #: zim/plugins/journal.py:111
 msgid "Month"
-msgstr ""
+msgstr "මාසය"
 
 #. option value
 #: zim/plugins/journal.py:112
 msgid "Year"
-msgstr ""
+msgstr "අවුරුද්ද"
 
 #. preferences option
 #: zim/plugins/journal.py:117
@@ -2700,7 +2712,7 @@ msgstr ""
 #. strftime format for current date label
 #: zim/plugins/journal.py:393
 msgid "%A %d %B %Y"
-msgstr ""
+msgstr "%A %d %B %Y"
 
 #. plugin name
 #: zim/plugins/linesorter.py:26
@@ -2775,7 +2787,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
 msgid "Page Index"
-msgstr ""
+msgstr "පිටු සූචිය"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:52
@@ -2798,7 +2810,7 @@ msgstr ""
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
 msgid "Index"
-msgstr ""
+msgstr "සූචිය"
 
 #. plugin name
 #: zim/plugins/pathbar.py:40
@@ -2826,17 +2838,17 @@ msgstr ""
 #. Menu option for View->Pathbar
 #: zim/plugins/pathbar.py:84
 msgid "_Recent pages"
-msgstr ""
+msgstr "මෑත පිටු"
 
 #. Menu option for View->Pathbar
 #: zim/plugins/pathbar.py:85
 msgid "Recently _Changed pages"
-msgstr ""
+msgstr "මෑතදී වෙනස්කළ පිටු"
 
 #. Menu option for View->Pathbar
 #: zim/plugins/pathbar.py:86
 msgid "_History"
-msgstr ""
+msgstr "ඉතිහාසය"
 
 #. Menu option for View->Pathbar
 #: zim/plugins/pathbar.py:87
@@ -2868,12 +2880,12 @@ msgstr ""
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "මුද්‍රණය කරන්න (_P)"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
 msgid "Quick Note"
-msgstr ""
+msgstr "ක්ෂණික සටහන"
 
 #. plugin description
 #: zim/plugins/quicknote.py:169
@@ -2887,7 +2899,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/quicknote.py:186
 msgid "Quick Note..."
-msgstr ""
+msgstr "ක්ෂණික සටහන..."
 
 #. text entry field
 #: zim/plugins/quicknote.py:248
@@ -2897,17 +2909,17 @@ msgstr ""
 #. checkbox in Quick Note dialog
 #: zim/plugins/quicknote.py:249
 msgid "Create a new page for each note"
-msgstr ""
+msgstr "සෑම සටහනක් සඳහාම නව පිටුවක් සාදන්න"
 
 #. text entry field
 #: zim/plugins/quicknote.py:250 zim/plugins/tableeditor.py:921
 msgid "Title"
-msgstr ""
+msgstr "මාතෘකාව"
 
 #. Option in quicknote dialog
 #: zim/plugins/quicknote.py:287
 msgid "Open _Page"
-msgstr ""
+msgstr "පිටුව විවෘත කරන්න"
 
 #. confirm closing quick note dialog
 #: zim/plugins/quicknote.py:351
@@ -2941,7 +2953,7 @@ msgstr ""
 #. dialog title
 #: zim/plugins/screenshot.py:107 zim/plugins/screenshot.py:174
 msgid "Insert Screenshot"
-msgstr ""
+msgstr "තිරසේයාවක් ඇතුල් කරන්න"
 
 #. plugin description
 #: zim/plugins/screenshot.py:108
@@ -2955,12 +2967,12 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/screenshot.py:119
 msgid "Screenshot Command"
-msgstr ""
+msgstr "තිරසේයා විධානය"
 
 #. menu item for insert screenshot plugin
 #: zim/plugins/screenshot.py:161
 msgid "_Screenshot..."
-msgstr ""
+msgstr "තිරසේයාව..."
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:179
@@ -2975,12 +2987,12 @@ msgstr ""
 #. input in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:190
 msgid "Delay"
-msgstr ""
+msgstr "ප්‍රමාදය"
 
 #. label behind timer
 #: zim/plugins/screenshot.py:196
 msgid "seconds"
-msgstr ""
+msgstr "තත්පර"
 
 #. Error message in "insert screenshot" dialog, %s will be replaced by application name
 #: zim/plugins/screenshot.py:221
@@ -3075,7 +3087,7 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:94
 msgid "Theme"
-msgstr ""
+msgstr "තේමාව"
 
 #. menu item
 #: zim/plugins/sourceview.py:109
@@ -3135,17 +3147,17 @@ msgstr ""
 #. alignment option
 #: zim/plugins/tableeditor.py:52 zim/plugins/tableeditor.py:862
 msgid "Left"
-msgstr ""
+msgstr "වම"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:53
 msgid "Center"
-msgstr ""
+msgstr "මැද"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:54
 msgid "Right"
-msgstr ""
+msgstr "දකුණ"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:55
@@ -3266,22 +3278,22 @@ msgstr ""
 #. Dialog title
 #: zim/plugins/tableeditor.py:858
 msgid "Insert Table"
-msgstr ""
+msgstr "වගුවක් ඇතුළු කරන්න"
 
 #. Dialog title
 #: zim/plugins/tableeditor.py:858
 msgid "Edit Table"
-msgstr ""
+msgstr "වගුව සංස්කරණය කරන්න"
 
 #. Description of "Table-Insert" Dialog
 #: zim/plugins/tableeditor.py:867
 msgid "Managing table columns"
-msgstr ""
+msgstr "වගුවේ තීරු කළමනාකරණය කිරීම"
 
 #. Initial data for column title in table
 #: zim/plugins/tableeditor.py:897
 msgid "Column 1"
-msgstr ""
+msgstr "1 තීරුව"
 
 #. table header
 #: zim/plugins/tableeditor.py:930
@@ -3298,12 +3310,12 @@ msgstr ""
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:967
 msgid "Add column"
-msgstr ""
+msgstr "තීරුවක් එකතු කරන්න"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:968
 msgid "Remove column"
-msgstr ""
+msgstr "තීරුව ඉවත් කරන්න"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:969
@@ -3418,7 +3430,7 @@ msgstr ""
 #. Input label
 #: zim/plugins/tasklist/gui.py:88 zim/plugins/tasklist/gui.py:156
 msgid "Filter"
-msgstr ""
+msgstr "පෙරහන"
 
 #. dialog title | 
 #. plugin name | 
@@ -3499,7 +3511,7 @@ msgstr ""
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:67
 msgid "do not use"
-msgstr ""
+msgstr "භාවිත නොකරන්න"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:68
@@ -3566,17 +3578,17 @@ msgstr ""
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:132
 msgid "_Quick Note..."
-msgstr ""
+msgstr "ක්ෂණික සටහන..."
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:141
 msgid "_Other..."
-msgstr ""
+msgstr "වෙනත්..."
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:197
 msgid "Notebooks"
-msgstr ""
+msgstr "සටහන්පොත්"
 
 #. tooltip for tray icon | 
 #. short description of zim
@@ -3622,23 +3634,23 @@ msgstr ""
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:213
 msgid "S_ave Version..."
-msgstr ""
+msgstr "අනුවාදය සුරකින්න..."
 
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:230
 msgid "_Versions..."
-msgstr ""
+msgstr "අනුවාද..."
 
 #. verbose error description
 #: zim/plugins/versioncontrol/__init__.py:242
 msgid ""
 "There are no changes in this notebook since the last version that was saved"
-msgstr ""
+msgstr "අවසන් වරට සුරකින ලද අනුවාදයට පසු මෙම සටහන් පොතේ කිසිදු වෙනසක් නැත"
 
 #. Short error descriotion
 #: zim/plugins/versioncontrol/__init__.py:245
 msgid "No changes since last version"
-msgstr ""
+msgstr "අවසාන අනුවාදයට පසු කිසිදු වෙනසක් සිදු වී නැත"
 
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:261
@@ -3653,7 +3665,7 @@ msgstr ""
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:263
 msgid "Git"
-msgstr ""
+msgstr "ගිට්"
 
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:264
@@ -3680,28 +3692,28 @@ msgstr ""
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:755
 msgid "Save Version"
-msgstr ""
+msgstr "අනුවාදය සුරකින්න"
 
 #. Dialog text
 #: zim/plugins/versioncontrol/__init__.py:762
 msgid "Please enter a comment for this version"
-msgstr ""
+msgstr "කරුණාකර මෙම අනුවාදය සඳහා අදහසක් ඇතුළත් කරන්න"
 
 #. default version comment in the "save version" dialog
 #: zim/plugins/versioncontrol/__init__.py:768
 msgid "Saved version from zim"
-msgstr ""
+msgstr "සිම් වෙතින් සුරකින ලද අනුවාදය"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:802
 #: zim/plugins/versioncontrol/__init__.py:819
 msgid "Versions"
-msgstr ""
+msgstr "අනුවාද"
 
 #. Option in versions dialog to show version for single page
 #: zim/plugins/versioncontrol/__init__.py:826
 msgid "_Page"
-msgstr ""
+msgstr "පිටුව (_P)"
 
 #. Button label
 #: zim/plugins/versioncontrol/__init__.py:841
@@ -3728,7 +3740,7 @@ msgstr ""
 #. button in versions dialog for diff
 #: zim/plugins/versioncontrol/__init__.py:891
 msgid "Show _Changes"
-msgstr ""
+msgstr "වෙනස්කම් පෙන්වන්න"
 
 #. button in versions dialog for side by side comparison
 #: zim/plugins/versioncontrol/__init__.py:897
@@ -3758,7 +3770,7 @@ msgstr ""
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:1010
 msgid "Changes"
-msgstr ""
+msgstr "වෙනස්කම්"
 
 #. Column header versions dialog
 #: zim/plugins/versioncontrol/__init__.py:1068
@@ -3795,13 +3807,13 @@ msgstr ""
 #: data/templates/html/Default_with_index.html:55
 #: data/templates/html/Default_with_index.html:57
 msgid "Prev"
-msgstr ""
+msgstr "පෙර"
 
 #: data/templates/html/Default.html:58 data/templates/html/Default.html:60
 #: data/templates/html/Default_with_index.html:67
 #: data/templates/html/Default_with_index.html:69
 msgid "Next"
-msgstr ""
+msgstr "ඊලඟ"
 
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
@@ -3811,4 +3823,4 @@ msgstr ""
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
-msgstr ""
+msgstr "ඇමුණුම්:"
