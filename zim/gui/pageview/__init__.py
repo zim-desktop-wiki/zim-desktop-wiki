@@ -4687,12 +4687,43 @@ class TextView(Gtk.TextView):
 	def click_anchor(self):
 		'''Show popover for anchor under the cursor'''
 		iter, coords = self._get_pointer_location()
-		if iter:
-			pixbuf = self._get_pixbuf_at_pointer(iter, coords)
-			if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor':
-				return False # TODO: add popover wo copy to clipboard and edit the anchor
-			else:
-				return False
+		if not iter:
+			return False
+
+		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
+		if not (pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'anchor'):
+			return False
+
+		# Show popover with achor name and option to copy link
+		popover = Gtk.Popover()
+		popover.set_relative_to(self)
+		rect = Gdk.Rectangle()
+		rect.x, rect.y = self.get_pointer()
+		rect.width, rect.height = 1, 1
+		popover.set_pointing_to(rect)
+
+		name =  pixbuf.zim_attrib['name']
+		def _copy_link_to_anchor(o):
+			buffer = self.get_buffer()
+			notebook, page = buffer.notebook, buffer.page
+			Clipboard.set_pagelink(notebook, page, name)
+			SelectionClipboard.set_pagelink(notebook, page, name)
+			popover.popdown()
+
+		hbox = Gtk.Box(Gtk.Orientation.HORIZONTAL, 12)
+		hbox.set_border_width(3)
+		label = Gtk.Label()
+		label.set_markup('#%s' %name)
+		hbox.add(label)
+		button = Gtk.Button.new_from_icon_name('edit-copy-symbolic', Gtk.IconSize.BUTTON)
+		button.set_tooltip_text(_("Copy link to clipboard")) # T: tooltip for button in anchor popover
+		button.connect('clicked', _copy_link_to_anchor)
+		hbox.add(button)
+		popover.add(hbox)
+		popover.show_all()
+		popover.popup()
+
+		return True
 
 	def get_visual_home_positions(self, iter):
 		'''Get the TextIters for the visuale start of the line
