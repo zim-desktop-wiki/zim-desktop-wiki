@@ -687,12 +687,15 @@ class PageLinkData(ClipboardData):
 					text += '#' + self.anchor
 			else:
 				text = link
+
+			# Same logic as _set_attributes_to_resolve_links() but no need to resolve again
 			builder = ParseTreeBuilder()
 			builder.start(FORMATTEDTEXT)
-			builder.append(LINK, {'href': link}, text)
+			builder.append(LINK, {'href': link, '_href': self.path.name}, text)
 			builder.end(FORMATTEDTEXT)
 			parsetree = builder.get_parsetree()
-			_set_attributes_to_resolve_links(parsetree, self.notebook, self.path)
+			parsetree._set_root_attrib('notebook', self.notebook.interwiki)
+			parsetree._set_root_attrib('page', '-') # force resolve on paste also on same page
 			return parsetree.tostring()
 		else:
 			raise ValueError('Unknown target id %i' % targetid)

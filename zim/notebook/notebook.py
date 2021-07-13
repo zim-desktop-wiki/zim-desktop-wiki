@@ -825,14 +825,17 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	def _update_link_tag(self, elt, source, target, oldhref):
 		if oldhref.rel == HREF_REL_ABSOLUTE: # prefer to keep absolute links
 			newhref = HRef(HREF_REL_ABSOLUTE, target.name)
+		elif source == target and oldhref.anchor:
+			newhref = HRef(HREF_REL_FLOATING, '', oldhref.anchor)
 		else:
 			newhref = self.pages.create_link(source, target)
 
 		newhref.anchor = oldhref.anchor
 
-		text = newhref.to_wiki_link()
+		link = newhref.to_wiki_link()
+
 		if elt.gettext() == elt.get('href'):
-			elt[:] = [text]
+			elt[:] = [link]
 		elif elt.gettext() == oldhref.parts()[-1] and len(elt) == 1:
 			# We are using short links and the link text was short link
 			# and there were no sub-node (like bold text) that would be cancelled.
@@ -842,7 +845,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				short += '#' + newhref.anchor
 			elt[:] = [short]  # 'Journal:2020:01:20' -> '20'
 
-		elt.set('href', text)
+		elt.set('href', link)
+
 		return elt
 
 	@assert_index_uptodate
