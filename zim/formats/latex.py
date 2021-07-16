@@ -87,6 +87,7 @@ class Dumper(TextDumper):
 		TAG: ('', ''), # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('$_{', '}$'),
 		SUPERSCRIPT: ('$^{', '}$'),
+		LINE_RETURN: ('\\linebreak', ''), # TODO
 	}
 
 	TEMPLATE_OPTIONS = {

@@ -34,7 +34,7 @@ TABLE_WIKI_TEXT = '''\
 |        H1       <|         H2 h2 | H3                    <|
 |:----------------:|--------------:|:-----------------------|
 |    Column A1     |     Column A2 | a \\\\name               |
-| a very long cell | **bold text** | two\\nlines             |
+| a very long cell | **bold text** | two<br/>lines          |
 |    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
 
 '''
@@ -64,7 +64,7 @@ TABLE_TOKENS = [
 			('trow', {}),
 				('td', {}), ('T', 'a very long cell'), ('/', 'td'),
 				('td', {}), ('strong', {}), ('T', 'bold text'), ('/', 'strong'), ('/', 'td'),
-				('td', {}), ('T', 'two\n'), ('T', 'lines'), ('/', 'td'),
+				('td', {}), ('T', 'two<br/>lines'), ('/', 'td'),
 			('/', 'trow'),
 			('trow', {}),
 				('td', {}), ('T', 'hyperlinks'), ('/', 'td'),
