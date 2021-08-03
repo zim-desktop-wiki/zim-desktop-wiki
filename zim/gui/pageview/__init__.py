@@ -2343,7 +2343,9 @@ class TextBuffer(Gtk.TextBuffer):
 				# because line is not visually part of selection
 				end.backward_char()
 			for line in range(start.get_line(), end.get_line() + 1):
-				func(line, *args, **kwarg)
+				# don't call function on empty lines
+				if not self.get_line_is_empty(line):
+					func(line, *args, **kwarg)
 			return True
 		else:
 			return False
