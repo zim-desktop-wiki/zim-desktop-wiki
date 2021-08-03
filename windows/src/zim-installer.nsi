@@ -5,7 +5,8 @@
 
 !define APPNAMEANDVERSION "${APPNAME} ${VERSION}"
 !define DEFAULTNORMALDESTINATON "$ProgramFiles\${APPNAME}"
-!define DEFAULTPORTABLEDESTINATON "$Desktop\${APPNAME}"
+!define DEFAULTPORTABLEDESTINATON "$Desktop\${APPNAME}-${VERSION}"
+  ; Before version 0.7x portable installer also included notebooks in the install folder, so add version number for portable install
 
 ; Main Install settings
 Name "${APPNAMEANDVERSION}"
@@ -149,8 +150,14 @@ Var INST_BIN
 Section "-Main program" SecProgramFiles
     SetShellVarContext all
 
-    ; Clear installation folder, to be sure to get rid of orphaned files
-    RMDir /r "$INSTDIR"
+    ; Before version 0.7x portable installer also included notebooks in the install folder
+    ; so don't clear the installation folder. However, when user is overwriting the can
+    ; cause issues with orphaned files. Therefore added version number in install folder
+    ; name for portable version.
+    ${If} $PortableMode = 0
+        ; Clear installation folder, to be sure to get rid of orphaned files
+        RMDir /r "$INSTDIR"
+    ${EndIf}
 
     ; Set Section properties
     SetOverwrite on
@@ -178,7 +185,8 @@ Section "-Main program" SecProgramFiles
 
         CreateShortCut "$SMPROGRAMS\${APPNAME}.lnk" "$INST_BIN"
     ${Else}
-	File /oname=environ.ini ..\..\src\environ-portable.ini
+        ; Add portable environment configuration
+        File /oname=environ.ini ..\..\src\environ-portable.ini
     ${EndIf}
 
 SectionEnd
