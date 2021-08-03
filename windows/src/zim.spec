@@ -44,6 +44,13 @@ def find_potential_icons(path):
 
 icon_names = find_potential_icons('../zim')
 icon_names.update({
+    # Hardcoded names for window decoration
+    'window-close-symbolic',
+    'window-maximize-symbolic',
+    'window-minimize-symbolic',
+    'window-restore-symbolic',
+    'window-new-symbolic',
+
     # Hardcoded names for Gtk.STOCK_... constants (deprecated)
     # and icons that are used by the Gtk toolkit directly
     # below */places/* is whitelisted as well to ensure file dialogs look ok
