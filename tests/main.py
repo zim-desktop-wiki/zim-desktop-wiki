@@ -164,9 +164,10 @@ class TestServer(tests.TestCase):
 		from urllib.request import urlopen
 		from urllib.error import URLError
 
-		dir = self.create_tmp_dir()
+		dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		dir.touch()
 		cmd = ServerCommand('server')
-		cmd.parse_options(dir)
+		cmd.parse_options(dir.path)
 		t = threading.Thread(target=cmd.run)
 		t.start()
 

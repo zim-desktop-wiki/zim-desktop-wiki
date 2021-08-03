@@ -755,7 +755,7 @@ class TestTemplate(tests.TestCase):
 		# TODO assert something
 
 		### Test empty template OK as well
-		dir = Dir(self.create_tmp_dir())
+		dir = Dir(self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL))
 		file = dir.file('empty.html')
 
 		self.assertRaises(FileNotFoundError, Template, file)

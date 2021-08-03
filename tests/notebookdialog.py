@@ -67,9 +67,9 @@ class TestNotebookDialog(tests.TestCase):
 		from zim.gui.notebookdialog import prompt_notebook, \
 			AddNotebookDialog, NotebookDialog
 
-		tmpdir = self.create_tmp_dir()
-		dir1 = Dir(tmpdir + '/mynotebook1')
-		dir2 = Dir(tmpdir + '/mynotebook2')
+		tmpdir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		dir1 = tmpdir.folder('mynotebook1')
+		dir2 = tmpdir.folder('mynotebook2')
 
 		# First time we get directly the AddNotebookDialog
 		def doAddNotebook(dialog):

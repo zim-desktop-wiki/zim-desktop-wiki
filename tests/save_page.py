@@ -18,7 +18,7 @@ from gi.repository import Gtk
 class TestSavePageHandler(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
+		dir = Dir(self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL))
 		notebook = Notebook.new_from_dir(dir)
 		page = notebook.get_page(Path('SomePage'))
 

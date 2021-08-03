@@ -24,7 +24,7 @@ import zim.plugins.versioncontrol.git
 import zim.plugins.versioncontrol.fossil
 
 
-# We define our own tmp dir here instead of using tests.create_tmp_dir
+# We define our own tmp dir here instead of using TestCase.setUpFolder
 # because sources are probably under change control already - want to
 # avoid mixing up the files
 def get_tmp_dir(name):
@@ -52,7 +52,7 @@ UTF8_COMMENT = 'Commit \u03b1\u03b2\u03b3'
 class TestVCS(tests.TestCase):
 
 	def testDetectVCS(self):
-		root = LocalFolder(self.create_tmp_dir())
+		root = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		root.folder('.bzr').touch()
 		self.assertEqual(VCS._detect_in_folder(root), ('bzr', root))
 

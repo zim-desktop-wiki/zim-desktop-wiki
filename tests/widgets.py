@@ -344,7 +344,8 @@ class TestFileDialog(tests.TestCase):
 	## Maybe fixes in Gtk3 - let's see if we encounter more failures
 
 	def runTest(self):
-		tmp_dir = Dir(self.create_tmp_dir())
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		tmp_dir = Dir(folder)
 
 		for name in ('test1.txt', 'test2.txt', 'test3.txt'):
 			tmp_dir.file(name).write('test 123')

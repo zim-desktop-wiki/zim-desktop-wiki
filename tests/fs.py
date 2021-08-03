@@ -141,7 +141,7 @@ class TestFS(tests.TestCase):
 
 	def testFile(self):
 		'''Test File object'''
-		tmpdir = self.create_tmp_dir('testFile')
+		tmpdir = self.setUpFolder(name='testFile', mock=tests.MOCK_ALWAYS_REAL).path
 		file = File(tmpdir + '/foo/bar/baz.txt')
 		assert not file.exists()
 		file.touch()
@@ -216,7 +216,7 @@ class TestFS(tests.TestCase):
 
 	def testDir(self):
 		'''Test Dir object'''
-		tmpdir = self.create_tmp_dir('testDir')
+		tmpdir = self.setUpFolder(name='testDir', mock=tests.MOCK_ALWAYS_REAL).path
 		dir = Dir(tmpdir + '/foo/bar')
 		assert not dir.exists()
 
@@ -277,7 +277,7 @@ class TestFS(tests.TestCase):
 	# TODO skip if no gio available
 	# TODO slow test
 	#~ def testMonitor(self):
-		#~ tmpdir = Dir(self.create_tmp_dir('testMonitor'))
+		#~ tmpdir = Dir(self.setUpFolder(name='testMonitor', mock=tests.MOCK_ALWAYS_REAL))
 
 		#~ # Monitor file
 		#~ events = []
@@ -302,7 +302,7 @@ class TestFS(tests.TestCase):
 class TestFileOverwrite(tests.TestCase):
 
 	def setUp(self):
-		self.path = self.create_tmp_dir() + '/file.txt'
+		self.path = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).path + '/file.txt'
 
 	def modify(self, func):
 		modify_file_mtime(self.path, func)
@@ -349,7 +349,7 @@ class TestSymlinks(tests.TestCase):
 		'''Test file operations are safe for symlinks'''
 
 		# Set up a file structue with a symlink
-		tmpdir = self.create_tmp_dir()
+		tmpdir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).path
 		targetdir = Dir(tmpdir + '/target')
 		targetdir.file('foo.txt').touch()
 		targetfile = File(tmpdir + '/target.txt')

@@ -22,7 +22,8 @@ class TestThumbnailCreators(tests.TestCase):
 
 	def runTest(self):
 		for creator in self.creators:
-			thumbdir = LocalFolder(self.create_tmp_dir(creator.__name__))
+			thumbdir = self.setUpFolder(name=creator.__name__, mock=tests.MOCK_ALWAYS_REAL)
+			thumbdir.touch()
 
 			dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
 			for i, basename in enumerate(dir.list_names()):
@@ -84,7 +85,7 @@ class TestThumbnailManager(tests.TestCase):
 	def testCreateThumbnail(self):
 		manager = ThumbnailManager()
 
-		dir = LocalFolder(self.create_tmp_dir())
+		dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		file = dir.file('zim.png')
 		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(file)
 		self.assertTrue(file.exists())

@@ -344,16 +344,6 @@ class TestCase(unittest.TestCase):
 		assert notebook.index.is_uptodate
 		return notebook
 
-	def create_tmp_dir(self, name=None):
-		'''Returns a path to a tmp dir where tests can write data.
-		The dir is removed and recreated empty every time this function
-		is called with the same name from the same class.
-		'''
-		print("Deprecated: TestCase.create_tmp_dir()")
-		folder = self.setUpFolder(name=name, mock=MOCK_ALWAYS_REAL)
-		folder.touch()
-		return folder.path
-
 	def _get_tmp_name(self, postfix):
 		name = self.__class__.__name__
 		if self._testMethodName != 'runTest':

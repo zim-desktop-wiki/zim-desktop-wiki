@@ -53,7 +53,7 @@ class TestNotebookInfoList(tests.TestCase):
 			file.remove()
 
 	def runTest(self):
-		root = Dir(self.create_tmp_dir('some_utf8_here_\u0421\u0430\u0439'))
+		root = self.setUpFolder(name='some_utf8_here_\u0421\u0430\u0439', mock=tests.MOCK_ALWAYS_REAL)
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()
@@ -64,7 +64,7 @@ class TestNotebookInfoList(tests.TestCase):
 		self.assertIsNone(info)
 
 		# Now create it
-		dir = root.subdir('/notebook')
+		dir = root.folder('/notebook')
 		init_notebook(dir, name='foo')
 
 		# And put it in the list and resolve it by name
@@ -167,7 +167,8 @@ class TestResolveNotebook(tests.TestCase):
 		self.assertIsNone(info)
 
 		# add an entry and show we get it
-		dir = Dir(self.create_tmp_dir()).subdir('foo')
+		root = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		dir = root.folder('foo')
 		init_notebook(dir, name='foo')
 
 		list = get_notebook_list()
@@ -1364,7 +1365,7 @@ class TestPageChangeFile(tests.TestCase):
 	# Reloading the pageshould show the changes.
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
+		dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		notebook = Notebook.new_from_dir(dir)
 
 		page = notebook.get_page(Path('SomePage'))

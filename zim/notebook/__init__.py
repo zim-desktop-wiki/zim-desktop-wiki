@@ -36,7 +36,7 @@ import logging
 logger = logging.getLogger('zim.notebook')
 
 
-from zim.fs import FilePath, File, Dir, FileNotFoundError
+from zim.fs import FilePath, File, Dir, FileNotFoundError, adapt_from_newfs
 from zim.parsing import url_decode
 
 
@@ -176,6 +176,7 @@ class ApplicationMountPointHandler(object):
 
 def init_notebook(dir, name=None):
 	'''Initialize a new notebook in a directory'''
+	dir = adapt_from_newfs(dir)
 	assert isinstance(dir, Dir)
 	from .notebook import NotebookConfig
 	dir.touch()

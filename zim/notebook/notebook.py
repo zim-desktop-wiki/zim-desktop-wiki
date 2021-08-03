@@ -17,7 +17,7 @@ from functools import partial
 import zim.templates
 import zim.formats
 
-from zim.fs import File, Dir, SEP
+from zim.fs import File, Dir, SEP, adapt_from_newfs
 from zim.newfs import LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error
@@ -243,6 +243,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param dir: a L{Dir} object
 		@returns: a L{Notebook} object
 		'''
+		dir = adapt_from_newfs(dir)
 		assert isinstance(dir, Dir)
 
 		nb = _NOTEBOOK_CACHE.get(dir.uri)

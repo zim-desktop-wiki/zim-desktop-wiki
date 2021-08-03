@@ -397,7 +397,7 @@ class TestSingleFileExporter(tests.TestCase):
 class TestMHTMLExporter(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
+		dir = self.setUpFolder()
 		file = dir.file('export.mht')
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		pages = AllPages(notebook)
@@ -413,7 +413,7 @@ class TestMHTMLExporter(tests.TestCase):
 class TestTemplateOptions(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
+		dir = self.setUpFolder()
 		file = dir.file('test.tex')
 		page = Path('roundtrip')
 		exporter = build_page_exporter(file, 'latex', 'Article', page)
@@ -616,7 +616,7 @@ class TestExportDialog(tests.TestCase):
 		'''Test ExportDialog'''
 		from zim.gui.exportdialog import ExportDialog, ExportDoneDialog
 
-		dir = Dir(self.create_tmp_dir())
+		dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 
 		window = Gtk.Window()

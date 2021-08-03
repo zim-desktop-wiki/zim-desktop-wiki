@@ -3723,8 +3723,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 		self.assertIn('Foo:Bar', xml) # FIXME: should use tree api
 
 	def testDeserializeImageData(self):
-		#folder = self.setUpFolder('imagedata', mock=tests.MOCK_NEVER)
-		folder = Dir(self.create_tmp_dir('imagedata'))
+		folder = Dir(self.setUpFolder(name='imagedata', mock=tests.MOCK_ALWAYS_REAL))
 		notebook = tests.MockObject()
 		notebook.mock_method('get_attachments_dir', folder)
 		notebook.resolve_file = lambda fpath, ppath: fpath

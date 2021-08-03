@@ -58,7 +58,7 @@ import zim.errors
 import zim.config
 import zim.fs
 
-from zim.fs import File, Dir
+from zim.fs import File, Dir, adapt_from_newfs
 from zim.config import value_is_coord
 from zim.notebook import Notebook, Path, PageNotFoundError
 from zim.parsing import link_type
@@ -1294,6 +1294,7 @@ class InputForm(Gtk.Table):
 				else:
 					widget.set_text(value or '')
 			elif isinstance(widget, FSPathEntry):
+				value = adapt_from_newfs(value)
 				if isinstance(value, (File, Dir)):
 					widget.set_path(value)
 				else:
@@ -1583,6 +1584,7 @@ class FSPathEntry(InputEntry):
 		'''Set the file path for this entry
 		@param path: a L{File} or L{Dir} object
 		'''
+		path = adapt_from_newfs(path)
 		assert isinstance(path, (File, Dir))
 		if self.notebook:
 			text = self.notebook.relative_filepath(path, self.notebookpath)
