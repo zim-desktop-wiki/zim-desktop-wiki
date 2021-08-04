@@ -13,7 +13,6 @@ import wsgiref.validate
 import wsgiref.handlers
 import base64
 
-from zim.fs import File
 from zim.www import WWWInterface
 from zim.notebook import Path
 
@@ -173,8 +172,7 @@ class TestWWWInterfaceTemplateResources(TestWWWInterface):
 
 	def setUp(self):
 		TestWWWInterface.setUp(self)
-		self.file = File('tests/data/templates/html/Default.html')
-		self.template = self.file.path
+		self.template = 'tests/data/templates/html/Default.html'
 		self.file_found_paths.append('/+resources/foo/bar.png')
 
 	def runTest(self):

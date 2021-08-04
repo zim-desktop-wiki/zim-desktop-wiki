@@ -6,7 +6,6 @@ import tests
 from tests.pageview import setUpPageView
 from tests.mainwindow import setUpMainWindow
 
-from zim.fs import Dir
 from zim.notebook import Notebook, Path
 from zim.notebook.operations import ongoing_operation
 from zim.gui.pageview import SavePageHandler, SavePageErrorDialog, PageView
@@ -18,8 +17,8 @@ from gi.repository import Gtk
 class TestSavePageHandler(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL))
-		notebook = Notebook.new_from_dir(dir)
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		notebook = Notebook.new_from_dir(folder)
 		page = notebook.get_page(Path('SomePage'))
 
 		orig_store_page_1 = notebook.store_page

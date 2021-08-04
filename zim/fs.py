@@ -45,6 +45,17 @@ def adapt_from_newfs(file):
 		return file
 
 
+def adapt_from_oldfs(file):
+	from zim.newfs import LocalFile, LocalFolder
+
+	if isinstance(file, File):
+		return LocalFile(file.path)
+	elif isinstance(file, Dir):
+		return LocalFolder(file.path)
+	else:
+		return file
+
+
 try:
 	from gi.repository import Gio
 except ImportError:

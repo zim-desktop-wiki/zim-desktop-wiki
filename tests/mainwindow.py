@@ -5,7 +5,6 @@ from gi.repository.Gtk import ImageMenuItem
 
 import tests
 
-from zim.fs import File
 from zim.notebook import Path
 from zim.plugins import PluginManager
 
@@ -261,7 +260,7 @@ class TestMenuDocs(tests.TestCase):
 
 	def setUp(self):
 		self.mainwindow = setUpMainWindow(self.setUpNotebook())
-		self.manual = File('data/manual/Help/Menu_Items.txt').read()
+		self.manual = tests.ZIM_DATA_FOLDER.file('manual/Help/Menu_Items.txt').read()
 
 	def testAllMenuItemsAreDocumented(self):
 		def menuitems(parent, level=0):

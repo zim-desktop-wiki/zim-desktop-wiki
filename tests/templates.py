@@ -7,8 +7,7 @@
 
 import tests
 
-
-from zim.fs import File, Dir, FileNotFoundError
+from zim.newfs import FileNotFoundError
 
 from zim.templates import *
 
@@ -711,8 +710,7 @@ class TestTemplate(tests.TestCase):
 	def runTest(self):
 		from pprint import pprint
 
-		from zim.fs import File
-		file = File('./tests/data/TestTemplate.html')
+		file = tests.TEST_DATA_FOLDER.file('TestTemplate.html')
 
 		templ = Template(file)
 		#~ pprint(templ.parts) # parser output
@@ -755,8 +753,8 @@ class TestTemplate(tests.TestCase):
 		# TODO assert something
 
 		### Test empty template OK as well
-		dir = Dir(self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL))
-		file = dir.file('empty.html')
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('empty.html')
 
 		self.assertRaises(FileNotFoundError, Template, file)
 

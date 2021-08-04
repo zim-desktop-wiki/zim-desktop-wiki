@@ -61,22 +61,16 @@ __all__ = [
 ]
 
 
-mydir = os.path.abspath(os.path.dirname(__file__))
+_mydir = os.path.abspath(os.path.dirname(__file__))
 
 # when a test is missing from the list that should be detected
-for file in glob.glob(mydir + '/*.py'):
+for file in glob.glob(_mydir + '/*.py'):
 	name = os.path.basename(file)[:-3]
 	if name != '__init__' and not name in __all__:
 		raise AssertionError('Test missing in __all__: %s' % name)
 
-# get our own data dir
-DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
-
-# and project data dir
-ZIM_DATADIR = os.path.abspath(os.path.join(mydir, '../data'))
-
 # get our own tmpdir
-TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
+TMPDIR = os.path.abspath(os.path.join(_mydir, 'tmp'))
 	# Wanted to use tempfile.get_tempdir here to put everything in
 	# e.g. /tmp/zim but since /tmp is often mounted as special file
 	# system this conflicts with thrash support. For writing in source
@@ -171,6 +165,14 @@ from zim.newfs import LocalFolder
 
 import zim.config.manager
 import zim.plugins
+
+
+# Define runtime folder & data folders for use in test cases
+ZIM_SRC_FOLDER = LocalFolder(_mydir + '/..')
+ZIM_DATA_FOLDER = LocalFolder(_mydir + '/../data')
+TEST_SRC_FOLDER = LocalFolder(_mydir)
+TEST_DATA_FOLDER = LocalFolder(_mydir + '/data')
+
 
 _zim_pyfiles = []
 
@@ -545,6 +547,11 @@ class ZimApplicationContext(object):
 
 		return False # Raise any errors again outside context
 
+
+from zim.newfs.mock import os_native_path as _os_native_path
+
+def os_native_path(path, drive='C:'):
+	return _os_native_path(path, drive)
 
 
 class _TestData(object):

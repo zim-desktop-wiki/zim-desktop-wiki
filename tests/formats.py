@@ -9,7 +9,6 @@
 import tests
 
 from zim.formats import *
-from zim.fs import File
 from zim.notebook import Path
 from zim.parsing import link_type
 from zim.templates import Template
@@ -24,7 +23,7 @@ if not ElementTreeModule.__name__.endswith('cElementTree'):
 class TestFormatMixin(object):
 	'''Mixin for testing formats, uses data in C{tests/data/formats/}'''
 
-	reference_xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
+	reference_xml = tests.TEST_DATA_FOLDER.file('formats/parsetree.xml').read().rstrip('\n')
 
 	reference_data = {
 		'wiki': 'wiki.txt',
@@ -56,14 +55,13 @@ class TestFormatMixin(object):
 		'''
 		name = self.format.info['name']
 		assert name in self.reference_data, 'No reference data for format "%s"' % name
-		path = 'tests/data/formats/' + self.reference_data[name]
-		text = File(path).read()
+		basename = self.reference_data[name]
+		text = tests.TEST_DATA_FOLDER.file('formats/' + basename).read()
 
 		# No absolute paths ended up in reference
-		pwd = Dir('.')
+		pwd = tests.ZIM_SRC_FOLDER
 		self.assertFalse(pwd.path in text, 'Absolute path ended up in reference')
-		if pwd.user_path is not None:
-			self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
+		self.assertFalse(pwd.userpath in text, 'Absolute path ended up in reference')
 
 		return text
 
@@ -74,7 +72,7 @@ class TestFormatMixin(object):
 		# Dumper
 		wanted = self.getReferenceData()
 		reftree = tests.new_parsetree_from_xml(self.reference_xml)
-		linker = StubLinker(Dir('tests/data/formats'))
+		linker = StubLinker(tests.TEST_DATA_FOLDER.folder('formats'))
 		dumper = self.format.Dumper(linker=linker)
 		result = ''.join(dumper.dump(reftree))
 		#~ print('\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n')

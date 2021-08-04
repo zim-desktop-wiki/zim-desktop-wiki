@@ -3,7 +3,7 @@
 
 
 import tests
-
+from tests import os_native_path
 
 import os
 import sys
@@ -12,8 +12,6 @@ import time
 
 from zim.notebook.layout import FilesLayout
 from zim.newfs import LocalFolder, File
-from zim.newfs.mock import os_native_path
-
 from zim.notebook import Path
 from zim.notebook.index import Index, DB_VERSION
 from zim.notebook.index.files import FilesIndexer, TestFilesDBTable, FilesIndexChecker

@@ -35,19 +35,6 @@ def modify_file_mtime(path, func):
 	#~ print('>>>', m, mtime)
 
 
-#~ class FilterOverWriteWarning(tests.LoggingFilter):
-
-	#~ logger = 'zim.fs'
-	#~ message = 'mtime check failed'
-
-
-#~ class FilterFileMissingWarning(tests.LoggingFilter):
-
-	#~ logger = 'zim.fs'
-	#~ message = 'File missing:'
-
-
-
 def P(path):
 	# Returns a windows path on windows, to make test cases platform
 	# independent and keep them readable

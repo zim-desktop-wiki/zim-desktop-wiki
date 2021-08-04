@@ -32,8 +32,7 @@ from zim.templates.expression import ExpressionParameter, \
 
 from zim.notebook import Path
 
-from zim.fs import File as OldFile
-from zim.fs import Dir as OldDir
+from zim.fs import adapt_from_oldfs
 from zim.newfs import File, Folder, FilePath
 
 
@@ -474,10 +473,9 @@ class TestExportFormatRst(TestExportFormat, tests.TestCase):
 class TestExportCommand(tests.TestCase):
 
 	def setUp(self):
-		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
-		self.tmpdir = OldDir(folder.path) # XXX
-		self.notebook = self.tmpdir.subdir('notebook')
-		init_notebook(self.notebook)
+		self.tmpfolder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		self.notebookfolder = self.tmpfolder.folder('notebook')
+		init_notebook(self.notebookfolder)
 
 	def testOptions(self):
 		# Only testing we get a valid exporter, not the full command,
@@ -485,12 +483,12 @@ class TestExportCommand(tests.TestCase):
 
 		## Full notebook, minimal options
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path)
+		cmd.parse_options(self.notebookfolder.path)
 		self.assertRaises(UsageError, cmd.get_exporter, None)
 
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path,
-			'--output', self.tmpdir.subdir('output').path,
+		cmd.parse_options(self.notebookfolder.path,
+			'--output', self.tmpfolder.folder('output').path,
 		)
 		exp = cmd.get_exporter(None)
 		self.assertIsInstance(exp, MultiFileExporter)
@@ -503,10 +501,10 @@ class TestExportCommand(tests.TestCase):
 
 		## Full notebook, full options
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path,
+		cmd.parse_options(self.notebookfolder.path,
 			'--format', 'markdown',
 			'--template', './tests/data/TestTemplate.html',
-			'--output', self.tmpdir.subdir('output').path,
+			'--output', self.tmpfolder.folder('output').path,
 			'--root-url', '/foo/',
 			'--index-page', 'myindex',
 			'--overwrite',
@@ -523,10 +521,10 @@ class TestExportCommand(tests.TestCase):
 
 		## Full notebook, single page
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path,
+		cmd.parse_options(self.notebookfolder.path,
 			'--format', 'markdown',
 			'--template', './tests/data/TestTemplate.html',
-			'--output', self.tmpdir.file('output.md').path,
+			'--output', self.tmpfolder.file('output.md').path,
 			'-s'
 		)
 		exp = cmd.get_exporter(None)
@@ -536,8 +534,8 @@ class TestExportCommand(tests.TestCase):
 
 		## Single page
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path, 'Foo:Bar',
-			'--output', self.tmpdir.subdir('output').path,
+		cmd.parse_options(self.notebookfolder.path, 'Foo:Bar',
+			'--output', self.tmpfolder.folder('output').path,
 		)
 		exp = cmd.get_exporter(Path('Foo:Bar'))
 		self.assertIsInstance(exp, MultiFileExporter)
@@ -549,9 +547,9 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNone(exp.index_page)
 
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path, 'Foo:Bar',
+		cmd.parse_options(self.notebookfolder.path, 'Foo:Bar',
 			'--recursive',
-			'--output', self.tmpdir.subdir('output').path,
+			'--output', self.tmpfolder.folder('output').path,
 		)
 		exp = cmd.get_exporter(Path('Foo:Bar'))
 		self.assertIsInstance(exp, MultiFileExporter)
@@ -563,9 +561,9 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNone(exp.index_page)
 
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path, 'Foo:Bar',
+		cmd.parse_options(self.notebookfolder.path, 'Foo:Bar',
 			'-rs',
-			'--output', self.tmpdir.subdir('output').path,
+			'--output', self.tmpfolder.folder('output').path,
 		)
 		exp = cmd.get_exporter(Path('Foo:Bar'))
 		self.assertIsInstance(exp, SingleFileExporter)
@@ -577,9 +575,9 @@ class TestExportCommand(tests.TestCase):
 
 		## MHTML exporter
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path, 'Foo:Bar',
+		cmd.parse_options(self.notebookfolder.path, 'Foo:Bar',
 			'-rs', '--format', 'mhtml',
-			'--output', self.tmpdir.subdir('output').path,
+			'--output', self.tmpfolder.folder('output').path,
 		)
 		exp = cmd.get_exporter(Path('Foo:Bar'))
 		self.assertIsInstance(exp, MHTMLExporter)
@@ -589,16 +587,16 @@ class TestExportCommand(tests.TestCase):
 
 	def testExport(self):
 		# Only test single page, just to show "run()" works
-		file = self.notebook.file('Foo/Bar.txt')
+		file = self.notebookfolder.file('Foo/Bar.txt')
 		file.write(
 			'Content-Type: text/x-zim-wiki\n\n'
 			'=== Foo\ntest 123\n'
 		)
 
-		output = self.tmpdir.file('output.html')
+		output = self.tmpfolder.file('output.html')
 
 		cmd = ExportCommand('export')
-		cmd.parse_options(self.notebook.path, 'Foo:Bar',
+		cmd.parse_options(self.notebookfolder.path, 'Foo:Bar',
 			'--output', output.path,
 			'--template', 'tests/data/TestTemplate.html'
 		)
@@ -676,8 +674,8 @@ class TestExportDialog(tests.TestCase):
 
 		#~ print dialog.uistate
 		self.assertEqual(dialog.uistate, window.notebook.state['ExportDialog'])
-		self.assertIsInstance(dialog.uistate['output_file'], OldFile)
-		self.assertIsInstance(dialog.uistate['output_folder'], OldDir) # Keep this in state as well
+		self.assertIsInstance(adapt_from_oldfs(dialog.uistate['output_file']), File)
+		self.assertIsInstance(adapt_from_oldfs(dialog.uistate['output_folder']), Folder) # Keep this in state as well
 
 	def testLogging(self):
 		from zim.gui.exportdialog import LogContext

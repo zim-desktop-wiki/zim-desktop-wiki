@@ -1,19 +1,19 @@
 # Copyright 2009-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
+from tests import os_native_path
+
 import logging
 import os
 
 logger = logging.getLogger('tests.pageview')
 
-from zim.fs import File, Dir
+from zim.fs import adapt_from_newfs
 from zim.newfs import LocalFile, LocalFolder
 from zim.formats import get_format, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
 from zim.gui.clipboard import Clipboard
-
-from zim.newfs.mock import os_native_path
 
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
@@ -745,9 +745,9 @@ C
 		self.assertIsNotNone(buffer.find_anchor('test'))
 
 	def testFindImageAnchor(self):
-		file = File('./data/zim.png')
+		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		notebook = tests.MockObject()
-		notebook.mock_method('resolve_file', file)
+		notebook.mock_method('resolve_file', adapt_from_newfs(file))
 		notebook.mock_method('relative_filepath', './data/zim.png')
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
@@ -2671,8 +2671,9 @@ Baz
 		buffer.set_text('''Test 123\n''')
 
 		buffer.place_cursor(buffer.get_end_iter())
-		pageview.insert_links((Path("foo"), File("/foo.txt"), "~/bar.txt"))
-		wantedtext = 'Test 123\nfoo\n%s\n%s\n' % (File('/foo.txt').uri, os_native_path('~/bar.txt'))
+		file1 = LocalFile(os_native_path('/foo.txt'))
+		pageview.insert_links((Path("foo"), file1, "~/bar.txt"))
+		wantedtext = 'Test 123\nfoo\n%s\n%s\n' % (file1.uri, os_native_path('~/bar.txt'))
 		text = get_text(buffer)
 		self.assertEqual(text, wantedtext)
 
@@ -3072,7 +3073,7 @@ class TestPageViewActions(tests.TestCase):
 		self.assertEqual(pageview.page.dump('wiki'), ['[[test]]\n'])
 
 	def testEditObjectForImage(self):
-		file = File('./data/zim.png')
+		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		pageview = setUpPageView(self.setUpNotebook(), '{{%s}}\n' % file.path)
 
 		def edit_img(dialog):
@@ -3084,7 +3085,7 @@ class TestPageViewActions(tests.TestCase):
 
 		text = ''.join(pageview.page.dump('wiki')).strip()
 		self.assertTrue(text.startswith('{{') and text.endswith('?href=test}}'), '%r does not match \{\{...?href=test\}\}' % text)
-		self.assertEqual(File(text[2:-12]), file)
+		self.assertEqual(LocalFile(text[2:-12]), file)
 
 	def testEditObjectForObject(self):
 		pageview = setUpPageView(self.setUpNotebook(), '{{{test:\nfoo\n}}}\n')
@@ -3150,7 +3151,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testInsertImage(self):
 		pageview = setUpPageView(self.setUpNotebook())
-		file = File('./data/zim.png')
+		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 
 		def choose_file(dialog):
 			dialog.set_file(file)
@@ -3161,7 +3162,7 @@ class TestPageViewActions(tests.TestCase):
 
 		text = ''.join(pageview.page.dump('wiki')).strip()
 		self.assertTrue(text.startswith('{{') and text.endswith('}}'), '%r does not match \{\{...\}\}' % text)
-		self.assertEqual(File(text[2:-2]), file)
+		self.assertEqual(LocalFile(text[2:-2]), file)
 
 	def testAttachFile(self):
 		pageview = setUpPageView(self.setUpNotebook())
@@ -3465,7 +3466,7 @@ class TestPageviewDialogs(tests.TestCase):
 
 		## Insert Image dialog
 		buffer = tests.MockObject()
-		file = File('data/zim.png')
+		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		dialog = InsertImageDialog(None, buffer, notebook, Path(':some_page'), file)
 		self.assertTrue(dialog.filechooser.get_preview_widget_active())
 		#~ self.assertEqual(dialog.get_file(), file)
@@ -3479,7 +3480,7 @@ class TestPageviewDialogs(tests.TestCase):
 		notebook = tests.MockObject()
 		notebook.mock_method('resolve_file', file)
 		notebook.mock_method('relative_filepath', './data/zim.png')
-		file = File('data/zim.png')
+		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		buffer.insert_image_at_cursor(file, '../MYPATH/./data/zim.png')
 		dialog = EditImageDialog(None, buffer, notebook, Path(':some_page'))
 		self.assertEqual(dialog.form['width'], 48)
@@ -3498,7 +3499,7 @@ class TestPageviewDialogs(tests.TestCase):
 		imagedata = buffer.get_image_data(iter)
 		self.assertEqual(imagedata, {
 			'src': './data/zim.png', # preserve relative path
-			'_src_file': file,
+			'_src_file': adapt_from_newfs(file),
 			'height': 24,
 		})
 		self.assertEqual(type(imagedata['height']).__name__, 'int')
@@ -3723,14 +3724,14 @@ class TestDragAndDropFunctions(tests.TestCase):
 		self.assertIn('Foo:Bar', xml) # FIXME: should use tree api
 
 	def testDeserializeImageData(self):
-		folder = Dir(self.setUpFolder(name='imagedata', mock=tests.MOCK_ALWAYS_REAL))
+		folder = self.setUpFolder(name='imagedata', mock=tests.MOCK_ALWAYS_REAL)
 		notebook = tests.MockObject()
-		notebook.mock_method('get_attachments_dir', folder)
+		notebook.mock_method('get_attachments_dir', adapt_from_newfs(folder))
 		notebook.resolve_file = lambda fpath, ppath: fpath
 		path = Path('Mock')
 
 		buffer = TextBuffer(notebook, path)
-		image = File('./data/zim.png').raw()
+		image = tests.ZIM_DATA_FOLDER.file('zim.png').read_binary()
 		iter = buffer.get_insert_iter()
 		buffer.deserialize(buffer, Gdk.Atom.intern('image/png', False), iter, image)
 

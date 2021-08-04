@@ -4,12 +4,13 @@
 
 
 import tests
+from tests import os_native_path
 
 import os
 
-from zim.fs import File, Dir
-from zim.newfs.mock import os_native_path
 from zim.config import *
+from zim.fs import adapt_from_oldfs
+from zim.newfs import File, Folder, LocalFolder
 from zim.notebook import Path
 
 import zim.config
@@ -19,7 +20,7 @@ import zim.config
 # source to be tested -- just being paranoid here...
 # Note that this marshalling remains in place for any subsequent tests
 
-_cwd = Dir('.')
+_cwd = tests.ZIM_SRC_FOLDER
 def marshal_path_lookup(function):
 	def marshalled_path_lookup(*arg, **kwarg):
 		value = function(*arg, **kwarg)
@@ -27,8 +28,10 @@ def marshal_path_lookup(function):
 			p = value.file
 		else:
 			p = value
+
+		p = adapt_from_oldfs(p)
 		if not p is None:
-			assert isinstance(p, (File, Dir)), 'BUG: get %r' % p
+			assert isinstance(p, (File, Folder)), 'BUG: get %r' % p
 			assert p.ischild(_cwd), "ERROR: \"%s\" not below \"%s\"" % (p, _cwd)
 		return value
 	return marshalled_path_lookup
@@ -38,6 +41,10 @@ zim.config.data_dir = marshal_path_lookup(zim.config.data_dir)
 #~ zim.config.config_file = marshal_path_lookup(zim.config.config_file)
 
 ##
+
+
+def value_to_folder(v):
+	return LocalFolder(os_native_path(v))
 
 
 class FilterInvalidConfigWarning(tests.LoggingFilter):
@@ -94,13 +101,16 @@ class TestDirsTestSetup(tests.TestCase):
 			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
 			('XDG_CACHE_HOME', os.path.join(tests.TMPDIR, 'cache_home'))
 		):
-			self.assertEqual(getattr(zim.config, k), Dir(v))
+			self.assertEqual(adapt_from_oldfs(getattr(zim.config, k)), LocalFolder(v))
 
 		for k, v in (
 			#~ ('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
 			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
 		):
-			self.assertEqual(getattr(zim.config, k), list(map(Dir, v.split(os.pathsep))))
+			self.assertEqual(
+				list(map(adapt_from_oldfs, getattr(zim.config, k))),
+				list(map(LocalFolder, v.split(os.pathsep)))
+			)
 
 
 class TestXDGDirs(tests.TestCase):
@@ -113,15 +123,15 @@ class TestXDGDirs(tests.TestCase):
 			XDG_CONFIG_HOME,
 			XDG_CACHE_HOME
 		):
-			self.assertTrue(isinstance(var, Dir))
+			self.assertTrue(isinstance(adapt_from_oldfs(var), Folder))
 
 		for var in (
 			XDG_DATA_DIRS,
 			XDG_CONFIG_DIRS,
 		):
-			self.assertTrue(isinstance(var, list) and isinstance(var[0], Dir))
+			self.assertTrue(isinstance(var, list) and isinstance(adapt_from_oldfs(var[0]), Folder))
 
-		self.assertEqual(ZIM_DATA_DIR, Dir('./data'))
+		self.assertEqual(adapt_from_oldfs(ZIM_DATA_DIR), tests.ZIM_DATA_FOLDER)
 		self.assertTrue(ZIM_DATA_DIR.file('zim.png').exists())
 		self.assertTrue(data_file('zim.png').exists())
 		self.assertTrue(data_dir('templates').exists())
@@ -144,13 +154,16 @@ class TestXDGDirs(tests.TestCase):
 				('XDG_CONFIG_HOME', '~/.config'),
 				('XDG_CACHE_HOME', '~/.cache')
 			):
-				self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
+				self.assertEqual(adapt_from_oldfs(getattr(zim.config.basedirs, k)), LocalFolder(v))
 
 			for k, v in (
 				('XDG_DATA_DIRS', '/usr/share:/usr/local/share'),
 				('XDG_CONFIG_DIRS', '/etc/xdg'),
 			):
-				self.assertEqual(getattr(zim.config.basedirs, k), list(map(Dir, v.split(':'))))
+				self.assertEqual(
+					list(map(adapt_from_oldfs, getattr(zim.config.basedirs, k))),
+					list(map(LocalFolder, v.split(':')))
+				)
 
 	def testInitializedEnvironment(self):
 		'''Test config environment with non-default basedir paths'''
@@ -171,13 +184,16 @@ class TestXDGDirs(tests.TestCase):
 				('XDG_CONFIG_HOME', '/foo/config/home'),
 				('XDG_CACHE_HOME', '/foo/cache')
 			):
-				self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
+				self.assertEqual(adapt_from_oldfs(getattr(zim.config.basedirs, k)), value_to_folder(v))
 
 			for k, v in (
 				('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
 				('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
 			):
-				self.assertEqual(getattr(zim.config.basedirs, k), list(map(Dir, v.split(':'))))
+				self.assertEqual(
+					list(map(adapt_from_oldfs, getattr(zim.config.basedirs, k))),
+					list(map(value_to_folder, v.split(':')))
+				)
 
 
 class TestControlledDict(tests.TestCase):
@@ -565,7 +581,7 @@ XDG_VIDEOS_DIR="$HOME/Videos"
 	def runTest(self):
 		'''Test config for user dirs'''
 		dirs = user_dirs()
-		self.assertEqual(dirs['XDG_DOCUMENTS_DIR'], Dir('~/Documents'))
+		self.assertEqual(adapt_from_oldfs(dirs['XDG_DOCUMENTS_DIR']), LocalFolder('~/Documents'))
 
 
 class TestHierarchicDict(tests.TestCase):
@@ -594,14 +610,14 @@ class TestXDGConfigDirsIter(tests.TestCase):
 		# environment take effect immediately
 		iter = XDGConfigDirsIter()
 
-		path = '/non-existing/dir'
-		zimdir = Dir(path).subdir('zim')
-		self.assertNotIn(zimdir, list(iter))
+		path = os_native_path('/non-existing/dir')
+		zimdir = LocalFolder(path + '/zim')
+		self.assertNotIn(zimdir, list(map(adapt_from_oldfs, iter)))
 
 		with EnvironmentConfigContext({
 			'XDG_CONFIG_HOME': path
 		}):
-			self.assertIn(zimdir, list(iter))
+			self.assertIn(zimdir, list(map(adapt_from_oldfs, iter)))
 
 
 class TestXDGConfigFileIter(tests.TestCase):
@@ -619,7 +635,7 @@ class TestXDGConfigFileIter(tests.TestCase):
 		files = list(defaults)
 
 		self.assertTrue(len(files) > 0)
-		self.assertIsInstance(files[0], File)
+		self.assertIsInstance(adapt_from_oldfs(files[0]), File)
 		self.assertEqual(files[0].basename, 'foo.conf')
 
 

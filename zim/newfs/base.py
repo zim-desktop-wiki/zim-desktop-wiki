@@ -213,6 +213,15 @@ def _os_expanduser(path):
 			return path
 
 
+def is_abs_filepath(string):
+	try:
+		_joinabspath(_splitnormpath(string))
+	except ValueError:
+		return False
+	else:
+		return True
+
+
 class FilePath(object):
 	'''Class to represent filesystem paths and the base class for all
 	file and folder objects. Contains methods for file path manipulation.

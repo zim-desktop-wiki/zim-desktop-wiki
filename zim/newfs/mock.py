@@ -36,18 +36,23 @@ def clone_mock_object(source, target):
 	newnode.mtime = mynode.mtime
 
 
-def os_native_path(unixpath):
+def os_native_path(unixpath, drive='M:'):
 	'''Adapts unix style paths for windows if needed
+	For file paths starting with "/" and "file:///" URIs a drive letter is added
+	and path seperators are converted if needed.
 	Used for convenience to of writing cross-platform test cases
 	Called automatically when constructing a L{MockFile} or L{MockFolder} object
-	Does not modify URLs
 	@param unixpath: the (mock) unix path as a string
 	'''
+	# Default drive letter is choosen arbitrary, should be OK for mock
 	assert isinstance(unixpath, str)
-	if os.name == 'nt' and not is_url_re.match(unixpath):
-		if unixpath.startswith('/'):
-			unixpath = 'M:' + unixpath # arbitrary drive letter, should be OK for mock
-		return unixpath.replace('/', '\\')
+	if os.name == 'nt':
+		if is_url_re.match(unixpath):
+			return unixpath.replace('file:///', 'file:///' + drive + '/')
+		else:
+			if unixpath.startswith('/'):
+				unixpath = drive + unixpath
+			return unixpath.replace('/', '\\')
 	else:
 		return unixpath
 

@@ -11,7 +11,6 @@ from zim.formats.wiki import Dumper as WikiDumper
 
 from gi.repository import Gtk
 
-from zim.fs import Dir
 from zim.newfs import LocalFolder
 from zim.notebook import Path
 
@@ -39,7 +38,7 @@ class TestBackwardImageGeneratorNoPlugins(tests.TestCase):
 
 	def testDumpWiki(self):
 		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
-		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(attachment_dir.file('test.png'))
+		tests.ZIM_DATA_FOLDER.file('zim.png').copyto(attachment_dir.file('test.png'))
 
 		notebook = self.setUpNotebook()
 		notebook.get_attachments_dir = lambda *a: attachment_dir
@@ -81,7 +80,7 @@ class TestBackwardImageGeneratorWithPlugin(TestBackwardImageGeneratorNoPlugins):
 
 	def testEditObjectDialog(self):
 		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
-		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(attachment_dir.file('test.png'))
+		tests.ZIM_DATA_FOLDER.file('zim.png').copyto(attachment_dir.file('test.png'))
 
 		notebook = self.setUpNotebook()
 		notebook.get_attachments_dir = lambda *a: attachment_dir

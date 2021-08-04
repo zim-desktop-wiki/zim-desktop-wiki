@@ -14,7 +14,6 @@ from zim.errors import Error
 from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
 from zim.notebook.notebook import NotebookConfig
 from zim.formats import ParseTree
-from zim.fs import File, Dir
 from zim.gui.clipboard import Clipboard
 
 import zim.gui

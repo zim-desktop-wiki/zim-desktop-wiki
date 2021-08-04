@@ -3,15 +3,16 @@
 
 '''Test cases for the zim.notebook module.'''
 
-
-
 import tests
+from tests import os_native_path
+
 
 import os
 import time
 
-from zim.fs import File, Dir
-from zim.newfs.mock import os_native_path
+from zim.fs import adapt_from_oldfs
+from zim.newfs import LocalFile, LocalFolder, Folder, FileChangedError
+from zim.newfs.mock import MockFile, MockFolder
 from zim.config import ConfigManager, XDG_CONFIG_HOME
 from zim.formats import ParseTree
 from zim.formats.wiki import Parser as WikiParser
@@ -21,23 +22,26 @@ from zim.notebook.notebook import NotebookConfig, IndexNotUptodateError, PageExi
 from zim.notebook.index import Index
 from zim.notebook.layout import FilesLayout
 
-import zim.newfs
-import zim.newfs.mock
-
 
 class TestNotebookInfo(tests.TestCase):
 
 	def runTest(self):
-		for location, uri in (
-			(File('file:///foo/bar'), 'file:///foo/bar'),
-			('file:///foo/bar', 'file:///foo/bar'),
-			('zim+file:///foo?bar', 'zim+file:///foo?bar'),
+		if os.name == 'nt':
+			test = [
+				(LocalFile('file:///C:/foo/bar'), 'file:///C:/foo/bar'),
+				('file:///C:/foo/bar', 'file:///C:/foo/bar'),
+				('zim+file:///C:/foo?bar', 'zim+file:///C:/foo?bar'),
 				# specifically ensure the "?" does not get url encoded
-		):
-			if os.name == 'nt':
-				if isinstance(location, str):
-					location = location.replace('///', '///C:/')
-				uri = uri.replace('///', '///C:/')
+			]
+		else:
+			test = [
+				(LocalFile('file:///foo/bar'), 'file:///foo/bar'),
+				('file:///foo/bar', 'file:///foo/bar'),
+				('zim+file:///foo?bar', 'zim+file:///foo?bar'),
+				# specifically ensure the "?" does not get url encoded
+			]
+
+		for location, uri in test:
 			info = NotebookInfo(location)
 			self.assertEqual(info.uri, uri)
 
@@ -129,14 +133,14 @@ class TestNotebookInfoList(tests.TestCase):
 		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+' + uri1 + '?Foo') # name
 
 		# Check backward compatibility
-		file = File('tests/data/notebook-list-old-format.list')
+		file = tests.TEST_DATA_FOLDER.file('notebook-list-old-format.list')
 		list = NotebookInfoList(file)
 		self.assertEqual(list[:], [
-			NotebookInfo(Dir(path).uri) for path in
-				('~/Notes', '/home/user/code/zim.debug', '/home/user/Foo Bar')
+			NotebookInfo(LocalFolder(path).uri) for path in
+				map(os_native_path, ('~/Notes', '/home/user/code/zim.debug', '/home/user/Foo Bar'))
 		])
 		self.assertEqual(list.default,
-			NotebookInfo(Dir('/home/user/code/zim.debug').uri))
+			NotebookInfo(LocalFolder(os_native_path('/home/user/code/zim.debug')).uri))
 
 
 @tests.slowTest
@@ -153,7 +157,7 @@ class TestResolveNotebook(tests.TestCase):
 		# First test some paths
 		for input, uri in (
 			('file:///foo/bar', 'file:///foo/bar'),
-			('~/bar', Dir('~/bar').uri),
+			('~/bar', LocalFolder('~/bar').uri),
 		):
 			if os.name == 'nt':
 				input = input.replace('///', '///C:/')
@@ -437,19 +441,18 @@ class TestNotebook(tests.TestCase):
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
-		from zim.fs import adapt_from_newfs, Dir
-		dir = Dir(self.notebook.folder.path) # XXX
+		dir = LocalFolder(self.notebook.folder.path) # XXX - resolve_file does not use mock files
 
 		path = Path('Foo:Bar')
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		doc_root = self.notebook.document_root
-		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
+		doc_root = adapt_from_oldfs(self.notebook.document_root)
+		self.assertEqual(doc_root, dir.folder('notebook_document_root'))
 		for link, wanted, cleaned in (
-			('~/test.txt', File('~/test.txt'), '~/test.txt'),
-			(r'~\test.txt', File('~/test.txt'), '~/test.txt'),
-			('file:///test.txt', File('file:///test.txt'), None),
-			('file:/test.txt', File('file:///test.txt'), None),
-			('file://localhost/test.txt', File('file:///test.txt'), None),
+			('~/test.txt', LocalFile('~/test.txt'), '~/test.txt'),
+			(r'~\test.txt', LocalFile('~/test.txt'), '~/test.txt'),
+			('file:///test.txt', LocalFile(os_native_path('file:///test.txt')), None),
+			('file:/test.txt', LocalFile(os_native_path('file:///test.txt')), None),
+			('file://localhost/test.txt', LocalFile(os_native_path('file:///test.txt')), None),
 			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('../../notebook_document_root/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
@@ -457,14 +460,14 @@ class TestNotebook(tests.TestCase):
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
 			(r'..\test.txt', dir.file('Foo/test.txt'), '../test.txt'),
 			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt'), './Baz/test.txt'),
-			(r'C:\foo\bar', File('file:///C:/foo/bar'), None),
-			(r'Z:\foo\bar', File('file:///Z:/foo/bar'), None),
+			(r'C:\foo\bar', LocalFile('file:///C:/foo/bar'), None),
+			(r'Z:\foo\bar', LocalFile('file:///Z:/foo/bar'), None),
 		):
 			#~ print link, '>>', self.notebook.resolve_file(link, path)
 			if cleaned is not None and not cleaned.startswith('/'):
 				cleaned = os_native_path(cleaned)
 			self.assertEqual(
-				self.notebook.resolve_file(link, path), wanted)
+				adapt_from_oldfs(self.notebook.resolve_file(link, path)), wanted)
 			self.assertEqual(
 				self.notebook.relative_filepath(wanted, path), cleaned)
 
@@ -571,11 +574,10 @@ class TestNotebookSharedProperty(tests.TestCase):
 
 	def _create_notebook(self, shared):
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
-		dir = Dir(folder.path)
-		config = NotebookConfig(dir.file('notebook.zim'))
+		config = NotebookConfig(folder.file('notebook.zim'))
 		config['Notebook']['shared'] = shared
 		config.write()
-		notebook = Notebook.new_from_dir(dir)
+		notebook = Notebook.new_from_dir(folder)
 		return notebook
 
 	def testSharedTrue(self):
@@ -595,11 +597,10 @@ class TestEmptyNotebookFolderNotRemoved(tests.TestCase):
 
 	def runTest(self):
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
-		dir = Dir(folder.path)
-		dir.touch()
-		self.assertTrue(dir.exists())
-		notebook = Notebook.new_from_dir(dir)
-		self.assertTrue(dir.exists())
+		folder.touch()
+		self.assertTrue(folder.exists())
+		notebook = Notebook.new_from_dir(folder)
+		self.assertTrue(folder.exists())
 
 
 class TestUpdateLinksOnMovePage(tests.TestCase):
@@ -1132,7 +1133,6 @@ class TestPage(TestPath):
 	'''Test page object'''
 
 	def generator(self, name):
-		from zim.newfs.mock import MockFile, MockFolder
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
 		return Page(Path(name), False, file, folder, 'wiki')
@@ -1177,7 +1177,6 @@ class TestPage(TestPath):
 		self.assertFalse(page.hascontent)
 
 	def testShouldAutochangeHeading(self):
-		from zim.newfs.mock import MockFile, MockFolder
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
 		page = Page(Path('Foo'), False, file, folder, 'wiki')
@@ -1191,8 +1190,6 @@ class TestPage(TestPath):
 		self.assertFalse(page.heading_matches_pagename())
 
 	def testPageSource(self):
-		from zim.newfs.mock import MockFile, MockFolder
-
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
 		page = Page(Path('Foo'), False, file, folder, 'wiki')
@@ -1238,7 +1235,7 @@ class TestPage(TestPath):
 		file.write('foo 123')
 		page.set_parsetree(tree)
 
-		self.assertRaises(zim.newfs.FileChangedError, page._store)
+		self.assertRaises(FileChangedError, page._store)
 
 		### Custom header should be preserved
 		### Also when setting new ParseTree - e.g. after edting
@@ -1369,7 +1366,7 @@ class TestPageChangeFile(tests.TestCase):
 		notebook = Notebook.new_from_dir(dir)
 
 		page = notebook.get_page(Path('SomePage'))
-		file = zim.newfs.LocalFile(page.source_file.path)
+		file = LocalFile(page.source_file.path)
 		self.assertIsNot(file, page.source_file)
 
 		def change_file(file, text):
@@ -1408,7 +1405,7 @@ class TestPageChangeFile(tests.TestCase):
 		self.assertEqual(page2.dump('wiki'), ['Test 123\n'])
 
 		# Now we change the file and want to see the change
-		file = zim.newfs.LocalFile(page1.source_file.path)
+		file = LocalFile(page1.source_file.path)
 		self.assertIsNot(file, page1.source_file)
 		change_file(file, 'Test 5 6 7 8\n')
 
@@ -1486,7 +1483,6 @@ class TestBackgroundSave(tests.TestCase):
 class AttachmentsFolderIsinstance(tests.TestCase):
 
 	def runTest(self):
-		from zim.newfs import Folder
 		folder = self.setUpFolder()
 		layout = FilesLayout(folder)
 		afolder = layout.get_attachments_folder(Path('Test'))

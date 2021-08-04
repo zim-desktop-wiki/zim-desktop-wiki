@@ -15,24 +15,24 @@ from gi.repository import Gtk
 from zim.gui.applications import *
 from zim.gui.applications import _create_application
 from zim.notebook import Path
-from zim.fs import Dir, TmpFile
+from zim.fs import adapt_from_oldfs, adapt_from_newfs
+
 
 THUMB_SIZE_NORMAL = 128
 
 
 @tests.skipIf(os.name == 'nt', 'Skip for windows')
-@tests.slowTest
 class TestXDGMimeInfo(tests.TestCase):
 
-	def runTest(self):
-		os.makedirs('tests/tmp/data_dir/mime/image/')
-		shutil.copyfile('./tests/data/png.xml', 'tests/tmp/data_dir/mime/image/png.xml')
+	def setUp(self):
+		data_dir = adapt_from_oldfs(XDG_DATA_DIRS[0])
+		tests.TEST_DATA_FOLDER.file('png.xml').copyto(data_dir.file('mime/image/png.xml'))
 
-		dir = Dir('./data')
-		file = dir.file('zim.png')
+	def runTest(self):
+		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		icon = get_mime_icon(file, 128)
 		self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
-		desc = get_mime_description(file.get_mimetype())
+		desc = get_mime_description(file.mimetype())
 		self.assertIsInstance(desc, str)
 		self.assertTrue(len(desc) > 5)
 
@@ -475,7 +475,6 @@ class TestOpenFunctions(tests.TestCase):
 
 	def testOpenFile(self):
 		from zim.gui.applications import open_file, NoApplicationFoundError
-		from zim.fs import adapt_from_newfs
 
 		widget = tests.MockObject()
 
@@ -504,7 +503,6 @@ class TestOpenFunctions(tests.TestCase):
 
 	def testOpenFolder(self):
 		from zim.gui.applications import open_folder
-		from zim.fs import adapt_from_newfs
 
 		widget = tests.MockObject()
 
@@ -521,7 +519,6 @@ class TestOpenFunctions(tests.TestCase):
 
 	def testOpenFolderCreate(self):
 		from zim.gui.applications import open_folder_prompt_create
-		from zim.fs import adapt_from_newfs
 
 		widget = tests.MockObject()
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)

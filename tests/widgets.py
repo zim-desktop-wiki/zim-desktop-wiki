@@ -2,13 +2,13 @@
 # Copyright 2011-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
+from tests import os_native_path
 
-
-from zim.fs import File, Dir
+from zim.fs import adapt_from_oldfs
+from zim.newfs import LocalFile, LocalFolder
 from zim.notebook import Path
 from zim.gui.widgets import *
 
-from zim.newfs.mock import os_native_path
 
 class TestFunctions(tests.TestCase):
 
@@ -91,59 +91,62 @@ class TestFileEntry(tests.TestCase):
 
 	def runTest(self):
 		'''Test FileEntry widget'''
-		from zim.fs import adapt_from_newfs, Dir
-		dir = Dir(self.notebook.folder) # XXX
+		folder = LocalFolder(self.notebook.folder) # XXX
 
 		path = Path('Foo:Bar')
 		entry = self.entry
 		entry.set_use_relative_paths(self.notebook, path)
 
-		home = Dir('~')
+		home = LocalFolder('~')
+		file1 = LocalFile(os_native_path('/test.txt'))
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
-			(dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), File('/test.txt').path), # win32 save
+			(folder.file('Foo/Bar/test.txt'), './test.txt'),
+			(file1, file1.path),
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), os_native_path(text))
-			self.assertEqual(entry.get_file(), file)
+			self.assertEqual(adapt_from_oldfs(entry.get_file()), file)
 
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		doc_root = self.notebook.document_root
-		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
+		doc_root = adapt_from_oldfs(self.notebook.document_root)
+		self.assertEqual(doc_root, folder.folder('notebook_document_root'))
 
+		file1 = LocalFile(os_native_path('/test.txt'))
 		for file, text in (
 			(home.file('zim-test.txt'), os_native_path('~/zim-test.txt')),
-			(dir.file('Foo/Bar/test.txt'), os_native_path('./test.txt')),
-			(File('/test.txt'), File('/test.txt').uri), # win32 save
+			(folder.file('Foo/Bar/test.txt'), os_native_path('./test.txt')),
+			(file1, file1.uri), # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
-			self.assertEqual(entry.get_file(), file)
+			self.assertEqual(adapt_from_oldfs(entry.get_file()), file)
 
 		entry.set_use_relative_paths(self.notebook, None)
 
+		file1 = LocalFile(os_native_path('/test.txt'))
 		for file, text in (
 			(home.file('zim-test.txt'), os_native_path('~/zim-test.txt')),
-			(dir.file('Foo/Bar/test.txt'), os_native_path('./Foo/Bar/test.txt')),
-			(File('/test.txt'), File('/test.txt').uri), # win32 save
+			(folder.file('Foo/Bar/test.txt'), os_native_path('./Foo/Bar/test.txt')),
+			(file1, file1.uri), # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
-			self.assertEqual(entry.get_file(), file)
+			self.assertEqual(adapt_from_oldfs(entry.get_file()), file)
 
 		entry.set_use_relative_paths(notebook=None)
 
+		file1 = LocalFile(os_native_path('/test.txt'))
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			#~ (dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), File('/test.txt').path), # win32 save
+			(file1, file1.path), # win32 save
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
-			self.assertEqual(entry.get_file(), file)
+			self.assertEqual(adapt_from_oldfs(entry.get_file()), file)
 
 
 class TestPageEntry(tests.TestCase):
@@ -279,9 +282,9 @@ class TestInputForm(tests.TestCase):
 			'page': ':Foo:bar:Baz', # explicit string input
 			'namespace': ':Foo:bar:Baz',
 			#~ 'link': '+Baz',
-			'file': '/foo/bar',
-			'image': '/foo/bar.png',
-			'folder': '/foo/bar',
+			'file': os_native_path('/foo/bar'),
+			'image': os_native_path('/foo/bar.png'),
+			'folder': os_native_path('/foo/bar'),
 		}
 
 		values2 = {
@@ -293,23 +296,24 @@ class TestInputForm(tests.TestCase):
 			'page': Path(':Dus:Baz'), # explicit Path input
 			'namespace': Path(':Dus:Baz'),
 			#~ 'link': ':Foo',
-			'file': '/foo/bar/baz',
-			'image': '/foo.png',
-			'folder': '/foo/bar/baz',
+			'file': os_native_path('/foo/bar/baz'),
+			'image': os_native_path('/foo.png'),
+			'folder': os_native_path('/foo/bar/baz'),
 		}
 
 		def assertEqual(U, V):
 			self.assertEqual(set(U.keys()), set(V.keys()))
 
 			for k, v in list(V.items()):
-				if isinstance(U[k], Path) and isinstance(v, str):
+				u = adapt_from_oldfs(U[k])
+				if isinstance(u, Path) and isinstance(v, str):
 					v = Path(v)
-				elif isinstance(U[k], File) and isinstance(v, str):
-					v = File(v)
-				elif isinstance(U[k], Dir) and isinstance(v, str):
-					v = Dir(v)
+				elif isinstance(u, LocalFile) and isinstance(v, str):
+					v = LocalFile(v)
+				elif isinstance(u, LocalFolder) and isinstance(v, str):
+					v = LocalFolder(v)
 
-				self.assertEqual(U[k], v)
+				self.assertEqual(u, v)
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		form = InputForm(inputs, values1, notebook=notebook)
@@ -344,13 +348,12 @@ class TestFileDialog(tests.TestCase):
 	## Maybe fixes in Gtk3 - let's see if we encounter more failures
 
 	def runTest(self):
-		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
-		tmp_dir = Dir(folder)
+		tmp_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 
 		for name in ('test1.txt', 'test2.txt', 'test3.txt'):
 			tmp_dir.file(name).write('test 123')
 
-		tmp_dir.subdir('folder1').touch()
+		tmp_dir.folder('folder1').touch()
 
 		# Single file
 		file = tmp_dir.file('test1.txt')
@@ -367,11 +370,11 @@ class TestFileDialog(tests.TestCase):
 		tests.gtk_process_events()
 
 		myfile = dialog.get_file()
-		self.assertIsInstance(myfile, File)
+		self.assertIsInstance(adapt_from_oldfs(myfile), LocalFile)
 		self.assertEqual(myfile.uri, file.uri)
 
 		dialog.assert_response_ok()
-		self.assertIsInstance(dialog.result, File)
+		self.assertIsInstance(adapt_from_oldfs(dialog.result), LocalFile)
 		self.assertEqual(dialog.result.uri, file.uri)
 
 		# Multiple files
@@ -388,7 +391,7 @@ class TestFileDialog(tests.TestCase):
 		self.assertRaises(AssertionError, dialog.get_file)
 
 		files = dialog.get_files()
-		self.assertTrue(all(isinstance(f, File) for f in files))
+		self.assertTrue(all(isinstance(adapt_from_oldfs(f), LocalFile) for f in files))
 		#~ self.assertEqual([f.uri for f in files], [file1.uri, file2.uri]) -- TODO
 
 		## FIXME, fails for unclear reason on windows under msys
@@ -396,7 +399,7 @@ class TestFileDialog(tests.TestCase):
 		#self.assertIsInstance(dialog.result, list)
 
 		# Select folder
-		folder = tmp_dir.subdir('folder1')
+		folder = tmp_dir.folder('folder1')
 		self.assertTrue(folder.exists())
 
 		dialog = FileDialog(None, 'Test', action=Gtk.FileChooserAction.SELECT_FOLDER)
@@ -408,11 +411,11 @@ class TestFileDialog(tests.TestCase):
 		tests.gtk_process_events()
 
 		myfolder = dialog.get_dir()
-		self.assertIsInstance(myfolder, Dir)
+		self.assertIsInstance(adapt_from_oldfs(myfolder), LocalFolder)
 		self.assertEqual(myfolder.uri, folder.uri)
 
 		dialog.assert_response_ok()
-		self.assertIsInstance(dialog.result, Dir)
+		self.assertIsInstance(adapt_from_oldfs(dialog.result), LocalFolder)
 
 
 		# TODO test adding filters

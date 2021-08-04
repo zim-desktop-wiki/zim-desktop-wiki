@@ -9,7 +9,6 @@ import os
 
 from zim.plugins.quicknote import *
 
-from zim.fs import File, Dir
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 
 

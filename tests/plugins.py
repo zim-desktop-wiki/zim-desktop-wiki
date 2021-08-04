@@ -6,7 +6,6 @@ import tests
 import os
 
 from zim.plugins import *
-from zim.fs import File
 
 from tests.mainwindow import setUpMainWindow
 
@@ -24,7 +23,7 @@ class TestPluginClasses(tests.TestCase):
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
 
-		pluginindex = File('data/manual/Plugins.txt').read()
+		pluginindex = tests.ZIM_DATA_FOLDER.file('manual/Plugins.txt').read()
 
 		seen = {
 			'name': set(),
@@ -58,7 +57,7 @@ class TestPluginClasses(tests.TestCase):
 			rellink = "+%s" % page[8:]
 			self.assertIn(rellink, pluginindex, 'Missing links "%s" in manual/Plugins.txt' % rellink)
 
-			file = File('data/manual/' + page.replace(':', '/').replace(' ', '_') + '.txt')
+			file = tests.ZIM_DATA_FOLDER.file('manual/' + page.replace(':', '/').replace(' ', '_') + '.txt')
 			self.assertTrue(file.exists(), 'Missing file: %s' % file)
 
 			manual = file.read()

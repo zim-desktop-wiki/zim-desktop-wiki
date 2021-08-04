@@ -25,7 +25,7 @@ class TestThumbnailCreators(tests.TestCase):
 			thumbdir = self.setUpFolder(name=creator.__name__, mock=tests.MOCK_ALWAYS_REAL)
 			thumbdir.touch()
 
-			dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
+			dir = tests.ZIM_DATA_FOLDER.folder('pixmaps')
 			for i, basename in enumerate(dir.list_names()):
 				if basename.endswith('.svg'):
 					continue # fails on windows in some cases
@@ -87,7 +87,7 @@ class TestThumbnailManager(tests.TestCase):
 
 		dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		file = dir.file('zim.png')
-		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(file)
+		tests.ZIM_DATA_FOLDER.file('zim.png').copyto(file)
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 		self.removeThumbnail(manager, file)
@@ -147,7 +147,7 @@ class TestThumbnailQueue(tests.TestCase):
 		queue.queue_thumbnail_request(src_file, 64)
 			# put an error in the queue
 
-		dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
+		dir = tests.ZIM_DATA_FOLDER.folder('pixmaps')
 		pixmaps = set()
 		for basename in dir.list_names():
 			if not basename.endswith('.svg'):
@@ -192,7 +192,7 @@ class TestThumbnailQueue(tests.TestCase):
 		def creator_with_error(*a):
 			raise ValueError
 
-		file = LocalFolder(tests.ZIM_DATADIR).file('zim.png')
+		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 
@@ -215,7 +215,7 @@ class TestFileBrowserIconView(tests.TestCase):
 		opener = tests.MockObject()
 		iconview = FileBrowserIconView(opener)
 
-		dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
+		dir = tests.ZIM_DATA_FOLDER.folder('pixmaps')
 		iconview.set_folder(dir)
 
 		# simulate idle events

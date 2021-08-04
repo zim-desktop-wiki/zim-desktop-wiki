@@ -72,10 +72,9 @@ class TestDist(tests.TestCase):
 #~
 	#~ def runTest(self):
 		#~ '''Test if included notebooks are up to date'''
-		#~ from zim.fs import Dir
+		#~ from zim.newfs import LocalFolder
 		#~ from zim.notebook import init_notebook
-		#~ path = 'data/manual'
-		#~ notebook = init_notebook(Dir(path))
+		#~ notebook = init_notebook(LocalFolder('data/manual'))
 		#~ self.assertTrue(not notebook.needs_upgrade)
 
 

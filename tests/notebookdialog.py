@@ -7,8 +7,6 @@ import tests
 
 import os
 
-from zim.fs import Dir
-
 from zim.config import ConfigManager
 from zim.notebook import NotebookInfo, get_notebook_list
 

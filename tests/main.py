@@ -16,8 +16,6 @@ import threading
 import time
 
 
-from zim.fs import Dir, File, FS
-
 from zim.main import *
 
 import zim

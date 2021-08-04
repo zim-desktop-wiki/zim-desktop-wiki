@@ -12,23 +12,13 @@ import zim.history
 from zim.history import History, HistoryPath, RecentPath
 from zim.notebook import Path
 from zim.config import INIConfigFile
+from zim.newfs.mock import MockFile
 
 
-class VirtualFile(object):
-	### TODO - proper class for this in zim.fs
-	###        unify with code in config manager
-
-	def __init__(self, lines):
-		self.lines = lines
-
-	def readlines(self):
-		return self.lines
-
-	def connect(self, handler, *a):
-		pass
-
-	def disconnect(self, handler):
-		pass
+def mock_file(lines):
+	file = MockFile('/<mock>/test')
+	file.writelines(lines)
+	return file
 
 
 class TestHistory(tests.TestCase):
@@ -261,7 +251,7 @@ class TestHistory(tests.TestCase):
 
 	def testSerialize(self):
 		'''Test parsing the history from the state file'''
-		uistate = INIConfigFile(VirtualFile([]))
+		uistate = INIConfigFile(mock_file([]))
 		history = History(self.notebook, uistate)
 
 		for page in self.pages:
@@ -283,7 +273,7 @@ class TestHistory(tests.TestCase):
 
 		# clone uistate by text
 		lines = uistate.dump()
-		newuistate = INIConfigFile(VirtualFile(lines))
+		newuistate = INIConfigFile(mock_file(lines))
 		newuistate['History'].setdefault('list', [])
 		newuistate['History'].setdefault('recent', [])
 		newuistate['History'].setdefault('current', 0)
@@ -300,7 +290,7 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(newhistory.get_current(), history.get_current())
 
 		# Check recent is initialized if needed
-		newuistate = INIConfigFile(VirtualFile(lines))
+		newuistate = INIConfigFile(mock_file(lines))
 		newuistate['History'].setdefault('recent', [])
 		newuistate['History'].pop('recent')
 		newhistory = History(self.notebook, newuistate)
@@ -312,7 +302,7 @@ class TestHistory(tests.TestCase):
 
 	def testRobustness(self):
 		'''Test history can deal with garbage data'''
-		uistate = INIConfigFile(VirtualFile([]))
+		uistate = INIConfigFile(mock_file([]))
 		uistate['History'].input({
 			'list': 'FOOOO',
 			'recent': [["BARRRR", 0]],

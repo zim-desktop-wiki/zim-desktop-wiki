@@ -5,7 +5,7 @@
 
 import tests
 
-from zim.fs import TmpFile
+from zim.newfs import TmpFile
 from zim.notebook import Path
 
 from zim.gui.customtools import *

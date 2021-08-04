@@ -16,10 +16,10 @@ import locale
 from gi.repository import GObject
 from gi.repository import GLib
 
-import zim.fs
 import zim.errors
 
-from zim.fs import File, SEP
+from zim.fs import adapt_from_oldfs
+from zim.newfs import SEP, is_abs_filepath, LocalFile, LocalFolder
 from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
 
 
@@ -145,7 +145,7 @@ class Application(object):
 	@staticmethod
 	def _lookup(cmd):
 		'''Lookup cmd in PATH'''
-		if zim.fs.isabs(cmd):
+		if is_abs_filepath(cmd):
 			if os.path.isfile(cmd):
 				return cmd
 			else:
@@ -198,7 +198,7 @@ class Application(object):
 
 		# Expand home dir
 		if argv[0].startswith('~'):
-			cmd = File(argv[0]).path
+			cmd = LocalFile(argv[0]).path
 			argv = list(argv)
 			argv[0] = cmd
 
@@ -408,7 +408,7 @@ class WebBrowser(Application):
 			raise NotImplementedError('WebBrowser can not handle callback')
 
 		for url in args:
-			if isinstance(url, (zim.fs.File, zim.fs.Dir)):
+			if hasattr(url, 'uri'):
 				url = url.uri
 			logger.info('Opening in webbrowser: %s', url)
 
@@ -446,7 +446,8 @@ class StartFile(Application):
 			raise NotImplementedError('os.startfile does not support a callback')
 
 		for arg in args:
-			if isinstance(arg, (zim.fs.File, zim.fs.Dir)):
+			arg = adapt_from_oldfs(arg)
+			if isinstance(arg, (LocalFile, LocalFolder)):
 				path = os.path.normpath(arg.path).replace('/', SEP) # msys can use '/' instead of '\\'
 			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
 				# URL or e.g. mailto: or outlook: URI

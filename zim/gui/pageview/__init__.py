@@ -7080,7 +7080,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param links: list of links, either as string, L{Path} objects,
 		or L{File} objects
 		'''
-		links = list(links)
+		links = list(map(adapt_from_newfs, links))
 		for i in range(len(links)):
 			if isinstance(links[i], Path):
 				links[i] = links[i].name
