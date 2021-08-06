@@ -4528,14 +4528,14 @@ class TextView(Gtk.TextView):
 			elif keyval in KEYVALS_ASTERISK + (KEYVAL_POUND,):
 				def toggle_bullet(line, newbullet):
 					bullet = buffer.get_bullet(line)
-					if not bullet and not buffer.get_line_is_empty(line):
+					if not bullet:
 						buffer.set_bullet(line, newbullet)
 					elif bullet == newbullet: # FIXME broken for numbered list
 						buffer.set_bullet(line, None)
 				if keyval == KEYVAL_POUND:
-					buffer.foreach_line_in_selection(toggle_bullet, NUMBER_BULLET)
+					buffer.foreach_line_in_selection(toggle_bullet, NUMBER_BULLET, skip_empty_lines=True)
 				else:
-					buffer.foreach_line_in_selection(toggle_bullet, BULLET)
+					buffer.foreach_line_in_selection(toggle_bullet, BULLET, skip_empty_lines=True)
 			elif keyval in KEYVALS_GT \
 			and multi_line_indent(start, end):
 				def email_quote(line):
