@@ -131,6 +131,7 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		menu.append(item)
 
 		# Other per page menu items do not really apply here...
+		menu.show_all()
 
 	def on_open_new_window(self, o, treeview):
 		model, iter = treeview.get_selection().get_selected()
