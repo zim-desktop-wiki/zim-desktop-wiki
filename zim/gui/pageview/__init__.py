@@ -2344,11 +2344,18 @@ class TextBuffer(Gtk.TextBuffer):
 				# exclude last line if selection ends at newline
 				# because line is not visually part of selection
 				end.backward_char()
-			for line in range(start.get_line(), end.get_line() + 1):
-				# don't call function on empty lines
-				if skip_empty_lines and self.get_line_is_empty(line):
-					continue
-				func(line, *args, **kwarg)
+			if skip_empty_lines:
+				all_lines_are_empty = True
+				for line in range(start.get_line(), end.get_line() + 1):
+					if not self.get_line_is_empty(line):
+						all_lines_are_empty = False
+						func(line, *args, **kwarg)
+				if all_lines_are_empty:
+					# the user wanted to do something to these empty lines, so we do
+					self.foreach_line_in_selection(func, *args, skip_empty_lines=False, **kwarg)
+			else:
+				for line in range(start.get_line(), end.get_line() + 1):
+					func(line, *args, **kwarg)
 			return True
 		else:
 			return False
