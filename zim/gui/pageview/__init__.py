@@ -2321,7 +2321,7 @@ class TextBuffer(Gtk.TextBuffer):
 		level = self.get_indent(line)
 		return self.set_indent(line, level - 1, interactive)
 
-	def foreach_line_in_selection(self, func, *args, **kwarg):
+	def foreach_line_in_selection(self, func, *args, skip_empty_lines=False, **kwarg):
 		'''Convenience function to call a function for each line that
 		is currently selected
 
@@ -2330,6 +2330,8 @@ class TextBuffer(Gtk.TextBuffer):
 			func(line, *args, **kwargs)
 
 		where C{line} is the line number
+		@param skip_empty_lines: if C{True}, C{func} won't be called
+		for empty lines
 		@param args: additional argument for C{func}
 		@param kwarg: additional keyword argument for C{func}
 
@@ -2344,8 +2346,9 @@ class TextBuffer(Gtk.TextBuffer):
 				end.backward_char()
 			for line in range(start.get_line(), end.get_line() + 1):
 				# don't call function on empty lines
-				if not self.get_line_is_empty(line):
-					func(line, *args, **kwarg)
+				if skip_empty_lines and self.get_line_is_empty(line):
+					continue
+				func(line, *args, **kwarg)
 			return True
 		else:
 			return False
@@ -7052,7 +7055,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			start_mark = buffer.create_mark(None, bounds[0], left_gravity=True)
 			end_mark = buffer.create_mark(None, bounds[1], left_gravity=False)
 			try:
-				buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
+				buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type, skip_empty_lines=True)
 			except:
 				raise
 			else:
