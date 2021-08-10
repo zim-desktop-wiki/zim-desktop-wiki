@@ -1,4 +1,3 @@
-
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
@@ -313,7 +312,7 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 
-		file_indexer = tests.MockObject()
+		file_indexer = tests.MockObject(methods=('connect',))
 
 		indexer = PagesIndexer(db, layout, file_indexer)
 
@@ -400,7 +399,7 @@ class TestPageNameConflict(tests.TestCase):
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 
-		file_indexer = tests.MockObject()
+		file_indexer = tests.MockObject(methods=('connect',))
 
 		indexer = PagesIndexer(db, layout, file_indexer)
 
@@ -438,7 +437,7 @@ class TestLinksIndexer(tests.TestCase):
 
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
-		pi = PagesIndexer(db, None, tests.MockObject())
+		pi = PagesIndexer(db, None, tests.MockObject(methods=('connect',)))
 		for i, name, cont in self.PAGES:
 			db.execute(
 				'INSERT INTO pages(id, name, lowerbasename, sortkey, parent, source_file) VALUES (?, ?, ?, ?, 1, 1)',
@@ -454,7 +453,7 @@ class TestLinksIndexer(tests.TestCase):
 		self.assertEqual((i, pn), (2, Path('Bar')))
 
 		## Test the actual indexer
-		pageindexer = tests.MaskedObject(pi, 'connect')
+		pageindexer = tests.MaskedObject(pi, ('connect',))
 		indexer = LinksIndexer(db, pageindexer)
 
 		for i, name, cont in self.PAGES:
@@ -554,7 +553,7 @@ class TestTagsIndexer(tests.TestCase):
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 
-		indexer = TagsIndexer(db, tests.MockObject())
+		indexer = TagsIndexer(db, tests.MockObject(methods=('connect',)))
 		for i, name, text in self.PAGES:
 			tree = WikiParser().parse(text)
 			row = {'id': i, 'name': name}

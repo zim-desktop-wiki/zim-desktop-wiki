@@ -256,10 +256,10 @@ class TestPagesView(tests.TestCase):
 
 	def testTreePathMethods(self):
 		db = new_test_database()
-		mockindex = tests.MockObject()
+		mockindex = tests.MockObject(methods=('connect',))
 		mockindex._db = db
-		mockindex.update_iter = tests.MockObject()
-		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter = tests.MockObject(methods=('connect',))
+		mockindex.update_iter.pages = tests.MockObject(methods=('connect',))
 
 		model = PagesTreeModelMixin(mockindex)
 
@@ -339,11 +339,11 @@ class TestTagsView(tests.TestCase):
 
 	def testTaggedPagesTreePathMethods(self):
 		db = new_test_database()
-		mockindex = tests.MockObject()
+		mockindex = tests.MockObject(methods=('connect',))
 		mockindex._db = db
 		mockindex.update_iter = tests.MockObject()
-		mockindex.update_iter.pages = tests.MockObject()
-		mockindex.update_iter.tags = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject(methods=('connect',))
+		mockindex.update_iter.tags = tests.MockObject(methods=('connect',))
 		model = TaggedPagesTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 
 		# Test all pages
@@ -369,11 +369,11 @@ class TestTagsView(tests.TestCase):
 
 	def testTagsTreePathMethods(self):
 		db = new_test_database()
-		mockindex = tests.MockObject()
+		mockindex = tests.MockObject(methods=('connect',))
 		mockindex._db = db
 		mockindex.update_iter = tests.MockObject()
-		mockindex.update_iter.pages = tests.MockObject()
-		mockindex.update_iter.tags = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject(methods=('connect',))
+		mockindex.update_iter.tags = tests.MockObject(methods=('connect',))
 
 		model = TagsTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 		tags = TagsView(db)

@@ -187,7 +187,7 @@ class TestSignals(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook()
-		navigation = tests.MockObject()
+		navigation = tests.MockObject(methods=('open_page',))
 		model = PageTreeStore(notebook.index)
 		init_model_validator_wrapper(self, model)
 		treeview = PageTreeView(notebook, navigation, model=model)
@@ -245,7 +245,7 @@ class TestPageTreeView(tests.TestCase):
 
 	def setUp(self):
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		navigation = tests.MockObject()
+		navigation = tests.MockObject(methods=('open_page',))
 		self.model = PageTreeStore(self.notebook.index)
 		init_model_validator_wrapper(self, self.model)
 		self.treeview = PageTreeView(self.notebook, navigation, model=self.model)
@@ -345,23 +345,23 @@ class TestPageTreeView(tests.TestCase):
 	def _testDragAndDropCallbacks(self, workaround):
 		treeview = self.treeview
 
-		mocktarget = tests.MockObject(name=PAGELIST_TARGET_NAME)
-		mockselectiondata = tests.MockObject(get_target=mocktarget)
+		mocktarget = tests.MockObject(return_values={'name': PAGELIST_TARGET_NAME})
+		mockselectiondata = tests.MockObject(return_values={'get_target': mocktarget, 'set': None})
 
 		treeview.do_drag_data_get(None, mockselectiondata, None, None)
-		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'testnotebook?Test\r\n'))
+		self.assertEqual(mockselectiondata.lastMethodCall, ('set', mocktarget, 8, b'testnotebook?Test\r\n'))
 
 		if workaround:
 			self.assertEqual(zim.gui.clipboard._internal_selection_data, b'testnotebook?Test\r\n')
-			mockselectiondata.mock_method('get_data', None)
+			mockselectiondata.addMockMethod('get_data', None)
 		else:
 			zim.gui.clipboard._internal_selection_data = None
-			mockselectiondata.mock_method('get_data', b'testnotebook?Test\r\n')
+			mockselectiondata.addMockMethod('get_data', b'testnotebook?Test\r\n')
 
 		treepath = treeview.get_model().find(Path('Foo'))
 		position = Gtk.TreeViewDropPosition.INTO_OR_BEFORE
 		treeview.get_dest_row_at_pos = lambda x, y: (treepath, position) # MOCK method
 
 		with tests.LoggingFilter('zim.notebook', message='Number of links after move'):
-			context = tests.MockObject()
+			context = tests.MockObject(methods=('finish',))
 			treeview.do_drag_data_received(context, None, None, mockselectiondata, None, None)

@@ -49,11 +49,11 @@ class TestPathBar(tests.TestCase):
 		self.assertEqual(len(active), 0)
 
 	def testActivatePage(self):
-		navigation = tests.MockObject()
+		navigation = tests.MockObject(methods=('open_page',))
 		pathbar = MyPathBar(None, None, navigation)
 		button = pathbar.get_children()[2]
 		button.clicked()
-		self.assertEqual(navigation.mock_calls, [('open_page', Path('bbb'))])
+		self.assertEqual(navigation.lastMethodCall, ('open_page', Path('bbb')))
 
 	def testContextMenu(self):
 		notebook = self.setUpNotebook()
@@ -100,14 +100,14 @@ class TestPathBar(tests.TestCase):
 
 	def testDragAndDropCallback(self):
 		notebook = self.setUpNotebook()
-		mocktarget = tests.MockObject(name=PAGELIST_TARGET_NAME)
-		mockselectiondata = tests.MockObject(get_target=mocktarget)
+		mocktarget = tests.MockObject(return_values={'name': PAGELIST_TARGET_NAME})
+		mockselectiondata = tests.MockObject(return_values={'get_target': mocktarget, 'set': None})
 
 		pathbar = MyPathBar(None, notebook, None)
 		button = pathbar.get_children()[1]
 		pathbar.on_drag_data_get(button, None, mockselectiondata, None, None)
 
-		self.assertEqual(mockselectiondata.mock_calls[-1], ('set', mocktarget, 8, b'testnotebook?aaa\r\n'))
+		self.assertEqual(mockselectiondata.lastMethodCall, ('set', mocktarget, 8, b'testnotebook?aaa\r\n'))
 		self.assertEqual(zim.gui.clipboard._internal_selection_data, b'testnotebook?aaa\r\n')
 
 

@@ -23,7 +23,7 @@ class TestSavePageHandler(tests.TestCase):
 
 		orig_store_page_1 = notebook.store_page
 		orig_store_page_2 = notebook.store_page_async
-		store_page_counter = tests.Counter()
+		store_page_counter = tests.CallBackLogger()
 
 		def wrapper1(page):
 			store_page_counter()
@@ -44,21 +44,21 @@ class TestSavePageHandler(tests.TestCase):
 		# Normal operation
 		self.assertFalse(page.modified)
 		handler.try_save_page()
-		self.assertEqual(store_page_counter.count, 0)
+		self.assertEqual(store_page_counter.numberOfCalls, 0)
 
 		self.assertFalse(page.modified)
 		handler.save_page_now()
-		self.assertEqual(store_page_counter.count, 1)
+		self.assertEqual(store_page_counter.numberOfCalls, 1)
 
 		page.set_modified(True)
 		handler.try_save_page()
-		self.assertEqual(store_page_counter.count, 2)
+		self.assertEqual(store_page_counter.numberOfCalls, 2)
 		ongoing_operation(notebook)() # effectively a join
 		self.assertFalse(page.modified)
 
 		page.set_modified(True)
 		handler.save_page_now()
-		self.assertEqual(store_page_counter.count, 3)
+		self.assertEqual(store_page_counter.numberOfCalls, 3)
 		self.assertFalse(page.modified)
 
 		# With errors

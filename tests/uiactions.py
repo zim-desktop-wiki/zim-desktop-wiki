@@ -638,12 +638,12 @@ class TestUIActions(tests.TestCase):
 		ZIM_APPLICATION._running = True # HACK
 
 		from zim.gui.server import ServerWindow
-		ServerWindow.show_all = tests.Counter()
-		ServerWindow.present = tests.Counter()
+		ServerWindow.show_all = tests.CallBackLogger()
+		ServerWindow.present = tests.CallBackLogger()
 
 		self.uiactions.show_server_gui()
 
-		self.assertEqual(ServerWindow.present.count, 1)
+		self.assertTrue(ServerWindow.present.hasBeenCalled)
 
 	def testReloadIndex(self):
 		self.uiactions.reload_index()
@@ -699,9 +699,9 @@ class TestUIActions(tests.TestCase):
 
 	def testOpenAboutDialog(self):
 		from zim.gui.uiactions import MyAboutDialog
-		MyAboutDialog.run = tests.Counter()
+		MyAboutDialog.run = tests.CallBackLogger()
 		self.uiactions.show_about()
-		self.assertEqual(MyAboutDialog.run.count, 1)
+		self.assertTrue(MyAboutDialog.run.hasBeenCalled)
 
 	def testAccesActionsFromPopupMenu(self):
 		# Test depends on first menu item being "new_page_here"

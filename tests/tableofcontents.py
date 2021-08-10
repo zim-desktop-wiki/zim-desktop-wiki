@@ -196,7 +196,7 @@ sdfsdf
 		self.assertEqual(get_tree(), without_h1)
 
 		# Test empty page
-		emptypage = tests.MockObject()
+		emptypage = tests.MockObject(return_values={'get_parsetree': None})
 		widget.on_page_changed(window, emptypage)
 		self.assertEqual(get_tree(), [])
 		widget.on_store_page(notebook, emptypage)

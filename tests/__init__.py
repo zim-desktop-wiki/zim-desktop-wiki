@@ -15,6 +15,12 @@ import gettext
 import xml.etree.cElementTree as etree
 import types
 import glob
+import logging
+
+logger = logging.getLogger('tests')
+
+from functools import partial
+
 
 try:
 	import gi
@@ -660,73 +666,94 @@ def new_page_from_text(text, format='wiki'):
 	return page
 
 
-class Counter(object):
-	'''Object that is callable as a function and keeps count how often
-	it was called.
+class MockObject(object):
+	'''Simple class to quickly create mock objects
+
+	It allows defining methods with a static return value and logs the calls
+	to the defined methods
+
+	Example usage:
+
+		myobject = MockObject(return_values={'foo': "test 123"})
+			# define an object with a single method "foo" which returns "test 123"
+		object_to_be_tested.some_method(myobject)
+		self.assertEqual(myobject.allMethodCalls, [('foo', 'abc')])
+			# assert method called with single argument
+
 	'''
 
-	def __init__(self, value=None):
+	def __init__(self, methods=(), return_values={}):
 		'''Constructor
-		@param value: the value to return when called as a function
+		@param methods: a list of method names that are to be supported; these
+		methods will do nothing and return a C{None} value
+		@param return_values: mapping of method names to return value for the
+		method. Names do not have to be defined in C{methods}.
 		'''
-		self.value = value
-		self.count = 0
+		self.allMethodCalls = []
+		self.__return_values = {}
 
-	def __call__(self, *arg, **kwarg):
-		self.count += 1
-		return self.value
+		for name in methods:
+			self.__return_values[name] = None
 
+		self.__return_values.update(return_values)
 
-class MockObjectBase(object):
-	'''Base class for mock objects.
+	@property
+	def lastMethodCall(self):
+		return self.allMethodCalls[-1]
 
-	Mock methods can be installed with L{mock_method()}. All method
-	calls to mock methods are logged, so they can be inspected.
-	The attribute C{mock_calls} has a list of tuples with mock methods
-	and arguments in order they have been called.
-	'''
+	def __getattr__(self, name):
+		'''Automatically mock methods'''
+		if not name in self.__return_values:
+			raise AttributeError('No such method defined for MockObject: %s' % name)
 
-	def __init__(self):
-		self.mock_calls = []
-
-	def mock_method(self, name, return_value):
-		'''Installs a mock method with a given name that returns
-		a given value.
-		'''
+		return_value = self.__return_values[name]
 		def my_mock_method(*arg, **kwarg):
 			call = [name] + list(arg)
 			if kwarg:
 				call.append(kwarg)
-			self.mock_calls.append(tuple(call))
+			self.allMethodCalls.append(tuple(call))
 			return return_value
 
 		setattr(self, name, my_mock_method)
 		return my_mock_method
 
+	def addMockMethod(self, name, return_value=None):
+		'''Installs a mock method with a given name that returns
+		a given value.
+		'''
+		self.__return_values[name] = return_value
 
-class MockObject(MockObjectBase):
-	'''Simple subclass of L{MockObjectBase} that automatically mocks a
-	method which returns C{None} for any non-existing attribute.
-	Attributes that are not methods need to be initialized explicitly.
+
+class CallBackLogger(list):
+	'''Object that is callable as a function and keeps count how often
+	it was called and with what arguments
 	'''
 
-	def __init__(self, **methods):
-		MockObjectBase.__init__(self)
-		for name, value in methods.items():
-			self.mock_method(name, value)
+	def __init__(self, return_value=None):
+		'''Constructor
+		@param return_value: the value to return when called as a function
+		'''
+		self.return_value = return_value
+		self.count = 0
 
-	def __getattr__(self, name):
-		'''Automatically mock methods'''
-		if name == '__zim_extension_objects__':
-			raise AttributeError
-		else:
-			return self.mock_method(name, None)
+	@property
+	def hasBeenCalled(self):
+		return bool(self)
 
+	@property
+	def numberOfCalls(self):
+		return len(self)
 
-import logging
-logger = logging.getLogger('tests')
+	def __call__(self, *arg, **kwarg):
+		self.count += 1
 
-from functools import partial
+		call = list(arg)
+		if kwarg:
+			call.append(kwarg)
+		self.append(tuple(call))
+
+		return self.return_value
+
 
 class SignalLogger(dict):
 	'''Listening object that attaches to all signals of the target and records
@@ -780,35 +807,19 @@ class SignalLogger(dict):
 		self._ids = []
 
 
+class MaskedObject(object):
+	'''Proxy object that allows filtering what methods of an interface are
+	accesible.
 
-class CallBackLogger(dict):
-	'''Mock object that allows any method to be called as callback and
-	records the calls in a dictionary.
+	Example Usage:
+
+		myproxy = MaskedObject(realobject, ('connect', 'disconnect'))
+			# proxy only allows calling "connect()" and "disconnect()"
+			# other calls lead to exception
+
 	'''
 
-	def __init__(self, filter_func=None):
-		if filter_func is None:
-			filter_func = lambda n, a, kw: (a, kw)
-
-		self._filter_func = filter_func
-
-	def __getattr__(self, name):
-
-		def cb_method(*arg, **kwarg):
-			logger.debug('Callback %s %r %r', name, arg, kwarg)
-			self.setdefault(name, [])
-
-			self[name].append(
-				self._filter_func(name, arg, kwarg)
-			)
-
-		setattr(self, name, cb_method)
-		return cb_method
-
-
-class MaskedObject(object):
-
-	def __init__(self, obj, *names):
+	def __init__(self, obj, names):
 		self.__obj = obj
 		self.__names = names
 

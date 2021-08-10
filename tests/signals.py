@@ -159,9 +159,9 @@ class ClassWithHandler(object):
 class TestDelayedCallback(tests.TestCase):
 
 	def runTest(self):
-		counter = tests.Counter()
+		cb = tests.CallBackLogger()
 
-		callback = DelayedCallback(500, lambda o: counter())
+		callback = DelayedCallback(500, lambda o: cb())
 		for i in range(3):
 			callback('foo')
 
@@ -171,4 +171,4 @@ class TestDelayedCallback(tests.TestCase):
 			if callback.timer_id is None:
 				break
 
-		self.assertEqual(counter.count, 1)
+		self.assertTrue(cb.hasBeenCalled)

@@ -44,7 +44,7 @@ def setUpPageView(notebook, text=''):
 	page.parse('wiki', text)
 	notebook.store_page(page)
 
-	navigation = tests.MockObject()
+	navigation = tests.MockObject(methods=('open_page',))
 	pageview = PageView(notebook, navigation)
 	pageview.set_page(page)
 	return pageview
@@ -746,11 +746,13 @@ C
 
 	def testFindImageAnchor(self):
 		file = tests.ZIM_DATA_FOLDER.file('zim.png')
-		notebook = tests.MockObject()
-		notebook.mock_method('resolve_file', adapt_from_newfs(file))
-		notebook.mock_method('relative_filepath', './data/zim.png')
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
+		notebook = tests.MockObject(
+			return_values={
+				'resolve_file': adapt_from_newfs(file),
+				'relative_filepath': './data/zim.png'
+			}
+		)
+		buffer = TextBuffer(notebook, page=None)
 		buffer.insert_image_at_cursor(file, "https://en.wikipedia.org/wiki/File:Zim_globe.svg", width="48", id="image:globe")
 		self.assertIsNotNone(buffer.find_anchor('image:globe'))
 
@@ -2691,13 +2693,13 @@ Baz
 		for href in ('foo', 'foo:bar', 'mailto:foo.com'):
 			pageview.activate_link(href)
 			self.assertEqual(
-				pageview.navigation.mock_calls[-1],
+				pageview.navigation.lastMethodCall,
 				('open_page', Path(href), {'new_window': False, 'anchor': None})
 			)
 		for href, anchor in [('foo', 'sub-heading')]:
 			pageview.activate_link(f'{href}#{anchor}')
 			self.assertEqual(
-				pageview.navigation.mock_calls[-1],
+				pageview.navigation.lastMethodCall,
 				('open_page', Path(href), {'new_window': False, 'anchor': anchor})
 			)
 
@@ -3094,12 +3096,11 @@ class TestPageViewActions(tests.TestCase):
 		anchor = buffer.get_objectanchor(buffer.get_insert_iter())
 		widget = anchor.get_widgets()[0]
 
-		counter = tests.Counter()
-		widget.edit_object = counter
+		widget.edit_object = tests.CallBackLogger()
 
 		pageview.edit_object()
 
-		self.assertEquals(counter.count, 1)
+		self.assertTrue(widget.edit_object.hasBeenCalled)
 
 	def testRemoveLink(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
@@ -3447,22 +3448,26 @@ class TestPageviewDialogs(tests.TestCase):
 	def testVarious(self):
 		'''Test input/output of various pageview dialogs'''
 		## Insert Date dialog
-		buffer = tests.MockObject()
-		notebook = tests.MockObject()
-		notebook.mock_method('suggest_link', Path(':suggested_link'))
+		buffer = tests.MockObject(methods=('insert_at_cursor', 'insert_link_at_cursor'))
+		notebook = tests.MockObject(
+			return_values={
+				'get_page': None,
+				'suggest_link': Path(':suggested_link')
+			}
+		)
 		page = Path('test')
 
 		dialog = InsertDateDialog(None, buffer, notebook, page)
 		dialog.linkbutton.set_active(False)
 		dialog.view.get_selection().select_path((0,))
 		dialog.assert_response_ok()
-		self.assertEqual(buffer.mock_calls[-1][0], 'insert_at_cursor')
+		self.assertEqual(buffer.lastMethodCall[0], 'insert_at_cursor')
 
 		dialog = InsertDateDialog(None, buffer, notebook, page)
 		dialog.linkbutton.set_active(True)
 		dialog.view.get_selection().select_path((0,))
 		dialog.assert_response_ok()
-		self.assertEqual(buffer.mock_calls[-1][0], 'insert_link_at_cursor')
+		self.assertEqual(buffer.lastMethodCall[0], 'insert_link_at_cursor')
 
 		## Insert Image dialog
 		buffer = tests.MockObject()
@@ -3471,15 +3476,19 @@ class TestPageviewDialogs(tests.TestCase):
 		self.assertTrue(dialog.filechooser.get_preview_widget_active())
 		#~ self.assertEqual(dialog.get_file(), file)
 		#~ dialog.assert_response_ok()
-		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_image_at_cursor')
+		#~ self.assertEqual(buffer.lastMethodCall[0], 'insert_image_at_cursor')
 
 		## Edit Image dialog
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
-		notebook = tests.MockObject()
-		notebook.mock_method('resolve_file', file)
-		notebook.mock_method('relative_filepath', './data/zim.png')
+		notebook = tests.MockObject(
+			return_values={
+				'get_page': None,
+				'resolve_file': file,
+				'relative_filepath': './data/zim.png'
+			}
+		)
 		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		buffer.insert_image_at_cursor(file, '../MYPATH/./data/zim.png')
 		dialog = EditImageDialog(None, buffer, notebook, Path(':some_page'))
@@ -3509,7 +3518,7 @@ class TestPageviewDialogs(tests.TestCase):
 		dialog = InsertTextFromFileDialog(None, buffer, notebook, Path(':some_page'))
 		#~ dialog.set_file()
 		#~ dialog.assert_response_ok()
-		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
+		#~ self.assertEqual(buffer.lastMethodCall[0], 'insert_parsetree_at_cursor')
 
 		## Find And Replace dialog
 		textview = TextView({})
@@ -3725,8 +3734,12 @@ class TestDragAndDropFunctions(tests.TestCase):
 
 	def testDeserializeImageData(self):
 		folder = self.setUpFolder(name='imagedata', mock=tests.MOCK_ALWAYS_REAL)
-		notebook = tests.MockObject()
-		notebook.mock_method('get_attachments_dir', adapt_from_newfs(folder))
+		notebook = tests.MockObject(
+			return_values={
+				'relative_filepath': None,
+				'get_attachments_dir': adapt_from_newfs(folder)
+			}
+		)
 		notebook.resolve_file = lambda fpath, ppath: fpath
 		path = Path('Mock')
 
