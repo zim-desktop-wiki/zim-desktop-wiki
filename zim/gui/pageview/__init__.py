@@ -51,7 +51,8 @@ from zim.gui.widgets import \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result, \
 	widget_set_css
-from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
+from zim.gui.applications import OpenWithMenu, \
+	open_url, open_file, open_folder_prompt_create, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.gui.insertedobjects import \
@@ -7194,21 +7195,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if isinstance(dir, str):
 			dir = Dir(dir)
 
-		if dir.exists():
-			open_file(self, dir)
-		else:
-			path = dir.user_path or dir.path
-			question = (
-				_('Create folder?'),
-					# T: Heading in a question dialog for creating a folder
-				_('The folder\n%s\ndoes not yet exist.\nDo you want to create it now?')
-					% path
-			)
-					# T: Text in a question dialog for creating a folder, %s is the folder path
-			create = QuestionDialog(self, question).run()
-			if create:
-				dir.touch()
-				open_file(self, dir)
+		open_folder_prompt_create(self, dir)
 
 	@action(_('_Clear Formatting'), accelerator='<Primary>9', menuhints='edit', verb_icon='edit-clear-all-symbolic') # T: Menu item
 	def clear_formatting(self):
