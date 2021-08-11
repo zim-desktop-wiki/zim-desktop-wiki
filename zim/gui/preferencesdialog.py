@@ -20,6 +20,7 @@ from zim.config import String, ConfigManager
 from zim.plugins import PluginManager
 from zim.main import ZIM_APPLICATION
 
+from zim.gui.applications import ui_preferences as application_preferences
 from zim.gui.mainwindow import ui_preferences as interface_preferences
 from zim.gui.pageview import ui_preferences as pageview_preferences
 
@@ -82,6 +83,7 @@ class PreferencesDialog(Dialog):
 
 			for section, preferences in (
 				('GtkInterface', interface_preferences),
+				('Application', application_preferences),
 				('PageView', pageview_preferences)
 			):
 				for p in [p for p in preferences if p[2] == category]:

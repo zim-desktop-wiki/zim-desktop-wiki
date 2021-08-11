@@ -24,7 +24,7 @@ from gi.repository import GdkPixbuf
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_CONFIG_HOME, XDG_CONFIG_DIRS, XDG_DATA_HOME, XDG_DATA_DIRS, \
-	data_dirs, SectionedConfigDict, INIConfigFile
+	data_dirs, SectionedConfigDict, INIConfigFile, Boolean, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, strip_boolean_result
@@ -32,6 +32,17 @@ from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, strip_boolean_re
 
 logger = logging.getLogger('zim.gui.applications')
 
+ui_preferences = (
+	# key, type, category, label, default
+	('always_create_missing_dirs', 'bool', 'Interface',
+		_('Create missing directories automatically\n(If disabled you will be prompted)'), True),
+			# T: option in preferences dialog
+)
+
+preferences = ConfigManager.preferences['applications']
+preferences.define(
+	always_create_missing_dirs=Boolean(True),
+	)
 
 def _application_file(path, dirs):
 	# Some logic to check multiple options, e.g. a path of kde-foo.desktop
@@ -581,7 +592,7 @@ def open_folder_prompt_create(widget, folder):
 	try:
 		open_folder(widget, folder)
 	except FileNotFoundError:
-		if QuestionDialog(widget, (
+		if preferences['always_create_missing_dirs'] | QuestionDialog(widget, (
 			_('Create folder?'),
 				# T: Heading in a question dialog for creating a folder
 			_('The folder "%s" does not yet exist.\nDo you want to create it now?') % folder.basename
