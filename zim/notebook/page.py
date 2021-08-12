@@ -10,6 +10,7 @@ logger = logging.getLogger('zim.notebook')
 
 
 from zim.parsing import link_type
+from zim.errors import Error
 
 import zim.formats
 import zim.fs
@@ -397,6 +398,10 @@ class SourceFile(zim.fs.File):
 		raise AssertionError('Not writeable')
 
 
+class PageReadOnlyError(Error):
+	_msg = _('Can not modify page: %s') # T: error message for read-only pages
+
+
 class Page(Path, SignalEmitter):
 	'''Class to represent a single page in the notebook.
 
@@ -416,7 +421,7 @@ class Page(Path, SignalEmitter):
 	@ivar haschildren: C{True} if the page has sub-pages
 	@ivar modified: C{True} if the page was modified since the last
 	store. Will be reset by L{Notebook.store_page()}
-	@ivar readonly: C{True} when the page is read-only
+	@ivar readonly: C{True} when the page is read-only or belongs to a readonly notebook
 
 	@signal: C{storage-changed (changed-on-disk)}: signal emitted on page
 	change. The argument "changed-on-disk" is C{True} when an external
@@ -621,7 +626,9 @@ class Page(Path, SignalEmitter):
 		'''
 		if self.readonly:
 			raise PageReadOnlyError(self)
+		self._set_parsetree(tree)
 
+	def _set_parsetree(self, tree):
 		self._parsetree = tree
 		if self._textbuffer:
 			assert not self._textbuffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
@@ -693,7 +700,9 @@ class Page(Path, SignalEmitter):
 			tree = self.get_parsetree()
 			self._textbuffer = buffer
 			buffer.set_modified(False)
-			self.set_parsetree(tree) # load new tree in buffer, undo-able in 1 step
+			self._set_parsetree(tree)
+				# load new tree in buffer, undo-able in 1 step
+				# private method circumvents readonly check !
 			self.set_modified(False)
 		# else do nothing - source will be read with next call to `get_parsetree()`
 

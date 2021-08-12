@@ -145,10 +145,6 @@ class PageExistsError(Error):
 	_msg = _('Page already exists: %s') # T: message for PageExistsError
 
 
-class PageReadOnlyError(Error):
-	_msg = _('Can not modify page: %s') # T: error message for read-only pages
-
-
 class IndexNotUptodateError(Error):
 	pass # TODO description here?
 
@@ -460,6 +456,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			folder = self.layout.get_attachments_folder(path)
 			format = self.layout.get_format(file)
 			page = Page(path, False, file, folder, format)
+			if self.readonly:
+				page._readonly = True # XXX
 			try:
 				indexpath = self.pages.lookup_by_pagename(path)
 			except IndexNotFoundError:

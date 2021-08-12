@@ -206,6 +206,29 @@ class WindowBaseMixin(object):
 			pass
 		self.emit('readonly-changed', readonly)
 
+	def setup_toggle_editable_state(self, editable_uistate):
+		'''Setup sensitivity of the "toggle_editable" action
+		@param editable_uistate: default state if control is sensitive
+		'''
+		if self.notebook.readonly or self.page.readonly:
+			if not self.toggle_editable.get_sensitive():
+				return
+
+			self.toggle_editable.set_sensitive(False)
+			self._set_tooltip_hack(_('Page is read-only and cannot be edited')) # T: message in toggle editable tooltip
+		else:
+			if self.toggle_editable.get_sensitive():
+				return
+
+			self.toggle_editable.set_sensitive(True)
+			self.toggle_editable(editable_uistate)
+			self._set_tooltip_hack(self.toggle_editable.tooltip) # reset to default
+
+	def _set_tooltip_hack(self, text):
+		for proxy in self.toggle_editable._proxies: # XXX
+			if hasattr(proxy, 'set_tooltip_text'):
+				proxy.set_tooltip_text(text)
+
 	def _style_toggle_editable_button(self, button):
 		def _change_style_on_toggle(button):
 			context = button.get_style_context()
@@ -574,12 +597,6 @@ class MainWindow(WindowBaseMixin, Window):
 
 		self.toggle_fullscreen(self._set_fullscreen)
 
-		if self.notebook.readonly:
-			self.toggle_editable(False)
-			self.toggle_editable.set_sensitive(False)
-		else:
-			self.toggle_editable(not self.uistate['readonly'])
-
 		# And hook to notebook properties
 		self.on_notebook_properties_changed(self.notebook.properties)
 		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
@@ -709,10 +726,10 @@ class MainWindow(WindowBaseMixin, Window):
 		self.pageview.grab_focus()
 
 	def do_page_changed(self, page):
-		#TODO: set toggle_editable() insensitive when page is readonly
 		self.update_buttons_history()
 		self.update_buttons_hierarchy()
 		self._update_window_title()
+		self.setup_toggle_editable_state(not self.uistate['readonly'])
 
 	def _update_window_title(self):
 		if self.notebook.readonly or (self.page and self.page.readonly):
@@ -882,7 +899,7 @@ class PageWindow(WindowBaseMixin, Window):
 		Window.__init__(self)
 		self.navigation = navigation
 		self.notebook = notebook
-
+		self.page = notebook.get_page(page)
 		self._headerbar = Gtk.HeaderBar()
 		self._headerbar.set_show_close_button(True)
 		self.set_titlebar(self._headerbar)
@@ -890,15 +907,17 @@ class PageWindow(WindowBaseMixin, Window):
 		self._init_fullscreen_headerbar()
 		self._populate_headerbars()
 
-		self.set_title(page.name)
+		if self.notebook.readonly or self.page.readonly:
+			title = page.name + ' [' + _('readonly') + ']' # T: page status for title bar
+		else:
+			title = page.name
+		self.set_title(title)
 		#if ui.notebook.icon:
 		#	try:
 		#		self.set_icon_from_file(ui.notebook.icon)
 		#	except (GObject.GError, GLib.Error):
 		#		logger.exception('Could not load icon %s', ui.notebook.icon)
 
-		self.notebook = notebook
-		self.page = notebook.get_page(page)
 
 		self.uistate = notebook.state['PageWindow']
 		self.uistate.setdefault('windowsize', (500, 400), check=value_is_coord)
@@ -929,11 +948,7 @@ class PageWindow(WindowBaseMixin, Window):
 		notebook.connect('moved-page', on_notebook_change)
 
 		# setup state
-		if self.notebook.readonly:
-			self.toggle_editable(False)
-			self.toggle_editable.set_sensitive(False)
-		else:
-			self.toggle_editable(editable)
+		self.setup_toggle_editable_state(editable)
 
 		# on close window
 		def do_delete_event(*a):

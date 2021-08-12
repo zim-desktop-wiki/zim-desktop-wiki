@@ -477,52 +477,13 @@ class TestNotebook(tests.TestCase):
 		self.assertEqual(
 			self.notebook.relative_filepath(dir.file('foo.txt')), os_native_path('./foo.txt'))
 
-
-
-#	def testResolveLink(self):
-#		'''Test page.resolve_link()'''
-#		page = self.notebook.get_page(':Test:foo')
-#		for link, wanted in (
-			#~ (':foo:bar', ('page', ':foo:bar')),
-#			('foo:bar', ('page', ':Test:foo:bar')),
-#			('Test', ('page', ':Test')),
-#			('Test:non-existent', ('page', ':Test:non-existent')),
-#			('user@domain.com', ('mailto', 'mailto:user@domain.com')),
-#			('mailto:user@domain.com', ('mailto', 'mailto:user@domain.com')),
-#			('http://zim-wiki.org', ('http', 'http://zim-wiki.org')),
-#			('foo://zim-wiki.org', ('foo', 'foo://zim-wiki.org')),
-			#~ ('file://'),
-			#~ ('/foo/bar', ('file', '/foo/bar')),
-			#~ ('man?test', ('man', 'test')),
-#		): self.assertEqual(self.notebook.resolve_link(link, page), wanted)
-
-	#~ def testResolveName(self):
-		#~ '''Test store.resolve_name().'''
-		#~ print('\n'+'='*10+'\nSTORE: %s' % self.store)
-#~
-		#~ # First make sure basic list function is working
-		#~ def list_pages(name):
-			#~ for page in self.store.get_pages(name):
-				#~ yield page.basename
-		#~ self.assertTrue('Test' in list_pages(''))
-		#~ self.assertTrue('foo' in list_pages(':Test'))
-		#~ self.assertTrue('bar' in list_pages(':Test:foo'))
-		#~ self.assertFalse('Dus' in list_pages(':Test:foo'))
-#~
-		#~ # Now test the resolving algorithm - only testing low level
-		#~ # function in store, so path "anchor" does not work, search
-		#~ # is strictly right to left through the namespace, if any
-		#~ for link, namespace, name in (
-			#~ ('BAR','Test:foo','Test:foo:bar'),
-			#~ ('test',None,'Test'),
-			#~ ('test','Test:foo:bar','Test'),
-			#~ ('FOO:Dus','Test:foo:bar','Test:foo:Dus'),
-			#~ # FIXME more ambigous test data
-		#~ ):
-			#~ print('-'*10+'\nLINK %s (%s)' % (link, namespace))
-			#~ r = self.store.resolve_name(link, namespace=namespace)
-			#~ print('RESULT %s' % r)
-			#~ self.assertEqual(r, name)
+	def testReadOnlyNotebookGivesReadOnlyPages(self):
+		page = self.notebook.get_page(Path('Test'))
+		self.assertFalse(page.readonly)
+		self.notebook._page_cache.clear() # XXX
+		self.notebook.readonly = True # XXX: should not be assigned like this in normal application usage
+		page = self.notebook.get_page(Path('Test'))
+		self.assertTrue(page.readonly)
 
 
 class TestNotebookCaseInsensitiveFileSystem(TestNotebook):
@@ -1264,28 +1225,6 @@ class TestPage(TestPath):
 		page = self.generator('Test')
 		file = page.source_file
 		tree = ParseTree().fromstring('<zim-tree>ABC\n</zim-tree>\n')
-
-		class MockTextBuffer(object):
-
-			def __init__(self, parsetree):
-				self.parsetree = parsetree
-				self.modified = False
-
-			def set_modified(self, modified):
-				self.modified = modified
-
-			def get_modified(self):
-				return self.modified
-
-			def connect(self, *a):
-				pass
-
-			def set_parsetree(self, parsetree):
-				self.parsetree = parsetree
-
-			def get_parsetree(self):
-				return self.parsetree
-
 		buffer = page.get_textbuffer(MockTextBuffer)
 
 		self.assertFalse(page.check_source_changed())
@@ -1297,6 +1236,45 @@ class TestPage(TestPath):
 		self.assertTrue(page.check_source_changed())
 		self.assertEqual(page.dump('wiki'), ['DEF\n'])
 		self.assertFalse(page.check_source_changed())
+
+	def testCanReloadTextBufferIfReadonly(self):
+		# This is a crucial feature to allow unblocking the application if
+		# a read-only textbuffer got modified due to a bug
+		page = self.generator('Test')
+		page._readonly = True # XXX: never do this in application code
+		buffer = page.get_textbuffer(MockTextBuffer)
+
+		tree = ParseTree().fromstring('<zim-tree>ABC\n</zim-tree>\n')
+		buffer.set_parsetree(tree)
+		buffer.set_modified(True)
+
+		page.reload_textbuffer()
+		self.assertFalse(buffer.get_modified())
+
+
+class MockTextBuffer(object):
+
+	def __init__(self, parsetree):
+		self.parsetree = parsetree
+		self.modified = False
+
+	def set_modified(self, modified):
+		self.modified = modified
+
+	def get_modified(self):
+		return self.modified
+
+	def connect(self, *a):
+		pass
+
+	def set_parsetree(self, parsetree):
+		self.parsetree = parsetree
+
+	def get_parsetree(self):
+		return self.parsetree
+
+	def clear(self):
+		pass
 
 
 class TestMovePageNewNotebook(tests.TestCase):

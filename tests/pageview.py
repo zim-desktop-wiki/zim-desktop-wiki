@@ -2740,23 +2740,48 @@ Baz
 	def testPluginCanHandleURL(self):
 		pageview = setUpPageView(self.setUpNotebook())
 
-		def mock_default(*a):
-			raise AssertionError('Default handler reached')
-
-		pageview.do_activate_link = mock_default
-
 		def myhandler(o, link, hints):
 			if link.startswith('myurl://'):
 				return True
 
 		id = pageview.connect('activate-link', myhandler)
 
-		with self.assertRaisesRegex(AssertionError, 'Default handler reached'):
-			pageview.activate_link('foo')
+		pageview.do_activate_link = tests.CallBackLogger()
+		pageview.activate_link('foo')
+		self.assertTrue(pageview.do_activate_link.hasBeenCalled) # pass through to default
 
+		pageview.do_activate_link = tests.CallBackLogger()
 		pageview.activate_link('myurl://foo') # No raise
+		self.assertFalse(pageview.do_activate_link.hasBeenCalled) # no pass through to default
 
 		pageview.disconnect(id)
+
+	def testEditBarHiddenWhenFindBarShown(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		self.assertTrue(pageview.edit_bar.get_property('visible'))
+		self.assertFalse(pageview.find_bar.get_property('visible'))
+
+		pageview.show_find()
+		self.assertFalse(pageview.edit_bar.get_property('visible'))
+		self.assertTrue(pageview.find_bar.get_property('visible'))
+
+		pageview.hide_find()
+		self.assertTrue(pageview.edit_bar.get_property('visible'))
+		self.assertFalse(pageview.find_bar.get_property('visible'))
+
+	def testEditBarHiddenForReadOnly(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		pageview.set_readonly(True)
+		self.assertFalse(pageview.edit_bar.get_property('visible'))
+		self.assertFalse(pageview.find_bar.get_property('visible'))
+
+		pageview.show_find()
+		self.assertFalse(pageview.edit_bar.get_property('visible'))
+		self.assertTrue(pageview.find_bar.get_property('visible'))
+
+		pageview.hide_find()
+		self.assertFalse(pageview.edit_bar.get_property('visible'))
+		self.assertFalse(pageview.find_bar.get_property('visible'))
 
 
 class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):

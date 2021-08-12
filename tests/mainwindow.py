@@ -288,3 +288,53 @@ class TestMenuDocs(tests.TestCase):
 			else:
 				label = '===== ' + label + ' ====='
 			self.assertTrue(label in self.manual, 'Menu item "{}" not documented'.format(label))
+
+
+class TestReadOnlyMainWindow(tests.TestCase):
+
+	def runTest(self):
+		'''Test switching behavior when page opened with read-only status'''
+		notebook = self.setUpNotebook(content=('Test', 'Foo', 'Bar'))
+		window = setUpMainWindow(notebook)
+		self.assertReadWriteState(window)
+
+		notebook.readonly = True # XXX: should never be assigned liek this in apoplication usage
+		notebook._page_cache.clear() # XXX
+		window.open_page(Path('Foo'))
+		self.assertReadOnlyState(window)
+
+		notebook.readonly = False # XXX: should never be assigned liek this in apoplication usage
+		notebook._page_cache.clear() # XXX
+		window.open_page(Path('Bar'))
+		self.assertReadWriteState(window)
+
+	def assertReadWriteState(self, window):
+		for headerbar in (window._headerbar, window._fullscreen_headerbar):
+			title = window.get_title()
+			self.assertNotIn('[' + _('readonly') + ']', title)
+
+		self.assertTrue(window.toggle_editable.get_sensitive())
+		self.assertFalse(window.pageview.readonly)
+
+	def assertReadOnlyState(self, window):
+		for headerbar in (window._headerbar, window._fullscreen_headerbar):
+			title = window.get_title()
+			self.assertIn('[' + _('readonly') + ']', title)
+
+		self.assertFalse(window.toggle_editable.get_sensitive())
+		self.assertTrue(window.pageview.readonly)
+
+
+class TestReadOnlyPageWindow(TestReadOnlyMainWindow):
+
+	def runTest(self):
+		notebook = self.setUpNotebook(content=('Test',))
+		page = notebook.get_page(Path('Test'))
+		window = PageWindow(notebook, page, anchor=None, navigation=None)
+		self.assertReadWriteState(window)
+
+		notebook.readonly = True # XXX: should never be assigned liek this in apoplication usage
+		notebook._page_cache.clear() # XXX
+		page = notebook.get_page(Path('Test'))
+		window = PageWindow(notebook, page, anchor=None, navigation=None)
+		self.assertReadOnlyState(window)

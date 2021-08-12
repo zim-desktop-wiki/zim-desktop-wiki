@@ -48,9 +48,9 @@ from .operations import NotebookOperation, SimpleAsyncOperation, \
 
 from .notebook import Notebook, NotebookExtension, TrashNotSupportedError, \
 	PageNotFoundError, PageNotAllowedError, PageNotAvailableError, \
-	PageExistsError, PageReadOnlyError
+	PageExistsError
 
-from .page import Path, Page, \
+from .page import Path, Page, PageReadOnlyError, \
 	HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 from .layout import encode_filename, decode_filename
