@@ -6705,10 +6705,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			setter(o, *args)
 			self.remove_link(iter=iter)
 
-		item = (
+		item = [
 				Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')), # T: context menu item
 				Gtk.MenuItem.new_with_mnemonic(_('Cu_t Link')), # T: context menu item
-				)
+                ]
 
 		if type == 'page':
 			href = HRef.new_from_wiki_link(link['href'])
@@ -6720,18 +6720,16 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			item[0].connect('activate', set_interwikilink, (link['href'], url))
 			item[1].connect('activate', cut, set_interwikilink, (link['href'], url))
 		elif type == 'mailto':
-			item = Gtk.MenuItem.new_with_mnemonic(_('Copy Email Address')) # T: context menu item
-			item.connect('activate', set_uri, file or link['href'])
+			item[0] = Gtk.MenuItem.new_with_mnemonic(_('Copy Email Address')) # T: context menu item
+			item[0].connect('activate', set_uri, file or link['href'])
+			item[1].connect('activate', cut, set_uri, file or link['href'])
 		else:
 			item[0].connect('activate', set_uri, file or link['href'])
 			item[1].connect('activate', cut, set_uri, file or link['href'])
 
-		if len(item) == 1:
-			menu.prepend(item)
-		else:
-			item[1].set_sensitive(not self.readonly)
-			menu.prepend(item[0])
-			menu.prepend(item[1])
+		item[1].set_sensitive(not self.readonly)
+		menu.prepend(item[0])
+		menu.prepend(item[1])
 
 		menu.prepend(Gtk.SeparatorMenuItem())
 
