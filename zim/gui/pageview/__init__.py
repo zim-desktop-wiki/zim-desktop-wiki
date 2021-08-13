@@ -6686,7 +6686,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		item.set_sensitive(not self.readonly)
 		menu.prepend(item)
 
-		# copy
+		# copy & cut
 		def set_pagelink(o, path, anchor):
 			Clipboard.set_pagelink(self.notebook, path, anchor)
 			SelectionClipboard.set_pagelink(self.notebook, path, anchor)
@@ -6700,22 +6700,38 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			Clipboard.set_uri(uri)
 			SelectionClipboard.set_uri(uri)
 
+		def cut(o, setter, *args):
+			# setter: one of the above three set_* functions
+			setter(o, *args)
+			self.remove_link(iter=iter)
+
+		item = (
+				Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')), # T: context menu item
+				Gtk.MenuItem.new_with_mnemonic(_('Cu_t Link')), # T: context menu item
+				)
+
 		if type == 'page':
-			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
 			href = HRef.new_from_wiki_link(link['href'])
 			path = self.notebook.pages.resolve_link(self.page, href)
-			item.connect('activate', set_pagelink, path, href.anchor)
+			item[0].connect('activate', set_pagelink, path, href.anchor)
+			item[1].connect('activate', cut, set_pagelink, path, href.anchor)
 		elif type == 'interwiki':
-			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
 			url = interwiki_link(link['href'])
-			item.connect('activate', set_interwikilink, (link['href'], url))
+			item[0].connect('activate', set_interwikilink, (link['href'], url))
+			item[1].connect('activate', cut, set_interwikilink, (link['href'], url))
 		elif type == 'mailto':
 			item = Gtk.MenuItem.new_with_mnemonic(_('Copy Email Address')) # T: context menu item
 			item.connect('activate', set_uri, file or link['href'])
 		else:
-			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
-			item.connect('activate', set_uri, file or link['href'])
-		menu.prepend(item)
+			item[0].connect('activate', set_uri, file or link['href'])
+			item[1].connect('activate', cut, set_uri, file or link['href'])
+
+		if len(item) == 1:
+			menu.prepend(item)
+		else:
+			item[1].set_sensitive(not self.readonly)
+			menu.prepend(item[0])
+			menu.prepend(item[1])
 
 		menu.prepend(Gtk.SeparatorMenuItem())
 
