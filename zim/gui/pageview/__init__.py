@@ -6707,7 +6707,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		item = [
 				Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')), # T: context menu item
-				Gtk.MenuItem.new_with_mnemonic(_('Cu_t Link')), # T: context menu item
+				Gtk.MenuItem.new_with_mnemonic(_('Cut Lin_k')), # T: context menu item
                 ]
 
 		if type == 'page':
