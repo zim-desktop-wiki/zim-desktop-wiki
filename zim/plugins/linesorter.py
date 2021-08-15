@@ -27,7 +27,8 @@ class LineSorterPlugin(PluginClass):
 		'description': _('''\
 This plugin sorts selected lines in alphabetical order.
 If the list is already sorted the order will be reversed
-(A-Z to Z-A).
+(A-Z to Z-A). Additional features: move text lines up or down,
+duplicate or remove lines of text.
 '''), # T: plugin description
 		'author': 'NorfCran',
 		'help': 'Plugins:Line Sorter',
