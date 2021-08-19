@@ -30,7 +30,7 @@ from .dates import date_re as _raw_parse_date_re
 from .dates import parse_date
 
 
-_tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
+_tag_re = re.compile(r'(?<!\S)@@(\w+)\b', re.U)
 _date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
@@ -309,7 +309,7 @@ class TaskParser(object):
 			isopen, prio, start, due, tags, text = task[0]
 			words = text.strip().split()
 			if self.task_label_re.match(words[0]) \
-			and all(w.startswith('@') or w == ':' for w in words[1:]):
+			and all(w.startswith('@@') or w == ':' for w in words[1:]):
 				return True
 
 		tasks = []

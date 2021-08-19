@@ -201,7 +201,7 @@ class WikiParser(object):
 
 		descent = lambda *a: self.nested_inline_parser_below_link(*a)
 		self.nested_inline_parser_below_link = (
-			Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
+			Rule(TAG, r'(?<!\S)@@\w+', process=self.parse_tag)
 			| Rule(EMPHASIS, r'//(?!/)(.*?)(?<!:)//', descent=descent) # no ':' at the end (ex: 'http://')
 			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*', descent=descent)
 			| Rule(MARK, r'__(?!_)(.*?)__', descent=descent)
@@ -217,7 +217,7 @@ class WikiParser(object):
 			Rule(LINK, my_url_re, process=self.parse_url)
 			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
-			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
+			| Rule(TAG, r'(?<!\S)@@\w+', process=self.parse_tag)
 			| Rule(EMPHASIS, r'//(?!/)(.*?)(?<!:)//', descent=descent) # no ':' at the end (ex: 'http://')
 			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*', descent=descent)
 			| Rule(MARK, r'__(?!_)(.*?)__', descent=descent)

@@ -76,7 +76,7 @@ KEYWORDS = (
 
 keyword_re = Re('(' + '|'.join(KEYWORDS) + '):(.*)', re.I)
 operators_re = Re(r'^(\|\||\&\&|\+|\-)')
-tag_re = Re(r'^\@(\w+)$', re.U)
+tag_re = Re(r'^\@@(\w+)$', re.U)
 
 class QueryTerm(object):
 	'''Wrapper for a single term in a query. Consists of a keyword,

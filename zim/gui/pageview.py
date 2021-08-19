@@ -267,7 +267,7 @@ markup_re = [
 	('style-sub', re.compile(r'(?<=\w)_\{(\S*)}$')),
 ]
 
-tag_re = Re(r'^(@\w+)$', re.U)
+tag_re = Re(r'^(@@\w+)$', re.U)
 
 twoletter_re = re.compile(r'[^\W\d]{2}', re.U) # match letters but not numbers - not non-alphanumeric and not number
 
