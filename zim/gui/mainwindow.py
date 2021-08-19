@@ -262,6 +262,7 @@ class MainWindow(WindowBaseMixin, Window):
 		"C{WxH+X+Y}", if C{None} the previous state is restored
 		'''
 		Window.__init__(self)
+		self.last_change = 0
 		self.notebook = notebook
 		self.page = None # will be set later by open_page
 		self.navigation = NavigationModel(self)
@@ -691,9 +692,16 @@ class MainWindow(WindowBaseMixin, Window):
 			if self.page.modified:
 				return False # Assume SavePageErrorDialog was shown and cancelled
 
-			old_cursor = self.pageview.get_cursor_pos()
-			old_scroll = self.pageview.get_scroll_pos()
-			self.history.set_state(self.page, old_cursor, old_scroll)
+			from time import time
+			if time() - self.last_change < 1:
+				# pop out from history since we have left the unmodified page too quickly
+				self.history._history.pop()
+				self.history._current = len(self.history._history) - 1
+			else:
+				old_cursor = self.pageview.get_cursor_pos()
+				old_scroll = self.pageview.get_scroll_pos()
+				self.history.set_state(self.page, old_cursor, old_scroll)
+			self.last_change = time()
 
 			self.save_uistate()
 
