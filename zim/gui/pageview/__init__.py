@@ -6035,6 +6035,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if self.text_style['TextView']['linespacing']:
 			self.textview.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
+			self.textview.set_pixels_inside_wrap(self.text_style['TextView']['linespacing'])
 
 		if self.text_style['TextView']['font']:
 			font = Pango.FontDescription(self.text_style['TextView']['font'])
