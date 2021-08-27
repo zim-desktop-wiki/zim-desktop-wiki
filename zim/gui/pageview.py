@@ -48,7 +48,7 @@ from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
-	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result
+	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result, Calendar
 from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
@@ -6958,7 +6958,6 @@ class InsertDateDialog(Dialog):
 		self.uistate.setdefault('linkdate', False)
 
 		## Add Calendar widget
-		from zim.plugins.journal import Calendar # FIXME put this in zim.gui.widgets
 
 		label = Gtk.Label()
 		label.set_markup('<b>' + _("Date") + '</b>') # T: label in "insert date" dialog
@@ -7871,6 +7870,7 @@ class MoveTextDialog(Dialog):
 		)
 		self.pageview = pageview
 		self.notebook = notebook
+
 		self.page = page
 		self.buffer = buffer
 		self.navigation = navigation
@@ -7888,6 +7888,29 @@ class MoveTextDialog(Dialog):
 			('open_page', 'bool', _('Open new page')), # T: Input in 'move text' dialog
 
 		], self.uistate)
+
+		# Add Calendar widget if internal Journal plugin is running
+		if "journal" not in PluginManager():
+			return
+		label = Gtk.Label()
+		label.set_markup('<b>' + _("Date") + '</b>')  # T: label in "move text" dialog
+		label.set_alignment(0.0, 0.5)
+		self.vbox.pack_start(label, False, False, 0)
+		
+		def set_date(date):
+			date = date.get_date().strftime('%Y-%m-%d')  # YYYY-MM-DD						
+			self.form.widgets["page"].set_path(self.notebook.suggest_link(self.page, date))
+
+		self.calendar = Calendar()
+		self.calendar.set_display_options(
+			Gtk.CalendarDisplayOptions.SHOW_HEADING |
+			Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES |
+			Gtk.CalendarDisplayOptions.SHOW_WEEK_NUMBERS)
+		self.calendar.connect('day-selected', set_date)
+		self.vbox.pack_start(self.calendar, False, True, 0)
+
+		# Sets default page to current day
+		set_date(self.calendar)
 
 	def do_response_ok(self):
 		newpage = self.form['page']
