@@ -141,11 +141,8 @@ application.
 
 ## Translations
 
-To contribute to translations online please go to either
+To contribute to translations online please go to
 https://hosted.weblate.org/projects/zim/master/
-or https://hosted.weblate.org/projects/zim/develop/.
-
-The first one (ending in "master") contains translation strings for the current/upcoming releases. The second one (ending in "develop") could contain strings for new features.
 
 Or you can edit the template zim.pot with your favorite editor. In that case you should add you new .po file to the po/ directory.
 
