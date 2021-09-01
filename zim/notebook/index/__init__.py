@@ -165,8 +165,12 @@ class Index(SignalEmitter):
 	def is_uptodate(self):
 		return self.update_iter.is_uptodate()
 
-	def check_and_update(self):
+	def update(self):
 		'''Update all data in the index'''
+		self.update_iter.update()
+
+	def check_and_update(self):
+		'''Check and update all data in the index'''
 		self.update_iter.check_and_update()
 
 	def check_and_update_iter(self):

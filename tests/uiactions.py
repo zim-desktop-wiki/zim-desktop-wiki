@@ -646,7 +646,7 @@ class TestUIActions(tests.TestCase):
 		self.assertTrue(ServerWindow.present.hasBeenCalled)
 
 	def testReloadIndex(self):
-		self.uiactions.reload_index()
+		self.uiactions.check_and_update_index()
 
 	def testReloadIndexWhileOngoing(self):
 		from zim.notebook.operations import ongoing_operation
@@ -657,7 +657,7 @@ class TestUIActions(tests.TestCase):
 		next(op_iter)
 		self.assertEqual(ongoing_operation(self.notebook), op)
 
-		self.uiactions.reload_index()
+		self.uiactions.check_and_update_index()
 
 		self.assertIsNone(ongoing_operation(self.notebook))
 

@@ -292,7 +292,7 @@ Start a stand-alone web server to make the current notebook available as a web p
 **Open Document Root**
 Open the document root folder in a file browser.
 
-**Update Index**
+**Check and Update Index**
 Double-check the page index against the folder contents of the notebook. This can be used when the index is by accident out of sync with the notebook contents.
 
 **Edit Source**

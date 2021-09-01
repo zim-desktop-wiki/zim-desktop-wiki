@@ -234,7 +234,7 @@ class UIActions(object):
 
 		# Changing plugin properties can modify the index state
 		if not self.notebook.index.is_uptodate:
-			self.reload_index(update_only=True)
+			self.check_and_update_index(update_only=True)
 
 	@action(_('_Quit'), '<Primary>Q') # T: Menu item
 	def quit(self):
@@ -266,7 +266,7 @@ class UIActions(object):
 
 		# Loading plugins can modify the index state
 		if not self.notebook.index.is_uptodate:
-			self.reload_index(update_only=True)
+			self.check_and_update_index(update_only=True)
 
 	@action(_('_Search...'), '<shift><Primary>F', verb_icon='edit-find-symbolic') # T: Menu item
 	def show_search(self, query=None, focus_results=False):
@@ -368,14 +368,14 @@ class UIActions(object):
 
 	def ensure_index_uptodate(self):
 		if not self.notebook.index.is_uptodate:
-			re = self.reload_index(update_only=True)
+			re = self.check_and_update_index(update_only=True)
 			assert re is not None # check we really get bool
 			return re
 		else:
 			return True
 
-	@action(_('Update Index')) # T: Menu item
-	def reload_index(self, update_only=False):
+	@action(_('Check and Update Index')) # T: Menu item
+	def check_and_update_index(self, update_only=False):
 		'''Check the notebook for changes and update the index.
 		Shows an progressbar while updateing.
 		@param update_only: if C{True} only updates are done, if C{False} also
@@ -396,7 +396,7 @@ class UIActions(object):
 			else:
 				# ongoing op was update only but we want check, so try again
 				if not dialog.cancelled:
-					return self.reload_index() # recurs
+					return self.check_and_update_index() # recurs
 				else:
 					return False
 

@@ -13,7 +13,7 @@ from zim.notebook.layout import FilesLayout
 from zim.newfs import LocalFolder, File
 from zim.notebook import Path
 from zim.notebook.index import Index, DB_VERSION
-from zim.notebook.index.files import FilesIndexer, TestFilesDBTable, FilesIndexChecker
+from zim.notebook.index.files import FilesIndexer, TestFilesDBTable, FilesIndexChecker, TYPE_FOLDER
 from zim.notebook.index.pages import PagesIndexer, TestPagesDBTable
 from zim.notebook.index.links import LinksIndexer
 from zim.notebook.index.tags import TagsIndexer
@@ -113,6 +113,10 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
 		'new/', # nested page
 		'new/page.txt',
+
+		'newfolder/', # nested page in subfolder
+		'newfolder/newsubfolder/',
+		'newfolder/newsubfolder/page.txt',
 	)))
 	FILES_CHANGE = (
 		'foo.txt',
@@ -126,10 +130,10 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		#   3. Check and update after files disappear
 
 		self.root = self.setUpFolder(mock=tests.MOCK_DEFAULT_REAL)
-		db = sqlite3.connect(':memory:')
-		db.row_factory = sqlite3.Row
+		self.db = sqlite3.connect(':memory:')
+		self.db.row_factory = sqlite3.Row
 
-		indexer = FilesIndexer(db, self.root)
+		indexer = FilesIndexer(self.db, self.root)
 
 		def cb_filter_func(name, o, a):
 			#~ print('>>', name)
@@ -163,8 +167,8 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		self.assertEqual(set(signals['file-row-changed']), files)
 		self.assertEqual(signals['file-row-deleted'], [])
 
-		self.assertFilesDBConsistent(db)
-		self.assertFilesDBEquals(db, self.FILES)
+		self.assertFilesDBConsistent(self.db)
+		self.assertFilesDBEquals(self.db, self.FILES)
 
 		# 2. Check and update after new files appear
 		signals.clear()
@@ -180,8 +184,8 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		self.assertEqual(set(signals['file-row-changed']), update)
 		self.assertEqual(signals['file-row-deleted'], [])
 
-		self.assertFilesDBConsistent(db)
-		self.assertFilesDBEquals(db,
+		self.assertFilesDBConsistent(self.db)
+		self.assertFilesDBEquals(self.db,
 			self.FILES + self.FILES_UPDATE
 		)
 
@@ -196,8 +200,8 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		self.assertEqual(signals['file-row-changed'], [])
 		self.assertEqual(set(signals['file-row-deleted']), files)
 
-		self.assertFilesDBConsistent(db)
-		self.assertFilesDBEquals(db, self.FILES)
+		self.assertFilesDBConsistent(self.db)
+		self.assertFilesDBEquals(self.db, self.FILES)
 
 	def create_files(self, files):
 		for name in files:
@@ -212,6 +216,30 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 				self.root.folder(name).remove()
 			else:
 				self.root.child(name).remove()
+
+
+class TestFilesIndexerRobustForFolderMtime(TestFilesIndexer):
+	# Like TestFilesIndexer but explicitly hack the folder mtime in the database
+	# to not detect the folder structure change by mtime. Ensure robustness when
+	# filesystem mtime is not reliable for folders.
+
+	def create_files(self, files):
+		TestFilesIndexer.create_files(self, files)
+		self.reset_folder_mtimes()
+
+	def remove_files(self, files):
+		TestFilesIndexer.remove_files(self, files)
+		self.reset_folder_mtimes()
+
+	def reset_folder_mtimes(self):
+		count = 0
+		for node_id, rel_path in self.db.execute('SELECT id, path FROM files WHERE node_type = ?', (TYPE_FOLDER,)):
+			folder = self.root.folder(rel_path)
+			if folder.exists():
+				mtime = folder.mtime()
+				self.db.execute('UPDATE files SET mtime = ? WHERE id = ?', (mtime, node_id))
+			count += 1
+		assert count > 0
 
 
 class TestFilesIndexerWithCaseInsensitiveFilesytem(tests.TestCase, TestFilesDBTable):

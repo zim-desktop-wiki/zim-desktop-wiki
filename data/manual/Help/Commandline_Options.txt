@@ -55,6 +55,6 @@ Search Options:
   None
 
 Index Options:
-  -o, --output    output file
-'''
+  -f, --flush      flush the index first and force re-building
 
+'''

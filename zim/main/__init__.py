@@ -94,7 +94,7 @@ Search Options:
   None
 
 Index Options:
-  None
+  -f, --flush      flush the index first and force re-building
 
 Try 'zim --manual' for more help.
 '''
@@ -327,7 +327,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		window.present()
 
 		if not window.notebook.index.is_uptodate:
-			window._uiactions.reload_index(update_only=True) # XXX
+			window._uiactions.check_and_update_index(update_only=True) # XXX
 		else:
 			# Start a lightweight background check of the index
 			# put a small delay to ensure window is shown before we start
@@ -536,13 +536,33 @@ class IndexCommand(NotebookCommand):
 	'''Class implementing the C{--index} command'''
 
 	arguments = ('NOTEBOOK',)
+	options = (
+		('flush', 'f', 'flush the index first and force re-building'),
+	)
 
 	def run(self):
+		# Elevate logging level of indexer to ensure "zim --index -V" gives
+		# some meaningfull output
+		def elevate_index_logging(log_record):
+			if log_record.levelno == logging.DEBUG:
+				log_record.levelno = logging.INFO
+				log_record.levelname = 'INFO'
+			return True
+
+		mylogger = logging.getLogger('zim.notebook.index')
+		mylogger.setLevel(logging.DEBUG)
+		mylogger.addFilter(elevate_index_logging)
+
 		notebook, p = self.build_notebook(ensure_uptodate=False)
-		notebook.index.flush()
-		for info in notebook.index.update_iter():
-			#logger.info('Indexing %s', info)
-			pass # TODO meaningful info for above message
+		if self.opts.get('flush'):
+			notebook.index.flush()
+			notebook.index.update()
+		else:
+			# Effectively the same as check_and_update_index ui action
+			logger.info('Checking notebook index')
+			notebook.index.check_and_update()
+
+		logger.info('Index up to date!')
 
 
 commands = {

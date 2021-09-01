@@ -133,7 +133,7 @@
 			<menuitem action='open_document_folder'/>
 -->
 			<separator/>
-			<menuitem action='reload_index'/>
+			<menuitem action='check_and_update_index'/>
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='edit_page_source'/>
