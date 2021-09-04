@@ -1195,7 +1195,7 @@ class TextBuffer(Gtk.TextBuffer):
 			if 'width' in attrib or 'height' in attrib:
 				w = int(attrib.get('width', -1))
 				h = int(attrib.get('height', -1))
-				pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, w, h)
+				pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path).scale_simple(w, h, GdkPixbuf.InterpType.BILINEAR)
 			else:
 				pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 			pixbuf = rotate_pixbuf(pixbuf)
@@ -7358,6 +7358,7 @@ class EditImageDialog(Dialog):
 		self._image_data.pop('height', None)
 		self._image_data['width'] = int(self.form['width'])
 		h = int(float(self._image_data['width']) / self._ratio)
+		self._image_data['height'] = h
 		self._block = True
 		self.form['height'] = h
 		self._block = False
@@ -7368,6 +7369,7 @@ class EditImageDialog(Dialog):
 		self._image_data.pop('width', None)
 		self._image_data['height'] = int(self.form['height'])
 		w = int(self._ratio * float(self._image_data['height']))
+		self._image_data['width'] = w
 		self._block = True
 		self.form['width'] = w
 		self._block = False
