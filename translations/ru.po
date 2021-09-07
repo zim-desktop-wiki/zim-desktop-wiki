@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-19 21:09+0100\n"
-"PO-Revision-Date: 2021-01-27 20:32+0000\n"
-"Last-Translator: Nick222 <nick222@yandex.ru>\n"
+"PO-Revision-Date: 2021-03-28 01:29+0000\n"
+"Last-Translator: Nikolay Korotkiy <sikmir@gmail.com>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/zim/master/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.5-dev\n"
+"X-Generator: Weblate 4.6-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -514,7 +514,7 @@ msgstr "_Вставка"
 #. Menu title
 #: zim/gui/mainwindow.py:56
 msgid "_Search"
-msgstr "П_оиск"
+msgstr "_Поиск"
 
 #. Menu title
 #: zim/gui/mainwindow.py:57
@@ -691,14 +691,12 @@ msgstr "_Обновить"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:944
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Обратных ссылок…"
-msgstr[1] "%i _Обратная ссылка..."
-msgstr[2] "%i _Обратные ссылки…"
+msgstr[0] "%i _Обратная ссылка"
+msgstr[1] "%i _Обратные ссылки"
+msgstr[2] "%i _Обратных ссылок"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1004
@@ -751,7 +749,7 @@ msgstr "Добавить блокнот"
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:407
 msgid "Please select a name and a folder for the notebook."
-msgstr "Укажите имя и папку для блокнота"
+msgstr "Укажите имя и папку для блокнота."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:423
@@ -1004,7 +1002,7 @@ msgstr "Стенограмма"
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:6127
 msgid "Move Selected Text..."
-msgstr "Переместить выделенный текст"
+msgstr "Переместить выделенный текст…"
 
 #. Menu item
 #: zim/gui/pageview.py:6175 zim/gui/pageview.py:6407
@@ -1157,10 +1155,8 @@ msgstr "_Изображение..."
 
 #. Menu item
 #: zim/gui/pageview.py:6459
-#, fuzzy
-#| msgid "Attachments"
 msgid "_Attachment..."
-msgstr "Вложения"
+msgstr "Вложение…"
 
 #. Menu item | 
 #. Menu item,
@@ -1222,7 +1218,7 @@ msgstr "_Очистить форматирование"
 #. Menu item
 #: zim/gui/pageview.py:6772
 msgid "_Find..."
-msgstr "_Найти"
+msgstr "_Найти…"
 
 #. Menu item
 #: zim/gui/pageview.py:6793
@@ -1548,10 +1544,8 @@ msgstr "Параметры"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:112
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key bindings"
-msgstr "_Горячие клавиши"
+msgstr "Горячие клавиши"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:117
@@ -1665,22 +1659,18 @@ msgstr ""
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:509
-#, fuzzy
-#| msgid "Section"
 msgid "Action"
-msgstr "Раздел"
+msgstr "Действие"
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:520
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key Binding"
-msgstr "_Горячие клавиши"
+msgstr "Горячие клавиши"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:17
 msgid "Interwiki Keyword"
-msgstr "Название для интервики:"
+msgstr "Название для интервики"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:18
@@ -1760,7 +1750,7 @@ msgstr "Разрешить публичный доступ"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr ""
+msgstr "Требуется аутентификация"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1769,10 +1759,8 @@ msgstr "Порт"
 
 #. Field in web server gui
 #: zim/gui/server.py:110
-#, fuzzy
-#| msgid "Filename"
 msgid "Username"
-msgstr "Имя файла"
+msgstr "Имя пользователя"
 
 #. Field in web server gui
 #: zim/gui/server.py:112
@@ -1818,7 +1806,7 @@ msgstr "Создать _подстраницу…"
 #. Menu item
 #: zim/gui/uiactions.py:114
 msgid "_New Page Here..."
-msgstr "Создать страницу"
+msgstr "Создать страницу…"
 
 #. Menu item
 #: zim/gui/uiactions.py:122
@@ -1847,10 +1835,8 @@ msgstr "_Отправить…"
 
 #. Menu item
 #: zim/gui/uiactions.py:185
-#, fuzzy
-#| msgid "_Rename Page..."
 msgid "_Rename or move Page..."
-msgstr "Пере_именовать страницу…"
+msgstr "Пере_именовать или переместить страницу…"
 
 #. Menu item
 #: zim/gui/uiactions.py:194
@@ -1865,7 +1851,7 @@ msgstr "Удаление ссылок"
 #. Menu item
 #: zim/gui/uiactions.py:238
 msgid "Proper_ties"
-msgstr "_Свойства…"
+msgstr "_Свойства"
 
 #. Menu item | 
 #. menu item in tray icon menu
@@ -1941,7 +1927,7 @@ msgstr "Редактировать _исходный текст"
 #. Menu item
 #: zim/gui/uiactions.py:359
 msgid "Start _Web Server"
-msgstr "Запустить _веб-сервер…"
+msgstr "Запустить _веб-сервер"
 
 #. menu item
 #: zim/gui/uiactions.py:366
@@ -1958,7 +1944,7 @@ msgstr "Обновить индекс"
 #. Menu item
 #: zim/gui/uiactions.py:413
 msgid "Custom _Tools"
-msgstr "В_нешние инструменты…"
+msgstr "В_нешние инструменты"
 
 #. Menu item
 #: zim/gui/uiactions.py:419
@@ -2275,10 +2261,9 @@ msgstr ""
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
-#, fuzzy, python-format
-#| msgid "File changed on disk: %s"
+#, python-format
 msgid "File name too long: %s"
-msgstr "Файл %s на диске изменён"
+msgstr "Имя файла слишком длинное: %s"
 
 #. Error explanation
 #: zim/newfs/local.py:54
@@ -2668,8 +2653,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет редактор диаграмм, основанный на Ditaa. \n"
-"Это - базовый модуль; поставляется с zim.\n"
+"Этот плагин добавляет редактор диаграмм, основанный на Ditaa. \n"
+"\n"
+"Это - базовый плагин, поставляется вместе с zim.\n"
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
@@ -2688,9 +2674,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет редактор формул для Zim на основе LaTeX.\n"
+"Этот плагин добавляет редактор формул для Zim на основе LaTeX.\n"
 "\n"
-"Это базовый  модуль, поставляющийся с Zim.\n"
+"Это - базовый плагин, поставляется вместе с zim.\n"
 
 #. menu item
 #: zim/plugins/equationeditor.py:44
@@ -2930,14 +2916,8 @@ msgstr "Меню"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:73
-#, fuzzy
-#| msgid ""
-#| "\t\tThis plugin provides bar for bookmarks.\n"
-#| "\t\t"
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
-"\t\tЭтот плагин предоставляет панель для закладок.\n"
-"\t\t"
+msgstr "Этот плагин предоставляет панель меню macOS для zim."
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
@@ -3213,10 +3193,8 @@ msgstr ""
 
 #. option value
 #: zim/plugins/sourceview.py:73
-#, fuzzy
-#| msgid "vertical lines"
 msgid "Never wrap lines"
-msgstr "вертикальные линии"
+msgstr "Никогда не переносить строки"
 
 #. option value
 #: zim/plugins/sourceview.py:74
@@ -3271,7 +3249,7 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:94
 msgid "Theme"
-msgstr ""
+msgstr "Тема"
 
 #. menu item
 #: zim/plugins/sourceview.py:109
@@ -3686,12 +3664,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет диалог, показывающий список \n"
-"открытых задач в определенном блокноте. \n"
-"Открытые задачи помечаются флажками или\n"
-"метками, например TODO или FIXME.\n"
+"Этот модуль добавляет диалог, показывающий список открытых задач в "
+"определенном блокноте.\n"
+"Открытые задачи помечаются флажками или метками, например TODO или FIXME.\n"
 "\n"
-"Это базовый модуль, поставляющийся с Zim.\n"
+"Это - базовый плагин, поставляется вместе с zim.\n"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
@@ -3870,7 +3847,7 @@ msgstr "_Версии…"
 #: zim/plugins/versioncontrol/__init__.py:242
 msgid ""
 "There are no changes in this notebook since the last version that was saved"
-msgstr "Со времени сохранения последней версии изменений не было."
+msgstr "Со времени сохранения последней версии изменений не было"
 
 #. Short error descriotion
 #: zim/plugins/versioncontrol/__init__.py:245
@@ -4014,7 +3991,7 @@ msgstr "Ревизия"
 #. plugin name
 #: zim/plugins/zeitgeist-logger.py:32
 msgid "Log events with Zeitgeist"
-msgstr "Журналировать события с помощью Zeitgeist."
+msgstr "Вести журнал событий с помощью Zeitgeist"
 
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:33

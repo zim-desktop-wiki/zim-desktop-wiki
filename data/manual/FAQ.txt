@@ -21,7 +21,7 @@ These are pages that are linked by other pages but do not (yet) contain text. Yo
 ===== Why do some pages not disappear from the index after deleting them? =====
 The index keeps pages that are linked by other pages even if you delete them. To completely remove them you also need to change any page linking them.
 
-===== I pasted a shall script / C code / ... and it looks all mangled up - is this a bug ? =====
+===== I pasted a shell script / C code / ... and it looks all mangled up - is this a bug ? =====
 No, zim uses wiki formatting to save text, so some sequences of special characters will be interpreted as text formatting. This is enabled on purpose to let users type in wiki sequences directly. The downside is that when you include computer code or other text with many special characters it might get interpreted while that is not what you wanted. To avoid this either use the [[Plugins:Source View|Source View plugin]] or verbatim formatting. To paste directly with verbatim formatting there is a menu item in the context menu "Paste As Verbatim".
 
 ===== I would like zim to hide in the system tray. =====
@@ -34,7 +34,7 @@ You can call the [[Plugins:Tray Icon|Tray Icon plugin]] with the command "''zim 
 By default, zim will only run a single instance of each notebook. Trying to open the same notebook again will just pop the corresponding window to the foreground. So you can set a default notebook (see [[Help:Notebooks|Notebooks]]) and just make a global key binding run the command "''zim''".
 
 ===== How do I publish content from zim to my webpage? =====
-See [[Usage:Publishing]] for some tips
+See [[Usage:Publishing|Publishing]] for some tips
 
 ===== Can I change the colors used for links, underline etc. ? =====
 Yes. Copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit as you see fit. See the [[Help:Config Files|Config Files]] page for the syntax of this file.
@@ -70,7 +70,7 @@ Zim is written as a "single user" program, so it is not intended for multiple pe
 ===== How do I change the Gtk theme? =====
 On a Linux desktop, you can probably do this via your settings manager.
 
-Windows users and users please see the section "Gtk configuration" in [[Help:Config Files]]
+Windows and macOS users please see the section "Gtk configuration" in [[Help:Config Files|Config Files]]
 
 
 ===== I have a useful trick or tip. How can I share it with other users? =====
