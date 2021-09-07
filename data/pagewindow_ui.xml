@@ -1,4 +1,17 @@
 <ui>
+<accelerator action='save_page'/>
+<accelerator action='undo'/>
+<accelerator action='redo'/>
+<accelerator action='cut'/>
+<accelerator action='copy'/>
+<accelerator action='paste'/>
+<accelerator action='toggle_checkbox'/>
+<accelerator action='xtoggle_checkbox'/>
+<accelerator action='migrate_checkbox'/>
+<accelerator action='transmigrate_checkbox'/>
+<accelerator action='edit_object'/>
+<accelerator action='remove_link'/>
+<accelerator action='copy_current_line'/>
 <accelerator action='insert_date'/>
 <accelerator action='insert_bullet_list'/>
 <accelerator action='insert_numbered_list'/>
@@ -24,8 +37,13 @@
 <accelerator action='apply_format_sub'/>
 <accelerator action='apply_format_sup'/>
 <accelerator action='clear_formatting'/>
+<accelerator action='clear_heading_format'/>
 <accelerator action='show_find'/>
 <accelerator action='find_next'/>
 <accelerator action='find_previous'/>
 <accelerator action='show_find_and_replace'/>
+<accelerator action='show_word_count'/>
+<accelerator action='zoom_in'/>
+<accelerator action='zoom_out'/>
+<accelerator action='zoom_reset'/>
 </ui>
