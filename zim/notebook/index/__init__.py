@@ -84,8 +84,12 @@ class Index(SignalEmitter):
 		# on windows, so test both platforms when modifying here
 
 		if self.dbpath != ':memory:':
+			logger.debug('Connecting to database file: %s', self.dbpath)
 			file = LocalFile(self.dbpath)
 			file.parent().touch()
+		else:
+			logger.debug('Connecting to in-memory database')
+
 		try:
 			self._db = sqlite3.Connection(self.dbpath)
 		except:
@@ -104,12 +108,15 @@ class Index(SignalEmitter):
 			elif self.get_property('db_sortkey_format') != natural_sort_key(DB_SORTKEY_CONTENT):
 				logger.info('Index db_sortkey_format out of date')
 				self._db_init()
-			else:
-				self.set_property('db_version', DB_VERSION) # Ensure we can write
+
+			self.set_property('db_version', DB_VERSION) # Ensure we can write
 		except sqlite3.OperationalError:
 			# db is there but table does not exist
 			logger.debug('Operational error, init tabels')
-			self._db_init()
+			try:
+				self._db_init()
+			except:
+				self._db_recover()
 		except sqlite3.DatabaseError:
 			self._db_recover()
 
