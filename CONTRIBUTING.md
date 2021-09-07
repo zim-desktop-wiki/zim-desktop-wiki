@@ -25,7 +25,7 @@ and [Development Planning](https://github.com/zim-desktop-wiki/zim-desktop-wiki/
 * Mailing list:
   https://launchpad.net/~zim-wiki
 * IRC Channel:
-  #zim-wiki on Freenode IRC network. (Access from your web browser https://webchat.freenode.net/?channels=%23zim-wiki .)
+  #zim-wiki on the Libera Chat IRC network. (Access from your web browser https://web.libera.chat/#zim-wiki .)
 
 
 ## Filing a bug report
@@ -141,11 +141,8 @@ application.
 
 ## Translations
 
-To contribute to translations online please go to either
+To contribute to translations online please go to
 https://hosted.weblate.org/projects/zim/master/
-or https://hosted.weblate.org/projects/zim/develop/.
-
-The first one (ending in "master") contains translation strings for the current/upcoming releases. The second one (ending in "develop") could contain strings for new features.
 
 Or you can edit the template zim.pot with your favorite editor. In that case you should add you new .po file to the po/ directory.
 
