@@ -8175,8 +8175,8 @@ class FindWidget(object):
 		if bounds:
 			start, end = bounds
 			string = start.get_slice(end)
-		if flags & FIND_REGEX:
-			string = re.escape(string)
+			if flags & FIND_REGEX:
+				string = re.escape(string)
 		self.find(string, flags, highlight)
 
 	def on_find_entry_changed(self):
