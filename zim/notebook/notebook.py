@@ -1,11 +1,7 @@
 
 # Copyright 2008-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-
-
-
 import os
-import re
 import weakref
 import logging
 import threading
@@ -23,7 +19,6 @@ from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, 
 from zim.errors import Error
 from zim.utils import natural_sort_key
 from zim.newfs.helpers import TrashNotSupportedError
-from zim.config import HierarchicDict
 from zim.parsing import link_type, is_win32_path_re, valid_interwiki_key
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
@@ -794,14 +789,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		if elt.gettext() == elt.get('href'):
 			elt[:] = [link]
-		elif elt.gettext() == oldhref.parts()[-1] and len(elt) == 1:
+		elif elt.gettext() == oldhref.short_name() and len(elt) == 1:
 			# We are using short links and the link text was short link
 			# and there were no sub-node (like bold text) that would be cancelled.
 			# Related to 'short_links' but not checking the property here.
-			short = newhref.parts()[-1]
-			if newhref.anchor:
-				short += '#' + newhref.anchor
-			elt[:] = [short]  # 'Journal:2020:01:20' -> '20'
+			elt[:] = [newhref.short_name()]  # 'Journal:2020:01:20' -> '20'
 
 		elt.set('href', link)
 

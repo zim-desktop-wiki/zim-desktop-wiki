@@ -10,6 +10,7 @@ from tests.mainwindow import setUpMainWindow
 from zim.plugins import PluginManager
 from zim.plugins.tableofcontents import *
 from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
+from zim.notebook import Path
 
 
 @tests.slowTest

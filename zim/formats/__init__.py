@@ -297,6 +297,9 @@ class ParseTree(object):
 		self._object_cache = {}
 		self.meta = DefinitionOrderedDict()
 
+	def __str__(self):
+		return "<%s: content=\"%s\">" % (self.__class__.__name__, self.tostring().replace('"', '\\"').replace('\n', '\\n'))
+
 	@property
 	def hascontent(self):
 		'''Returns True if the tree contains any content at all.'''

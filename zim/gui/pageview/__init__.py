@@ -1387,10 +1387,10 @@ class TextBuffer(Gtk.TextBuffer):
 			return None
 
 	def _get_implict_anchor_if_heading(self, iter):
-		text = self._get_heading_text(iter)
+		text = self.get_heading_text(iter)
 		return heading_to_anchor(text) if text else None
 
-	def _get_heading_text(self, iter):
+	def get_heading_text(self, iter):
 		line_start = iter.copy() if iter.starts_line() else self.get_iter_at_line(iter.get_line())
 		is_heading = any(filter(_is_heading_tag, line_start.get_tags()))
 		if not is_heading:
@@ -1398,7 +1398,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 		line_end = line_start.copy()
 		line_end.forward_line()
-		return line_start.get_text(line_end)
+		return line_start.get_text(line_end).strip()
 
 	#endregion
 
@@ -6665,7 +6665,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _link to this location')) # T: menu item to copy link to achor location in page
 		anchor = buffer.get_anchor_for_location(iter)
 		if anchor:
-			heading_text = buffer._get_heading_text(iter) # can be None if not a heading
+			heading_text = buffer.get_heading_text(iter) # can be None if not a heading
 			item.connect('activate', _copy_link_to_anchor, anchor, heading_text)
 		else:
 			item.set_sensitive(False)
