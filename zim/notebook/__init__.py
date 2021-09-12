@@ -58,6 +58,8 @@ from .layout import encode_filename, decode_filename
 from .index import IndexNotFoundError, \
 	LINK_DIR_BACKWARD, LINK_DIR_BOTH, LINK_DIR_FORWARD
 
+from .content_updater import update_parsetree_and_copy_images, \
+	set_parsetree_attributes_to_resolve_links, replace_parsetree_links_and_copy_images
 
 
 def build_notebook(location):

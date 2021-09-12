@@ -3,6 +3,8 @@
 
 import tests
 
+from tests import convert_path_sep
+
 import os
 
 from gi.repository import Gtk
@@ -49,13 +51,6 @@ def set_clipboard_image(file):
 		pass
 
 	myclipboard.set_with_data(targets, my_get_data, my_clear_data, file)
-
-
-def convert_path_sep(path):
-	if os.name == 'nt':
-		return path.replace('/', '\\')
-	else:
-		return path
 
 
 class TestClipboard(tests.TestCase):

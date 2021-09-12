@@ -3790,10 +3790,10 @@ class TestWebPImageSupport(tests.TestCase):
 		notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL)
 		page = notebook.get_page(Path('Test'))
 		file = page.attachments_folder.file('image_webp_test.webp')
-		src = LocalFile((os.getcwd(), './tests/data/image_webp_test/image_webp_test.webp'))
+		src = tests.TEST_DATA_FOLDER.file('image_webp_test/image_webp_test.webp')
 		src.copyto(file)
 
-		pageview = setUpPageView(notebook, text='''
+		pageview = setUpPageView(notebook, text='''\
 ====== test webp ======
 
 If the Pillow fallback works, images should be displayed below, with the right one being 2x smaller.
@@ -3801,3 +3801,52 @@ If the Pillow fallback works, images should be displayed below, with the right o
 {{./image_webp_test.webp}} {{./image_webp_test.webp?width=240}}
 		''')
 		# No assert, just test it runs without errors / warnings
+
+
+@tests.slowTest
+class TestMoveTextDialog(tests.TestCase):
+	# Testing of all the premutations of resolving links & images is already
+	# covered in test suite of the clipboard. Essentially we are re-using
+	# the copy-paste logic.
+
+	def runTest(self):
+		notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL)
+		page = notebook.get_page(Path('Test'))
+		file = page.attachments_folder.file('zim.png')
+		src = tests.ZIM_DATA_FOLDER.file('zim.png')
+		src.copyto(file)
+
+		pageview = setUpPageView(notebook, text='''\
+Some **bold** test
+
+An image {{./zim.png}}
+And a link [[+Foo]]
+
+All in one page
+''')
+
+		buffer = pageview.textview.get_buffer()
+		buffer.select_lines(2, 4)
+
+		newpath = Path('Bar')
+		def move_text_dialog(dialog):
+			self.assertIsInstance(dialog, MoveTextDialog)
+			dialog.form['page'] = newpath
+			dialog.form['link'] = True
+			dialog.assert_response_ok()
+
+		navigation = tests.MockObject()
+		with tests.DialogContext(move_text_dialog):
+			MoveTextDialog(pageview, notebook, page, buffer, navigation).run()
+
+		newpage = notebook.get_page(newpath)
+		self.assertEqual(newpage.dump('wiki')[-2:], [
+			'An image {{%s}}\n' % tests.convert_path_sep('./zim.png'),
+			'And a link [[Test:Foo]]\n'
+		]) 	# Link updated - using last two lines to exclude template
+		file = newpage.attachments_folder.file('zim.png')
+		self.assertTrue(file.exists()) # File copied
+
+		self.assertEqual(page.dump('wiki'), [
+			'Some **bold** test\n', '\n', '[[:Bar]]\n', 'All in one page\n'
+		]) 	# text replaced by link

@@ -8441,7 +8441,12 @@ class WordCountDialog(Dialog):
 		table.attach(Gtk.Label(label=str(selectioncount[3])), 3, 4, 4, 5)
 
 
+from zim.notebook import update_parsetree_and_copy_images
+
 class MoveTextDialog(Dialog):
+	'''This dialog allows moving a selected text to a new page
+	The idea is to allow "refactoring" of pages more easily.
+	'''
 
 	def __init__(self, pageview, notebook, page, buffer, navigation):
 		assert buffer.get_has_selection(), 'No Selection present'
@@ -8456,11 +8461,6 @@ class MoveTextDialog(Dialog):
 		self.page = page
 		self.buffer = buffer
 		self.navigation = navigation
-		self.text = self.pageview.get_selection(format='wiki')
-		assert self.text # just to be sure
-		start, end = buffer.get_selection_bounds()
-		self.bounds = (start.get_offset(), end.get_offset())
-			# Save selection bounds - can get lost later :S
 
 		self.uistate.setdefault('link', True)
 		self.uistate.setdefault('open_page', False)
@@ -8482,17 +8482,22 @@ class MoveTextDialog(Dialog):
 			return False
 
 		# Copy text
-		if newpage.exists():
-			newpage.parse('wiki', self.text, append=True) # FIXME: probably should use parsetree here instead
-			self.notebook.store_page(newpage)
-		else:
+		bounds = self.buffer.get_selection_bounds()
+		if not bounds:
+			ErrorDialog(self, _('No text selected')).run()
+			return False
+
+		if not newpage.exists():
 			template = self.notebook.get_template(newpage)
 			newpage.set_parsetree(template)
-			newpage.parse('wiki', self.text) # FIXME: probably should use parsetree here instead
-			self.notebook.store_page(newpage)
+
+		parsetree = self.buffer.get_parsetree(bounds)
+		update_parsetree_and_copy_images(parsetree, self.notebook, self.page, newpage)
+
+		newpage.append_parsetree(parsetree)
+		self.notebook.store_page(newpage)
 
 		# Delete text (after copy was successfulll..)
-		bounds = list(map(self.buffer.get_iter_at_offset, self.bounds))
 		self.buffer.delete(*bounds)
 
 		# Insert Link
