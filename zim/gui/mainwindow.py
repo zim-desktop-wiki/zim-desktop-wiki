@@ -54,6 +54,10 @@ MENU_ACTIONS = (
 	('help_menu', None, _('_Help')), # T: Menu title
 	('checkbox_menu', None, _('_Checkbox')), # T: Menu title
 )
+if sys.platform == "darwin":
+	# don't use mnemonics on macOS to allow alt-<letter> shortcuts
+	MENU_ACTIONS = tuple((t[0], t[1], t[2].replace('_', '')) for t in MENU_ACTIONS)
+
 
 #: Preferences for the user interface
 ui_preferences = (
@@ -184,7 +188,7 @@ class WindowBaseMixin(object):
 			self._fullscreen_eventbox.hide()
 			self.unfullscreen()
 
-	@toggle_action(_('Notebook _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
+	@toggle_action(_('Toggle _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
 	def toggle_editable(self, editable):
 		'''Menu action to toggle the read-only state of the application
 		@emits: readonly-changed
@@ -239,6 +243,63 @@ class WindowBaseMixin(object):
 		_change_style_on_toggle(button)
 		button.connect('toggled', _change_style_on_toggle)
 
+	def do_pane_state_changed(self, pane, *a):
+		if not hasattr(self, 'actiongroup') \
+		or self._block_toggle_panes:
+			return
+
+		action = self.actiongroup.get_action('toggle_panes')
+		visible = bool(self.get_visible_panes())
+		if visible != action.get_active():
+			action.set_active(visible)
+
+	@toggle_action(_('_Side Panes'), 'F9', icon='gtk-index', init=True) # T: Menu item
+	def toggle_panes(self, show):
+		'''Menu action to toggle the visibility of the all panes
+		@param show: when C{True} or C{False} force the visibility,
+		when C{None} toggle based on current state
+		'''
+		self._block_toggle_panes = True
+		Window.toggle_panes(self, show)
+		self._block_toggle_panes = False
+
+		if show:
+			self.focus_sidepane()
+		else:
+			self.pageview.grab_focus()
+
+		self._sidepane_autoclose = False
+		self.save_uistate()
+
+	def do_set_focus(self, widget):
+		Window.do_set_focus(self, widget)
+		if widget == self.pageview.textview \
+		and self._sidepane_autoclose:
+			# Sidepane open and should close automatically
+			self.toggle_panes(False)
+
+	def toggle_sidepane_focus(self, *a):
+		'''Switch focus between the textview and the page index.
+		Automatically opens the sidepane if it is closed
+		(but sets a property to automatically close it again).
+		This method is used for the (optional) <Primary><Space> keybinding.
+		'''
+		action = self.actiongroup.get_action('toggle_panes')
+		if action.get_active():
+			# side pane open
+			if self.pageview.textview.is_focus():
+				self.focus_sidepane()
+			else:
+				if self._sidepane_autoclose:
+					self.toggle_panes(False)
+				else:
+					self.pageview.grab_focus()
+		else:
+			# open the pane
+			self.toggle_panes(True)
+			self._sidepane_autoclose = True
+
+		return True # stop
 
 
 @extendable(MainWindowExtension)
@@ -356,10 +417,6 @@ class MainWindow(WindowBaseMixin, Window):
 		self.uimanager.insert_action_group(group, 0)
 
 		group = get_gtk_actiongroup(self)
-		# don't use mnemonics on macOS to allow alt-<letter> shortcuts
-		global MENU_ACTIONS
-		if sys.platform == "darwin":
-			MENU_ACTIONS = tuple((t[0], t[1], t[2].replace('_', '')) for t in MENU_ACTIONS)
 		group.add_actions(MENU_ACTIONS)
 		self.uimanager.insert_action_group(group, 0)
 
@@ -517,64 +574,6 @@ class MainWindow(WindowBaseMixin, Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-	def do_pane_state_changed(self, pane, *a):
-		if not hasattr(self, 'actiongroup') \
-		or self._block_toggle_panes:
-			return
-
-		action = self.actiongroup.get_action('toggle_panes')
-		visible = bool(self.get_visible_panes())
-		if visible != action.get_active():
-			action.set_active(visible)
-
-	@toggle_action(_('_Side Panes'), 'F9', icon='gtk-index', init=True) # T: Menu item
-	def toggle_panes(self, show):
-		'''Menu action to toggle the visibility of the all panes
-		@param show: when C{True} or C{False} force the visibility,
-		when C{None} toggle based on current state
-		'''
-		self._block_toggle_panes = True
-		Window.toggle_panes(self, show)
-		self._block_toggle_panes = False
-
-		if show:
-			self.focus_sidepane()
-		else:
-			self.pageview.grab_focus()
-
-		self._sidepane_autoclose = False
-		self.save_uistate()
-
-	def do_set_focus(self, widget):
-		Window.do_set_focus(self, widget)
-		if widget == self.pageview.textview \
-		and self._sidepane_autoclose:
-			# Sidepane open and should close automatically
-			self.toggle_panes(False)
-
-	def toggle_sidepane_focus(self, *a):
-		'''Switch focus between the textview and the page index.
-		Automatically opens the sidepane if it is closed
-		(but sets a property to automatically close it again).
-		This method is used for the (optional) <Primary><Space> keybinding.
-		'''
-		action = self.actiongroup.get_action('toggle_panes')
-		if action.get_active():
-			# side pane open
-			if self.pageview.textview.is_focus():
-				self.focus_sidepane()
-			else:
-				if self._sidepane_autoclose:
-					self.toggle_panes(False)
-				else:
-					self.pageview.grab_focus()
-		else:
-			# open the pane
-			self.toggle_panes(True)
-			self._sidepane_autoclose = True
-
-		return True # stop
-
 	def init_uistate(self):
 		# Initialize all the uistate parameters
 		# delayed till show or show_all because all this needs real
@@ -681,7 +680,6 @@ class MainWindow(WindowBaseMixin, Window):
 				return # user cancelled
 
 		if self.page and id(self.page) == id(page):
-			# XXX: Check ID to enable reload_page but catch all other redundant calls.
 			if anchor:
 				self.pageview.navigate_to_anchor(anchor)
 			return
@@ -839,16 +837,6 @@ class MainWindow(WindowBaseMixin, Window):
 		'''Menu action to open the home page'''
 		self.open_page(self.notebook.get_home_page())
 
-	@action(_('_Reload'), '<Primary>R') # T: Menu item
-	def reload_page(self):
-		'''Menu action to reload the current page. Will first try
-		to save any unsaved changes, then reload the page from disk.
-		'''
-		cursor = self.pageview.get_cursor_pos()
-		self.pageview.save_changes()
-		self.page.reload_textbuffer()
-		self.pageview.set_cursor_pos(cursor)
-
 
 class BackLinksMenuButton(MenuButton):
 
@@ -897,6 +885,8 @@ class PageWindow(WindowBaseMixin, Window):
 
 	def __init__(self, notebook, page, anchor, navigation, editable=True):
 		Window.__init__(self)
+		self._block_toggle_panes = False
+		self._sidepane_autoclose = False
 		self.navigation = navigation
 		self.notebook = notebook
 		self.page = notebook.get_page(page)
@@ -929,13 +919,26 @@ class PageWindow(WindowBaseMixin, Window):
 		self.pageview.set_page(self.page)
 		self.add(self.pageview)
 
-		# Need UIManager to make accelerators work
+		# Need UIManager & menubar to make accelerators and plugin actions work
 		self.uimanager = Gtk.UIManager()
 		self.add_accel_group(self.uimanager.get_accel_group())
+
+		group = get_gtk_actiongroup(self)
+		group.add_actions(MENU_ACTIONS)
+		self.uimanager.insert_action_group(group, 0)
+
 		group = get_gtk_actiongroup(self.pageview)
 		self.uimanager.insert_action_group(group, 0)
+
+		self._uiactions = UIActions(self, self.notebook, self.page, self.navigation)
+		group = get_gtk_actiongroup(self._uiactions)
+		self.uimanager.insert_action_group(group, 0)
+
 		fname = 'pagewindow_ui.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
+
+		self.menubar = self.uimanager.get_widget('/menubar')
+		self.add_bar(self.menubar, position=TOP)
 
 		# Close window when page is moved or deleted
 		def on_notebook_change(o, path, *a):

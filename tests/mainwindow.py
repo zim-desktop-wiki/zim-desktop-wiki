@@ -157,11 +157,6 @@ class TestActions(tests.TestCase):
 		window.open_page_home()
 		self.assertEqual(window.page, Path('Home'))
 
-	def testReloadPage(self):
-		window = setUpMainWindow(self.setUpNotebook(), path='A')
-		window.reload_page()
-		# FIXME - what to test here?
-
 
 class TestOpenPageImportTextFile(tests.TestCase):
 

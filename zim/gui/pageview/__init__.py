@@ -6797,6 +6797,16 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		self.save_changes(write_if_not_modified=True)
 
+	@action(_('_Reload'), '<Primary>R') # T: Menu item
+	def reload_page(self):
+		'''Menu action to reload the current page. Will first try
+		to save any unsaved changes, then reload the page from disk.
+		'''
+		cursor = self.get_cursor_pos()
+		self.save_changes()
+		self.page.reload_textbuffer()
+		self.set_cursor_pos(cursor)
+
 	@action(_('_Undo'), '<Primary>Z', menuhints='edit') # T: Menu item
 	def undo(self):
 		'''Menu action to undo a single step'''
