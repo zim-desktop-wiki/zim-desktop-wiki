@@ -13,8 +13,6 @@ from zim.newfs import LocalFile, SEP
 from zim.formats import IMAGE, LINK, OBJECT, VisitorSkip
 from zim.parsing import link_type
 
-from zim.plugins.base.imagegenerator import copy_imagegenerator_src_files
-
 
 logger = logging.getLogger('zim.notebook.updater')
 
@@ -211,6 +209,8 @@ def _copy_image(notebook, new_path, abs_src, node):
 
 
 def _copy_image_object(notebook, new_path, abs_src, node):
+	from zim.plugins.base.imagegenerator import copy_imagegenerator_src_files
+
 	src_file = LocalFile(abs_src)
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = copy_imagegenerator_src_files(src_file, folder)
