@@ -338,3 +338,30 @@ class TestReadOnlyPageWindow(TestReadOnlyMainWindow):
 		page = notebook.get_page(Path('Test'))
 		window = PageWindow(notebook, page, anchor=None, navigation=None)
 		self.assertReadOnlyState(window)
+
+
+class TestUIStateInitSave(tests.TestCase):
+
+	def testMainWindow(self):
+		notebook = self.setUpNotebook(content=('Test',))
+		window = setUpMainWindow(notebook)
+		self.doTest(window)
+
+	def testPageWindow(self):
+		notebook = self.setUpNotebook(content=('Test',))
+		page = notebook.get_page(Path('Test'))
+		window = PageWindow(notebook, page, anchor=None, navigation=None)
+		self.doTest(window)
+
+	def doTest(self, window):
+		from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE
+
+		# Check keys defined in Window.init_uistate()
+		window.show_all()
+		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
+			self.assertIn(key, window.uistate)
+
+		# Check Window.save_uistate() is called
+		cb = tests.wrap_method_with_logger(window, 'save_uistate')
+		window.emit('delete-event', None)
+		self.assertTrue(cb.hasBeenCalled)

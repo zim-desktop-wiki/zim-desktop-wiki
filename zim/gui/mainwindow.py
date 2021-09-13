@@ -941,7 +941,7 @@ class PageWindow(WindowBaseMixin, Window):
 		def on_notebook_change(o, path, *a):
 			if path == self.page or self.page.ischild(path):
 				logger.debug('Close PageWindow for %s (page is gone)', self.page)
-				self._save_uistate()
+				self.save_uistate()
 				self.destroy()
 
 		notebook.connect('deleted-page', on_notebook_change)
@@ -953,7 +953,7 @@ class PageWindow(WindowBaseMixin, Window):
 		# on close window
 		def do_delete_event(*a):
 			logger.debug('Close PageWindow for %s', self.page)
-			self._save_uistate()
+			self.save_uistate()
 
 		self.connect('delete-event', do_delete_event)
 
@@ -970,8 +970,9 @@ class PageWindow(WindowBaseMixin, Window):
 		self._style_toggle_editable_button(button)
 		headerbar.pack_end(button)
 
-	def _save_uistate(self):
+	def save_uistate(self):
 		self.uistate['windowsize'] = tuple(self.get_size())
+		Window.save_uistate(self) # takes care of sidepane positions etc.
 
 
 class OpenPageDialog(Dialog):

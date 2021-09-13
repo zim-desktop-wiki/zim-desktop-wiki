@@ -762,6 +762,31 @@ class CallBackLogger(list):
 		return self.return_value
 
 
+def wrap_method_with_logger(object, name):
+	orig_function = getattr(object, name)
+	wrapper = CallBackWrapper(orig_function)
+	setattr(object, name, wrapper)
+	return wrapper
+
+
+class CallBackWrapper(CallBackLogger):
+
+	def __init__(self, orig_function):
+		assert orig_function is not None
+		self.count = 0
+		self.orig_function = orig_function
+
+	def __call__(self, *arg, **kwarg):
+		self.count += 1
+
+		call = list(arg)
+		if kwarg:
+			call.append(kwarg)
+		self.append(tuple(call))
+
+		return self.orig_function(*arg, **kwarg)
+
+
 class SignalLogger(dict):
 	'''Listening object that attaches to all signals of the target and records
 	all signals calls in a dictionary of lists.
