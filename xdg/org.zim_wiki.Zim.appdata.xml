@@ -35,6 +35,53 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2021-09-14" version="0.74.0">
+      <description>
+        <ul>
+          <li>Support link "anchors" to allow linking within page</li>
+          <li>Add new-style headerbar as window decoration</li>
+          <li>Add auto-hiding headerbar in full screen mode </li>
+          <li>Add confirmation dialog when trashing pages</li>
+          <li>Replace toolbar by a plugin, introduce "Edit Bar" in pageview</li>
+          <li>Remove statusbar</li>
+          <li>Make single page window editable</li>
+          <li>Keep undostack for the last 10 pages</li>
+          <li>Copy equations on copy-paste</li>
+          <li>Copy image attachments on copy-paste</li>
+          <li>Update relative links on copy-paste formatted text</li>
+          <li>Fix copy-pasting links to another notebook</li>
+          <li>Add Bullet Journal "back arrow" checkbox</li>
+          <li>Add default browser to preferences</li>
+          <li>Add option to paste short relative link names</li>
+          <li>Add support for "INCLUDE file" in templates</li>
+          <li>Add `&lt;Ctrl&gt;&lt;Shift&gt;C` for copying the current line</li>
+          <li>Show plugins that failed to load in the plugin list</li>
+          <li>Add auto-expand and -collapse options to tags plugin</li>
+          <li>Add option for horizontal scrollbar to pageindex &amp; tags plugins</li>
+          <li>Add "open backlink in new window" in backlinks plugin</li>
+          <li>Add count and full path options for backlinks plugin</li>
+          <li>Add rename and delete menu entries in attachmentbrowser</li>
+          <li>Improve language selection for sourceview plugin</li>
+          <li>Add border width preference to sourceview plugin</li>
+          <li>Add dark mode preference to equation editor</li>
+          <li>Add Toolbar plugin, including "classic" mode</li>
+          <li>Add Command Palette plugin</li>
+          <li>Also match URL in wiki text for local network</li>
+          <li>Improve read performance for large text attachments</li>
+          <li>Fix issue with unicode mismatch in link and page names</li>
+          <li>Make indexer robust against false folder mtime</li>
+          <li>Make windows installer robust against overwriting data</li>
+          <li>Try to use GtkSourceView 4.x if 3.x not found</li>
+          <li>Fix numbered lists with letters in Markdown export</li>
+          <li>Use Pillow fallback to load WebP images</li>
+          <li>Make appending to page undo-able</li>
+          <li>Highlight "Toggle Editable" button when read-only</li>
+          <li>Add extensions on PageWindow by splitting NotebookView and PageView</li>
+          <li>Show link destination for keyboard navigation</li>
+          <li>Exclude formatting when copying headings</li>
+        </ul>
+      </description>
+    </release>
     <release date="2021-01-30" version="0.73.5">
       <description>
         <ul>

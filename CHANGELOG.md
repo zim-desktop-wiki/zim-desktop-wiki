@@ -5,6 +5,49 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.74.0 - Tue 14 Sep 2021
+* Support link "anchors" to allow linking within page
+* Add new-style headerbar as window decoration
+* Add auto-hiding headerbar in full screen mode 
+* Add confirmation dialog when trashing pages
+* Replace toolbar by a plugin, introduce "Edit Bar" in pageview
+* Remove statusbar
+* Make single page window editable
+* Keep undostack for the last 10 pages
+* Copy equations on copy-paste
+* Copy image attachments on copy-paste
+* Update relative links on copy-paste formatted text
+* Fix copy-pasting links to another notebook
+* Add Bullet Journal "back arrow" checkbox
+* Add default browser to preferences
+* Add option to paste short relative link names
+* Add support for "INCLUDE file" in templates
+* Add `<Ctrl><Shift>C` for copying the current line
+* Show plugins that failed to load in the plugin list
+* Add auto-expand and -collapse options to tags plugin
+* Add option for horizontal scrollbar to pageindex & tags plugins
+* Add "open backlink in new window" in backlinks plugin
+* Add count and full path options for backlinks plugin
+* Add rename and delete menu entries in attachmentbrowser
+* Improve language selection for sourceview plugin
+* Add border width preference to sourceview plugin
+* Add dark mode preference to equation editor
+* Add Toolbar plugin, including "classic" mode
+* Add Command Palette plugin
+* Also match URL in wiki text for local network
+* Improve read performance for large text attachments
+* Fix issue with unicode mismatch in link and page names
+* Make indexer robust against false folder mtime
+* Make windows installer robust against overwriting data
+* Try to use GtkSourceView 4.x if 3.x not found
+* Fix numbered lists with letters in Markdown export
+* Use Pillow fallback to load WebP images
+* Make appending to page undo-able
+* Highlight "Toggle Editable" button when read-only
+* Add extensions on PageWindow by splitting NotebookView and PageView
+* Show link destination for keyboard navigation
+* Exclude formatting when copying headings
+
 ##  0.73.5 - Sat 30 Jan 2021
 * Fix regression for "www." links in pages
 * Fix bug with email address or url wrapped in higlight markup
