@@ -7,12 +7,13 @@
 import tests
 
 from tests.mainwindow import setUpMainWindow
+from tests.pageview import TextBufferTestCaseMixin
 
 from zim.plugins.linesorter import LineSorterPlugin, LineSorterPageViewExtension, NoSelectionError
 from zim.gui.pageview import PageView
 
 
-class TestLineSorterWindowExtension(tests.TestCase):
+class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 
 	def setUp(self):
 		plugin = LineSorterPlugin()
@@ -151,6 +152,26 @@ class TestLineSorterWindowExtension(tests.TestCase):
 		self.select_range(0, 10)
 		self.extension.duplicate_line()
 		self.assertEqual(self.get_text(), 'Line A\nLine B\nLine A\nLine B\nLine C\n')
+
+	def testDuplicateLineAvoidResetHeaderForBullet(self):
+		# Test case for specific issue seen #1457
+		# Effective testing pageview behavior, so might be in the wrong place
+		# in the test suite.
+		# Doubles as test for content other than pure text
+		self.set_buffer(self.buffer, '''\
+<li bullet="*" indent="0"> line A</li>
+<li bullet="*" indent="0"> line B</li>
+<h level="2">Heading</h>
+''')
+		self.place_cursor(10)
+		self.extension.duplicate_line()
+		self.assertBufferEquals(self.buffer, '''\
+<li bullet="*" indent="0"> line A</li>
+<li bullet="*" indent="0"> line B</li>
+<li bullet="*" indent="0"> line B</li>
+<h level="2">Heading</h>
+'''
+)
 
 	def testRemoveLine(self):
 		self.set_text('Line A\nLine B\nLine C\n')

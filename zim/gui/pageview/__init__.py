@@ -1588,6 +1588,18 @@ class TextBuffer(Gtk.TextBuffer):
 			if not bullet is None:
 				iter = self.get_iter_at_line(line)
 				self.place_cursor(iter) # update editmode
+
+				insert = self.get_insert_iter()
+				assert insert.starts_line(), 'BUG: bullet not at line start'
+
+				# Turning into list item removes heading
+				if not insert.ends_line():
+					end = insert.copy()
+					end.forward_to_line_end()
+					self.smart_remove_tags(_is_heading_tag, insert, end)
+
+				# TODO: convert 'pre' to 'code' ?
+
 				self._insert_bullet_at_cursor(bullet)
 
 			#~ self.update_indent_tag(line, bullet)
@@ -1611,14 +1623,6 @@ class TextBuffer(Gtk.TextBuffer):
 		if not raw:
 			insert = self.get_insert_iter()
 			assert insert.starts_line(), 'BUG: bullet not at line start'
-
-			# Turning into list item removes heading
-			if not insert.ends_line():
-				end = insert.copy()
-				end.forward_to_line_end()
-				self.smart_remove_tags(_is_heading_tag, insert, end)
-
-			# TODO: convert 'pre' to 'code' ?
 
 			# Temporary clear non indent tags during insert
 			self._editmode_tags = list(filter(_is_indent_tag, self._editmode_tags))
