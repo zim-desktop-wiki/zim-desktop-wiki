@@ -103,11 +103,11 @@ _file = r'''
 	'''
 
 url_re = re.compile(
-	f'''\\b
-	(?!__)(?P<url>{_url})     |
-	(?!__)(?P<email>{_email}) |
-	(?P<fileuri>{_file})
-	''',
+	'''\\b
+	(?!__)(?P<url>%s)     |
+	(?!__)(?P<email>%s) |
+	(?P<fileuri>%s)
+	''' % (_url, _email, _file),
 	re.VERBOSE
 )
 

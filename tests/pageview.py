@@ -2697,7 +2697,7 @@ Baz
 				('open_page', Path(href), {'new_window': False, 'anchor': None})
 			)
 		for href, anchor in [('foo', 'sub-heading')]:
-			pageview.activate_link(f'{href}#{anchor}')
+			pageview.activate_link('%s#%s' % (href, anchor))
 			self.assertEqual(
 				pageview.navigation.lastMethodCall,
 				('open_page', Path(href), {'new_window': False, 'anchor': anchor})

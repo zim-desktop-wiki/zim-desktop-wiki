@@ -481,7 +481,7 @@ def image_file_load_pixels(file, width_override=-1, height_override=-1):
 				if width_override <= 0:
 					width_override = int(img_pil.width * height_override / img_pil.height)
 
-				logger.debug(f'PIL resizing {width_override} {height_override}')
+				logger.debug('PIL resizing %s %s', width_override, height_override)
 				img_pil = img_pil.resize((width_override, height_override))
 
 			# check if there is an alpha channel
