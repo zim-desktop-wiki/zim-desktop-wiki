@@ -823,9 +823,9 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 			template_options={'empty_lines': 'default'}
 		).dump(tree)
 		self.assertEqual(''.join(html),
-			'<h1>head1<a id="head1" class="h_anchor"/></h1>\n\n'
+			'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n\n'
 			'<br>\n\n'
-			'<h2>head2<a id="head2" class="h_anchor"/></h2>\n\n'
+			'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n\n'
 		)
 
 		html = self.format.Dumper(
@@ -833,8 +833,8 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 			template_options={'empty_lines': 'remove'}
 		).dump(tree)
 		self.assertEqual(''.join(html),
-			'<h1>head1<a id="head1" class="h_anchor"/></h1>\n\n'
-			'<h2>head2<a id="head2" class="h_anchor"/></h2>\n\n'
+			'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n\n'
+			'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n\n'
 		)
 
 		html = self.format.Dumper(
@@ -842,8 +842,8 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 			template_options={'empty_lines': 'Remove'} # case sensitive
 		).dump(tree)
 		self.assertEqual(''.join(html),
-			'<h1>head1<a id="head1" class="h_anchor"/></h1>\n\n'
-			'<h2>head2<a id="head2" class="h_anchor"/></h2>\n\n'
+			'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n\n'
+			'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n\n'
 		)
 
 

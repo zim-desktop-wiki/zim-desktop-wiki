@@ -111,7 +111,7 @@ class Dumper(DumperClass):
 		else:
 			start = '<%s>' % h
 		self._isrtl = None # reset
-		end = '<a id="%s" class="h_anchor"/></%s>\n' % (id, h)
+		end = '<a id="%s" class="h_anchor"></a></%s>\n' % (id, h)
 		strings.insert(0, start)
 		strings.append(end)
 		return strings
@@ -197,7 +197,7 @@ class Dumper(DumperClass):
 
 	def dump_anchor(self, tag, attrib, strings=None):
 		name = attrib['name']
-		return ['<a id="%s" class="anchor" />' % name]
+		return ['<a id="%s" class="anchor"></a>' % name]
 
 	def dump_link(self, tag, attrib, strings=None):
 		href = self.linker.link(attrib['href'])
