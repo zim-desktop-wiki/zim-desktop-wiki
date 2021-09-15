@@ -85,9 +85,11 @@ def replace_parsetree_links_and_copy_images(parsetree, notebook, path):
 		)
 	elif src_page and path and src_page != path.name:
 		# Update to new page
+		old_page = notebook.get_page(Path(src_page))
+		old_folder = old_page.attachments_folder
 		parsetree.replace(
 			(LINK, IMAGE, OBJECT),
-			partial(_replace_links_to_page_and_copy_images, notebook, path)
+			partial(_replace_links_to_page_and_copy_images, notebook, old_folder, path)
 		)
 	else:
 		# Leave links alone, remove "_href" attribs
@@ -136,20 +138,22 @@ def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_pat
 		# Just copy all images - image links to other notebook don't make sense
 		abs_src = node.attrib.pop('_src', None)
 		if abs_src:
-			return _copy_image(notebook, new_path, abs_src, node)
+			src_file = LocalFile(abs_src)
+			return _copy_image(notebook, new_path, src_file, node)
 		else:
 			raise VisitorSkip
 	elif node.tag == OBJECT:
 		abs_src = node.attrib.pop('_src', None)
 		if abs_src and node.get('type').startswith('image+'):
-			return _copy_image_object(notebook, new_path, abs_src, node)
+			src_file = LocalFile(abs_src)
+			return _copy_image_object(notebook, new_path, src_file, node)
 		else:
 			raise VisitorSkip
 	else:
 		raise AssertionError('unknown tag')
 
 
-def _replace_links_to_page_and_copy_images(notebook, new_path, node):
+def _replace_links_to_page_and_copy_images(notebook, old_folder, new_path, node):
 	if node.tag == LINK:
 		abs_href = node.attrib.pop('_href', None)
 		if abs_href:
@@ -174,33 +178,34 @@ def _replace_links_to_page_and_copy_images(notebook, new_path, node):
 		# to a file outside of the attachment folder
 		abs_src = node.attrib.pop('_src', None)
 		if abs_src:
-			if node.get('src').replace('\\', '/').startswith('./'):
-				return _copy_image(notebook, new_path, abs_src, node)
+			src_file = LocalFile(abs_src)
+			if src_file.ischild(old_folder):
+				return _copy_image(notebook, new_path, src_file, node)
 			else:
-				return _update_image(notebook, new_path, abs_src, node)
+				return _update_image(notebook, new_path, src_file, node)
 		else:
 			raise VisitorSkip
 	elif node.tag == OBJECT:
 		abs_src = node.attrib.pop('_src', None)
 		if abs_src and node.get('type').startswith('image+'):
-			if node.get('src').replace('\\', '/').startswith('./'):
-				return _copy_image_object(notebook, new_path, abs_src, node)
+			src_file = LocalFile(abs_src)
+			if src_file.ischild(old_folder):
+				return _copy_image_object(notebook, new_path, src_file, node)
 			else:
-				return _update_image(notebook, new_path, abs_src, node)
+				return _update_image(notebook, new_path, src_file, node)
 		else:
 			raise VisitorSkip
 	else:
 		raise AssertionError('unknown tag')
 
 
-def _update_image(notebook, new_path, abs_src, node):
-	new_src = notebook.relative_filepath(LocalFile(abs_src), new_path)
+def _update_image(notebook, new_path, src_file, node):
+	new_src = notebook.relative_filepath(src_file, new_path)
 	node.set('src', new_src)
 	return node
 
 
-def _copy_image(notebook, new_path, abs_src, node):
-	src_file = LocalFile(abs_src)
+def _copy_image(notebook, new_path, src_file, node):
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = folder.new_file(src_file.basename)
 	src_file.copyto(new_file)
@@ -208,10 +213,9 @@ def _copy_image(notebook, new_path, abs_src, node):
 	return node
 
 
-def _copy_image_object(notebook, new_path, abs_src, node):
+def _copy_image_object(notebook, new_path, src_file, node):
 	from zim.plugins.base.imagegenerator import copy_imagegenerator_src_files
 
-	src_file = LocalFile(abs_src)
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = copy_imagegenerator_src_files(src_file, folder)
 	node.set('src', '.' + SEP + new_file.basename)

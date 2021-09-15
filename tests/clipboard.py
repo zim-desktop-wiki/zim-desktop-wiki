@@ -413,12 +413,14 @@ some <b>bold</b> text
 		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
 
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '{{./attachment.png}}\n{{../OtherPage/otherimage.png}}')
-		page.attachments_folder.file('attachment.png').touch()
+		page.parse('wiki', '{{./attachment1.png}}\n{{attachment2.png}}\n{{../OtherPage/otherimage.png}}\n{{./../OtherPage/otherimage.png}}')
+		page.attachments_folder.file('attachment1.png').touch()
+		page.attachments_folder.file('attachment2.png').touch()
 
 		newpage = self.notebook.get_page(Path('OtherPage'))
-		newfile = newpage.attachments_folder.file('attachment.png')
-		self.assertFalse(newfile.exists())
+		for name in ('attachment1.png', 'attachment2.png'):
+			newfile = newpage.attachments_folder.file(name)
+			self.assertFalse(newfile.exists())
 
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
@@ -429,14 +431,20 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<img src="%s" />\n'
 			'<img src="%s" />\n'
+			'<img src="%s" />\n'
+			'<img src="%s" />\n'
 			'</p></zim-tree>' % (
-				convert_path_sep('./attachment.png'),
-				convert_path_sep('./otherimage.png')
+				convert_path_sep('./attachment1.png'),
+				convert_path_sep('./attachment2.png'),
+				convert_path_sep('./otherimage.png'),
+				convert_path_sep('./otherimage.png'),
 			)
 		)
-		# No update on first image, *but* file is copied
-		# Second image is not copied, but src is updates
-		self.assertTrue(newfile.exists())
+		# No update on two attachments, *but* file is copied
+		# External images are not copied, but src is updates
+		for name in ('attachment1.png', 'attachment2.png'):
+			newfile = newpage.attachments_folder.file(name)
+			self.assertTrue(newfile.exists())
 
 	def testCopyPasteParseTreeWithImageInDifferentNotebook(self):
 		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
