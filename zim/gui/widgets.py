@@ -3158,6 +3158,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		@implementation: can be implemented by sub-classes that have
 		an "Cancel" button
 		'''
+		self.result = None # just to be sure, might have set by response_ok handler which subsequently failed
 		return True
 
 	def save_uistate(self):

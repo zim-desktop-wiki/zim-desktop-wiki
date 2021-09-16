@@ -758,7 +758,7 @@ class TrashPageDialog(DeletePageDialogBase):
 			else:
 				pass
 
-		return not self.result # no news is good news
+		return True # we return error via result, handler always OK
 
 
 class DeletePageDialog(DeletePageDialogBase):
