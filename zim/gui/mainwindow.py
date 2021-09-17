@@ -622,6 +622,11 @@ class MainWindow(WindowBaseMixin, Window):
 		Gtk.AccelMap.get().connect('changed', on_accel_map_changed)
 
 	def save_uistate(self):
+		if not self.pageview._zim_extendable_registered:
+			return
+			# Not allowed to save before plugins are loaded, could overwrite
+			# pane state based on empty panes
+
 		if self.is_visible() and not self.isfullscreen:
 			self.uistate['windowpos'] = tuple(self.get_position())
 			self.uistate['windowsize'] = tuple(self.get_size())
@@ -974,6 +979,10 @@ class PageWindow(WindowBaseMixin, Window):
 		headerbar.pack_end(button)
 
 	def save_uistate(self):
+		if not self.pageview._zim_extendable_registered:
+			return
+			# Not allowed to save before plugins are loaded, could overwrite
+			# pane state based on empty panes
 		self.uistate['windowsize'] = tuple(self.get_size())
 		Window.save_uistate(self) # takes care of sidepane positions etc.
 

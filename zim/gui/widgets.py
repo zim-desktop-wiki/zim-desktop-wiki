@@ -2342,9 +2342,10 @@ from zim.config import ConfigDefinition, ConfigDefinitionByClass, StringAllowEmp
 
 class ConfigDefinitionPaneToggle(ConfigDefinition):
 
-	def __init__(self, default, window):
-		ConfigDefinition.__init__(self, default)
-		self.window = window
+	default = (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
+
+	def __init__(self):
+		ConfigDefinition.__init__(self, self.default)
 
 	def check(self, value):
 		# Must be list of valid pane names
@@ -2352,7 +2353,7 @@ class ConfigDefinitionPaneToggle(ConfigDefinition):
 			value = self._eval_string(value)
 
 		if isinstance(value, (tuple, list)) \
-		and all(e in self.window._zim_window_sidepanes for e in value):
+		and all(e in self.default for e in value):
 			return value
 		else:
 			raise ValueError('Unknown pane names in: %s' % value)
@@ -2417,7 +2418,7 @@ class Window(Gtk.Window):
 
 	def __init__(self):
 		GObject.GObject.__init__(self)
-		self._registered = False
+		self._uistate_initialized = False
 		self._last_sidepane_focus = None
 
 		# Construct all the components
@@ -2575,9 +2576,8 @@ class Window(Gtk.Window):
 			raise ValueError('Widget not found in this window')
 
 	def init_uistate(self):
-		assert self.uistate
 		self.uistate.define((
-			('toggle_panes', ConfigDefinitionPaneToggle([], self)),
+			('toggle_panes', ConfigDefinitionPaneToggle()),
 		))
 
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
@@ -2588,14 +2588,17 @@ class Window(Gtk.Window):
 			))
 			self.set_pane_state(key, *self.uistate[key])
 			self._set_pane_ordering(key, self.uistate[key + '_order'])
+		self._uistate_initialized = True
 
 	def save_uistate(self):
+		if not self._uistate_initialized:
+			return # init_uistate() not yet called (!?)
 		assert self.uistate is not None
+
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			if key in self.uistate:
 				self.uistate[key] = self.get_pane_state(key)
 				self.uistate[key + '_order'] = self._get_pane_ordering(key)
-			# else pass - init_uistate() not yet called (!?)
 
 	def _get_pane_ordering(self, key):
 		paned, pane, mini = self._zim_window_sidepanes[key]
@@ -2621,9 +2624,11 @@ class Window(Gtk.Window):
 			position = paned.get_position()
 			widget = gtk_notebook_get_active_page(pane.notebook)
 			active = widget.tab_key if widget else None
-			return (True, position, active)
+			pane_state = (True, position, active)
+			pane.zim_pane_state = pane_state
+			return pane_state
 		else:
-			return pane.zim_pane_state
+			return pane.zim_pane_state # If hidden we cannot query position etc.
 
 		return state
 
@@ -2762,14 +2767,7 @@ class Window(Gtk.Window):
 		self.show_all()
 
 	def show_all(self):
-		# First register, than init uistate - this ensures plugins
-		# are enabled before we finalize the presentation of the window.
-		# This is important for state of e.g. panes to work correctly
-		if not self._registered:
-			self._registered = True
-			if hasattr(self, 'uistate'):
-				self.init_uistate()
-
+		self.init_uistate()
 		if not TEST_MODE:
 			Gtk.Window.show_all(self)
 
@@ -2874,7 +2872,6 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		self.connect('destroy', self.__class__.on_destroy)
 
 		self.result = None
-		self._registered = False
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
@@ -3067,8 +3064,6 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 
 	def show_all(self):
 		logger.debug('Opening dialog "%s"', self.get_title())
-		if not self._registered:
-			self._registered = True
 
 		if not TEST_MODE:
 			Gtk.Dialog.show_all(self)

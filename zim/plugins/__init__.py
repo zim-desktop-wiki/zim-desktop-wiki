@@ -107,6 +107,7 @@ def extendable(*extension_bases, register_after_init=True):
 		orig_init = cls.__init__
 
 		def _init_wrapper(self, *arg, **kwarg):
+			self._zim_extendable_registered = False
 			if not hasattr(self, '__zim_extension_objects__'):
 				self.__zim_extension_objects__ = []
 				# Must be before orig_init to allow init to add "built-in"
@@ -477,6 +478,7 @@ class PluginManagerClass(ConnectorMixin, SignalEmitter, abc.Mapping, metaclass=_
 			self.emit('extensions-changed', obj)
 
 		self._extendables.add(obj)
+		obj._zim_extendable_registered = True
 
 	def _extend(self, plugin, obj):
 		count = 0
