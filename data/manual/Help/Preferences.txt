@@ -12,6 +12,8 @@ The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Pref
 
 **Always use last cursor position when opening a page** toggles whether pages are always opened on their last cursor position or not. When this is disabled pages only open with a cursor position when they are opened be a history reference (e.g. the "Back" button or a link from the pathbar).
 
+**Show edit bar along bottom of editor** toggles whether the "Edit Bar" is visible
+
 **Use the <Enter> key to follow links** toggles the key binding to follow links inside a page. If disabled an <Enter> on a link will just be ignored. The <Alt><Enter> key binding can be used as an alternative.
 
 **Show the cursor also for pages that can not be edited** is used to toggle the behavior of the cursor when a page can not be edited. By default, the cursor is not visible when a page is read-only, but keyboard navigation is easier when the cursor is always visible.

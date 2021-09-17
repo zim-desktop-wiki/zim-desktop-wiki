@@ -166,6 +166,9 @@ COPY_FORMATS = zim.formats.list_formats(zim.formats.TEXT_FORMAT)
 
 ui_preferences = (
 	# key, type, category, label, default
+	('show_edit_bar', 'bool', 'Interface',
+		_('Show edit bar along bottom of editor'), True),
+		# T: option in preferences dialog
 	('follow_on_enter', 'bool', 'Interface',
 		_('Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)'), True),
 		# T: option in preferences dialog
@@ -5867,6 +5870,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.preferences = ConfigManager.preferences['PageView']
 		self.preferences.define(
+			show_edit_bar=Boolean(True),
 			follow_on_enter=Boolean(True),
 			read_only_cursor=Boolean(False),
 			autolink_camelcase=Boolean(True),
@@ -5994,6 +5998,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def on_preferences_changed(self, *a):
 		self.textview.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
+		self._set_edit_bar_visible(self.preferences['show_edit_bar'])
 
 	def on_text_style_changed(self, *a):
 		'''(Re-)intializes properties for TextView, TextBuffer and
@@ -6112,6 +6117,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._overlay_label.hide()
 
 	def set_edit_bar_visible(self, visible):
+		self.preferences['show_edit_bar'] = visible
+			# Bit of a hack, but prevents preferences to overwrite setting from Toolbar plugin
+			# triggers _set_edit_bar_visible() via changed signal on preferences
+
+	def _set_edit_bar_visible(self, visible):
 		self._edit_bar_visible = visible
 		if not visible:
 			self.edit_bar.hide()
