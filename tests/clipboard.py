@@ -342,7 +342,7 @@ some <b>bold</b> text
 
 	def testCopyPasteParseTreeWithFileLinkInSamePage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[./attachment.pdf]]\n[[./attachment.pdf|my attachment]]')
+		page.parse('wiki', '[[./attachment.pdf]]\n[[./attachment.pdf|my attachment]]\n[[file://host/file]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -352,12 +352,13 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<link href="./attachment.pdf">./attachment.pdf</link>\n'
 			'<link href="./attachment.pdf">my attachment</link>\n'
+			'<link href="file://host/file">file://host/file</link>\n'
 			'</p></zim-tree>'
-		) # No need to update the link
+		) # No need to update the link - file uri to external host untouched
 
 	def testCopyPasteParseTreeWithFileLinkInDifferentPage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[./attachment.pdf]]\n[[./attachment.pdf|my attachment]]')
+		page.parse('wiki', '[[./attachment.pdf]]\n[[./attachment.pdf|my attachment]]\n[[file://host/file]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -367,12 +368,13 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<link href="%s">%s</link>\n'
 			'<link href="%s">my attachment</link>\n'
+			'<link href="file://host/file">file://host/file</link>\n'
 			'</p></zim-tree>' % (
 				convert_path_sep('../Test/attachment.pdf'),
 				convert_path_sep('../Test/attachment.pdf'),
 				convert_path_sep('../Test/attachment.pdf')
 			)
-		) # Link updated to point to same target from new location
+		) # Link updated to point to same target from new location - file uri to external host untouched
 
 	def testCopyPasteParseTreeWithFileLinkInDifferentNotebook(self):
 		# NOTE: no proper syntax for this type of link - just abs file link

@@ -45,8 +45,12 @@ def _resolve_links_and_images(notebook, src_path, node):
 			target = notebook.pages.resolve_link(src_path, HRef.new_from_wiki_link(href))
 			node.set('_href', target.name)
 		elif my_type == 'file':
-			target = notebook.resolve_file(href, src_path)
-			node.set('_href', target.uri)
+			try:
+				target = notebook.resolve_file(href, src_path)
+			except:
+				pass # may by e.g. file://host/path URI, not supported as local file
+			else:
+				node.set('_href', target.uri)
 		return node
 	elif node.tag == IMAGE:
 		target = notebook.resolve_file(node.get('src'), src_path)
