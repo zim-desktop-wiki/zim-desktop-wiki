@@ -414,7 +414,7 @@ class UriData(ClipboardData):
 		for o in obj:
 			if isinstance(o, (File, Dir)):
 				uris.append(o.uri)
-				text.append(o.user_path)
+				text.append(o.user_path or o.path)
 			else:
 				uri = o if isinstance(o, str) else o.uri
 				uris.append(uri)

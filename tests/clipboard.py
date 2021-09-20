@@ -584,3 +584,21 @@ some <b>bold</b> text
 			'<link href="wp?Foo">wikipedia Foo</link>\n'
 			'</p></zim-tree>'
 		) # Does not need update - check it is left alone
+
+
+class TestURIData(tests.TestCase):
+
+	def runTest(self):
+		someobject = tests.MockObject()
+		someobject.uri = "file:///foo"
+
+		for (input, uris, text) in (
+			((File("/foo"),), ("file:///foo",), "/foo"),
+			((File("~/foo"),), (File("~/foo").uri,), "~/foo"),
+			(("file:///foo",), ("file:///foo",), "file:///foo"),
+			((someobject,), ("file:///foo",), "file:///foo"),
+			(("file:///foo", "file:///bar"), ("file:///foo", "file:///bar"), "file:///foo file:///bar"),
+		):
+			data = UriData(*input)
+			self.assertEqual(data.get_data_as(URI_TARGET_ID), uris)
+			self.assertEqual(data.get_data_as(TEXT_TARGET_ID), text)
