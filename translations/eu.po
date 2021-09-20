@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-14 20:42+0200\n"
-"PO-Revision-Date: 2021-07-09 22:32+0000\n"
-"Last-Translator: Alexander Gabilondo <alexgabi@openmailbox.org>\n"
+"PO-Revision-Date: 2021-09-21 20:36+0000\n"
+"Last-Translator: Alex Gabilondo <alexgabi@disroot.org>\n"
 "Language-Team: Basque <https://hosted.weblate.org/projects/zim/master/eu/>\n"
 "Language: eu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.8-dev\n"
+"X-Generator: Weblate 4.9-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -128,8 +128,8 @@ msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
 msgstr ""
-"Fitxategia kanpoko aplikazio baten bidez editatzen ari zara. Elkarrizketa "
-"hau ixten ahal duzu bukatzean."
+"Fitxategia kanpoko aplikazio batez editatzen ari zara. Elkarrizketa hau "
+"ixten ahal prest dagoenean"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1010
@@ -224,8 +224,8 @@ msgid ""
 "You can configure custom tools that will appear\n"
 "in the tool menu and in the tool bar or context menus."
 msgstr ""
-"Tresnen menuan eta barran tresna\n"
-"pertsonalizatuak gehi ditzakezu"
+"Tresnen menuan eta tresna-barran edo testuinguruko menuetan\n"
+"agertuko diren tresna pertsonalizatuak ezar ditzakezu."
 
 #. Dialog title
 #: zim/gui/customtools.py:647
@@ -421,7 +421,7 @@ msgstr "Irteerako karpeta"
 #. Label for setting a name for the index of exported pages
 #: zim/gui/exportdialog.py:323
 msgid "Index page"
-msgstr "Indize-orria"
+msgstr "Aurkibide-orria"
 
 #. Label for file selection in export dialog
 #: zim/gui/exportdialog.py:326
@@ -433,8 +433,7 @@ msgstr "Irteerako fitxategia"
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
 msgstr ""
-"%(n_error)i erroreak eta %(n_warning)i alertak gertatu dira. Ikusi egunkari "
-"fitxategia."
+"%(n_error)i errore eta %(n_warning)i alerta gertatu dira, ikusi erregistroa"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:418
@@ -556,10 +555,8 @@ msgstr "Erabili beti kurtsorearen azken kokapena orri bat irekitzean"
 
 #. button label for fullscreen window header
 #: zim/gui/mainwindow.py:143
-#, fuzzy
-#| msgid "_Fullscreen"
 msgid "Leave Fullscreen"
-msgstr "_Pantaila osoan"
+msgstr "Utzi pantaila osoa"
 
 #. Menu item
 #: zim/gui/mainwindow.py:181
@@ -568,22 +565,18 @@ msgstr "_Pantaila osoan"
 
 #. menu item
 #: zim/gui/mainwindow.py:191
-#, fuzzy
-#| msgid "Notebook _Editable"
 msgid "Toggle _Editable"
-msgstr "Koaderno _editagarria"
+msgstr "Editagarria"
 
 #. menu item
 #: zim/gui/mainwindow.py:191
-#, fuzzy
-#| msgid "Notebook _Editable"
 msgid "Toggle editable"
-msgstr "Koaderno _editagarria"
+msgstr "Editagarria"
 
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "Orria irakurtzeko soilik da eta ezin da editatu"
 
 #. Menu item
 #: zim/gui/mainwindow.py:256
@@ -603,27 +596,20 @@ msgstr "Menu-barra"
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:674 zim/gui/uiactions.py:501
-#, fuzzy
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
 msgid "File exists, do you want to import?"
 msgstr ""
-"Fitxategia dagoeneko existitzen da.\n"
-"Gainidatzi nahi duzu?"
+"Fitxategia badago.\n"
+"Inportatu nahi duzu?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:675 zim/gui/uiactions.py:502
-#, fuzzy, python-format
-#| msgid ""
-#| "The folder \"%s\" does not yet exist.\n"
-#| "Do you want to create it now?"
+#, python-format
 msgid ""
 "The file \"%s\" exists but is not a wiki page.\n"
 "Do you want to import it?"
 msgstr ""
-"\"%s\" karpeta honezkero ez dago.\n"
-"Nahi duzu orain sortu?"
+"\"%s\" fitxategia badago baina ez da wiki-orri bat.\n"
+"Inportatu nahi duzu?"
 
 #. page status for title bar
 #: zim/gui/mainwindow.py:734 zim/gui/mainwindow.py:901
@@ -643,7 +629,7 @@ msgstr "At_zera"
 
 #: zim/gui/mainwindow.py:769
 msgid "Go back"
-msgstr ""
+msgstr "Atzera"
 
 #. Menu item | 
 #. Button label
@@ -652,10 +638,8 @@ msgid "_Forward"
 msgstr "_Aurrera"
 
 #: zim/gui/mainwindow.py:782
-#, fuzzy
-#| msgid "_Forward"
 msgid "Go forward"
-msgstr "_Aurrera"
+msgstr "Aurrera"
 
 #. Menu item
 #: zim/gui/mainwindow.py:792
@@ -669,17 +653,13 @@ msgstr "_Umea"
 
 #. Menu item
 #: zim/gui/mainwindow.py:817
-#, fuzzy
-#| msgid "_Previous in index"
 msgid "_Previous in Index"
-msgstr "Aurrekoa indizean"
+msgstr "_Aurrekoa aurkibidean"
 
 #. Menu item
 #: zim/gui/mainwindow.py:826
-#, fuzzy
-#| msgid "_Next in index"
 msgid "_Next in Index"
-msgstr "Hurrengoa indizean"
+msgstr "_Hurrengoa aurkibidean"
 
 #. Menu item
 #: zim/gui/mainwindow.py:835
@@ -689,7 +669,7 @@ msgstr "_Hasiera"
 #. Menu item
 #: zim/gui/mainwindow.py:835
 msgid "Go to home page"
-msgstr ""
+msgstr "Joan hasierako orrira"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:857
@@ -697,7 +677,7 @@ msgstr ""
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
 msgstr[0] "%i_Bueltako esteka..."
-msgstr[1] "%i_Bueltako esteka..."
+msgstr[1] "%i_Bueltako estekak..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:987
@@ -750,7 +730,7 @@ msgstr "Gehitu kodadernoa"
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:407
 msgid "Please select a name and a folder for the notebook."
-msgstr "Hautatu izen bat eta karpeta bat koadernoarentzat"
+msgstr "Hautatu izen bat eta karpeta bat koadernoarentzat."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:423
@@ -818,17 +798,13 @@ msgstr ""
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
-#, fuzzy
-#| msgid "(Un-)Indenting a list item also change any sub-items"
 msgid "(Un-)indenting a list item also changes any sub-items"
 msgstr ""
-"Zerrenda baten elementuari koska jarriz (edo kenduz) gero azpi-elementuei "
-"ere aplikatuko zaie"
+"Zerrenda baten elementu bati koska jarriz (edo kenduz) gero azpiko "
+"elementuei ere aplikatuko zaie"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:194
-#, fuzzy
-#| msgid "Checking a checkbox also change any sub-items"
 msgid "Checking a checkbox also changes any sub-items"
 msgstr "Kontrol-laukia markatuta azpi-elementuak ere aldatzen dira"
 
@@ -850,21 +826,19 @@ msgstr "Erantsitako fitxategientzat txantiloiak dituen karpeta"
 #. tooltip for button in anchor popover
 #: zim/gui/pageview/__init__.py:4723
 msgid "Copy link to clipboard"
-msgstr ""
+msgstr "Kopiatu esteka arbelera"
 
 #. tooltip label for image with href
 #: zim/gui/pageview/__init__.py:4966
-#, fuzzy
-#| msgid "_Link"
 msgid "Link"
-msgstr "_Esteka"
+msgstr "Esteka"
 
 #. tooltip label for image with anchor id | 
 #. input label for object ID
 #: zim/gui/pageview/__init__.py:4968 zim/gui/pageview/__init__.py:7868
 #: zim/plugins/sourceview.py:378
 msgid "Id"
-msgstr ""
+msgstr "Id"
 
 #. Heading of error dialog
 #: zim/gui/pageview/__init__.py:5519
@@ -960,14 +934,10 @@ msgid "_Verbatim"
 msgstr "Aipamena"
 
 #: zim/gui/pageview/__init__.py:5792
-#, fuzzy
-#| msgid "_Subscript"
 msgid "Su_bscript"
 msgstr "Azpi-indizea"
 
 #: zim/gui/pageview/__init__.py:5793
-#, fuzzy
-#| msgid "_Superscript"
 msgid "Su_perscript"
 msgstr "Goi-indizea"
 
@@ -980,7 +950,7 @@ msgstr "Definitu gabeko wikia: %s"
 #: zim/gui/pageview/__init__.py:6546
 #, python-format
 msgid "Id \"%s\" not found on the current page"
-msgstr ""
+msgstr "\"%s\" IDa ez da aurkitu uneko orrian"
 
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6602
@@ -998,10 +968,8 @@ msgid "Move Selected Text..."
 msgstr "Mugitu hautatutako testua..."
 
 #: zim/gui/pageview/__init__.py:6640
-#, fuzzy
-#| msgid "Copy _Location"
 msgid "Copy _link to this location"
-msgstr "Kopiatu _kokalekua"
+msgstr "Kopiatu _esteka hona"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6677 zim/gui/pageview/__init__.py:6928
@@ -1058,10 +1026,8 @@ msgstr "_Ireki"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6781
-#, fuzzy
-#| msgid "Check Checkbox '>'"
 msgid "Check Checkbox '<'"
-msgstr "Kontrol-laukian markatu '>'"
+msgstr "Markatu Kontrol-laukian '<'"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6782
@@ -1147,10 +1113,8 @@ msgstr "Aldadatu kontrol-laukia '>'-ra"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6881
-#, fuzzy
-#| msgid "Toggle Checkbox 'V'"
 msgid "Toggle Checkbox '<'"
-msgstr "Jarri/kendu 'V' kontrol laukian"
+msgstr "Jarri/kendu '<' kontrol laukian"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6890
@@ -1158,17 +1122,13 @@ msgid "_Edit Link or Object..."
 msgstr "_Editatu esteka edo objektua..."
 
 #: zim/gui/pageview/__init__.py:6946
-#, fuzzy
-#| msgid "Copy _Link"
 msgid "Copy Line"
-msgstr "Kopiatu _esteka"
+msgstr "Kopiatu lerroa"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6962
-#, fuzzy
-#| msgid "_Date and Time..."
 msgid "Date and Time..."
-msgstr "_Data eta ordua..."
+msgstr "Data eta ordua..."
 
 #. Menu item for Insert menu
 #: zim/gui/pageview/__init__.py:6977
@@ -1205,10 +1165,8 @@ msgstr "Zerrenda kontrol-laukiduna"
 
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7052
-#, fuzzy
-#| msgid "_Remove Link"
 msgid "_Remove List"
-msgstr "_Kendu esteka"
+msgstr "_Kendu zerrenda"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7080
@@ -1218,7 +1176,7 @@ msgstr "Testua fitxategitik..."
 #. Menu item
 #: zim/gui/pageview/__init__.py:7124
 msgid "_Link..."
-msgstr "Esteka"
+msgstr "_Esteka..."
 
 #. message when no file templates are found in ~/Templates
 #: zim/gui/pageview/__init__.py:7153
@@ -1251,10 +1209,8 @@ msgstr "Garbitu formatua"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7245
-#, fuzzy
-#| msgid "_Remove Link"
 msgid "_Remove Heading"
-msgstr "_Kendu esteka"
+msgstr "_Kendu goiburu-estiloa"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7351
@@ -1438,7 +1394,7 @@ msgstr "Testua"
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:8026
 msgid "Prefer short link names for pages"
-msgstr ""
+msgstr "Orrietarako esteka laburren izenak hobetsi"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview/__init__.py:8139
@@ -1562,7 +1518,7 @@ msgstr "Ireki orri berria"
 
 #: zim/gui/pageview/__init__.py:8501
 msgid "No text selected"
-msgstr ""
+msgstr "Ez da testurik hautatu"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:8534
@@ -1630,10 +1586,8 @@ msgstr "K_onfiguratu"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:256
-#, fuzzy
-#| msgid "Properties"
 msgid "_Properties"
-msgstr "Propietateak"
+msgstr "_Propietateak"
 
 #. button label
 #: zim/gui/preferencesdialog.py:271
@@ -1651,12 +1605,17 @@ msgid ""
 "Please see the dependencies section below for details.\n"
 "\n"
 msgstr ""
+"Plugin hau ezin da gaitu falta diren mendekotasunengatik.\n"
+"Xehetasunak ikusteko, ikusi beheko mendekotasunen atala.\n"
+"\n"
 
 #: zim/gui/preferencesdialog.py:325
 msgid ""
 "There was a problem loading this plugin\n"
 "\n"
 msgstr ""
+"Arazo bat egon da plugin hau kargatzean\n"
+"\n"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:336
@@ -1726,10 +1685,8 @@ msgstr "Ezarri testu editore lehenetsia"
 
 #. button in preferences dialog to change default browser
 #: zim/gui/preferencesdialog.py:511
-#, fuzzy
-#| msgid "Set default text editor"
 msgid "Set default browser"
-msgstr "Ezarri testu editore lehenetsia"
+msgstr "Ezarri nabigatzaile lehenetsia"
 
 #. help text in preferences dialog for modifying keybindings
 #: zim/gui/preferencesdialog.py:545
@@ -1772,14 +1729,12 @@ msgstr "Dokumentu erroa"
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:21
 msgid "Prefer short names for page links"
-msgstr ""
+msgstr "Orrietarako esteken izen laburrak hobetsi"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:22
-#, fuzzy
-#| msgid "Could not find the file or folder for this notebook"
 msgid "Do not use system trash for this notebook"
-msgstr "Ezin izan da topatu koaderno honen fitxategia edo karpeta"
+msgstr "Ez erabili sistemaren zakarrontzia koaderno honetarako"
 
 #. Dialog title
 #: zim/gui/propertiesdialog.py:30
@@ -1827,10 +1782,8 @@ msgstr ""
 
 #. checkbox option in search dialog
 #: zim/gui/searchdialog.py:55
-#, fuzzy
-#| msgid "Limit search to the current page and sub-pages"
 msgid "_Limit search to the current page and sub-pages"
-msgstr "Mugatu bilaketa uneko orrira eta azpi-orrietara."
+msgstr "_Mugatu bilaketa uneko orrira eta azpi-orrietara"
 
 #. Column header search dialog | 
 #. menu item
@@ -1941,10 +1894,8 @@ msgstr "_Bidali honi..."
 
 #. Menu item
 #: zim/gui/uiactions.py:186
-#, fuzzy
-#| msgid "_Rename or move Page..."
 msgid "_Rename or Move Page..."
-msgstr "Be_rrizendatu edo mugitu orria..."
+msgstr "_ Izena aldatu edo mugitu orria ..."
 
 #. Menu item
 #: zim/gui/uiactions.py:195
@@ -1954,6 +1905,7 @@ msgstr "_Ezabatu orria"
 #: zim/gui/uiactions.py:224
 msgid "Trash failed, do you want to permanently delete instead ?"
 msgstr ""
+"Zaborrontziak huts egin du. Horren ordez behin betiko ezabatu nahi duzu?"
 
 #. Menu item
 #: zim/gui/uiactions.py:229
@@ -2043,10 +1995,8 @@ msgstr "Ikusi arazketa erregistroa"
 
 #. Menu item
 #: zim/gui/uiactions.py:377
-#, fuzzy
-#| msgid "Update Index"
 msgid "Check and Update Index"
-msgstr "Eguneratu indizea"
+msgstr "Egiaztatu eta eguneratu aurkibidea"
 
 #. Menu item
 #: zim/gui/uiactions.py:410
@@ -2154,47 +2104,42 @@ msgstr "Estekak eguneratzen"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
+#, python-format
 msgid "Remove links to %s"
-msgstr "_Kendu esteka"
+msgstr "Kendu estekak %s-ra"
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
 msgid "Trash Page"
-msgstr ""
+msgstr "Zakarrontziaren orria"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:725
-#, fuzzy, python-format
-#| msgid "Move page \"%s\""
+#, python-format
 msgid "Move page \"%s\" to trash?"
-msgstr "Mugitu \"%s\"  orria"
+msgstr "\"%s\" orria zakarrontzira eraman?"
 
 #. Text in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:727
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be moved to your system's trash.\n"
 "\n"
 "To undo later, go to your system's trashcan."
 msgstr ""
-"\"%s\" orria eta bere azpi-orri \n"
-"eta eranskin guztiak ezabatuko dira."
+"\"%s\" orria eta bere azpi-orri eta eranskin\n"
+"guztiak zakarrontzira eramango dira.\n"
+"\n"
+"Geroago desegiteko, joan zure sistemaren zakarrontzira."
 
 #. label in the TrashPage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:731
-#, fuzzy, python-format
-#| msgid "%i file will be deleted"
-#| msgid_plural "%i files will be deleted"
+#, python-format
 msgid "%i file will be trashed"
 msgid_plural "%i files will be trashed"
-msgstr[0] "%i fitxategia ezabatuko da"
-msgstr[1] "%i fitxategiak ezabatuko dira"
+msgstr[0] "%i fitxategia zakarrontzira eramango da"
+msgstr[1] "%i fitxategiak zakarrontzira eramango dira"
 
 #. Title of progressbar dialog
 #: zim/gui/uiactions.py:741 zim/gui/uiactions.py:781
@@ -2214,18 +2159,17 @@ msgstr "Ezabatu \"%s\" orria?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:769
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be deleted.\n"
 "\n"
 "This deletion is permanent and cannot be un-done."
 msgstr ""
-"\"%s\" orria eta bere azpi-orri \n"
-"eta eranskin guztiak ezabatuko dira."
+"\"%s\" orria eta bere azpi-orri\n"
+"eta eranskin guztiak ezabatuko dira.\n"
+"\n"
+"Ezabatze hau betirako da eta ezin da desegin."
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:773
@@ -2307,17 +2251,13 @@ msgstr "Goiko panela"
 
 #. position of widget in window
 #: zim/gui/widgets.py:2077
-#, fuzzy
-#| msgid "<Top>"
 msgid "Top"
-msgstr "<Goia>"
+msgstr "Goian"
 
 #. position of widget in window
 #: zim/gui/widgets.py:2078
-#, fuzzy
-#| msgid "Bottom Pane"
 msgid "Bottom"
-msgstr "Beheko panela"
+msgstr "Behean"
 
 #. position of widget in window | 
 #. alignment option
@@ -2438,7 +2378,7 @@ msgid ""
 msgstr ""
 "Ezin da fitxategi hau idatzi. Seguru aski fitxategiaren bidearen\n"
 "luzera da arrazoia, saiatu 4096 baino karaktere gutxiagoko\n"
-"karpeta-bide bat erabiltzen."
+"karpeta-bide bat erabiltzen"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
@@ -2449,7 +2389,7 @@ msgstr "Fitxategiaren bidea luzeegia: %s"
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:435
 msgid "Updating index"
-msgstr "Indizea eguneratzen"
+msgstr "Aurkibidea eguneratzen"
 
 #. message for PageNotFoundError
 #: zim/notebook/notebook.py:125
@@ -2473,20 +2413,14 @@ msgstr ""
 
 #. message for PageNotAvailableError
 #: zim/notebook/notebook.py:135
-#, fuzzy, python-format
-#| msgid "Page not allowed: %s"
+#, python-format
 msgid "Page not available: %s"
-msgstr "Baimenik gabeko orria: %s"
+msgstr "Orria ez dago erabilgarri: %s"
 
 #. description for PageNotAvailableError
 #: zim/notebook/notebook.py:136
-#, fuzzy
-#| msgid ""
-#| "This page name cannot be used due to technical limitations of the storage"
 msgid "This page name cannot be used due to a conflicting file in the storage"
-msgstr ""
-"Orriaren izen hau ezin da erabili biltegiratzearen muga teknikoak direla "
-"medio"
+msgstr "Orri hau ezin da erabili biltegian dagoen fitxategi gatazkatsua delako"
 
 #. message for PageExistsError
 #: zim/notebook/notebook.py:145
@@ -2533,24 +2467,19 @@ msgid "_Arithmetic"
 msgstr "_Aritmetikoa"
 
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, fuzzy, python-format
-#| msgid "Do you want to delete all bookmarks?"
+#, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr "Nahi duzu laster-marka guztiak ezabatzea?"
+msgstr "Ziur zaude '%s' fitxategia ezabatu nahi duzula?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391
-#, fuzzy
-#| msgid "_Delete"
 msgid "_Delete..."
-msgstr "Ezabatu"
+msgstr "_Ezabatu ..."
 
 #. menu item to rename file
 #: zim/plugins/attachmentbrowser/filebrowser.py:395
-#, fuzzy
-#| msgid "_Replace..."
 msgid "_Rename..."
-msgstr "Ordeztu..."
+msgstr "Aldatu izena..."
 
 #. unspecified value for file modification time
 #: zim/plugins/attachmentbrowser/filebrowser.py:428
@@ -2589,19 +2518,19 @@ msgstr "Utzi"
 
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
 msgid "Rename file"
-msgstr ""
+msgstr "Berrizendatu fitxategia"
 
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
 msgid "File name should not be blank."
-msgstr ""
+msgstr "Fitxategiaren izenak ez luke hutsik egon behar."
 
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:72
 msgid "A file with that name already exists."
-msgstr ""
+msgstr "Badago izen berdineko beste fitxategi bat."
 
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:75
 msgid "File name should not contain path declaration."
-msgstr ""
+msgstr "Fitxategiaren izenak ez du bide-adierazpena izan behar."
 
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
@@ -2670,12 +2599,10 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:37
 msgid "Show BackLink count in title"
-msgstr ""
+msgstr "Erakutsi BackLink kopurua izenburuan"
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:39
-#, fuzzy
-#| msgid "Show full Page Name"
 msgid "Show full Page Names"
 msgstr "Erakutsi orriaren izen osoa"
 
@@ -2686,13 +2613,11 @@ msgstr "Bueltako estekak"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:116
-#, fuzzy, python-format
-#| msgid "%i _Backlink"
-#| msgid_plural "%i _Backlinks"
+#, python-format
 msgid "%i BackLink"
 msgid_plural "%i BackLinks"
-msgstr[0] "%i_Bueltako esteka..."
-msgstr[1] "%i_Bueltako esteka..."
+msgstr[0] "%i Bueltako esteka..."
+msgstr[1] "%i Bueltako estekak..."
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:294
@@ -2815,10 +2740,8 @@ msgstr "Ezarri uneko orrialdera"
 
 #. plugin name
 #: zim/plugins/commandpalette.py:43 zim/plugins/commandpalette.py:115
-#, fuzzy
-#| msgid "Command"
 msgid "Command Palette"
-msgstr "Agindua"
+msgstr "Command Palette"
 
 #. plugin description
 #: zim/plugins/commandpalette.py:44
@@ -2827,6 +2750,10 @@ msgid ""
 "The search dialog can be opened by pressing the keyboard shortcut Ctrl+Shift"
 "+P which can be customized via Zim's key bindings preferences."
 msgstr ""
+"Plugin honek bilaketa-koadro bat irekitzen du menu-sarrerak azkar "
+"exekutatzeko. Bilaketaren elkarrizketa-koadroa ireki daiteke Ctrl + Maius + "
+"P laster-teklak sakatuta eta Zim-en laster-teklen hobespenetan pertsonaliza "
+"daiteke."
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
@@ -2929,7 +2856,7 @@ msgstr ""
 
 #: zim/plugins/equationeditor.py:35
 msgid "Use font color for dark theme"
-msgstr ""
+msgstr "Erabili letra kolorea gai ilunetarako"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
@@ -3154,17 +3081,17 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Plugin honek eskaintzen du koadernoaren esteken \n"
+"Plugin honek sortzen du koadernoaren esteken\n"
 "egitura irudikatzen duen koadro bat.\n"
-"Orrien harremana erakusten duen \n"
-"\"mapa mental\" moduan erabili daiteke.\n"
+"Orrien harremana erakusten duen\n"
+"\"ideia-mapa\" moduan erabili daiteke.\n"
 "\n"
 "Hau zim-en plugin propioa da.\n"
 
 #. preferences option
 #: zim/plugins/linkmap.py:45
 msgid "Show linkmap button in headerbar"
-msgstr ""
+msgstr "Erakutsi esteka-mapa botoia goiburuko barran"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3174,7 +3101,7 @@ msgstr "macOS menu-barra"
 #. plugin description
 #: zim/plugins/osx_menubar.py:75
 msgid "This plugin provides a macOS menubar for zim."
-msgstr "Plugin honek zim-erako macOS menu-barra eskaintzen du."
+msgstr "Plugin honek zim-erako macOS menu-barra erakusten du."
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
@@ -3184,8 +3111,7 @@ msgstr "Orrien aurkibidea"
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:52
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr ""
-"Plugin honek leiho nagusiari orrien aurkibidearen panela gehitzen dio.\n"
+msgstr "Plugin honek leiho nagusiari orrien atalen panela gehitzen dio.\n"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63 zim/plugins/tags.py:49
@@ -3200,7 +3126,7 @@ msgstr "Tolestu atalak automatikoki orria ixtean."
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
-msgstr ""
+msgstr "Erabili korritze-barra horizontala (berrabiarazi behar da)"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:126 data/templates/html/Default.html:52
@@ -3208,7 +3134,7 @@ msgstr ""
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
 msgid "Index"
-msgstr "Indizea"
+msgstr "Aurkibidea"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
@@ -3560,12 +3486,13 @@ msgstr "Ezin izan da kargatu zuzentzaile ortografikoa"
 
 #. error message explanation
 #: zim/plugins/spell.py:161
+#, fuzzy
 msgid ""
 "This could mean you don't have the proper\n"
 "dictionaries installed"
 msgstr ""
-"Agian ez daukazu instalatuta\n"
-"dagokion hiztegia."
+"Agian ez dauzkazu instalatuta\n"
+"dagozkion hiztegiak."
 
 #. alignment option
 #: zim/plugins/tableeditor.py:54
@@ -3773,8 +3700,9 @@ msgstr ""
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
+#, fuzzy
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr "Erakutsi aurkibidea alboko paneleko trepeta mugikorrean."
+msgstr "Erakutsi atalak alboko paneleko trepeta mugikorrean."
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
@@ -3820,8 +3748,8 @@ msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
 msgstr ""
-"Plugin honek hodei batean hautatutako etiketen arabera iragazitako orrien "
-"indizea eskaintzen du.\n"
+"Plugin honek hautatutako etiketen arabera iragazitako orrien indizea hodei "
+"batean eskaintzen du.\n"
 
 #. menu option
 #: zim/plugins/tags.py:145
@@ -3920,7 +3848,7 @@ msgstr ""
 #, fuzzy
 #| msgid "Show tasklist in sidepane"
 msgid "Show tasklist button in headerbar"
-msgstr "Erakutsi zereginen zerrenda alboko panelean"
+msgstr "Erakutsi zereginen zerrendaren botoia goiburuko barran"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:54
@@ -3965,7 +3893,7 @@ msgstr "zereginaren epemuga eguna moduan"
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:73
 msgid "Section(s) to index"
-msgstr "Indexatu beharreko sekzioa(k)"
+msgstr "Indexatu beharreko atala(k)"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:75
@@ -3989,39 +3917,33 @@ msgstr "Markatu egitekoak asteburu aurreko astelehen eta ostegunean"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:35
-#, fuzzy
-#| msgid "Icon"
 msgid "Icons"
-msgstr "Ikonoa"
+msgstr "Ikonoak"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:37
-#, fuzzy
-#| msgid "Icons _And Text"
 msgid "Icons & Text"
-msgstr "Ikonoak _eta testua"
+msgstr "Ikonoak eta testua"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:38
 msgid "Icons & Text horizontal"
-msgstr ""
+msgstr "Ikonoak eta testua horizontalean"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:46
 msgid "Small"
-msgstr ""
+msgstr "Txikia"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:47
 msgid "Large"
-msgstr ""
+msgstr "Handia"
 
 #. plugin name
 #: zim/plugins/toolbar.py:57
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Tool Bar"
-msgstr "_Tresna-barra"
+msgstr "Tresna-barra"
 
 #. plugin description
 #: zim/plugins/toolbar.py:58
@@ -4030,25 +3952,24 @@ msgid ""
 "It can be a \"classic\" toolbar at the top of the window\n"
 "or running along the side of the window.\n"
 msgstr ""
+"Plugin honek \"tresna-barra\" bat gehitzen du leiho nagusian.\n"
+"Leihoaren goialdeko tresna-barra \"klasikoa\" izan daiteke\n"
+"edo eraman daiteke leihoaren aldeetara.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:69
 msgid "Include editing tools (classic toolbar)"
-msgstr ""
+msgstr "Edizio tresnak barne (tresna-barra klasikoa)"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:73
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Toolbar style"
-msgstr "_Tresna-barra"
+msgstr "Tresna-barraren estiloa"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:75
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Toolbar size"
-msgstr "_Tresna-barra"
+msgstr "Tresna-barraren tamaina"
 
 #. plugin name
 #: zim/plugins/trayicon.py:71
@@ -4155,8 +4076,7 @@ msgstr "_Bertsioak..."
 #: zim/plugins/versioncontrol/__init__.py:242
 msgid ""
 "There are no changes in this notebook since the last version that was saved"
-msgstr ""
-"Azkeneko bertsioa gorde zenetik ez da aldaketarik egon koaderno honetan."
+msgstr "Azkeneko bertsioa gorde zenetik ez da aldaketarik egon koaderno honetan"
 
 #. Short error descriotion
 #: zim/plugins/versioncontrol/__init__.py:245
@@ -4304,8 +4224,9 @@ msgstr "Egin aldaketen egunkaria Zeitgeist-en bidez"
 
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:33
+#, fuzzy
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr "Eraman aldaketak Zeitgeist-en demoniora"
+msgstr "Eraman aldaketak Zeitgeist-en demoniora."
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:63
