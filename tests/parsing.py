@@ -109,6 +109,9 @@ class TestParsing(tests.TestCase):
 		for href, type in (
 			('zim+file://foo/bar?dus.txt', 'notebook'),
 			('file:///foo/bar', 'file'),
+			('file://foo/bar', 'file'),
+			('file://localhost/foo/bar', 'file'),
+			('file:/foo/bar', 'file'),
 			('http://foo/bar', 'http'),
 			('http://192.168.168.100', 'http'),
 			('file+ssh://foo/bar', 'file+ssh'),
@@ -128,7 +131,7 @@ class TestParsing(tests.TestCase):
 			('foo', 'page'),
 			('foo:bar', 'page'),
 		):
-			#~ print('>>', href)
+			# print('>>', href)
 			self.assertEqual(link_type(href), type)
 
 	def testValidInterwikiKey(self):

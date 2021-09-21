@@ -477,6 +477,8 @@ def link_type(link):
 			type = 'notebook'
 		else:
 			type = is_url_re[1]
+	elif link.startswith('file:/'):
+		type = 'file' # special case with single "/" not matched as URL
 	elif is_email_re.match(link):
 		type = 'mailto'
 	elif is_www_link_re.match(link):

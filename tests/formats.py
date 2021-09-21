@@ -10,7 +10,6 @@ import tests
 
 from zim.formats import *
 from zim.notebook import Path
-from zim.parsing import link_type
 from zim.templates import Template
 
 from xml.etree.ElementTree import ElementTree, Element

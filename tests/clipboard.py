@@ -593,7 +593,7 @@ class TestURIData(tests.TestCase):
 		someobject.uri = "file:///foo"
 
 		for (input, uris, text) in (
-			((File("/foo"),), ("file:///foo",), "/foo"),
+			((File("/foo"),), (File("/foo").uri,), File("/foo").path),
 			((File("~/foo"),), (File("~/foo").uri,), "~/foo"),
 			(("file:///foo",), ("file:///foo",), "file:///foo"),
 			((someobject,), ("file:///foo",), "file:///foo"),
