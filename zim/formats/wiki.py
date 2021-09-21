@@ -19,9 +19,10 @@ from zim.formats.plain import Dumper as TextDumper
 old_url_re = old_url_re.p
 
 
-WIKI_FORMAT_VERSION = 'zim 0.6'
+WIKI_FORMAT_VERSION = 'zim 0.7'
 assert WIKI_FORMAT_VERSION != 'zim 0.26' # skip number for historic reasons
 # History:
+# - 0.7  links to section within note
 # - 0.6  new url parsing logic
 # - 0.5  support nested formatting
 # - 0.4  parser rewrite, specifically changed parsing indented blocks
