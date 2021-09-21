@@ -8117,10 +8117,13 @@ class InsertLinkDialog(Dialog):
 		type = link_type(href)
 		if type == 'file':
 			# Try making the path relative
-			file = self.form.widgets['href'].get_file()
-			page = self.pageview.page
-			notebook = self.pageview.notebook
-			href = notebook.relative_filepath(file, page) or file.uri
+			try:
+				file = self.form.widgets['href'].get_file()
+				page = self.pageview.page
+				notebook = self.pageview.notebook
+				href = notebook.relative_filepath(file, page) or file.uri
+			except:
+				pass # E.g. non-local file://host/path URI causing exception
 
 		text = self.form['text'] or href
 
