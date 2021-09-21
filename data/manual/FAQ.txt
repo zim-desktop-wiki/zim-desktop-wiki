@@ -74,4 +74,4 @@ Windows and macOS users please see the section "Gtk configuration" in [[Help:Con
 
 
 ===== I have a useful trick or tip. How can I share it with other users? =====
-You can have a look at the [[https://www.zim-wiki.org/wiki/|zim documentation wiki]]. It has a section dedicated to tricks and tips. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad.
+You can have a look at the [[https://www.zim-wiki.org/wiki/|zim documentation wiki]]. It has a section dedicated to tricks and tips. And you can post in the "show and tell" section of discussion forum at https://github.com/zim-desktop-wiki/zim-desktop-wiki/discussions.

@@ -14,16 +14,12 @@ Since expenses on Zim are low and I do want to put the money that comes in to go
 
 
 ===== User Manual Updates =====
-Updates for the user manual can be submitted in [[https://www.zim-wiki.org/wiki/|the wiki]] or as patches (see below).
+Updates for the user manual can be submitted as patches (see below).
 
 ===== Translation updates =====
 See [[translations]] on how to update translation files.
 
-===== Development planning =====
-The development planning is more or less managed using the [[https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues|bug tracker]]
-
-===== Patches =====
+===== Code fixes & improvements =====
 Please see our [[https://github.com/zim-desktop-wiki/zim-desktop-wiki|GitHub repository]] for the latest development code. To submit patches please create your own branch and once done file a merge request.
 
-===== Contact =====
-To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad. This mailing list is used for synchronizing releases and the occasional brainstorm session. But feel free to mail all your comments, questions and rants to me personally as well.
+For more information, see the `CONTRIBUTING.md` and `PLUGIN_WRITING.md` files in the code repository.

@@ -18,8 +18,10 @@ and [Development Planning](https://github.com/zim-desktop-wiki/zim-desktop-wiki/
 ## Other resources
 * Code repository:
   https://github.com/zim-desktop-wiki/zim-desktop-wiki
-* Bug tracker and feature requests:
+* Issue tracker for bug reports:
   https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues
+* Discussion forum for questions, new feature proposals etc.:
+  https://github.com/zim-desktop-wiki/zim-desktop-wiki/discussions
 * Public wiki:
   https://www.zim-wiki.org/wiki/
 * Mailing list:
@@ -40,11 +42,16 @@ https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues
   other relevant context information
 
 ## Requesting new functionality
-Also, feature requests can go in the bug tracker. In this case:
+New features can be discussed in the "ideas" section of the discussion forum at
+https://github.com/zim-desktop-wiki/zim-desktop-wiki/discussions. Only once the
+idea is concrete enough and has support from a contributor to work on it, it
+should go into the issue list as a work item.
 
-* Please provide a use case description, explain the problem you are trying to
-solve with the proposed feature before describing the solution. This allows
-  other users to think along and maybe improve on your solution.
+When you want to pitch an idea:
+
+* Please provide a use case description; explain the problem you are trying to
+  solve before describing the solution. This allows other users to think along
+  and maybe improve on your solution.
 * Make sure the use case is generic enough that it will benefit other users
   as well. If it is highly tailored for your specific work-flow, chances are
   that no-one will work on it (and no-one will want to maintain it in working
@@ -66,10 +73,10 @@ recommendation.)
 
 
 ## Bug fixes
-For obvious bugs with simple fixes, a merge request can be opened directly.
+For obvious bugs with simple fixes, a pull request can be opened directly.
 These should be very easy to review and merge. If you consider something a bug
 even though the code does what it is supposed to do, please discuss it first on
-the mailing list or through an issue ticket.
+the discussion forum.
 
 
 ## Adding new features
@@ -83,8 +90,8 @@ to work on the core functionality, this is a good introduction to the code
 structure.
 
 Only very generic features that are obviously useful for all users should be
-part of the core package. When in doubt please discuss first - either via the
-mailing list or via a GitHub issue ticket.
+part of the core package. When in doubt please discuss first - preferably on the
+discussion forum.
 
 In some cases, there is a good compromise by extending the core functionality
 with certain capabilities, but exposing the user interface to take advantage of
@@ -98,7 +105,7 @@ Zim comes with a full test suite, that can be executed using the `test.py`
 script. See `test.py --help` for its commandline options.
 
 It is good practice to run the full suite before committing to a development
-branch and especially before generating a merge request. This should ensure that a
+branch and especially before generating a pull request. This should ensure that a
 new patch doesn't break any existing code.
 
 For any but the most trivial fixes test cases should be written to ensure the
@@ -125,9 +132,9 @@ looking at coverage combined with writing tests for reported bugs should ensure
 good project quality and satisfaction for all Zim users.
 
 
-## Merge requests
-Please use GitHub to upload your patches and file a merge request towards the
-zim repository. If you mention relevant issue numbers in the merge request, it
+## Pull requests (merge requests)
+Please use GitHub to upload your patches and file a pull request towards the
+zim repository. If you mention relevant issue numbers in the request, it
 will automatically be flagged in those issue tickets as well.
 
 ## Known Zim limitations

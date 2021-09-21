@@ -4,13 +4,28 @@ Creation-Date: 2012-02-20T22:13:04+01:00
 
 ====== Contact ======
 
-**For user questions and development discussion**, please join the mailing list. To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad.
+==== Filing a bug report ====
+To file a bug report, please go to the bug tracker at https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues
 
-**To view bugs or report an issue** please go the [[https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues|bug tracker on GitHub]]
+* Make sure the issue is not already in the list by trying out a few keywords in the search box
+* Describe what you did and what happened in such a way that another user can follow step by step and reproduce the same result
+* Please include information on your operating system, language settings, and other relevant context information
 
-**For feature requests** please file a bug report as well. If you want some feedback on an idea before requesting it, please use the mailing list.
+==== Requesting new functionality ====
+New features can be discussed in the "ideas" section of the discussion forum at https://github.com/zim-desktop-wiki/zim-desktop-wiki/discussions. Only once the
+idea is concrete enough and has support from a contributor to work on it, it should go into the issue list as a work item.
 
+When you want to pitch an idea:
+
+* Please provide a use case description; explain the problem you are trying to   solve before describing the solution. This allows other users to think along
+  and maybe improve on your solution.
+* Make sure the use case is generic enough that it will benefit other users as well. If it is highly tailored for your specific work-flow, chances are
+  that no-one will work on it (and no-one will want to maintain it in working state over the years).
 
 ===== Community =====
 
 Channel ''#zim-wiki'' on the Libera Chat IRC network. (Access from your web browser at https://web.libera.chat/#zim-wiki .)
+
+===== Other resources =====
+* Public wiki: https://www.zim-wiki.org/wiki/
+* Mailing list: https://launchpad.net/~zim-wiki
