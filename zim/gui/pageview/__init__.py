@@ -686,6 +686,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'indent': Integer(None),
 		'underline': ConfigDefinitionConstant(None, Pango.Underline, 'PANGO_UNDERLINE'),
 		'linespacing': Integer(None),
+		'wrapped-lines-linespacing': Integer(None),
 		'rise': Integer(None),
 	} #: Valid properties for a style in tag_styles
 
@@ -6021,6 +6022,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Don't set a default for 'tabs' as not to break pages that
 			# were created before this setting was introduced.
 		self.text_style['TextView'].setdefault('linespacing', 3)
+		self.text_style['TextView'].setdefault('wrapped-lines-linespacing', 0)
 		self.text_style['TextView'].setdefault('font', None, str)
 		self.text_style['TextView'].setdefault('justify', None, str)
 		#~ print self.text_style['TextView']
@@ -6035,7 +6037,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if self.text_style['TextView']['linespacing']:
 			self.textview.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
-			self.textview.set_pixels_inside_wrap(self.text_style['TextView']['linespacing'])
+
+		if self.text_style['TextView']['wrapped-lines-linespacing']:
+			self.textview.set_pixels_inside_wrap(self.text_style['TextView']['wrapped-lines-linespacing'])
 
 		if self.text_style['TextView']['font']:
 			font = Pango.FontDescription(self.text_style['TextView']['font'])
