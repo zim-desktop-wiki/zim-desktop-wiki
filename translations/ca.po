@@ -41,7 +41,7 @@ msgstr ""
 msgid "Failed running: %s"
 msgstr "Error executant: %s"
 
-#. label for default webbrowser | 
+#. label for default webbrowser |
 #. label for default application
 #: zim/applications.py:383 zim/applications.py:426 zim/gui/applications.py:1100
 msgid "Default"
@@ -57,7 +57,7 @@ msgstr "calendar:week_start:1"
 msgid "Looks like you found a bug"
 msgstr "Sembla que has trobat un error"
 
-#. message for FileNotFoundError | 
+#. message for FileNotFoundError |
 #. Error message in template lookup
 #: zim/fs.py:275 zim/templates/__init__.py:124
 #, python-format
@@ -75,7 +75,7 @@ msgstr "No s'ha pogut llegir: %s"
 msgid "This usually means the file contains invalid characters"
 msgstr "Vol dir que el fitxer conté caràcters invàlids"
 
-#. label for detailed error | 
+#. label for detailed error |
 #. section for version details in "save version" dialog
 #: zim/fs.py:291 zim/newfs/base.py:68
 #: zim/plugins/versioncontrol/__init__.py:776
@@ -167,7 +167,7 @@ msgstr ""
 msgid "Configure Applications"
 msgstr "Configurar Aplicacions"
 
-#. Button for adding a new application to the 'open with' menu | 
+#. Button for adding a new application to the 'open with' menu |
 #. Dialog title
 #: zim/gui/applications.py:1104 zim/gui/applications.py:1212
 msgid "Add Application"
@@ -178,14 +178,14 @@ msgstr "Afegir aplicació"
 msgid "System Default"
 msgstr "Valor per defecte del sistema"
 
-#. Field in 'custom command' dialog | 
-#. Input in "Edit Custom Tool" dialog | 
-#. input field in 'Add Notebook' dialog | 
-#. input for new file name | 
-#. Heading in plugins tab of preferences dialog | 
-#. label for properties dialog | 
-#. Input label for the new name when copying a template | 
-#. Input label in the 'rename page' dialog for the new name | 
+#. Field in 'custom command' dialog |
+#. Input in "Edit Custom Tool" dialog |
+#. input field in 'Add Notebook' dialog |
+#. input for new file name |
+#. Heading in plugins tab of preferences dialog |
+#. label for properties dialog |
+#. Input label for the new name when copying a template |
+#. Input label in the 'rename page' dialog for the new name |
 #. label for file name
 #: zim/gui/applications.py:1216 zim/gui/customtools.py:667
 #: zim/gui/notebookdialog.py:422 zim/gui/pageview/__init__.py:8536
@@ -195,7 +195,7 @@ msgstr "Valor per defecte del sistema"
 msgid "Name"
 msgstr "Nom"
 
-#. Field in 'custom command' dialog | 
+#. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/applications.py:1217 zim/gui/customtools.py:669
 msgid "Command"
@@ -231,13 +231,13 @@ msgstr ""
 msgid "Edit Custom Tool"
 msgstr "Edita eina personalitzada"
 
-#. Input in "Edit Custom Tool" dialog | 
+#. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/customtools.py:668 zim/gui/preferencesdialog.py:334
 msgid "Description"
 msgstr "Descripció"
 
-#. Input in "Edit Custom Tool" dialog | 
+#. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
 #: zim/gui/customtools.py:683 zim/gui/propertiesdialog.py:19
 msgid "Icon"
@@ -331,7 +331,7 @@ msgstr ""
 msgid "Select the pages to export"
 msgstr "Seleccioneu les pàgines a exportar."
 
-#. Option in export dialog to export complete notebook | 
+#. Option in export dialog to export complete notebook |
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:173 zim/plugins/versioncontrol/__init__.py:824
 msgid "Complete _notebook"
@@ -342,11 +342,11 @@ msgstr "Quader_n complet"
 msgid "Single _page"
 msgstr "_Pàgina única"
 
-#. Input field in export dialog | 
-#. label in word count dialog | 
-#. Column header | 
-#. Column header search dialog | 
-#. Column header Task List dialog | 
+#. Input field in export dialog |
+#. label in word count dialog |
+#. Column header |
+#. Column header search dialog |
+#. Column header Task List dialog |
 #. page label
 #: zim/gui/exportdialog.py:181 zim/gui/pageview/__init__.py:8416
 #: zim/gui/recentchangesdialog.py:59 zim/gui/searchdialog.py:149
@@ -370,13 +370,13 @@ msgstr "Seleccioneu el format d'exportació"
 msgid "Other..."
 msgstr "Altre..."
 
-#. Input label in the export dialog | 
+#. Input label in the export dialog |
 #. label in "insert date" dialog
 #: zim/gui/exportdialog.py:223 zim/gui/pageview/__init__.py:7546
 msgid "Format"
 msgstr "Format"
 
-#. Input label in the export dialog | 
+#. Input label in the export dialog |
 #. Field in web server gui for webpage template
 #: zim/gui/exportdialog.py:224 zim/gui/server.py:106
 msgid "Template"
@@ -452,7 +452,7 @@ msgstr "Han ocorregut %i alertes, mirau el fitxer de registre"
 msgid "Export completed"
 msgstr "Exportació completada"
 
-#. button in export dialog | 
+#. button in export dialog |
 #. button in e.g. equation editor dialog
 #: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:356
 msgid "View _Log"
@@ -490,27 +490,27 @@ msgstr "Tipus d'imatge desconeguda"
 msgid "_File"
 msgstr "_Fitxer"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:47 zim/gui/pageview/__init__.py:7567
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "_Edita"
 
-#. Menu title | 
+#. Menu title |
 #. button label
 #: zim/gui/mainwindow.py:48 zim/gui/templateeditordialog.py:43
 msgid "_View"
 msgstr "_Visualitza"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:49 zim/gui/pageview/__init__.py:7517
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "_Insereix"
 
-#. Menu title | 
+#. Menu title |
 #. input label
 #: zim/gui/mainwindow.py:50 zim/gui/searchdialog.py:34
 msgid "_Search"
@@ -531,7 +531,7 @@ msgstr "_Eines"
 msgid "_Go"
 msgstr "_Vés"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:54 zim/gui/widgets.py:2954
 msgid "_Help"
@@ -589,7 +589,7 @@ msgstr ""
 msgid "_Side Panes"
 msgstr "_Panells laterals"
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:493 zim/gui/widgets.py:2915
 msgid "_Close"
@@ -634,7 +634,7 @@ msgstr "només lectura"
 msgid "_Jump To..."
 msgstr "_Vés a..."
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:767 zim/gui/widgets.py:3831
 msgid "_Back"
@@ -644,7 +644,7 @@ msgstr "_Precedent"
 msgid "Go back"
 msgstr ""
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:780 zim/gui/widgets.py:3835
 msgid "_Forward"
@@ -715,8 +715,8 @@ msgstr "_Salta"
 msgid "Jump to Page"
 msgstr "Vés a la pàgina"
 
-#. Column heading in 'open notebook' dialog | 
-#. Field in web server gui | 
+#. Column heading in 'open notebook' dialog |
+#. Field in web server gui |
 #. Field to select Notebook from drop down list
 #: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:57
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:222
@@ -859,7 +859,7 @@ msgstr ""
 msgid "Link"
 msgstr "_Enllaç"
 
-#. tooltip label for image with anchor id | 
+#. tooltip label for image with anchor id |
 #. input label for object ID
 #: zim/gui/pageview/__init__.py:4968 zim/gui/pageview/__init__.py:7868
 #: zim/plugins/sourceview.py:378
@@ -1036,22 +1036,22 @@ msgstr "Copia l'adreça de correu"
 msgid "Open Folder"
 msgstr "Obre la carpeta"
 
-#. menu item for sub menu with applications | 
+#. menu item for sub menu with applications |
 #. menu item
 #: zim/gui/pageview/__init__.py:6735 zim/gui/pageview/__init__.py:6746
 #: zim/plugins/attachmentbrowser/filebrowser.py:399
 msgid "Open With..."
 msgstr "Obre amb..."
 
-#. menu item to open a link | 
+#. menu item to open a link |
 #. Menu item
 #: zim/gui/pageview/__init__.py:6756 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:129
 msgid "Open in New _Window"
 msgstr "Obre una _finestra nova"
 
-#. menu item to open a link or file | 
-#. Button label | 
+#. menu item to open a link or file |
+#. Button label |
 #. menu item to open file or folder
 #: zim/gui/pageview/__init__.py:6766 zim/gui/widgets.py:3509
 #: zim/plugins/attachmentbrowser/filebrowser.py:406
@@ -1080,14 +1080,14 @@ msgstr "Marcar casella com a 'X'"
 msgid "Check Checkbox 'V'"
 msgstr "Marcar casella com a 'V'"
 
-#. popup menu menuitem | 
+#. popup menu menuitem |
 #. Menu item
 #: zim/gui/pageview/__init__.py:6785 zim/gui/pageview/__init__.py:6848
 msgid "Un-check Checkbox"
 msgstr "Desmarcar casella"
 
-#. Menu item | 
-#. Button label | 
+#. Menu item |
+#. Button label |
 #. button label
 #: zim/gui/pageview/__init__.py:6794 zim/gui/widgets.py:3511
 #: zim/plugins/versioncontrol/__init__.py:756
@@ -1114,8 +1114,8 @@ msgstr "_Refés"
 msgid "Cu_t"
 msgstr "_Talla"
 
-#. Menu item | 
-#. Button label | 
+#. Menu item |
+#. Button label |
 #. menu label
 #: zim/gui/pageview/__init__.py:6833 zim/gui/templateeditordialog.py:46
 #: zim/plugins/tasklist/gui.py:773
@@ -1189,19 +1189,19 @@ msgstr "_Imatge..."
 msgid "_Attachment..."
 msgstr "Adjunts"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7010 zim/gui/pageview/__init__.py:7037
 msgid "Bulle_t List"
 msgstr "Llista de _Vinyetes"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7015 zim/gui/pageview/__init__.py:7042
 msgid "_Numbered List"
 msgstr "Llista _numerada"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7020 zim/gui/pageview/__init__.py:7047
 msgid "Checkbo_x List"
@@ -1305,8 +1305,8 @@ msgstr "Mida _normal"
 msgid "Insert Date and Time"
 msgstr "Insereix la data i l'hora"
 
-#. label in "insert date" dialog | 
-#. Column header Task List dialog | 
+#. label in "insert date" dialog |
+#. Column header Task List dialog |
 #. Column header versions dialog
 #: zim/gui/pageview/__init__.py:7532 zim/plugins/tasklist/gui.py:486
 #: zim/plugins/versioncontrol/__init__.py:1069
@@ -1386,13 +1386,13 @@ msgstr "_D'acord"
 msgid "Edit Image"
 msgstr "Edita la imatge"
 
-#. Input in 'edit image' dialog | 
+#. Input in 'edit image' dialog |
 #. Input label for the section to move a page to
 #: zim/gui/pageview/__init__.py:7864 zim/gui/uiactions.py:607
 msgid "Location"
 msgstr "Ubicació"
 
-#. Input in 'edit image' dialog | 
+#. Input in 'edit image' dialog |
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:7865 zim/gui/pageview/__init__.py:8024
 msgid "Link to"
@@ -1433,7 +1433,7 @@ msgstr "Insereix un enllaç"
 msgid "_Link"
 msgstr "_Enllaç"
 
-#. Input in 'insert link' dialog | 
+#. Input in 'insert link' dialog |
 #. toolbar style
 #: zim/gui/pageview/__init__.py:8025 zim/plugins/toolbar.py:36
 msgid "Text"
@@ -1685,7 +1685,7 @@ msgstr "Fallit"
 msgid "Optional"
 msgstr "Opcional"
 
-#. Heading in plugins tab of preferences dialog | 
+#. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
 #: zim/gui/preferencesdialog.py:355 zim/plugins/versioncontrol/__init__.py:1070
 msgid "Author"
@@ -1834,7 +1834,7 @@ msgstr ""
 msgid "_Limit search to the current page and sub-pages"
 msgstr "Limitar la cerca a la pàgina actual i sub-pàgines"
 
-#. Column header search dialog | 
+#. Column header search dialog |
 #. menu item
 #: zim/gui/searchdialog.py:150 zim/plugins/scoreeditor.py:68
 msgid "Score"
@@ -1887,7 +1887,7 @@ msgstr "Servidor engegat"
 msgid "Server stopped"
 msgstr "Servidor aturat"
 
-#. Dialog title | 
+#. Dialog title |
 #. Section in dialog
 #: zim/gui/templateeditordialog.py:22 zim/gui/templateeditordialog.py:27
 msgid "Templates"
@@ -1964,7 +1964,7 @@ msgstr ""
 msgid "Proper_ties"
 msgstr "Propie_tats"
 
-#. Menu item | 
+#. Menu item |
 #. menu item in tray icon menu
 #: zim/gui/uiactions.py:239 zim/plugins/trayicon.py:148
 msgid "_Quit"
@@ -2164,8 +2164,8 @@ msgstr "Actualitzant els enllaços"
 #: zim/gui/uiactions.py:680
 #, fuzzy, python-format
 #| msgid "_Remove Link"
-msgid "Remove links to %s"
-msgstr "_Elimina un enllaç"
+#msgid "Remove links to %s"
+#msgstr "_Elimina un enllaç"
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
@@ -2330,14 +2330,14 @@ msgstr "<Rel>"
 msgid "Bottom"
 msgstr "Panell abaix"
 
-#. position of widget in window | 
+#. position of widget in window |
 #. alignment option
 #: zim/gui/widgets.py:2079 zim/plugins/tableeditor.py:53
 #: zim/plugins/tableeditor.py:864
 msgid "Left"
 msgstr "Esquerra"
 
-#. position of widget in window | 
+#. position of widget in window |
 #. alignment option
 #: zim/gui/widgets.py:2080 zim/plugins/tableeditor.py:55
 msgid "Right"
@@ -2542,8 +2542,8 @@ msgstr "_Aritmètica"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, fuzzy, python-format
 #| msgid "Do you want to delete all bookmarks?"
-msgid "Are you sure you want to delete the file '%s'?"
-msgstr "Vols esborrar tots els marcadors ?"
+#msgid "Are you sure you want to delete the file '%s'?"
+#msgstr "Vols esborrar tots els marcadors ?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391
@@ -2624,7 +2624,7 @@ msgstr ""
 "Aquest connector mostra la carpeta d'adjunts de la pàgina actual com\n"
 "una vista d'icones al panell inferior.\n"
 
-#. option for plugin preferences | 
+#. option for plugin preferences |
 #. preferences option
 #: zim/plugins/attachmentbrowser/__init__.py:82 zim/plugins/backlinkpane.py:35
 #: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:61
@@ -2881,7 +2881,7 @@ msgstr "Oculta barra de menú al mode pantalla completa"
 msgid "Maximum page width"
 msgstr "Amplada de pàgina màxima"
 
-#. plugin preference | 
+#. plugin preference |
 #. preference option for sourceview plugin
 #: zim/plugins/distractionfree.py:38 zim/plugins/sourceview.py:99
 msgid "Border width"
@@ -3011,7 +3011,7 @@ msgstr "No es pot analitzar l'expressió"
 msgid "Evaluate _Math"
 msgstr "Evaluar _Math"
 
-#. plugin name | 
+#. plugin name |
 #. Dialog title
 #: zim/plugins/insertsymbol.py:25 zim/plugins/insertsymbol.py:130
 msgid "Insert Symbol"
@@ -3035,7 +3035,7 @@ msgstr ""
 msgid "Sy_mbol..."
 msgstr "Sí_mbol"
 
-#. plugin name | 
+#. plugin name |
 #. side pane title
 #: zim/plugins/journal.py:97 zim/plugins/journal.py:332
 msgid "Journal"
@@ -3143,7 +3143,7 @@ msgstr "Línia _Duplicada"
 msgid "_Remove Line"
 msgstr "_Esborra línia"
 
-#. plugin name | 
+#. plugin name |
 #. menu item
 #: zim/plugins/linkmap.py:29 zim/plugins/linkmap.py:129
 msgid "Link Map"
@@ -3376,7 +3376,7 @@ msgstr "Incloure capçalera principal"
 msgid "Common include footer"
 msgstr "Incloure peu de pàgina principal"
 
-#. plugin name | 
+#. plugin name |
 #. dialog title
 #: zim/plugins/screenshot.py:107 zim/plugins/screenshot.py:174
 msgid "Insert Screenshot"
@@ -3648,7 +3648,7 @@ msgstr "Línies de graella"
 msgid "Table"
 msgstr "Taula"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:459 zim/plugins/tableeditor.py:615
 msgid "Add row"
@@ -3659,25 +3659,25 @@ msgstr "Afegir fila"
 msgid "Remove row"
 msgstr "Elimina la fila"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:461 zim/plugins/tableeditor.py:617
 msgid "Clone row"
 msgstr "Clonar fila"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:463 zim/plugins/tableeditor.py:621
 msgid "Row up"
 msgstr "Pujar fila"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:464 zim/plugins/tableeditor.py:622
 msgid "Row down"
 msgstr "Baixar fila"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:466 zim/plugins/tableeditor.py:624
 msgid "Change columns"
@@ -3826,8 +3826,8 @@ msgstr "Promoure"
 msgid "ToC"
 msgstr "ÍNDEX"
 
-#. plugin name | 
-#. title for sidepane tab | 
+#. plugin name |
+#. title for sidepane tab |
 #. Column header for tag list in Task List dialog
 #: zim/plugins/tags.py:37 zim/plugins/tags.py:95
 #: zim/plugins/tasklist/gui.py:247
@@ -3873,14 +3873,14 @@ msgstr "Mostrar solament tasques actives"
 msgid "Tasks"
 msgstr "Tasques"
 
-#. label for filtering/searching tasks | 
+#. label for filtering/searching tasks |
 #. Input label
 #: zim/plugins/tasklist/gui.py:88 zim/plugins/tasklist/gui.py:156
 msgid "Filter"
 msgstr "Filtre"
 
-#. dialog title | 
-#. plugin name | 
+#. dialog title |
+#. plugin name |
 #. menu item
 #: zim/plugins/tasklist/gui.py:113 zim/plugins/tasklist/__init__.py:38
 #: zim/plugins/tasklist/__init__.py:161
@@ -4122,7 +4122,7 @@ msgstr "Un _altre..."
 msgid "Notebooks"
 msgstr "Quaderns"
 
-#. tooltip for tray icon | 
+#. tooltip for tray icon |
 #. short description of zim
 #: zim/plugins/trayicon.py:257 zim/plugins/zeitgeist-logger.py:48
 msgid "Zim Desktop Wiki"

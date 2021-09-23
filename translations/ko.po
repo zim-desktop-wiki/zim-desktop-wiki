@@ -41,7 +41,7 @@ msgstr ""
 msgid "Failed running: %s"
 msgstr "다음 항목 실행 실패 : %s"
 
-#. label for default webbrowser | 
+#. label for default webbrowser |
 #. label for default application
 #: zim/applications.py:383 zim/applications.py:426 zim/gui/applications.py:1100
 msgid "Default"
@@ -57,7 +57,7 @@ msgstr "calendar:week_start:0"
 msgid "Looks like you found a bug"
 msgstr "버그인 것 같습니다."
 
-#. message for FileNotFoundError | 
+#. message for FileNotFoundError |
 #. Error message in template lookup
 #: zim/fs.py:275 zim/templates/__init__.py:124
 #, python-format
@@ -75,7 +75,7 @@ msgstr "%s 을 읽을 수 없습니다."
 msgid "This usually means the file contains invalid characters"
 msgstr "이것은 파일이 적절하지 않은 문자셋을 가지고 있다는 것을 의미합니다"
 
-#. label for detailed error | 
+#. label for detailed error |
 #. section for version details in "save version" dialog
 #: zim/fs.py:291 zim/newfs/base.py:68
 #: zim/plugins/versioncontrol/__init__.py:776
@@ -165,7 +165,7 @@ msgstr "\"%s\" 유형의 파일을 열 프로그램을 설정"
 msgid "Configure Applications"
 msgstr "응용프로그램 설정"
 
-#. Button for adding a new application to the 'open with' menu | 
+#. Button for adding a new application to the 'open with' menu |
 #. Dialog title
 #: zim/gui/applications.py:1104 zim/gui/applications.py:1212
 msgid "Add Application"
@@ -176,14 +176,14 @@ msgstr "응용프로그램 추가"
 msgid "System Default"
 msgstr "시스템 기본값"
 
-#. Field in 'custom command' dialog | 
-#. Input in "Edit Custom Tool" dialog | 
-#. input field in 'Add Notebook' dialog | 
-#. input for new file name | 
-#. Heading in plugins tab of preferences dialog | 
-#. label for properties dialog | 
-#. Input label for the new name when copying a template | 
-#. Input label in the 'rename page' dialog for the new name | 
+#. Field in 'custom command' dialog |
+#. Input in "Edit Custom Tool" dialog |
+#. input field in 'Add Notebook' dialog |
+#. input for new file name |
+#. Heading in plugins tab of preferences dialog |
+#. label for properties dialog |
+#. Input label for the new name when copying a template |
+#. Input label in the 'rename page' dialog for the new name |
 #. label for file name
 #: zim/gui/applications.py:1216 zim/gui/customtools.py:667
 #: zim/gui/notebookdialog.py:422 zim/gui/pageview/__init__.py:8536
@@ -193,7 +193,7 @@ msgstr "시스템 기본값"
 msgid "Name"
 msgstr "이름"
 
-#. Field in 'custom command' dialog | 
+#. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/applications.py:1217 zim/gui/customtools.py:669
 msgid "Command"
@@ -229,13 +229,13 @@ msgstr ""
 msgid "Edit Custom Tool"
 msgstr "사용자 지정 도구 편집"
 
-#. Input in "Edit Custom Tool" dialog | 
+#. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/customtools.py:668 zim/gui/preferencesdialog.py:334
 msgid "Description"
 msgstr "설명"
 
-#. Input in "Edit Custom Tool" dialog | 
+#. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
 #: zim/gui/customtools.py:683 zim/gui/propertiesdialog.py:19
 msgid "Icon"
@@ -329,7 +329,7 @@ msgstr ""
 msgid "Select the pages to export"
 msgstr "내보낼 페이지를 선택하십시오"
 
-#. Option in export dialog to export complete notebook | 
+#. Option in export dialog to export complete notebook |
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:173 zim/plugins/versioncontrol/__init__.py:824
 msgid "Complete _notebook"
@@ -340,11 +340,11 @@ msgstr "전체 노트북(_N)"
 msgid "Single _page"
 msgstr "단일 페이지(_P)"
 
-#. Input field in export dialog | 
-#. label in word count dialog | 
-#. Column header | 
-#. Column header search dialog | 
-#. Column header Task List dialog | 
+#. Input field in export dialog |
+#. label in word count dialog |
+#. Column header |
+#. Column header search dialog |
+#. Column header Task List dialog |
 #. page label
 #: zim/gui/exportdialog.py:181 zim/gui/pageview/__init__.py:8416
 #: zim/gui/recentchangesdialog.py:59 zim/gui/searchdialog.py:149
@@ -368,13 +368,13 @@ msgstr "내보낼 포맷을 선택하십시오"
 msgid "Other..."
 msgstr "기타..."
 
-#. Input label in the export dialog | 
+#. Input label in the export dialog |
 #. label in "insert date" dialog
 #: zim/gui/exportdialog.py:223 zim/gui/pageview/__init__.py:7546
 msgid "Format"
 msgstr "형식"
 
-#. Input label in the export dialog | 
+#. Input label in the export dialog |
 #. Field in web server gui for webpage template
 #: zim/gui/exportdialog.py:224 zim/gui/server.py:106
 msgid "Template"
@@ -448,7 +448,7 @@ msgstr "%i 경고 발생, 로그를 확인하세요"
 msgid "Export completed"
 msgstr "내보내기 완료됨"
 
-#. button in export dialog | 
+#. button in export dialog |
 #. button in e.g. equation editor dialog
 #: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:356
 msgid "View _Log"
@@ -486,27 +486,27 @@ msgstr ""
 msgid "_File"
 msgstr "파일(_F)"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:47 zim/gui/pageview/__init__.py:7567
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "편집(_E)"
 
-#. Menu title | 
+#. Menu title |
 #. button label
 #: zim/gui/mainwindow.py:48 zim/gui/templateeditordialog.py:43
 msgid "_View"
 msgstr "보기(_V)"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:49 zim/gui/pageview/__init__.py:7517
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "삽입(_I)"
 
-#. Menu title | 
+#. Menu title |
 #. input label
 #: zim/gui/mainwindow.py:50 zim/gui/searchdialog.py:34
 msgid "_Search"
@@ -527,7 +527,7 @@ msgstr "도구(_T)"
 msgid "_Go"
 msgstr "이동(_G)"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:54 zim/gui/widgets.py:2954
 msgid "_Help"
@@ -585,7 +585,7 @@ msgstr ""
 msgid "_Side Panes"
 msgstr "사이드 창"
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:493 zim/gui/widgets.py:2915
 msgid "_Close"
@@ -630,7 +630,7 @@ msgstr "읽기 전용"
 msgid "_Jump To..."
 msgstr "직접 이동...(_J)"
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:767 zim/gui/widgets.py:3831
 msgid "_Back"
@@ -640,7 +640,7 @@ msgstr "뒤로(_B)"
 msgid "Go back"
 msgstr ""
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:780 zim/gui/widgets.py:3835
 msgid "_Forward"
@@ -710,8 +710,8 @@ msgstr ""
 msgid "Jump to Page"
 msgstr "페이지로 직접 이동"
 
-#. Column heading in 'open notebook' dialog | 
-#. Field in web server gui | 
+#. Column heading in 'open notebook' dialog |
+#. Field in web server gui |
 #. Field to select Notebook from drop down list
 #: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:57
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:222
@@ -851,7 +851,7 @@ msgstr ""
 msgid "Link"
 msgstr "링크(_L)"
 
-#. tooltip label for image with anchor id | 
+#. tooltip label for image with anchor id |
 #. input label for object ID
 #: zim/gui/pageview/__init__.py:4968 zim/gui/pageview/__init__.py:7868
 #: zim/plugins/sourceview.py:378
@@ -1027,22 +1027,22 @@ msgstr "이메일 주소 복사"
 msgid "Open Folder"
 msgstr "폴더 열기"
 
-#. menu item for sub menu with applications | 
+#. menu item for sub menu with applications |
 #. menu item
 #: zim/gui/pageview/__init__.py:6735 zim/gui/pageview/__init__.py:6746
 #: zim/plugins/attachmentbrowser/filebrowser.py:399
 msgid "Open With..."
 msgstr "다음으로 열기..."
 
-#. menu item to open a link | 
+#. menu item to open a link |
 #. Menu item
 #: zim/gui/pageview/__init__.py:6756 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:129
 msgid "Open in New _Window"
 msgstr "새 창에서 열기(_W)"
 
-#. menu item to open a link or file | 
-#. Button label | 
+#. menu item to open a link or file |
+#. Button label |
 #. menu item to open file or folder
 #: zim/gui/pageview/__init__.py:6766 zim/gui/widgets.py:3509
 #: zim/plugins/attachmentbrowser/filebrowser.py:406
@@ -1071,14 +1071,14 @@ msgstr "체크박스 체크 'X'"
 msgid "Check Checkbox 'V'"
 msgstr "체크박스 체크 'V'"
 
-#. popup menu menuitem | 
+#. popup menu menuitem |
 #. Menu item
 #: zim/gui/pageview/__init__.py:6785 zim/gui/pageview/__init__.py:6848
 msgid "Un-check Checkbox"
 msgstr "체크박스 체크해제"
 
-#. Menu item | 
-#. Button label | 
+#. Menu item |
+#. Button label |
 #. button label
 #: zim/gui/pageview/__init__.py:6794 zim/gui/widgets.py:3511
 #: zim/plugins/versioncontrol/__init__.py:756
@@ -1105,8 +1105,8 @@ msgstr "다시 실행(_R)"
 msgid "Cu_t"
 msgstr "잘라내기(_T)"
 
-#. Menu item | 
-#. Button label | 
+#. Menu item |
+#. Button label |
 #. menu label
 #: zim/gui/pageview/__init__.py:6833 zim/gui/templateeditordialog.py:46
 #: zim/plugins/tasklist/gui.py:773
@@ -1180,19 +1180,19 @@ msgstr "그림(_I)..."
 msgid "_Attachment..."
 msgstr "첨부 파일"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7010 zim/gui/pageview/__init__.py:7037
 msgid "Bulle_t List"
 msgstr "글머리 기호 목록(_T)"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7015 zim/gui/pageview/__init__.py:7042
 msgid "_Numbered List"
 msgstr "번호 목록(_N)"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7020 zim/gui/pageview/__init__.py:7047
 msgid "Checkbo_x List"
@@ -1292,8 +1292,8 @@ msgstr "보통 크기(_N)"
 msgid "Insert Date and Time"
 msgstr "날짜와 시간 입력"
 
-#. label in "insert date" dialog | 
-#. Column header Task List dialog | 
+#. label in "insert date" dialog |
+#. Column header Task List dialog |
 #. Column header versions dialog
 #: zim/gui/pageview/__init__.py:7532 zim/plugins/tasklist/gui.py:486
 #: zim/plugins/versioncontrol/__init__.py:1069
@@ -1373,13 +1373,13 @@ msgstr ""
 msgid "Edit Image"
 msgstr "그림 편집"
 
-#. Input in 'edit image' dialog | 
+#. Input in 'edit image' dialog |
 #. Input label for the section to move a page to
 #: zim/gui/pageview/__init__.py:7864 zim/gui/uiactions.py:607
 msgid "Location"
 msgstr "위치"
 
-#. Input in 'edit image' dialog | 
+#. Input in 'edit image' dialog |
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:7865 zim/gui/pageview/__init__.py:8024
 msgid "Link to"
@@ -1420,7 +1420,7 @@ msgstr "링크 삽입"
 msgid "_Link"
 msgstr "링크(_L)"
 
-#. Input in 'insert link' dialog | 
+#. Input in 'insert link' dialog |
 #. toolbar style
 #: zim/gui/pageview/__init__.py:8025 zim/plugins/toolbar.py:36
 msgid "Text"
@@ -1672,7 +1672,7 @@ msgstr "실패"
 msgid "Optional"
 msgstr "선택적"
 
-#. Heading in plugins tab of preferences dialog | 
+#. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
 #: zim/gui/preferencesdialog.py:355 zim/plugins/versioncontrol/__init__.py:1070
 msgid "Author"
@@ -1819,7 +1819,7 @@ msgstr ""
 msgid "_Limit search to the current page and sub-pages"
 msgstr "현재 페이지 및 하위 페이지로 검색 제한"
 
-#. Column header search dialog | 
+#. Column header search dialog |
 #. menu item
 #: zim/gui/searchdialog.py:150 zim/plugins/scoreeditor.py:68
 msgid "Score"
@@ -1872,7 +1872,7 @@ msgstr "서버 시작됨"
 msgid "Server stopped"
 msgstr "서버 중지됨"
 
-#. Dialog title | 
+#. Dialog title |
 #. Section in dialog
 #: zim/gui/templateeditordialog.py:22 zim/gui/templateeditordialog.py:27
 msgid "Templates"
@@ -1949,7 +1949,7 @@ msgstr ""
 msgid "Proper_ties"
 msgstr "등록 정보(_T)"
 
-#. Menu item | 
+#. Menu item |
 #. menu item in tray icon menu
 #: zim/gui/uiactions.py:239 zim/plugins/trayicon.py:148
 msgid "_Quit"
@@ -2147,8 +2147,8 @@ msgstr "링크 업데이트 중"
 #: zim/gui/uiactions.py:680
 #, fuzzy, python-format
 #| msgid "_Remove Link"
-msgid "Remove links to %s"
-msgstr "링크 제거(_R)"
+#msgid "Remove links to %s"
+#msgstr "링크 제거(_R)"
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
@@ -2309,14 +2309,14 @@ msgstr "목차"
 msgid "Bottom"
 msgstr "아래쪽 창"
 
-#. position of widget in window | 
+#. position of widget in window |
 #. alignment option
 #: zim/gui/widgets.py:2079 zim/plugins/tableeditor.py:53
 #: zim/plugins/tableeditor.py:864
 msgid "Left"
 msgstr "왼쪽"
 
-#. position of widget in window | 
+#. position of widget in window |
 #. alignment option
 #: zim/gui/widgets.py:2080 zim/plugins/tableeditor.py:55
 msgid "Right"
@@ -2515,8 +2515,8 @@ msgstr "사칙 연산(_A)"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, fuzzy, python-format
 #| msgid "Do you want to delete all bookmarks?"
-msgid "Are you sure you want to delete the file '%s'?"
-msgstr "모든 북마크를 삭제하시겠습니까?"
+#msgid "Are you sure you want to delete the file '%s'?"
+#msgstr "모든 북마크를 삭제하시겠습니까?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391
@@ -2597,7 +2597,7 @@ msgstr ""
 "이 플러그인은 현재 페이지의 첨부 파일 폴더를 아래쪽 창에 아이콘으로 보여줍니"
 "다.\n"
 
-#. option for plugin preferences | 
+#. option for plugin preferences |
 #. preferences option
 #: zim/plugins/attachmentbrowser/__init__.py:82 zim/plugins/backlinkpane.py:35
 #: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:61
@@ -2846,7 +2846,7 @@ msgstr "전체화면 보기에서 메뉴 막대 숨기기"
 msgid "Maximum page width"
 msgstr "최대 페이지 너비"
 
-#. plugin preference | 
+#. plugin preference |
 #. preference option for sourceview plugin
 #: zim/plugins/distractionfree.py:38 zim/plugins/sourceview.py:99
 msgid "Border width"
@@ -2963,7 +2963,7 @@ msgstr "수식을 분석하지 못했습니다"
 msgid "Evaluate _Math"
 msgstr "수식 계산(_M)"
 
-#. plugin name | 
+#. plugin name |
 #. Dialog title
 #: zim/plugins/insertsymbol.py:25 zim/plugins/insertsymbol.py:130
 msgid "Insert Symbol"
@@ -2987,7 +2987,7 @@ msgstr ""
 msgid "Sy_mbol..."
 msgstr "기호(_M)..."
 
-#. plugin name | 
+#. plugin name |
 #. side pane title
 #: zim/plugins/journal.py:97 zim/plugins/journal.py:332
 msgid "Journal"
@@ -3093,7 +3093,7 @@ msgstr "이 줄 복제(&D)"
 msgid "_Remove Line"
 msgstr "이 줄 삭제(&R)"
 
-#. plugin name | 
+#. plugin name |
 #. menu item
 #: zim/plugins/linkmap.py:29 zim/plugins/linkmap.py:129
 msgid "Link Map"
@@ -3315,7 +3315,7 @@ msgstr "공통 삽입 머리말"
 msgid "Common include footer"
 msgstr "공통 삽입 꼬리말"
 
-#. plugin name | 
+#. plugin name |
 #. dialog title
 #: zim/plugins/screenshot.py:107 zim/plugins/screenshot.py:174
 msgid "Insert Screenshot"
@@ -3577,7 +3577,7 @@ msgstr "격자선"
 msgid "Table"
 msgstr "표"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:459 zim/plugins/tableeditor.py:615
 msgid "Add row"
@@ -3588,25 +3588,25 @@ msgstr "행 추가"
 msgid "Remove row"
 msgstr "행 삭제"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:461 zim/plugins/tableeditor.py:617
 msgid "Clone row"
 msgstr "행 복제"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:463 zim/plugins/tableeditor.py:621
 msgid "Row up"
 msgstr "행 위로"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:464 zim/plugins/tableeditor.py:622
 msgid "Row down"
 msgstr "행 아래로"
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:466 zim/plugins/tableeditor.py:624
 msgid "Change columns"
@@ -3749,8 +3749,8 @@ msgstr "한 단계 위로"
 msgid "ToC"
 msgstr "목차"
 
-#. plugin name | 
-#. title for sidepane tab | 
+#. plugin name |
+#. title for sidepane tab |
 #. Column header for tag list in Task List dialog
 #: zim/plugins/tags.py:37 zim/plugins/tags.py:95
 #: zim/plugins/tasklist/gui.py:247
@@ -3796,14 +3796,14 @@ msgstr "활성화된 작업만 표시"
 msgid "Tasks"
 msgstr "작업"
 
-#. label for filtering/searching tasks | 
+#. label for filtering/searching tasks |
 #. Input label
 #: zim/plugins/tasklist/gui.py:88 zim/plugins/tasklist/gui.py:156
 msgid "Filter"
 msgstr "필터"
 
-#. dialog title | 
-#. plugin name | 
+#. dialog title |
+#. plugin name |
 #. menu item
 #: zim/plugins/tasklist/gui.py:113 zim/plugins/tasklist/__init__.py:38
 #: zim/plugins/tasklist/__init__.py:161
@@ -4039,7 +4039,7 @@ msgstr "기타(_O)..."
 msgid "Notebooks"
 msgstr "노트북"
 
-#. tooltip for tray icon | 
+#. tooltip for tray icon |
 #. short description of zim
 #: zim/plugins/trayicon.py:257 zim/plugins/zeitgeist-logger.py:48
 msgid "Zim Desktop Wiki"

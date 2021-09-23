@@ -11,7 +11,7 @@ class TestTranslations(tests.TestCase):
 	def runTest(self, verbose=False):
 		'''Sanity check translation files'''
 		pot_creation_date = None
-		for file in ['translations/zim.pot'] + glob('translations/*.po'):
+		for file in ['translations/zim.pot'] + sorted(glob('translations/*.po')):
 			if verbose:
 				print('Checking %s' % file)
 
