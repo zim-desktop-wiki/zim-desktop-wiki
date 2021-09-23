@@ -35,6 +35,23 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2021-09-23" version="0.74.1">
+      <description>
+        <ul>
+          <li>Add preference to hide edit bar</li>
+          <li>Add separate parameter for wrapped lines linespacing</li>
+          <li>Fix behavior of copying images on copy-paste</li>
+          <li>Fix export of anchors to make valid HTML tags</li>
+          <li>Fix storing of uistate for window panes</li>
+          <li>Fix issues for "file:/path" file URIs</li>
+          <li>Fix bug in "copy link"</li>
+          <li>Make clipboard handling robust for non-local file URI</li>
+          <li>Fix issue with escaping in find input</li>
+          <li>Fix behavior of TrashDialog on error</li>
+          <li>Remove string literal formatting syntax</li>
+        </ul>
+      </description>
+    </release>
     <release date="2021-09-14" version="0.74.0">
       <description>
         <ul>

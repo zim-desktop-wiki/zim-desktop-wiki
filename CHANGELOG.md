@@ -5,6 +5,19 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.74.1 - Thu 23 Sep 2021
+* Add preference to hide edit bar
+* Add separate parameter for wrapped lines linespacing
+* Fix behavior of copying images on copy-paste
+* Fix export of anchors to make valid HTML tags
+* Fix storing of uistate for window panes
+* Fix issues for "file:/path" file URIs
+* Fix bug in "copy link"
+* Make clipboard handling robust for non-local file URI
+* Fix issue with escaping in find input
+* Fix behavior of TrashDialog on error
+* Remove string literal formatting syntax
+
 ##  0.74.0 - Tue 14 Sep 2021
 * Support link "anchors" to allow linking within page
 * Add new-style headerbar as window decoration
