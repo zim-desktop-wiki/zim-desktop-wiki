@@ -222,6 +222,7 @@ class UIActions(object):
 				if QuestionDialog(
 					self.widget,
 					_("Trash failed, do you want to permanently delete instead ?")
+						# T: question in "delete page" action
 				).run():
 					return DeletePageDialog(self.widget, self.notebook, path).run()
 

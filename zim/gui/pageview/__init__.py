@@ -5788,13 +5788,13 @@ def _install_format_actions(klass):
 
 	klass._format_toggle_actions = []
 	for name, label, icon in (
-		('toggle_format_strong', _('_Strong'), 'format-text-bold-symbolic'),
-		('toggle_format_emphasis', _('_Emphasis'), 'format-text-italic-symbolic'),
-		('toggle_format_mark', _('_Mark'), 'format-text-underline-symbolic'),
-		('toggle_format_strike', _('_Strike'), 'format-text-strikethrough-symbolic'),
-		('toggle_format_code', _('_Verbatim'), 'format-text-code-symbolic'),
-		('toggle_format_sub', _('Su_bscript'), 'format-text-subscript-symbolic'),
-		('toggle_format_sup', _('Su_perscript'), 'format-text-superscript-symbolic'),
+		('toggle_format_strong', _('_Strong'), 'format-text-bold-symbolic'), # T: menu item for formatting
+		('toggle_format_emphasis', _('_Emphasis'), 'format-text-italic-symbolic'), # T: menu item for formatting
+		('toggle_format_mark', _('_Mark'), 'format-text-underline-symbolic'), # T: menu item for formatting
+		('toggle_format_strike', _('_Strike'), 'format-text-strikethrough-symbolic'), # T: menu item for formatting
+		('toggle_format_code', _('_Verbatim'), 'format-text-code-symbolic'), # T: menu item for formatting
+		('toggle_format_sup', _('Su_perscript'), 'format-text-superscript-symbolic'), # T: menu item for formatting
+		('toggle_format_sub', _('Su_bscript'), 'format-text-subscript-symbolic'), # T: menu item for formatting
 	):
 		func = functools.partial(klass.do_toggle_format_action_alt, action=name)
 		setattr(klass, name,
@@ -6558,7 +6558,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer = textview.get_buffer()
 		iter = buffer.find_anchor(name)
 		if not iter:
-			ErrorDialog(self, _('Id "%s" not found on the current page') % name).run()
+			ErrorDialog(self, _('Id "%s" not found on the current page') % name).run() # T: error when anchor location in page not found
 			return
 		buffer.place_cursor(iter)
 		if select_line:
@@ -6652,7 +6652,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			SelectionClipboard.set_pagelink(self.notebook, path, anchor, text)
 
 		# copy link to anchor or heading
-		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _link to this location'))
+		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _link to this location')) # T: menu item to copy link to achor location in page
 		anchor = buffer.get_anchor_for_location(iter)
 		if anchor:
 			heading_text = buffer._get_heading_text(iter) # can be None if not a heading
@@ -6958,7 +6958,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if bounds:
 			buffer.remove_link(*bounds)
 
-	@action(_('Copy Line'), accelerator='<Primary><Shift>C', menuhints='edit')
+	@action(_('Copy Line'), accelerator='<Primary><Shift>C', menuhints='edit') # T: menu item to copy current line to clipboard
 	def copy_current_line(self):
 		'''Menu action to copy the current line to the clipboard'''
 		buffer = self.textview.get_buffer()
@@ -8516,7 +8516,7 @@ class MoveTextDialog(Dialog):
 		# Copy text
 		bounds = self.buffer.get_selection_bounds()
 		if not bounds:
-			ErrorDialog(self, _('No text selected')).run()
+			ErrorDialog(self, _('No text selected')).run() # T: error message in "move selected text" action
 			return False
 
 		if not newpage.exists():

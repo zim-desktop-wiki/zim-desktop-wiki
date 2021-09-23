@@ -59,6 +59,7 @@ def delete_file(widget, file):
 		raise FileNotFoundError(file)
 
 	dialog = QuestionDialog(widget, _('Are you sure you want to delete the file \'%s\'?') % file.basename)
+		# T: text in confirmation dialog on deleting a file
 	if dialog.run():
 		TrashHelper().trash(file)
 

@@ -314,7 +314,7 @@ class PluginsTab(Gtk.VBox):
 					_(
 						'This plugin cannot be enabled due to missing dependencies.\n'
 						'Please see the dependencies section below for details.\n\n'
-					),
+					), # T: help text when plugin cannot be activated
 					'red'
 				)
 			else:
@@ -323,6 +323,7 @@ class PluginsTab(Gtk.VBox):
 				# (e.g. syntax error) in the extension's Python module. Such issues
 				# are caught when the PluginsTreeModel is init'ed.
 				insert(_('There was a problem loading this plugin\n\n'), 'red')
+					# T: help text when plugin cannot be loaded due to bug / issue
 
 				if not klass:
 					self.configure_button.set_sensitive(False)

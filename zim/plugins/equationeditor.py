@@ -32,8 +32,8 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('dark_mode', 'bool', _('Use font color for dark theme'), False),
-        )
+		('dark_mode', 'bool', _('Use font color for dark theme'), False), # T: plugin preference
+    )
 
 	@classmethod
 	def check_dependencies(klass):

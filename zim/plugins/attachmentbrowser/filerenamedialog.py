@@ -15,7 +15,7 @@ class FileRenameDialog(Dialog):
 	""" A dialog for renaming a file. """
 
 	def __init__(self, parent, file):
-		title = _('Rename file')
+		title = _('Rename file') # T: dialog title
 		Dialog.__init__(self, parent, title)
 
 		assert isinstance(file, LocalFile) and not isinstance(file, LocalFolder)
@@ -66,13 +66,13 @@ class FileRenameDialog(Dialog):
 			return False
 
 		if not widget.get_text():
-			return show_error(_('File name should not be blank.'))
+			return show_error(_('File name should not be blank.')) # T: Error message
 
 		if does_file_already_exist(widget.get_text()):
-			return show_error(_('A file with that name already exists.'))
+			return show_error(_('A file with that name already exists.')) # T: Error message
 
 		if not is_filename(widget.get_text()):
-			return show_error(_('File name should not contain path declaration.'))
+			return show_error(_('File name should not contain path declaration.')) # T: Error message
 
 		# No errors, hide error label and enable OK button.
 		self.txt_error.hide()

@@ -771,7 +771,7 @@ class MainWindow(WindowBaseMixin, Window):
 	@action(
 		_('_Back'), verb_icon='go-previous-symbolic', # T: Menu item
 		accelerator='<alt>Left', alt_accelerator='XF86Back',
-		tooltip=_('Go back')
+		tooltip=_('Go back') # T: tooltip for navigation button
 	)
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
@@ -784,7 +784,7 @@ class MainWindow(WindowBaseMixin, Window):
 	@action(
 		_('_Forward'), verb_icon='go-next-symbolic', # T: Menu item
 		accelerator='<alt>Right', alt_accelerator='XF86Forward',
-		tooltip=_('Go forward')
+		tooltip=_('Go forward') # T: tooltip for navigation button
 	)
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
