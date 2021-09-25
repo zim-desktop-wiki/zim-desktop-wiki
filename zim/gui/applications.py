@@ -920,6 +920,9 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 					uris.append(str(arg))
 			return uris
 
+		def quote(arg):
+			return '"{}"'.format(arg.replace('"', '\"'))
+
 		cmd = self['Desktop Entry']['Exec']
 		if args is None or len(args) == 0:
 			if '%f' in cmd:
@@ -932,16 +935,16 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 				cmd = cmd.replace('%U', '')
 		elif '%f' in cmd:
 			assert len(args) == 1, 'application takes one file name'
-			cmd = cmd.replace('%f', str(args[0]))
+			cmd = cmd.replace('%f', quote(args[0]))
 		elif '%F' in cmd:
-			cmd = cmd.replace('%F', " ".join(list(map(str, args))))
+			cmd = cmd.replace('%F', " ".join(list(map(quote, args))))
 		elif '%u' in cmd:
 			assert len(args) == 1, 'application takes one url'
 			cmd = cmd.replace('%u', uris(args)[0])
 		elif '%U' in cmd:
-			cmd = cmd.replace('%U', " ".join(uris(args)))
+			cmd = cmd.replace('%U', " ".join(map(quote, uris(args))))
 		else:
-			cmd += " " + " ".join(list(map(str, args)))
+			cmd += " " + " ".join(list(map(quote, args)))
 
 		if '%i' in cmd:
 			if 'Icon' in self['Desktop Entry'] \

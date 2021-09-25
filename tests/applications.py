@@ -56,17 +56,21 @@ class TestApplications(tests.TestCase):
 		entry['Desktop Entry']['Name'] = 'Foo'
 		for app, args, wanted in (
 			# Test cases should be compliant with spec
-			('foo %f', (), ('foo',)),
-			('foo %f %i', (), ('foo',)), # no icon set
-			('foo %f %k', (), ('foo', '')), # no source set
+			('foo %f', (), ('foo',)),  # no file set
+			('foo %f %i', (), ('foo',)),  # no file and no icon set
+			('foo %f %k', (), ('foo',)),  # no file and no source set
 			('foo %f %c', (), ('foo', 'Foo')),
 			('foo', ('bar',), ('foo', 'bar')),
 			('foo', ('bar baz',), ('foo', 'bar baz')),
 			('foo "hmm ja"', ('bar',), ('foo', 'hmm ja', 'bar')),
 			('foo %f', ('bar baz',), ('foo', 'bar baz')),
 			('foo %F', ('bar baz',), ('foo', 'bar baz')),
-			('foo %u', ('bar baz',), ('foo', 'bar baz')),
+			# ('foo %u', ('bar baz',), ('foo', 'bar baz')),
+			('foo "%u"', ('bar baz',), ('foo', 'bar baz')),
+			("foo '%u'", ('bar baz',), ('foo', 'bar baz')),
 			('foo %U', ('bar baz',), ('foo', 'bar baz')),
+			('foo "%U"', ('bar baz',), ('foo', 'bar baz')),
+			("foo '%U'", ('bar baz',), ('foo', 'bar baz')),
 			('foo %F', ('bar', 'baz'), ('foo', 'bar', 'baz')),
 			('foo %F hmm', ('bar', 'baz'), ('foo', 'bar', 'baz', 'hmm')),
 			('foo %U', ('bar', 'baz'), ('foo', 'bar', 'baz')),

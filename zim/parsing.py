@@ -14,7 +14,7 @@ def split_quoted_strings(string, unescape=True, strict=True):
 	boundries.
 
 	( XDG Desktop Entry spec says full words must be quoted and
-	quotes in a word escaped, but doesn't specifify what to do with
+	quotes in a word escaped, but doesn't specify what to do with
 	loose quotes in a string. )
 
 	Also a comma "," is handled specially and is always considered a
