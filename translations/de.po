@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-14 20:42+0200\n"
-"PO-Revision-Date: 2021-06-29 11:34+0000\n"
+"PO-Revision-Date: 2021-09-26 14:35+0000\n"
 "Last-Translator: Andreas Klostermaier <andreas.klostermaier@appendx.de>\n"
 "Language-Team: German <https://hosted.weblate.org/projects/zim/master/de/>\n"
 "Language: de\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.7.1-dev\n"
+"X-Generator: Weblate 4.9-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -555,10 +555,8 @@ msgstr "Verwende immer die letzte Cursorposition beim Öffnen einer Seite"
 
 #. button label for fullscreen window header
 #: zim/gui/mainwindow.py:143
-#, fuzzy
-#| msgid "_Fullscreen"
 msgid "Leave Fullscreen"
-msgstr "_Vollbild"
+msgstr "Vollbild beenden"
 
 #. Menu item
 #: zim/gui/mainwindow.py:181
@@ -582,7 +580,7 @@ msgstr "Schr_eibschutz"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "Seite ist schreibgeschützt und kann nicht bearbeitet werden"
 
 #. Menu item
 #: zim/gui/mainwindow.py:256
@@ -602,27 +600,18 @@ msgstr "Menüleiste"
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:674 zim/gui/uiactions.py:501
-#, fuzzy
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
 msgid "File exists, do you want to import?"
-msgstr ""
-"Diese Datei existiert bereits.\n"
-"Soll sie überschrieben werden?"
+msgstr "Datei existiert bereits – importieren?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:675 zim/gui/uiactions.py:502
-#, fuzzy, python-format
-#| msgid ""
-#| "The folder \"%s\" does not yet exist.\n"
-#| "Do you want to create it now?"
+#, python-format
 msgid ""
 "The file \"%s\" exists but is not a wiki page.\n"
 "Do you want to import it?"
 msgstr ""
-"Der Ordner \"%s\" existiert nicht.\n"
-"Möchten Sie ihn jetzt anlegen?"
+"Die Datei \"%s\" existiert zwar, ist aber keine Wiki-Seite.\n"
+"Soll die Datei importiert werden?"
 
 #. page status for title bar
 #: zim/gui/mainwindow.py:734 zim/gui/mainwindow.py:901
@@ -642,7 +631,7 @@ msgstr "_Zurück"
 
 #: zim/gui/mainwindow.py:769
 msgid "Go back"
-msgstr ""
+msgstr "Zurück"
 
 #. Menu item |
 #. Button label
@@ -2154,39 +2143,36 @@ msgstr "Seitentitel wird angepasst"
 msgid "Updating Links"
 msgstr "Anpassen der Verknüpfungen"
 
-#. label in DeletePageDialog
-#: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
 #msgid "Remove links to %s"
 #msgstr "Ve_rknüpfung entfernen"
-
+#. label in DeletePageDialog
 #. Dialog title
+#: zim/gui/uiactions.py:680
 #: zim/gui/uiactions.py:724
+#, fuzzy, python-format
+#| msgid "_Remove Link"
 msgid "Trash Page"
 msgstr ""
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:725
-#, fuzzy, python-format
-#| msgid "Move page \"%s\""
+#, python-format
 msgid "Move page \"%s\" to trash?"
-msgstr "Seite \"%s\" verschieben"
+msgstr "Seite \"%s\" in Papierkorb verschieben?"
 
 #. Text in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:727
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be moved to your system's trash.\n"
 "\n"
 "To undo later, go to your system's trashcan."
 msgstr ""
-"Seite \"%s\" sowie alle Unterseiten \n"
-"und Anhänge werden gelöscht"
+"Seite \"%s\" wird inklusive aller Unterseiten\n"
+"und Anhänge in den Papierkorb des Systems verschoben.\n"
+"\n"
+"Zum Rückgängig machen, Dokumente aus dem System-Papierkorb holen."
 
 #. label in the TrashPage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:731
@@ -2216,18 +2202,17 @@ msgstr "Seite \"%s\" löschen?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:769
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be deleted.\n"
 "\n"
 "This deletion is permanent and cannot be un-done."
 msgstr ""
-"Seite \"%s\" sowie alle Unterseiten \n"
-"und Anhänge werden gelöscht"
+"Seite \"%s\" wird inkl. alle Unterseiten \n"
+"und Anhänge werden gelöscht.\n"
+"\n"
+"Diese Löschung kann nicht rückgängig gemacht werden."
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:773
@@ -2556,18 +2541,14 @@ msgstr ""
 msgid "_Arithmetic"
 msgstr "_Arithmetik"
 
-#: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, fuzzy, python-format
-#| msgid "Do you want to delete all bookmarks?"
 #msgid "Are you sure you want to delete the file '%s'?"
 #msgstr "Sollen alle Lesezeichen gelöscht werden?"
-
 #. menu item to delete file
+#: zim/plugins/attachmentbrowser/filebrowser.py:61
 #: zim/plugins/attachmentbrowser/filebrowser.py:391
-#, fuzzy
-#| msgid "_Delete"
+#, python-format
 msgid "_Delete..."
-msgstr "_Löschen"
+msgstr "_Löschen..."
 
 #. menu item to rename file
 #: zim/plugins/attachmentbrowser/filebrowser.py:395
@@ -3025,7 +3006,7 @@ msgstr ""
 #. error message
 #: zim/plugins/inlinecalculator.py:271
 msgid "Could not parse expression"
-msgstr "Kann Ausdruck nicht auswerten"
+msgstr "Kann Ausdruck nichtz auswerten"
 
 #. menu item
 #: zim/plugins/inlinecalculator.py:293
