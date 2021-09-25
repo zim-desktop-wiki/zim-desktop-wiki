@@ -1,0 +1,39 @@
+on:
+  # Trigger the workflow on push or pull request, but only for the develop branch
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ '3.8', '3.9', '3.10-dev' ]
+
+    name: Python ${{ matrix.python-version }} on Ubuntu latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y gir1.2-gtk-3.0 gobject-introspection libgirepository1.0-dev xvfb
+      - name: Install python dependencies
+        run: |
+          pip install PyGObject
+          pip install pyxdg
+      - name: Configure git
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+      - name: Test
+        run: xvfb-run ./test.py
