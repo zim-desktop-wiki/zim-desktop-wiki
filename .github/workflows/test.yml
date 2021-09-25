@@ -36,4 +36,4 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
       - name: Test
-        run: xvfb-run ./test.py
+        run: LC_COLLATE="en_US.UTF-8" xvfb-run ./test.py
