@@ -920,56 +920,43 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 					uris.append(str(arg))
 			return uris
 
-		cmd = split_quoted_strings(self['Desktop Entry']['Exec'])
+		cmd = self['Desktop Entry']['Exec']
 		if args is None or len(args) == 0:
 			if '%f' in cmd:
-				cmd.remove('%f')
+				cmd = cmd.replace('%f', '')
 			elif '%F' in cmd:
-				cmd.remove('%F')
+				cmd = cmd.replace('%F', '')
 			elif '%u' in cmd:
-				cmd.remove('%u')
+				cmd = cmd.replace('%u', '')
 			elif '%U' in cmd:
-				cmd.remove('%U')
+				cmd = cmd.replace('%U', '')
 		elif '%f' in cmd:
 			assert len(args) == 1, 'application takes one file name'
-			i = cmd.index('%f')
-			cmd[i] = str(args[0])
+			cmd = cmd.replace('%f', str(args[0]))
 		elif '%F' in cmd:
-			i = cmd.index('%F')
-			for arg in reversed(list(map(str, args))):
-				cmd.insert(i, str(arg))
-			cmd.remove('%F')
+			cmd = cmd.replace('%F', " ".join(list(map(str, args))))
 		elif '%u' in cmd:
 			assert len(args) == 1, 'application takes one url'
-			i = cmd.index('%u')
-			cmd[i] = uris(args)[0]
+			cmd = cmd.replace('%u', uris(args)[0])
 		elif '%U' in cmd:
-			i = cmd.index('%U')
-			for arg in reversed(uris(args)):
-				cmd.insert(i, str(arg))
-			cmd.remove('%U')
+			cmd = cmd.replace('%U', " ".join(uris(args)))
 		else:
-			cmd.extend(list(map(str, args)))
+			cmd += " " + " ".join(list(map(str, args)))
 
 		if '%i' in cmd:
 			if 'Icon' in self['Desktop Entry'] \
 			and self['Desktop Entry']['Icon']:
-				i = cmd.index('%i')
-				cmd[i] = self['Desktop Entry']['Icon']
-				cmd.insert(i, '--icon')
+				cmd = cmd.replace('%i', '--icon ' + self['Desktop Entry']['Icon'])
 			else:
-				cmd.remove('%i')
+				cmd = cmd.replace('%i', '')
 
 		if '%c' in cmd:
-			i = cmd.index('%c')
-			cmd[i] = self.name
+			cmd = cmd.replace('%c', self.name)
 
 		if '%k' in cmd:
-			i = cmd.index('%k')
-			if hasattr(self, 'file'):
-				cmd[i] = self.file.path
-			else:
-				cmd[i] = ''
+			cmd = cmd.replace('%k', self.file.path if hasattr(self, 'file') else '')
+
+		cmd = split_quoted_strings(cmd)
 
 		return tuple(cmd)
 
