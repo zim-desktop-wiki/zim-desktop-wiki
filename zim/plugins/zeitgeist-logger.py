@@ -59,14 +59,14 @@ class ZeitgeistPlugin(PluginClass):
 			return
 
 		uri = page.source.uri
-		origin = Gio.File(uri).get_parent().get_uri()
+		origin = page.source_file.dirname
 		text = _('Wiki page: %s') % page.name
 			# T: label for how zim pages show up in the recent files menu, %s is the page name
 
 		subject = Subject.new_for_values(mimetype='text/x-zim-wiki',
 		                                 uri=uri,
 		                                 origin=origin,
-		                                 interpretation=Interpretation.TEXT_DOCUMENT,
+		                                 interpretation=Interpretation.PLAIN_TEXT_DOCUMENT,
 		                                 manifestation=Manifestation.FILE_DATA_OBJECT,
 		                                 text=text)
 		event = Event.new_for_values(actor='application://zim.desktop',
@@ -84,7 +84,7 @@ class ZeitGeistMainWindowExtension(MainWindowExtension):
 		self.connectto(window, 'page-changed')
 		self.page = None
 
-	def on_page_changed(self, page):
+	def on_page_changed(self, pageview, page):
 		if self.page is not None:
 			self.plugin.create_and_send_event(self.page, Interpretation.LEAVE_EVENT)
 
