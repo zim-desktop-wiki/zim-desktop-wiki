@@ -16,7 +16,7 @@ from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
-from zim.fs import File, Dir, PathLookupError, SEP
+from zim.newfs import SEP, LocalFile
 from zim.config import data_file
 from zim.notebook import interwiki_link, encode_filename, HRef, PageNotFoundError
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
@@ -79,7 +79,7 @@ class ExportLinker(BaseLinker):
 			href = getattr(self, methodname)(link)
 		else:
 			href = link
-		#~ print("Linker:", link, '-->', href, '(%s)' % type)
+		# print("Linker:", link, '-->', href, '(%s)' % type)
 		return href
 
 	def img(self, src):
@@ -119,7 +119,7 @@ class ExportLinker(BaseLinker):
 		'''Turn a L{Path} object in a relative link or URI'''
 		try:
 			file = self.layout.page_file(path)
-		except PathLookupError:
+		except ValueError:
 			return '' # Link outside of current export ?
 		else:
 			if file == self.output:
@@ -131,14 +131,14 @@ class ExportLinker(BaseLinker):
 		'''Turn a L{File} object in a relative link or URI'''
 		if self.base and self.usebase \
 		and file.ischild(self.layout.relative_root):
-			relpath = file.relpath(self.base, allowupward=True)
+			relpath = file.relpath(self.base, allowupward=True).replace(SEP, '/')
 			if not relpath.startswith('.'):
-				relpath = './' + relpath.replace(SEP, '/')
+				relpath = './' + relpath
 			return relpath
 		elif self.notebook.document_root \
 		and self.document_root_url \
 		and file.ischild(self.notebook.document_root):
-			relpath = file.relpath(self.notebook.document_root)
+			relpath = file.relpath(self.notebook.document_root).replace(SEP, '/')
 			return self.document_root_url + relpath
 		else:
 			return file.uri
@@ -163,8 +163,13 @@ class ExportLinker(BaseLinker):
 			return self.page_object(path)
 
 	def _link_file(self, link):
-		file = self._resolve_file(link)
-		return self.file_object(file)
+		try:
+			file = self._resolve_file(link)
+		except:
+			logger.info("Could not resolve file: %s", link)
+			return link # E.g. non-local file:/ URI etc.
+		else:
+			return self.file_object(file)
 
 	def _resolve_file(self, link):
 		# TODO checks here are copy of notebook.resolve_file - should be single function
@@ -173,23 +178,23 @@ class ExportLinker(BaseLinker):
 
 		filename = link.replace('\\', '/')
 		if filename.startswith('~') or filename.startswith('file:/'):
-			file = File(filename)
+			file = LocalFile(filename) # Note: can raise for non-local file URI
 		elif filename.startswith('/'):
 			if self.notebook.document_root:
 				file = self.notebook.document_root.file(filename)
 			else:
-				file = File(filename)
+				file = LocalFile(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
 				filename = '/' + filename # make absolute on Unix
-			file = File(filename)
+			file = LocalFile(filename)
 		else:
 			if self.source:
-				dir = self.layout.attachments_dir(self.source)
+				folder = self.layout.attachments_dir(self.source)
 			else:
-				dir = self.layout.relative_root
+				folder = self.layout.relative_root
 
-			file = File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
+			file = LocalFile(folder.get_abspath(filename))
 
 		return file
 
@@ -234,10 +239,7 @@ class StubLayout(ExportLayout):
 	def page_file(self, page):
 		try:
 			page = self.notebook.get_page(page)
-			if hasattr(page, 'source') and isinstance(page.source, File):
-				return page.source
-			else:
-				return None
+			return page.source_file
 		except PageNotFoundError:
 			return None
 
@@ -252,8 +254,8 @@ class StubLayout(ExportLayout):
 	#~ if file.basename.endswith('.png'):
 		#~ mime = 'image/png'
 	#~ else:
-		#~ mime = file.get_mimetype()
-	#~ data64 = u''.join(base64.encodestring(file.raw()).splitlines())
+		#~ mime = file.mimetype()
+	#~ data64 = u''.join(base64.encodestring(file.read_binary()).splitlines())
 	#~ return u'data:%s;base64,%s' % (mime, data64)
 
 

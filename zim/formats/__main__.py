@@ -19,7 +19,7 @@ done here to resolve links. Main purpose is testing.
 import sys
 import logging
 
-from zim.fs import Dir
+from zim.newfs import LocalFolder
 from zim.formats import *
 
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 	inputformat = sys.argv[1]
 	if len(sys.argv) == 4:
 		outputformat = sys.argv[2]
-		source_dir = Dir(sys.argv[3])
+		source_dir = LocalFolder(sys.argv[3])
 	elif len(sys.argv) == 3:
 		outputformat = sys.argv[2]
 		source_dir = None

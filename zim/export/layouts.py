@@ -6,9 +6,7 @@
 when exporting. The subclasses give alternative file layouts.
 '''
 
-from zim.fs import PathLookupError
-from zim.fs import File as OldFile
-from zim.fs import Dir as OldDir
+from zim.fs import adapt_from_oldfs
 from zim.newfs import LocalFile, LocalFolder
 
 from zim.notebook import encode_filename
@@ -25,7 +23,7 @@ class ExportLayout(object):
 		'''Returns the file for a page
 		@param page: a L{Page} or L{Path} object
 		@returns: a L{File} object
-		@raises PathLookupError: if page can not be mapped
+		@raises ValueError: if page can not be mapped
 		@implementation: must be implemented by subclasses
 		'''
 		raise NotImplementedError
@@ -34,7 +32,7 @@ class ExportLayout(object):
 		'''Returns the attachments folder for a page
 		@param page: a L{Page} or L{Path} object
 		@returns: a L{Dir} object
-		@raises PathLookupError: if folder can not be mapped
+		@raises ValueError: if folder can not be mapped
 		@implementation: must be implemented by subclasses
 		'''
 		raise NotImplementedError
@@ -57,7 +55,7 @@ class DirLayoutBase(ExportLayout):
 			elif page.ischild(self.namespace):
 				path = page.relname(self.namespace)
 			else:
-				raise PathLookupError(
+				raise ValueError(
 					'%s not a child of %s' % (page, self.namespace)
 				)
 			name = page.relname(self.namespace)
@@ -91,8 +89,7 @@ class MultiFileLayout(DirLayoutBase):
 		@param namespace: optional namespace prefix to strip from
 		page names
 		'''
-		if isinstance(dir, OldDir):
-			dir = LocalFolder(dir.path)
+		dir = adapt_from_oldfs(dir)
 		self.dir = dir
 		self.ext = ext
 		self.namespace = namespace
@@ -100,13 +97,13 @@ class MultiFileLayout(DirLayoutBase):
 
 	def page_file(self, page):
 		if page.isroot:
-			raise PathLookupError('Can not export: %s', page)
+			raise ValueError('Can not export: %s', page)
 		elif self.namespace:
 			if page.ischild(self.namespace):
 				name = page.relname(self.namespace)
 			else:
 				# This layout can not store page == namespace !
-				raise PathLookupError(
+				raise ValueError(
 					'%s not a child of %s' % (page, self.namespace)
 				)
 		else:
@@ -147,8 +144,7 @@ class FileLayout(DirLayoutBase):
 		@param page: a L{Path} object for the top level page
 		@param ext: the file extension to be used for sub-pages, e.g. 'html'
 		'''
-		if isinstance(file, OldFile):
-			file = LocalFile(file.path)
+		file = adapt_from_oldfs(file)
 		self.file = file
 		self.namespace = page
 		self.ext = ext
@@ -165,7 +161,7 @@ class FileLayout(DirLayoutBase):
 		elif page.ischild(self.namespace):
 			name = page.relname(self.namespace)
 		else:
-			raise PathLookupError(
+			raise ValueError(
 				'%s not a child of %s' % (page, self.namespace)
 			)
 		return self.dir.file(encode_filename(name) + '.' + self.ext)
@@ -194,8 +190,7 @@ class SingleFileLayout(DirLayoutBase):
 		@param file: a L{File} object
 		@param page: an optional L{Path} object for the top level page
 		'''
-		if isinstance(file, OldFile):
-			file = LocalFile(file.path)
+		file = adapt_from_oldfs(file)
 		self.file = file
 
 		basename = file.basename
@@ -208,11 +203,11 @@ class SingleFileLayout(DirLayoutBase):
 
 	def page_file(self, page):
 		if page.isroot:
-			raise PathLookupError('Can not export: %s', page)
+			raise ValueError('Can not export: %s', page)
 		elif self.namespace \
 		and not page == self.namespace \
 		and not page.ischild(self.namespace):
-			raise PathLookupError(
+			raise ValueError(
 				'%s not a child of %s' % (page, self.namespace)
 			)
 		else:

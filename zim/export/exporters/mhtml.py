@@ -7,6 +7,7 @@ import email.mime.nonmultipart
 
 import base64
 
+from zim.fs import adapt_from_oldfs
 from zim.newfs import LocalFile, LocalFolder, File, Folder, get_tmpdir
 
 from zim.notebook import encode_filename
@@ -78,7 +79,8 @@ class MHTMLEncoder(object):
 
 		# Add attachments and resource
 		for file in self._walk(layout.dir):
-			mt = file.get_mimetype()
+			file = adapt_from_oldfs(file)
+			mt = file.mimetype()
 			filename = linker.link(file.uri)
 			if mt.startswith('text/'):
 				part = self.encode_text_file(file, filename, mt)
@@ -113,10 +115,11 @@ class MHTMLEncoder(object):
 		return msg
 
 	def encode_data_file(self, file, filename, mimetype):
+		file = adapt_from_oldfs(file)
 		type, subtype = mimetype.split('/', 1)
 		msg = email.mime.nonmultipart.MIMENonMultipart(type, subtype)
 		msg['Content-Location'] = filename
 		msg['Content-Type'] = mimetype
-		msg.set_payload(file.raw())
+		msg.set_payload(file.read_binary())
 		email.encoders.encode_base64(msg)
 		return msg

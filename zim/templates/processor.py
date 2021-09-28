@@ -16,7 +16,7 @@ except ImportError:
 	# python < version 3.3
 	import collections as abc
 
-from zim.fs import FileNotFoundError
+from zim.newfs import FileNotFoundError
 from zim.utils import MovingWindowIter
 from zim.parser import SimpleTreeElement
 

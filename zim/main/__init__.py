@@ -76,14 +76,14 @@ GUI Options:
 
 Server Options:
   --port           port to use (defaults to 8080)
-  --template       name of the template to use
+  --template       name or filepath of the template to use
   --private        serve only to localhost
   --gui            run the gui wrapper for the server
 
 Export Options:
   -o, --output     output directory (mandatory option)
   --format         format to use (defaults to 'html')
-  --template       name of the template to use
+  --template       name or filepath of the template to use
   --root-url       url to use for the document root
   --index-page     index page name
   -r, --recursive  when exporting a page, also export sub-pages
@@ -368,12 +368,14 @@ class ServerCommand(NotebookCommand):
 
 	def run(self):
 		import zim.www
-		self.opts['port'] = int(self.opts.get('port', 8080))
-		self.opts.setdefault('template', 'Default')
+		from zim.templates import get_template
+
+		port = int(self.opts.get('port', 8080))
+		template = get_template('html', self.opts.get('template', 'Default'), pwd=self.pwd)
 		notebook, page = self.build_notebook()
 		is_public = not self.opts.get('private', False)
 
-		self.server = httpd = zim.www.make_server(notebook, public=is_public, **self.get_options('template', 'port'))
+		self.server = httpd = zim.www.make_server(notebook, public=is_public, template=template, port=port)
 			# server attribute used in testing to stop sever in thread
 		logger.info("Serving HTTP on %s port %i...", httpd.server_name, httpd.server_port)
 		httpd.serve_forever()
@@ -393,7 +395,10 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 
 	def run(self):
 		import zim.gui.server
-		self.opts['port'] = int(self.opts.get('port', 8080))
+		from zim.templates import get_template
+
+		port = int(self.opts.get('port', 8080))
+		template = get_template('html', self.opts.get('template', 'Default'), pwd=self.pwd)
 		notebookinfo, page = self.get_notebook_argument()
 		if notebookinfo is None:
 			# Prefer default to be selected in drop down, user can still change
@@ -402,7 +407,8 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 		window = zim.gui.server.ServerWindow(
 			notebookinfo,
 			public=True,
-			**self.get_options('template', 'port')
+			template=template,
+			port=port
 		)
 		window.show_all()
 		return window
@@ -425,6 +431,7 @@ class ExportCommand(NotebookCommand):
 
 	def get_exporter(self, page):
 		from zim.fs import File, Dir
+		from zim.templates import get_template
 		from zim.export import \
 			build_mhtml_file_exporter, \
 			build_single_file_exporter, \
@@ -437,7 +444,7 @@ class ExportCommand(NotebookCommand):
 		output = Dir(self.opts['output'])
 		if not output.isdir():
 			output = File(self.opts.get('output'))
-		template = self.opts.get('template', 'Default')
+		template = get_template(format, self.opts.get('template', 'Default'), pwd=self.pwd)
 
 		if output.exists() and not self.opts.get('overwrite'):
 			if output.isdir():

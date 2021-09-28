@@ -107,7 +107,7 @@ def _split_file_url(url):
 	if path.startswith('/localhost/'): # exact 2 '/' before 'localhost'
 		path = path[11:]
 		isshare = False
-	elif scheme == 'smb' or re.match('^/\w', path): # exact 2 '/' before 'localhost'
+	elif scheme == 'smb' or re.match('^/\w', path): # exact 2 '/' followed by hostname
 		isshare = True
 	else:
 		isshare = False # either 'file:/' or 'file:///'

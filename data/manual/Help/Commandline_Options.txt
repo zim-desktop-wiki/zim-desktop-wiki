@@ -38,13 +38,13 @@ GUI Options:
 
 Server Options:
   --port          port to use (defaults to 8080)
-  --template      name of the template to use
+  --template      name or filepath of the template to use
   --gui           run the gui wrapper for the server
 
 Export Options:
   -o, --output     output directory (mandatory option)
   --format         format to use (defaults to 'html')
-  --template       name of the template to use
+  --template       name or filepath of the template to use
   --root-url       url to use for the document root
   --index-page     index page name
   -r, --recursive  when exporting a page, also export sub-pages

@@ -103,13 +103,24 @@ from .helpers import *
 
 
 
-def localFileOrFolder(path):
-	'''Convenience method that resolves a local C{File} or C{Folder} object'''
-	path = FilePath(path)
+def localFileOrFolder(path, pwd=None):
+	'''Convenience method that resolves a local C{File} or C{Folder} object
+
+	NOTE: the object must exist in order to check the correct type, so a
+	C{FileNotFoundError} will be raised if the object does not exist.
+
+	@param path: file path as a string
+	@param pwd: working directory as a string, needed to allow relative paths
+	'''
+	if pwd:
+		path = FilePath(pwd).get_abspath(path)
+	else:
+		path = FilePath(path)
+
 	try:
 		return LocalFolder(path.dirname).child(path.basename)
-	except FileNotFoundError:
-		raise FileNotFoundError(path)
+	except:
+		raise FileNotFoundError(path) # also catch mal-formed path etc.
 
 
 def cleanup_filename(name):

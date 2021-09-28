@@ -65,7 +65,7 @@ class TestMultiFileLayout(tests.TestCase):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
 
-		self.assertRaises(PathLookupError, layout.page_file, Path(':'))
+		self.assertRaises(ValueError, layout.page_file, Path(':'))
 
 
 		layout = MultiFileLayout(dir, 'html', namespace=Path('Test'))
@@ -79,8 +79,8 @@ class TestMultiFileLayout(tests.TestCase):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
 
-		self.assertRaises(PathLookupError, layout.page_file, Path(':'))
-		self.assertRaises(PathLookupError, layout.page_file, Path('Foo'))
+		self.assertRaises(ValueError, layout.page_file, Path(':'))
+		self.assertRaises(ValueError, layout.page_file, Path('Foo'))
 
 
 class TestFileLayout(tests.TestCase):
@@ -110,8 +110,8 @@ class TestFileLayout(tests.TestCase):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
 
-		self.assertRaises(PathLookupError, layout.page_file, Path(':'))
-		self.assertRaises(PathLookupError, layout.page_file, Path('Foo'))
+		self.assertRaises(ValueError, layout.page_file, Path(':'))
+		self.assertRaises(ValueError, layout.page_file, Path('Foo'))
 
 
 class TestSingleFileLayout(tests.TestCase):
@@ -140,8 +140,8 @@ class TestSingleFileLayout(tests.TestCase):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
 
-		self.assertRaises(PathLookupError, layout.page_file, Path(':'))
-		self.assertRaises(PathLookupError, layout.page_file, Path('Foo'))
+		self.assertRaises(ValueError, layout.page_file, Path(':'))
+		self.assertRaises(ValueError, layout.page_file, Path('Foo'))
 
 
 
@@ -149,9 +149,9 @@ class TestLinker(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('foo', 'bar', 'foo:bar',))
-		dir = Dir(notebook.folder.parent().folder('layout').path)
+		folder = self.setUpFolder('layout')
 
-		layout = MultiFileLayout(dir.subdir('layout'), 'html')
+		layout = MultiFileLayout(folder, 'html')
 		source = Path('foo:bar')
 		output = layout.page_file(source)
 
@@ -646,7 +646,7 @@ class TestExportDialog(tests.TestCase):
 
 		#~ print dialog.uistate
 		self.assertEqual(dialog.uistate, window.notebook.state['ExportDialog'])
-		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
+		self.assertIsInstance(adapt_from_oldfs(dialog.uistate['output_folder']), Folder)
 
 		## Test export single page
 		dialog = ExportDialog(window, notebook, Path('foo'))

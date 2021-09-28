@@ -1048,6 +1048,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param path: a L{Path} object for the page
 		@returns: a L{File} object.
 		'''
+		# NOTE: common logic in export.linker _resolve_file()
+		# when porting zim.fs check there as well for commonality
 		assert isinstance(filename, str)
 		filename = filename.replace('\\', '/')
 		if filename.startswith('~') or filename.startswith('file:/'):

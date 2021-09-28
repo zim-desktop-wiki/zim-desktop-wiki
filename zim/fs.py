@@ -30,7 +30,7 @@ from zim.signals import SignalEmitter, SIGNAL_AFTER
 logger = logging.getLogger('zim.fs')
 
 
-from zim.newfs.base import _os_expanduser, SEP
+from zim.newfs.base import _os_expanduser, SEP, FileNotFoundError
 from zim.newfs.local import AtomicWriteContext
 from zim.newfs.local import get_tmpdir as _newfs_get_tmpdir
 
@@ -261,19 +261,6 @@ class FileWriteError(Error):
 	disk.
 	'''
 	pass # TODO description
-
-
-class FileNotFoundError(PathLookupError):
-	'''Error raised when a file does not exist that is expected to
-	exist.
-
-	@todo: reconcile this class with the NoSuchFileError in zim.gui
-	'''
-
-	def __init__(self, file):
-		self.file = file
-		self.msg = _('No such file: %s') % file.path
-			# T: message for FileNotFoundError
 
 
 class FileUnicodeError(Error):

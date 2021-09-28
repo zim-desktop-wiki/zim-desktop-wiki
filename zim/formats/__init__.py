@@ -70,7 +70,7 @@ import logging
 
 import types
 
-from zim.fs import Dir, File
+from zim.newfs import LocalFile
 from zim.parsing import link_type, is_url_re, is_www_link_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
@@ -518,7 +518,10 @@ class ParseTree(object):
 		if notebook is None:
 			for element in self._etree.iter('img'):
 				filepath = element.attrib['src']
-				element.attrib['_src_file'] = File(filepath)
+				try:
+					element.attrib['_src_file'] = LocalFile(filepath)
+				except:
+					pass # non-local UIR or malformed path
 		else:
 			for element in self._etree.iter('img'):
 				filepath = element.attrib['src']

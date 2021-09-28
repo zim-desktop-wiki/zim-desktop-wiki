@@ -30,12 +30,14 @@ import urllib.request
 import urllib.parse
 import urllib.error
 
+from zim.fs import adapt_from_oldfs
+from zim.newfs import SEP, FileNotFoundError
 from zim.errors import Error
 from zim.notebook import Notebook, Path, Page, encode_filename, PageNotFoundError
-from zim.fs import File, Dir, FileNotFoundError
 from zim.config import data_file
 from zim.parsing import url_encode
 
+from zim.templates import get_template
 from zim.export.linker import ExportLinker, StubLayout
 from zim.export.template import ExportTemplateContext
 from zim.export.exporters import createIndexPage
@@ -123,14 +125,7 @@ class WWWInterface(object):
 		if template is None:
 			template = 'Default'
 
-		if isinstance(template, str):
-			from zim.templates import get_template
-			self.template = get_template('html', template)
-			if not self.template:
-				raise AssertionError('Could not find html template: %s' % template)
-		else:
-			self.template = template
-
+		self.template = get_template('html', template)
 		self.linker_factory = partial(WWWLinker, self.notebook, self.template.resources_dir)
 		self.dumper_factory = get_format('html').Dumper # XXX
 
@@ -215,12 +210,14 @@ class WWWInterface(object):
 				if not dir:
 					raise WebPageNotFoundError(path)
 				file = dir.file(path[7:])
-				content = [file.raw()]
+				file = adapt_from_oldfs(file)
+				content = [file.read_binary()]
 					# Will raise FileNotFound when file does not exist
-				headers['Content-Type'] = file.get_mimetype()
+				headers['Content-Type'] = file.mimetype()
 			elif path.startswith('/+file/'):
 				file = self.notebook.folder.file(path[7:])
 					# TODO: need abstraction for getting file from top level dir ?
+				file = adapt_from_oldfs(file)
 				content = [file.read_binary()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.mimetype()
@@ -233,9 +230,10 @@ class WWWInterface(object):
 					file = data_file('pixmaps/%s' % path[12:])
 
 				if file:
-					content = [file.raw()]
+					file = adapt_from_oldfs(file)
+					content = [file.read_binary()]
 						# Will raise FileNotFound when file does not exist
-					headers['Content-Type'] = file.get_mimetype()
+					headers['Content-Type'] = file.mimetype()
 				else:
 					raise WebPageNotFoundError(path)
 			else:
@@ -355,12 +353,12 @@ class WWWLinker(ExportLinker):
 		'''Turn a L{File} object in a relative link or URI'''
 		if file.ischild(self.notebook.folder):
 			# attachment
-			relpath = file.relpath(self.notebook.folder)
+			relpath = file.relpath(self.notebook.folder).replace(SEP, '/')
 			return url_encode('/+file/' + relpath)
 		elif self.notebook.document_root \
 		and file.ischild(self.notebook.document_root):
 			# document root
-			relpath = file.relpath(self.notebook.document_root)
+			relpath = file.relpath(self.notebook.document_root).replace(SEP, '/')
 			return url_encode('/+docs/' + relpath)
 			# TODO use script location as root for cgi-bin
 			# TODO allow alternative document root for cgi-bin
