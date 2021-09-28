@@ -12,7 +12,6 @@ from zim.plugins import PluginClass
 from zim.actions import action
 from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
-from zim.fs import Dir
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, IconButton

@@ -17,8 +17,6 @@ from zim.signals import SignalEmitter, SIGNAL_RUN_FIRST
 from zim.config import String
 from zim.errors import show_error, Error
 from zim.applications import ApplicationError
-from zim.fs import File, Dir
-from zim.newfs import LocalFile
 from zim.formats import IMAGE
 
 from zim.gui.widgets import \
@@ -150,8 +148,8 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 def _stitch_fileextension(file, basename):
 	# Take extension of basename, and put it on path from file
 	i = basename.rfind('.')
-	j = file.path.rfind('.')
-	return File(file.path[:j] + basename[i:])
+	j = file.basename.rfind('.')
+	return file.parent().file(file.basename[:j] + basename[i:])
 
 
 def copy_imagegenerator_src_files(src_file, folder):
@@ -180,7 +178,7 @@ def copy_imagegenerator_src_files(src_file, folder):
 	new_file = folder.new_file(src_file.basename, check_new_file)
 	for f in src_files:
 		new_f = _stitch_fileextension(new_file, f.basename)
-		f.copyto(LocalFile(new_f.path))
+		f.copyto(new_f)
 
 	return new_file
 

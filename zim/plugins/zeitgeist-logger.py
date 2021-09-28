@@ -11,7 +11,8 @@ from gi.repository import Gio
 from zim.plugins import PluginClass
 from zim.notebook import NotebookExtension
 from zim.signals import SIGNAL_AFTER
-from zim.fs import File
+from zim.newfs import LocalFile
+from zim.fs import adapt_from_oldfs
 
 from zim.gui.mainwindow import MainWindowExtension
 
@@ -54,11 +55,11 @@ class ZeitgeistPlugin(PluginClass):
 		if not self.zeitgeist_client:
 			return
 
-		if not hasattr(page, 'source') \
-		or not isinstance(page.source, File):
+		source_file = adapt_from_oldfs(page.source_file)
+		if not isinstance(source_file, LocalFile):
 			return
 
-		uri = page.source.uri
+		uri = source_file.uri
 		origin = Gio.File(uri).get_parent().get_uri()
 		text = _('Wiki page: %s') % page.name
 			# T: label for how zim pages show up in the recent files menu, %s is the page name

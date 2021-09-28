@@ -20,7 +20,7 @@ from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import \
 	ImageGeneratorClass, BackwardImageGeneratorObjectType
 
-from zim.fs import File, TmpFile
+from zim.newfs import LocalFile, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
 from zim.applications import Application
@@ -64,7 +64,7 @@ class GNURPlotGenerator(ImageGeneratorClass):
 
 	def generate_image(self, text):
 		plotscriptfile = self.plotscriptfile
-		pngfile = File(plotscriptfile.path[:-2] + '.png')
+		pngfile = LocalFile(plotscriptfile.path[:-2] + '.png')
 
 		plot_width = 480 # default image width (px)
 		plot_height = 480 # default image height (px)
@@ -104,4 +104,4 @@ class GNURPlotGenerator(ImageGeneratorClass):
 	def cleanup(self):
 		path = self.plotscriptfile.path
 		for path in glob.glob(path[:-2] + '.*'):
-			File(path).remove()
+			LocalFile(path).remove()

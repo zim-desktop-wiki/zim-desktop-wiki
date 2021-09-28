@@ -7,7 +7,7 @@ from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import \
 	ImageGeneratorClass, BackwardImageGeneratorObjectType
 
-from zim.fs import File, TmpFile
+from zim.newfs import LocalFile, TmpFile
 from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
@@ -89,7 +89,7 @@ class EquationGenerator(ImageGeneratorClass):
 		#~ print('>>>%s<<<' % self.texfile.read())
 
 		# Call latex
-		logfile = File(self.texfile.path[:-4] + '.log') # len('.tex') == 4
+		logfile = LocalFile(self.texfile.path[:-4] + '.log') # len('.tex') == 4
 		#~ print(">>>", self.texfile, logfile)
 		try:
 			latex = Application(latexcmd)
@@ -99,8 +99,8 @@ class EquationGenerator(ImageGeneratorClass):
 			return None, logfile
 
 		# Call dvipng
-		dvifile = File(self.texfile.path[:-4] + '.dvi') # len('.tex') == 4
-		pngfile = File(self.texfile.path[:-4] + '.png') # len('.tex') == 4
+		dvifile = LocalFile(self.texfile.path[:-4] + '.dvi') # len('.tex') == 4
+		pngfile = LocalFile(self.texfile.path[:-4] + '.png') # len('.tex') == 4
 		dvipng = Application(dvipngcmd)
 		dvipng.run((pngfile, dvifile)) # output, input
 			# No try .. except here - should never fail
@@ -111,4 +111,4 @@ class EquationGenerator(ImageGeneratorClass):
 	def cleanup(self):
 		path = self.texfile.path
 		for path in glob.glob(path[:-4] + '.*'):
-			File(path).remove()
+			LocalFile(path).remove()

@@ -13,8 +13,7 @@ import threading
 
 from functools import partial
 
-from zim.fs import TmpFile
-from zim.newfs import LocalFolder
+from zim.newfs import LocalFolder, TmpFile
 from zim.plugins import PluginClass, find_extension
 from zim.actions import action
 from zim.signals import ConnectorMixin

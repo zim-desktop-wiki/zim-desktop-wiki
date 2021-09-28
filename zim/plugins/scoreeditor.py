@@ -15,7 +15,7 @@ import glob
 
 from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import ImageGeneratorClass, BackwardImageGeneratorObjectType
-from zim.fs import File, TmpFile
+from zim.newfs import LocalFile, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
 from zim.applications import Application, ApplicationError
@@ -120,7 +120,7 @@ class ScoreGenerator(ImageGeneratorClass):
 
 		# Call convert-ly to convert document of current version of
 		# Lilypond.
-		clogfile = File(scorefile.path[:-3] + '-convertly.log') # len('.ly) == 3
+		clogfile = LocalFile(scorefile.path[:-3] + '-convertly.log') # len('.ly) == 3
 		try:
 			convertly = Application(convertly_cmd)
 			convertly.run((scorefile.basename,), cwd=scorefile.dir)
@@ -130,18 +130,18 @@ class ScoreGenerator(ImageGeneratorClass):
 
 
 		# Call lilypond to generate image.
-		logfile = File(scorefile.path[:-3] + '.log') # len('.ly') == 3
+		logfile = LocalFile(scorefile.path[:-3] + '.log') # len('.ly') == 3
 		try:
 			lilypond = Application(lilypond_cmd)
 			lilypond.run(('-dlog-file=' + logfile.basename[:-4], scorefile.basename,), cwd=scorefile.dir)
 		except ApplicationError:
 			# log should have details of failure
 			return None, logfile
-		pngfile = File(scorefile.path[:-3] + '.png') # len('.ly') == 3
+		pngfile = LocalFile(scorefile.path[:-3] + '.png') # len('.ly') == 3
 
 		return pngfile, logfile
 
 	def cleanup(self):
 		path = self.scorefile.path
 		for path in glob.glob(path[:-3] + '*'):
-			File(path).remove()
+			LocalFile(path).remove()

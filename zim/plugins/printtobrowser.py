@@ -10,7 +10,7 @@ from functools import partial
 
 from zim.plugins import PluginClass
 from zim.actions import action
-from zim.fs import TmpFile
+from zim.newfs import TmpFile
 
 import zim.templates
 import zim.formats

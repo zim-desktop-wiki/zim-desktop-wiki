@@ -5,7 +5,7 @@ from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import \
 	ImageGeneratorClass, BackwardImageGeneratorObjectType
 
-from zim.fs import File, TmpFile
+from zim.newfs import LocalFile, TmpFile
 from zim.config import data_file
 from zim.applications import Application, ApplicationError
 
@@ -48,7 +48,7 @@ class DiagramGenerator(ImageGeneratorClass):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.dotfile = TmpFile('diagram.dot')
 		self.dotfile.touch()
-		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
+		self.pngfile = LocalFile(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
 
 	def generate_image(self, text):
 		# Write to tmp file

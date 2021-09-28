@@ -62,19 +62,13 @@ import zim
 from zim.config import XDG_CACHE_HOME
 from zim.gui.widgets import rotate_pixbuf
 
+from zim.fs import adapt_from_oldfs
 from zim.newfs import LocalFile, LocalFolder
 
 
-LOCAL_THUMB_STORAGE_NORMAL = XDG_CACHE_HOME.subdir('thumbnails/normal')
-LOCAL_THUMB_STORAGE_LARGE = XDG_CACHE_HOME.subdir('thumbnails/large')
-LOCAL_THUMB_STORAGE_FAIL = XDG_CACHE_HOME.subdir('thumbnails/fail/zim-%s' % zim.__version__)
-
-## XXX zim.fs --> zim.newfs
-LOCAL_THUMB_STORAGE_NORMAL = LocalFolder(LOCAL_THUMB_STORAGE_NORMAL.path)
-LOCAL_THUMB_STORAGE_LARGE = LocalFolder(LOCAL_THUMB_STORAGE_LARGE.path)
-LOCAL_THUMB_STORAGE_FAIL = LocalFolder(LOCAL_THUMB_STORAGE_FAIL.path)
-##
-
+LOCAL_THUMB_STORAGE_NORMAL = adapt_from_oldfs(XDG_CACHE_HOME).folder('thumbnails/normal')
+LOCAL_THUMB_STORAGE_LARGE = adapt_from_oldfs(XDG_CACHE_HOME).folder('thumbnails/large')
+LOCAL_THUMB_STORAGE_FAIL = adapt_from_oldfs(XDG_CACHE_HOME).folder('thumbnails/fail/zim-%s' % zim.__version__)
 
 THUMB_SIZE_NORMAL = 128
 THUMB_SIZE_LARGE = 256

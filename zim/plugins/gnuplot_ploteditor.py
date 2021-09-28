@@ -16,7 +16,7 @@ from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import \
 	ImageGeneratorClass, BackwardImageGeneratorObjectType
 
-from zim.fs import File, TmpFile
+from zim.newfs import LocalFile, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
 from zim.applications import Application, ApplicationError
@@ -62,7 +62,7 @@ class GnuplotGenerator(ImageGeneratorClass):
 
 	def generate_image(self, text):
 		plotscriptfile = self.plotscriptfile
-		pngfile = File(plotscriptfile.path[:-4] + '.png')
+		pngfile = LocalFile(plotscriptfile.path[:-4] + '.png')
 
 		template_vars = { # they go in the template
 			'gnuplot_script': text,
@@ -93,4 +93,4 @@ class GnuplotGenerator(ImageGeneratorClass):
 	def cleanup(self):
 		path = self.plotscriptfile.path
 		for path in glob.glob(path[:-4] + '.*'):
-			File(path).remove()
+			LocalFile(path).remove()

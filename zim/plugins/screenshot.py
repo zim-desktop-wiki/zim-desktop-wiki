@@ -10,7 +10,7 @@ from gi.repository import Gtk
 
 from zim.plugins import PluginClass
 from zim.actions import action
-from zim.fs import TmpFile
+from zim.newfs import TmpFile
 from zim.applications import Application
 
 from zim.gui.pageview import PageViewExtension

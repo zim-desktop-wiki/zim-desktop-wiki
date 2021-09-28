@@ -6,7 +6,7 @@
 from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import ImageGeneratorClass, BackwardImageGeneratorObjectType
 
-from zim.fs import File, TmpFile
+from zim.newfs import LocalFile, TmpFile
 from zim.applications import Application, ApplicationError
 
 
@@ -47,7 +47,7 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.diagfile = TmpFile('seqdiagram.diag')
 		self.diagfile.touch()
-		self.pngfile = File(self.diagfile.path[:-5] + '.png') # len('.diag') == 5
+		self.pngfile = LocalFile(self.diagfile.path[:-5] + '.png') # len('.diag') == 5
 
 	def generate_image(self, text):
 		# Write to tmp file

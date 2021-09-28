@@ -6,8 +6,8 @@ from gi.repository import Gtk
 import re
 from datetime import date as dateclass
 
-from zim.fs import Dir, isabs
-
+from zim.fs import adapt_from_oldfs
+from zim.newfs import LocalFolder
 from zim.plugins import PluginClass
 from zim.actions import action
 from zim.config import data_file, ConfigManager
@@ -95,10 +95,8 @@ class QuickNotePluginCommand(GtkCommand):
 				self.opts['append'].lower() == 'true'
 
 		if self.opts.get('attachments', None):
-			if isabs(self.opts['attachments']):
-				self.opts['attachments'] = Dir(self.opts['attachments'])
-			else:
-				self.opts['attachments'] = Dir((self.pwd, self.opts['attachments']))
+			folderpath = LocalFolder(self.pwd).get_abspath(self.opts['attachments'])
+			self.opts['attachments'] = LocalFolder(folderpath)
 
 	def get_text(self):
 		if 'input' in self.opts:
@@ -447,7 +445,7 @@ class QuickNoteDialog(Dialog):
 
 	def _get_notebook(self):
 		uri = self.notebookcombobox.get_notebook()
-		notebook, p = build_notebook(Dir(uri))
+		notebook, p = build_notebook(LocalFolder(uri))
 		return notebook
 
 	def create_new_page(self, notebook, path, text):
@@ -461,10 +459,7 @@ class QuickNoteDialog(Dialog):
 		notebook.store_page(page)
 
 	def import_attachments(self, notebook, path, dir):
+		dir = adapt_from_oldfs(fir)
 		attachments = notebook.get_attachments_dir(path)
-		attachments = Dir(attachments.path) # XXX
-		for name in dir.list():
-			# FIXME could use list objects, or list_files()
-			file = dir.file(name)
-			if not file.isdir():
-				file.copyto(attachments)
+		for name in dir.list_files():
+			file.copyto(attachments)
