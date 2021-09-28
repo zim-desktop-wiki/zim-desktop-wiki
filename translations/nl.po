@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-23 20:04+0200\n"
-"PO-Revision-Date: 2021-01-27 20:32+0000\n"
+"PO-Revision-Date: 2021-09-28 18:34+0000\n"
 "Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
 "Language-Team: Dutch <https://hosted.weblate.org/projects/zim/master/nl/>\n"
 "Language: nl\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5-dev\n"
+"X-Generator: Weblate 4.9-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -555,10 +555,8 @@ msgstr "Altijd laatste cursor positie gebruiken bij het openen van een pagina"
 
 #. button label for fullscreen window header
 #: zim/gui/mainwindow.py:143
-#, fuzzy
-#| msgid "_Fullscreen"
 msgid "Leave Fullscreen"
-msgstr "_Schermvullend"
+msgstr "Schermvullend verlaten"
 
 #. Menu item
 #: zim/gui/mainwindow.py:181
@@ -567,22 +565,18 @@ msgstr "_Schermvullend"
 
 #. menu item
 #: zim/gui/mainwindow.py:191
-#, fuzzy
-#| msgid "Notebook _Editable"
 msgid "Toggle _Editable"
-msgstr "Notitieboek _Wijzigen"
+msgstr "Wijzigen toestaan"
 
 #. menu item
 #: zim/gui/mainwindow.py:191
-#, fuzzy
-#| msgid "Notebook _Editable"
 msgid "Toggle editable"
-msgstr "Notitieboek _Wijzigen"
+msgstr "Wijzigen toestaan"
 
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "Deze pagina kan niet worden gewijzigd"
 
 #. Menu item
 #: zim/gui/mainwindow.py:256
@@ -643,7 +637,7 @@ msgstr "_Terug"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:774
 msgid "Go back"
-msgstr ""
+msgstr "Ga terug"
 
 #. Menu item | 
 #. Button label
@@ -690,7 +684,7 @@ msgstr "_Start"
 #. Menu item
 #: zim/gui/mainwindow.py:840
 msgid "Go to home page"
-msgstr ""
+msgstr "Ga naar start pagina"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:862
