@@ -21,6 +21,9 @@
 # - Watch for changes in actions of window & pageview & extensions
 # - Check menuhints for action ('tool' + hasicon and not 'headerbar' or explicit 'toolbar')
 
+import logging
+
+logger = logging.getLogger('zim.plugins.toolbar')
 
 from gi.repository import Gtk
 
@@ -29,6 +32,8 @@ from zim.gui.pageview import PageViewExtension
 from zim.gui.pageview.editbar import EditActionMixin
 from zim.gui.widgets import TOP, BOTTOM, RIGHT, POSITIONS
 from zim.gui.customtools import CustomToolManager
+
+import zim.errors
 
 
 STYLES = (
@@ -189,9 +194,20 @@ class ToolBarMainWindowExtension(EditActionMixin, PageViewExtension):
 				button.set_label(tool.name)
 				button.set_icon_widget(Gtk.Image.new_from_pixbuf(tool.get_pixbuf(size)))
 				button.set_tooltip_text(tool.comment) # icon button should always have tooltip
+				button.connect('clicked', self._run_custom_tool, tool)
 				items.append(button)
 
 		return items
+
+	def _run_custom_tool(self, button, tool):
+		logger.info('Execute custom tool %s', tool.name)
+		pageview = self.pageview
+		notebook, page = pageview.notebook, pageview.page
+		try:
+			tool.run(notebook, page, pageview)
+		except:
+			zim.errors.exception_handler(
+				'Exception during action: %s' % tool.name)
 
 	def teardown(self):
 		self.pageview.set_edit_bar_visible(True)
