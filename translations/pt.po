@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-23 20:04+0200\n"
-"PO-Revision-Date: 2021-09-28 18:16+0000\n"
+"PO-Revision-Date: 2021-09-28 18:34+0000\n"
 "Last-Translator: SC <lalocas@protonmail.com>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/zim/master/pt/"
 ">\n"
@@ -754,7 +754,7 @@ msgstr "Novo an_exo"
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:170
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "Mostra a barra de edição na parte inferior do editor"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
@@ -2119,7 +2119,7 @@ msgstr "Atualizando as ligações"
 #: zim/gui/uiactions.py:681
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "Remover hiperligações para %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
@@ -2496,7 +2496,7 @@ msgstr "_Aritmética"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "Tem a certeza que quer eliminar o ficheiro '%s'?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
