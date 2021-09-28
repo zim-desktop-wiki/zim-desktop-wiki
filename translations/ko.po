@@ -2145,10 +2145,9 @@ msgstr "링크 업데이트 중"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
-#msgid "Remove links to %s"
-#msgstr "링크 제거(_R)"
+#, python-format
+msgid "Remove links to %s"
+msgstr ""
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
@@ -2513,10 +2512,9 @@ msgid "_Arithmetic"
 msgstr "사칙 연산(_A)"
 
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, fuzzy, python-format
-#| msgid "Do you want to delete all bookmarks?"
-#msgid "Are you sure you want to delete the file '%s'?"
-#msgstr "모든 북마크를 삭제하시겠습니까?"
+#, python-format
+msgid "Are you sure you want to delete the file '%s'?"
+msgstr ""
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391

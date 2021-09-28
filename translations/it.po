@@ -2175,10 +2175,9 @@ msgstr "Aggiornamento dei collegamenti in corso"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
-#msgid "Remove links to %s"
-#msgstr "_Rimuovi collegamento"
+#, python-format
+msgid "Remove links to %s"
+msgstr ""
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
@@ -2561,10 +2560,9 @@ msgid "_Arithmetic"
 msgstr "_Aritmetica"
 
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, fuzzy, python-format
-#| msgid "Do you want to delete all bookmarks?"
-#msgid "Are you sure you want to delete the file '%s'?"
-#msgstr "Eliminare tutti i segnalibri?"
+#, python-format
+msgid "Are you sure you want to delete the file '%s'?"
+msgstr ""
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391

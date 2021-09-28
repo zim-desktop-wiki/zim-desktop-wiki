@@ -596,16 +596,11 @@ msgstr ""
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:675 zim/gui/uiactions.py:502
-#, fuzzy, python-format
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
-#msgid ""
-#"The file \"%s\" exists but is not a wiki page.\n"
-#"Do you want to import it?"
-#msgstr ""
-#"Ова датотека већ постоји.\n"
-#"Желите да је замените?"
+#, python-format
+msgid ""
+"The file \"%s\" exists but is not a wiki page.\n"
+"Do you want to import it?"
+msgstr ""
 
 #. page status for title bar
 #: zim/gui/mainwindow.py:734 zim/gui/mainwindow.py:901
@@ -2119,10 +2114,9 @@ msgstr "Ажурирање везе"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
-#msgid "Remove links to %s"
-#msgstr "_Уклони везу"
+#, python-format
+msgid "Remove links to %s"
+msgstr ""
 
 #. Dialog title
 #: zim/gui/uiactions.py:724

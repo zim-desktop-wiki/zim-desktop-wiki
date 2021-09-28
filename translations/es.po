@@ -2164,15 +2164,14 @@ msgstr "Actualizando enlaces"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
-#msgid "Remove links to %s"
-#msgstr "_Eliminar enlace"
+#, python-format
+msgid "Remove links to %s"
+msgstr ""
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
-#msgid "Trash Page"
-#msgstr ""
+msgid "Trash Page"
+msgstr ""
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:725
@@ -2574,10 +2573,9 @@ msgid "_Arithmetic"
 msgstr "_Aritmético"
 
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, fuzzy, python-format
-#| msgid "Do you want to delete all bookmarks?"
-#msgid "Are you sure you want to delete the file '%s'?"
-#msgstr "Desea borrar todos los marcadores?"
+#, python-format
+msgid "Are you sure you want to delete the file '%s'?"
+msgstr ""
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391

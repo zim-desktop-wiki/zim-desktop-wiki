@@ -2150,10 +2150,9 @@ msgstr "Обновление ссылок"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
-#msgid "Remove links to %s"
-#msgstr "Убрать _ссылку"
+#, python-format
+msgid "Remove links to %s"
+msgstr ""
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
@@ -2544,10 +2543,9 @@ msgid "_Arithmetic"
 msgstr "_Арифметика"
 
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, fuzzy, python-format
-#| msgid "Do you want to delete all bookmarks?"
-#msgid "Are you sure you want to delete the file '%s'?"
-#msgstr "Вы хотите удалить все закладки?"
+#, python-format
+msgid "Are you sure you want to delete the file '%s'?"
+msgstr ""
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391

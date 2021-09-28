@@ -584,16 +584,11 @@ msgstr ""
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:675 zim/gui/uiactions.py:502
-#, fuzzy, python-format
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
-#msgid ""
-#"The file \"%s\" exists but is not a wiki page.\n"
-#"Do you want to import it?"
-#msgstr ""
-#"මෙම ගොනුව දැනටමත් පවතී.\n"
-#"ඔබට එයට උඩින්-ලිවීමට අවශ්‍යද?"
+#, python-format
+msgid ""
+"The file \"%s\" exists but is not a wiki page.\n"
+"Do you want to import it?"
+msgstr ""
 
 #. page status for title bar
 #: zim/gui/mainwindow.py:734 zim/gui/mainwindow.py:901
@@ -2079,10 +2074,9 @@ msgstr "සබැඳි යාවත්කාල වෙමින්"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
-#, fuzzy, python-format
-#| msgid "_Remove Link"
-#msgid "Remove links to %s"
-#msgstr "සබැඳිය ඉවත් කරන්න"
+#, python-format
+msgid "Remove links to %s"
+msgstr ""
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
@@ -2558,12 +2552,11 @@ msgstr ""
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:116
-#, fuzzy, python-format
-#| msgid "Edit Link"
-#msgid "%i BackLink"
-#msgid_plural "%i BackLinks"
-#msgstr[0] "සබැඳිය සංස්කරණය කරන්න"
-#msgstr[1] "සබැඳිය සංස්කරණය කරන්න"
+#, python-format
+msgid "%i BackLink"
+msgid_plural "%i BackLinks"
+msgstr[0] ""
+msgstr[1] ""
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:294

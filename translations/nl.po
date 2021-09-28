@@ -2155,8 +2155,9 @@ msgstr "Snelkoppelingen bijwerken"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:680
+#, python-format
 msgid "Remove links to %s"
-msgstr "Links naar %s verwijderen"
+msgstr "Links verwijderen naar %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:724
@@ -2541,8 +2542,9 @@ msgid "_Arithmetic"
 msgstr "_Arithmetic"
 
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
+#, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr "Weet u zeker dat u bestand '%s' wilt verwijderen?"
+msgstr "Wilt u bestand %s verwijderen?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:391
