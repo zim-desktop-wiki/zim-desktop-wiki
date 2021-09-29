@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-23 20:04+0200\n"
-"PO-Revision-Date: 2021-05-27 00:35+0000\n"
+"PO-Revision-Date: 2021-09-30 17:37+0000\n"
 "Last-Translator: Adolfo Jayme Barrientos <fitojb@ubuntu.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/zim/master/es/>\n"
 "Language: es\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.7-dev\n"
+"X-Generator: Weblate 4.9-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -581,7 +581,7 @@ msgstr "Cuaderno Editable"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "La página es de solo lectura y no puede editarse"
 
 #. Menu item
 #: zim/gui/mainwindow.py:256
@@ -597,7 +597,7 @@ msgstr "_Cerrar"
 #. label for View->Menubar menu item
 #: zim/gui/mainwindow.py:564
 msgid "Menubar"
-msgstr "Barra de menú"
+msgstr "Barra de menús"
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:679 zim/gui/uiactions.py:502
@@ -624,7 +624,7 @@ msgstr "El directorio \"%s\" no existe ¿Desea crear uno nuevo ahora?"
 #. page status for title bar
 #: zim/gui/mainwindow.py:739 zim/gui/mainwindow.py:906
 msgid "readonly"
-msgstr "sólo lectura"
+msgstr "de solo lectura"
 
 #. Menu item
 #: zim/gui/mainwindow.py:767
@@ -640,7 +640,7 @@ msgstr "A_trás"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:774
 msgid "Go back"
-msgstr ""
+msgstr "Volver"
 
 #. Menu item | 
 #. Button label
@@ -687,7 +687,7 @@ msgstr "_Inicio"
 #. Menu item
 #: zim/gui/mainwindow.py:840
 msgid "Go to home page"
-msgstr ""
+msgstr "Ir a la página inicial"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:862
@@ -776,7 +776,7 @@ msgstr "Nuevo _Adjunto"
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:170
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "Mostrar barra de edición bajo el editor"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
@@ -855,7 +855,7 @@ msgstr "Carpeta con plantillas para archivos adjuntos"
 #. tooltip for button in anchor popover
 #: zim/gui/pageview/__init__.py:4727
 msgid "Copy link to clipboard"
-msgstr ""
+msgstr "Copiar enlace en el portapapeles"
 
 #. tooltip label for image with href
 #: zim/gui/pageview/__init__.py:4970
@@ -869,7 +869,7 @@ msgstr "En_lace"
 #: zim/gui/pageview/__init__.py:4972 zim/gui/pageview/__init__.py:7883
 #: zim/plugins/sourceview.py:378
 msgid "Id"
-msgstr ""
+msgstr "Id."
 
 #. Heading of error dialog
 #: zim/gui/pageview/__init__.py:5523
@@ -993,7 +993,7 @@ msgstr "El wiki no está definido: %s"
 #: zim/gui/pageview/__init__.py:6561
 #, python-format
 msgid "Id \"%s\" not found on the current page"
-msgstr ""
+msgstr "El identificador «%s» no se encuentra en la página actual"
 
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6617
@@ -1457,7 +1457,7 @@ msgstr "Texto"
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:8041
 msgid "Prefer short link names for pages"
-msgstr ""
+msgstr "Preferir nombres de enlace breves para páginas"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview/__init__.py:8157
@@ -1582,7 +1582,7 @@ msgstr "Abrir una página nueva"
 #. error message in "move selected text" action
 #: zim/gui/pageview/__init__.py:8519
 msgid "No text selected"
-msgstr ""
+msgstr "No se seleccionó ningún texto"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:8552
@@ -1672,6 +1672,9 @@ msgid ""
 "Please see the dependencies section below for details.\n"
 "\n"
 msgstr ""
+"No se puede activar este complemento porque faltan dependencias.\n"
+"Para más detalles, vea la sección de dependencias, más abajo.\n"
+"\n"
 
 #. help text when plugin cannot be loaded due to bug / issue
 #: zim/gui/preferencesdialog.py:325
@@ -1679,6 +1682,8 @@ msgid ""
 "There was a problem loading this plugin\n"
 "\n"
 msgstr ""
+"Se produjo un problema al cargar este complemento\n"
+"\n"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:337
@@ -1800,7 +1805,7 @@ msgstr "Documento raíz"
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:21
 msgid "Prefer short names for page links"
-msgstr ""
+msgstr "Preferir nombres breves para enlaces de páginas"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:22
@@ -1983,7 +1988,7 @@ msgstr "_Borrar Página"
 #. question in "delete page" action
 #: zim/gui/uiactions.py:224
 msgid "Trash failed, do you want to permanently delete instead ?"
-msgstr ""
+msgstr "No se pudo enviar a la papelera; ¿quiere eliminar permanentemente?"
 
 #. Menu item
 #: zim/gui/uiactions.py:230
@@ -2187,12 +2192,12 @@ msgstr "Actualizando enlaces"
 #: zim/gui/uiactions.py:681
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "Quitar enlaces a %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
 msgid "Trash Page"
-msgstr ""
+msgstr "Enviar página a la papelera"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
@@ -2597,7 +2602,7 @@ msgstr "_Aritmético"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "¿Confirma que quiere eliminar el archivo «%s»?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -2651,22 +2656,22 @@ msgstr "Cancelar"
 #. dialog title
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
 msgid "Rename file"
-msgstr ""
+msgstr "Cambiar nombre de archivo"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
 msgid "File name should not be blank."
-msgstr ""
+msgstr "El nombre de archivo no debe quedar vacío."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:72
 msgid "A file with that name already exists."
-msgstr ""
+msgstr "Ya existe otro archivo con ese nombre."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:75
 msgid "File name should not contain path declaration."
-msgstr ""
+msgstr "El nombre de archivo no debe incluir la declaración de ruta."
 
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
@@ -2892,6 +2897,10 @@ msgid ""
 "The search dialog can be opened by pressing the keyboard shortcut Ctrl+Shift"
 "+P which can be customized via Zim's key bindings preferences."
 msgstr ""
+"Este complemento abre un diálogo de búsqueda para ejecutar entradas de los "
+"menús de forma rápida. El diálogo se puede abrir al presionar Ctrl+Mayús+P, "
+"y este atajo se puede personalizar mediante las preferencias "
+"correspondientes de Zim."
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
@@ -3263,6 +3272,7 @@ msgstr "Colapsar automáticamente las secciones al cerrar la página"
 #: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
 msgstr ""
+"Utilizar barra de desplazamiento horizontal (puede necesitar un reinicio)"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:126 data/templates/html/Default.html:52
@@ -4078,17 +4088,17 @@ msgstr "Iconos _y Texto"
 #. toolbar style
 #: zim/plugins/toolbar.py:38
 msgid "Icons & Text horizontal"
-msgstr ""
+msgstr "Iconos y texto horizontal"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:46
 msgid "Small"
-msgstr ""
+msgstr "Pequeño"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:47
 msgid "Large"
-msgstr ""
+msgstr "Grande"
 
 #. plugin name
 #: zim/plugins/toolbar.py:57
@@ -4104,11 +4114,14 @@ msgid ""
 "It can be a \"classic\" toolbar at the top of the window\n"
 "or running along the side of the window.\n"
 msgstr ""
+"Este complemento añade una «barra de herramientas» a la ventana principal.\n"
+"Puede ser una barra «clásica», en la parte superior de la ventana,\n"
+"o una ubicada al costado de la misma.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:69
 msgid "Include editing tools (classic toolbar)"
-msgstr ""
+msgstr "Incluir herramientas de edición (barra de htas. clásica)"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:73
