@@ -117,7 +117,7 @@ class LocalFSObjectBase(FSObjectBase):
 			raise NotImplementedError('TODO: support cross object type move')
 
 		assert not other.path == self.path # case sensitive
-		logger.info('Rename %s to %s', self.path, other.path)
+		logger.info('Move file %s to %s', self.path, other.path)
 
 		if not FS_CASE_SENSITIVE \
 		and self.path.lower() == other.path.lower():

@@ -12,6 +12,7 @@ logger = logging.getLogger('zim.plugins')
 
 from gi.repository import Gtk
 
+from zim.fs import adapt_from_oldfs
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.signals import SignalEmitter, SIGNAL_RUN_FIRST
 from zim.config import String
@@ -113,7 +114,7 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 		ImageGeneratorModel.__init__(self, notebook, page, generator, attrib, data)
 		if attrib['src'] and not attrib['src'] == '_new_':
 			# File give, derive script
-			self.image_file = notebook.resolve_file(attrib['src'], page)
+			self.image_file = adapt_from_oldfs(notebook.resolve_file(attrib['src'], page))
 			self.script_file = _stitch_fileextension(self.image_file, scriptname)
 		else:
 			# Find available combo of script and image files
@@ -121,7 +122,7 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 				new_image_file = _stitch_fileextension(new_script_file, imagefile_extension)
 				return not new_image_file.exists()
 
-			folder = notebook.get_attachments_dir(page)
+			folder = adapt_from_oldfs(notebook.get_attachments_dir(page))
 			self.script_file = folder.new_file(scriptname, check_image_file)
 			self.image_file = _stitch_fileextension(self.script_file, imagefile_extension)
 			self.attrib['src'] = './' + self.image_file.basename
@@ -135,18 +136,24 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 		return self.generator.filter_source(text)
 
 	def set_from_generator(self, text, image_file):
+		image_file = adapt_from_oldfs(image_file)
 		self.script_file.write(text)
+
 		if image_file == self.image_file:
 			pass
-		elif image_file and image_file.exists():
-			image_file.rename(self.image_file)
-		elif self.image_file.exists():
-			self.image_file.remove()
+		else:
+			if self.image_file.exists():
+				self.image_file.remove()
+
+			if image_file and image_file.exists():
+				image_file.moveto(self.image_file)
+
 		self.emit('changed')
 
 
 def _stitch_fileextension(file, basename):
 	# Take extension of basename, and put it on path from file
+	file = adapt_from_oldfs(file)
 	i = basename.rfind('.')
 	j = file.basename.rfind('.')
 	return file.parent().file(file.basename[:j] + basename[i:])
@@ -157,6 +164,8 @@ def copy_imagegenerator_src_files(src_file, folder):
 	# by a BackwardImageGeneratorObjectType instance
 	# We want to be agnostic of the exact image object type, so we just look
 	# at any files that share the same basename as the image being copied
+	src_file = adapt_from_oldfs(src_file)
+	folder = adapt_from_oldfs(folder)
 	basename = src_file.basename
 	i = basename.rfind('.')
 	basename = basename[:i]

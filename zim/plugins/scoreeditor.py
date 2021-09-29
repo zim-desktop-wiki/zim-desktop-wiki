@@ -123,7 +123,7 @@ class ScoreGenerator(ImageGeneratorClass):
 		clogfile = LocalFile(scorefile.path[:-3] + '-convertly.log') # len('.ly) == 3
 		try:
 			convertly = Application(convertly_cmd)
-			convertly.run((scorefile.basename,), cwd=scorefile.dir)
+			convertly.run((scorefile.basename,), cwd=scorefile.parent())
 		except ApplicationError:
 			clogfile.write('convert-ly failed.\n')
 			return None, clogfile
@@ -133,7 +133,7 @@ class ScoreGenerator(ImageGeneratorClass):
 		logfile = LocalFile(scorefile.path[:-3] + '.log') # len('.ly') == 3
 		try:
 			lilypond = Application(lilypond_cmd)
-			lilypond.run(('-dlog-file=' + logfile.basename[:-4], scorefile.basename,), cwd=scorefile.dir)
+			lilypond.run(('-dlog-file=' + logfile.basename[:-4], scorefile.basename,), cwd=scorefile.parent())
 		except ApplicationError:
 			# log should have details of failure
 			return None, logfile

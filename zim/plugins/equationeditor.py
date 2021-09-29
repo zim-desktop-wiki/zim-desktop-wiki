@@ -93,7 +93,7 @@ class EquationGenerator(ImageGeneratorClass):
 		#~ print(">>>", self.texfile, logfile)
 		try:
 			latex = Application(latexcmd)
-			latex.run((self.texfile.basename,), cwd=self.texfile.dir)
+			latex.run((self.texfile.basename,), cwd=self.texfile.parent())
 		except ApplicationError:
 			# log should have details of failure
 			return None, logfile
