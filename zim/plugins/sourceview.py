@@ -129,10 +129,11 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def new_model_interactive(self, parent, notebook, page):
-		id, lang, linenumbers = InsertCodeBlockDialog(parent).run()
-		if lang is None:
+		result = InsertCodeBlockDialog(parent).run()
+		if result is None:
 			raise ValueError # dialog cancelled
 		else:
+			id, lang, linenumbers = result
 			attrib = self.parse_attrib({
 				'id': id,
 				'lang': lang,
@@ -344,7 +345,6 @@ class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
-		self.result = (None, None, None)
 		self.uistate.define(id=String(None))
 		self.uistate.define(lang=String(None))
 		self.uistate.define(line_numbers=Boolean(True))
