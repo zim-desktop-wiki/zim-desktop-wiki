@@ -135,9 +135,10 @@ class TestXDGDirs(tests.TestCase):
 		self.assertTrue(ZIM_DATA_DIR.file('zim.png').exists())
 		self.assertTrue(data_file('zim.png').exists())
 		self.assertTrue(data_dir('templates').exists())
+		self.assertTrue(len(list(data_dirs(('templates')))) > 0)
 		self.assertEqual(
-				list(data_dirs(('foo', 'bar'))),
-				[d.subdir(['foo', 'bar']) for d in data_dirs()])
+				list(data_dirs(('templates'))),
+				[d.folder('templates') for d in data_dirs() if d.exists()])
 
 	@tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
 	def testDefaults(self):
@@ -167,32 +168,35 @@ class TestXDGDirs(tests.TestCase):
 
 	def testInitializedEnvironment(self):
 		'''Test config environment with non-default basedir paths'''
-		my_environ = {
-			'XDG_DATA_HOME': '/foo/data/home',
-			'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2   ',
-			'XDG_CONFIG_HOME': '/foo/config/home',
-			'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
-			'XDG_CACHE_HOME': '/foo/cache',
-		}
 		if os.name == 'nt':
-			my_environ['XDG_DATA_DIRS'] = '/foo/data/dir1;/foo/data/dir2'
-			my_environ['XDG_CONFIG_DIRS'] = '/foo/config/dir1;/foo/config/dir2'
+			my_sep = ';'
+			my_environ = {
+				'XDG_DATA_HOME': 'C:/foo/data/home',
+				'XDG_DATA_DIRS': 'C:/foo/data/dir1:/foo/data/dir2   ',
+				'XDG_CONFIG_HOME': 'C:/foo/config/dir1;C:/foo/config/dir2',
+				'XDG_CONFIG_DIRS': 'C:/foo/data/dir1;C:/foo/data/dir2',
+				'XDG_CACHE_HOME': 'C:/foo/cache',
+			}
+		else:
+			my_sep = ':'
+			my_environ = {
+				'XDG_DATA_HOME': '/foo/data/home',
+				'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2   ',
+				'XDG_CONFIG_HOME': '/foo/config/home',
+				'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
+				'XDG_CACHE_HOME': '/foo/cache',
+			}
 
 		with EnvironmentConfigContext(my_environ):
-			for k, v in (
-				('XDG_DATA_HOME', '/foo/data/home'),
-				('XDG_CONFIG_HOME', '/foo/config/home'),
-				('XDG_CACHE_HOME', '/foo/cache')
-			):
+			for k in ('XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME'):
+				v = my_environ[k].strip()
 				self.assertEqual(adapt_from_oldfs(getattr(zim.config.basedirs, k)), value_to_folder(v))
 
-			for k, v in (
-				('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
-				('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
-			):
+			for k in ('XDG_DATA_DIRS', 'XDG_CONFIG_DIRS'):
+				v = my_environ[k].strip()
 				self.assertEqual(
 					list(map(adapt_from_oldfs, getattr(zim.config.basedirs, k))),
-					list(map(value_to_folder, v.split(':')))
+					list(map(value_to_folder, v.split(my_sep)))
 				)
 
 

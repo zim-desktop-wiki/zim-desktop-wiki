@@ -3,7 +3,7 @@
 
 import tests
 
-from tests import convert_path_sep
+from tests import os_native_path
 
 import os
 
@@ -11,6 +11,8 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 
 import zim.formats
+
+from zim.newfs import LocalFile
 
 from zim.gui.clipboard import *
 
@@ -174,7 +176,7 @@ some <b>bold</b> text
 
 	def _testCopyFileURIPasteAsParseTree(self, set_func):
 		page = self.notebook.get_page(Path('Test:wiki'))
-		file = File('/foo/bar/baz.txt')
+		file = LocalFile(os_native_path('/foo/bar/baz.txt'))
 		set_func(file.uri)
 		tree = Clipboard.get_parsetree(self.notebook, page)
 		link = tree.find('link')
@@ -190,7 +192,7 @@ some <b>bold</b> text
 
 	def _testCopyImageFileURIPasteAsParseTree(self, set_func):
 		page = self.notebook.get_page(Path('Test:wiki'))
-		file = File('./data/zim.png') # image file
+		file = tests.ZIM_DATA_FOLDER.file('./data/zim.png') # image file
 		set_func(file.uri)
 		tree = Clipboard.get_parsetree(self.notebook, page)
 		img = tree.find('img')
@@ -221,7 +223,7 @@ some <b>bold</b> text
 		self.notebook.get_attachments_dir = lambda p: LocalFolder(inner(p).path) # fixture to ensure local folder used
 
 		page = self.notebook.get_page(Path('Test:wiki'))
-		file = File('./data/zim.png')
+		file = tests.ZIM_DATA_FOLDER.file('./data/zim.png')
 		set_clipboard_image(file)
 		tree = Clipboard.get_parsetree(self.notebook, page)
 		img = tree.find('img')
@@ -370,9 +372,9 @@ some <b>bold</b> text
 			'<link href="%s">my attachment</link>\n'
 			'<link href="file://host/file">file://host/file</link>\n'
 			'</p></zim-tree>' % (
-				convert_path_sep('../Test/attachment.pdf'),
-				convert_path_sep('../Test/attachment.pdf'),
-				convert_path_sep('../Test/attachment.pdf')
+				os_native_path('../Test/attachment.pdf'),
+				os_native_path('../Test/attachment.pdf'),
+				os_native_path('../Test/attachment.pdf')
 			)
 		) # Link updated to point to same target from new location - file uri to external host untouched
 
@@ -436,10 +438,10 @@ some <b>bold</b> text
 			'<img src="%s" />\n'
 			'<img src="%s" />\n'
 			'</p></zim-tree>' % (
-				convert_path_sep('./attachment1.png'),
-				convert_path_sep('./attachment2.png'),
-				convert_path_sep('./otherimage.png'),
-				convert_path_sep('./otherimage.png'),
+				os_native_path('./attachment1.png'),
+				os_native_path('./attachment2.png'),
+				os_native_path('./otherimage.png'),
+				os_native_path('./otherimage.png'),
 			)
 		)
 		# No update on two attachments, *but* file is copied
@@ -473,8 +475,8 @@ some <b>bold</b> text
 			'<img src="%s" />\n'
 			'<img src="%s" />\n'
 			'</p></zim-tree>' % (
-				convert_path_sep('./attachment.png'),
-				convert_path_sep('./otherimage.png')
+				os_native_path('./attachment.png'),
+				os_native_path('./otherimage.png')
 			)
 		) # For cross-notebook copy, copy update both images
 		self.assertTrue(newfile_1.exists())
@@ -518,7 +520,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<object src="%s" type="image+equation" />\n'
-			'</p></zim-tree>' % convert_path_sep('./foo002.png')
+			'</p></zim-tree>' % os_native_path('./foo002.png')
 		) # Sources are copied and number is added due to existing files
 		self.assertTrue(newfile_1.exists())
 		self.assertTrue(newfile_2.exists())
@@ -546,7 +548,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<object src="%s" type="image+equation" />\n'
-			'</p></zim-tree>' % convert_path_sep('./foo.png')
+			'</p></zim-tree>' % os_native_path('./foo.png')
 		) # Sources are copied and number is added due to existing files
 		self.assertTrue(newfile_1.exists())
 		self.assertTrue(newfile_2.exists())
@@ -592,9 +594,12 @@ class TestURIData(tests.TestCase):
 		someobject = tests.MockObject()
 		someobject.uri = "file:///foo"
 
+		file1 = LocalFile(os_native_path("/foo"))
+		file2 = LocalFile("~/foo")
+		assert file2.userpath.startswith('~')
 		for (input, uris, text) in (
-			((File("/foo"),), (File("/foo").uri,), File("/foo").path),
-			((File("~/foo"),), (File("~/foo").uri,), "~/foo"),
+			((file1,), (file1.uri,), file1.path),
+			((file2,), (file2.uri,), file2.userpath),
 			(("file:///foo",), ("file:///foo",), "file:///foo"),
 			((someobject,), ("file:///foo",), "file:///foo"),
 			(("file:///foo", "file:///bar"), ("file:///foo", "file:///bar"), "file:///foo file:///bar"),

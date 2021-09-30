@@ -15,8 +15,9 @@ from gi.repository import GdkPixbuf
 import logging
 
 
+from zim.fs import adapt_from_oldfs
 from zim.fs import File, Dir, FS
-from zim.newfs import LocalFolder
+from zim.newfs import FilePath, LocalFolder
 from zim.notebook import Path, HRef, set_parsetree_attributes_to_resolve_links, \
 	replace_parsetree_links_and_copy_images
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
@@ -412,9 +413,10 @@ class UriData(ClipboardData):
 		uris = []
 		text = []
 		for o in obj:
-			if isinstance(o, (File, Dir)):
+			o = adapt_from_oldfs(o)
+			if isinstance(o, FilePath):
 				uris.append(o.uri)
-				text.append(o.user_path or o.path)
+				text.append(o.userpath)
 			else:
 				uri = o if isinstance(o, str) else o.uri
 				uris.append(uri)

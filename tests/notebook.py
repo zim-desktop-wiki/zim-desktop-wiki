@@ -132,8 +132,24 @@ class TestNotebookInfoList(tests.TestCase):
 		self.assertEqual(interwiki_link('bar?Foo'), 'zim+' + uri1 + '?Foo') # name
 		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+' + uri1 + '?Foo') # name
 
-		# Check backward compatibility
-		file = tests.TEST_DATA_FOLDER.file('notebook-list-old-format.list')
+
+class TestNotebookInfoListBackwardCompatibility(tests.TestCase):
+
+	def runTest(self):
+		# Check backward compatibility for old file format
+		# Format is name, value pair separated by whitespace (tab or space)
+		folder = self.setUpFolder()
+		file = folder.file('notebook-list-old-format.list')
+		lines = [
+			"_default_\tdebug\n",
+			"Notes\t~/Notes\n",
+			"   \n",
+			"# some comment \n",
+			"debug\t%s\n" % os_native_path('/home/user/code/zim.debug').replace('\\', '/'),
+			"Foo\\ Bar %s\n" % os_native_path('/home/user/Foo Bar').replace('\\', '/').replace(' ', '\\ '),
+		]
+		file.writelines(lines)
+
 		list = NotebookInfoList(file)
 		self.assertEqual(list[:], [
 			NotebookInfo(LocalFolder(path).uri) for path in
@@ -198,8 +214,16 @@ class TestBuildNotebook(tests.TestCase):
 import os
 import sys
 notebook = sys.argv[1]
-os.mkdir(notebook)
-os.mkdir(notebook + '/foo')
+notebookfile = notebook + "/notebook.zim"
+
+assert not os.path.exists(notebookfile), "Already exists: %s" % notebookfile
+
+try:
+	os.mkdir(notebook)
+	os.mkdir(notebook + '/foo')
+except FileExistsError:
+	pass
+
 for path in (
 	notebook + "/notebook.zim",
 	notebook + "/foo/bar.txt"
@@ -450,9 +474,10 @@ class TestNotebook(tests.TestCase):
 		for link, wanted, cleaned in (
 			('~/test.txt', LocalFile('~/test.txt'), '~/test.txt'),
 			(r'~\test.txt', LocalFile('~/test.txt'), '~/test.txt'),
-			('file:///test.txt', LocalFile(os_native_path('file:///test.txt')), None),
-			('file:/test.txt', LocalFile(os_native_path('file:///test.txt')), None),
-			('file://localhost/test.txt', LocalFile(os_native_path('file:///test.txt')), None),
+			(os_native_path('file:///test.txt'), LocalFile(os_native_path('file:///test.txt')), None),
+			(os_native_path('file:/test.txt'), LocalFile(os_native_path('file:///test.txt')), None),
+			(os_native_path('file://localhost/test.txt'), LocalFile(os_native_path('file:///test.txt')), None),
+			('file:///C:/test.txt', LocalFile('file:///C:/test.txt'), None),
 			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('../../notebook_document_root/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
@@ -460,10 +485,13 @@ class TestNotebook(tests.TestCase):
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
 			(r'..\test.txt', dir.file('Foo/test.txt'), '../test.txt'),
 			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt'), './Baz/test.txt'),
+			('../Other/Baz/test.txt', dir.file('Foo/Other/Baz/test.txt'), '../Other/Baz/test.txt'),
+			('./../Other/Baz/test.txt', dir.file('Foo/Other/Baz/test.txt'), '../Other/Baz/test.txt'),
 			(r'C:\foo\bar', LocalFile('file:///C:/foo/bar'), None),
 			(r'Z:\foo\bar', LocalFile('file:///Z:/foo/bar'), None),
 		):
-			#~ print link, '>>', self.notebook.resolve_file(link, path)
+			#print("== LINK", link)
+			#print('>>', self.notebook.resolve_file(link, path))
 			if cleaned is not None and not cleaned.startswith('/'):
 				cleaned = os_native_path(cleaned)
 			self.assertEqual(

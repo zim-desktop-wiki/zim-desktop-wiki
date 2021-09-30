@@ -3841,7 +3841,7 @@ All in one page
 
 		newpage = notebook.get_page(newpath)
 		self.assertEqual(newpage.dump('wiki')[-2:], [
-			'An image {{%s}}\n' % tests.convert_path_sep('./zim.png'),
+			'An image {{%s}}\n' % tests.os_native_path('./zim.png'),
 			'And a link [[Test:Foo]]\n'
 		]) 	# Link updated - using last two lines to exclude template
 		file = newpage.attachments_folder.file('zim.png')

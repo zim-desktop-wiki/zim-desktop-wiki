@@ -113,7 +113,7 @@ class TemplateEditorDialog(Dialog):
 		assert name is not None
 		_, ext = custom.basename.rsplit('.', 1)
 		basename = name + '.' + ext
-		newfile = custom.dir.file(basename)
+		newfile = custom.parent().file(basename)
 
 		source.copyto(newfile)
 
@@ -146,7 +146,7 @@ class TemplateEditorDialog(Dialog):
 		self.view.refresh()
 
 	def on_browse(self, *a):
-		dir = XDG_DATA_HOME.subdir(('zim', 'templates'))
+		dir = XDG_DATA_HOME.folder(('zim', 'templates'))
 		open_folder_prompt_create(self, dir)
 
 

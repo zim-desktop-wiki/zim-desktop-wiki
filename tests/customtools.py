@@ -13,11 +13,12 @@ from zim.gui.customtools import *
 
 def clear_customtools():
 	listfile = XDG_CONFIG_HOME.file('zim/customtools/customtools.list')
-	folder = XDG_CONFIG_HOME.subdir('zim/customtools/')
+	folder = XDG_CONFIG_HOME.folder('zim/customtools/')
 	assert 'tests/tmp' in listfile.path.replace('\\', '/')
 	assert 'tests/tmp' in folder.path.replace('\\', '/')
 	listfile.remove()
-	folder.remove_children()
+	if folder.exists():
+		folder.remove_children()
 
 
 class MockStubPageView(StubPageView):
@@ -142,7 +143,7 @@ class TestCustomTools(tests.TestCase):
 		for cmd, wanted in (
 			('foo %f', ('foo', tmpfile)),
 			('foo %d', ('foo', notebook.folder.folder('Test/Foo').path)),
-			('foo %s', ('foo', page.source.path)),
+			('foo %s', ('foo', page.source_file.path)),
 			('foo %p', ('foo', 'Test:Foo')),
 			('foo %n', ('foo', notebook.folder.path)),
 			('foo %D', ('foo', '')), # no document root

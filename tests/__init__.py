@@ -192,13 +192,6 @@ def zim_pyfiles():
 		yield file # shallow copy
 
 
-def convert_path_sep(path):
-	if os.name == 'nt':
-		return path.replace('/', '\\')
-	else:
-		return path
-
-
 def slowTest(obj):
 	'''Decorator for slow tests
 

@@ -13,7 +13,6 @@ from zim.parsing import link_type
 from zim.errors import Error
 
 import zim.formats
-import zim.fs
 import zim.newfs
 
 from zim.signals import SignalEmitter, SIGNAL_NORMAL
@@ -386,18 +385,6 @@ class HRef(object):
 		return link
 
 
-class SourceFile(zim.fs.File):
-
-	def iswritable(self):
-		return False
-
-	def write(self, *a):
-		raise AssertionError('Not writeable')
-
-	def writelines(self, *a):
-		raise AssertionError('Not writeable')
-
-
 class PageReadOnlyError(Error):
 	_msg = _('Can not modify page: %s') # T: error message for read-only pages
 
@@ -452,7 +439,6 @@ class Page(Path, SignalEmitter):
 			self.format = zim.formats.get_format(format)
 		else:
 			self.format = format
-		self.source = SourceFile(file.path) # XXX
 		self.source_file = file
 		self.attachments_folder = folder
 

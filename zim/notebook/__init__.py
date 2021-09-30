@@ -14,7 +14,7 @@ contents.
 The notebook keeps track of all pages using an C{Index} which is stored
 in a C{sqlite} database. Methods that need a list of pages in the
 notebook always use the index rather than a direct lookup. See
-L{zim.notebook.index} for more details.
+L{notebook.zim.index} for more details.
 
 The C{NotebookInfoList} is defined to help access known notebooks and
 a C{NotebookInfo} object can be used to access the notebook properties
@@ -27,16 +27,16 @@ almost always better to use L{build_notebook()} rather than istantiating
 the notebook directly.
 
 @note: for more information about threading and concurency,
-see L{zim.notebook.operations}
+see L{notebook.zim.operations}
 
 '''
 
 import logging
 
-logger = logging.getLogger('zim.notebook')
+logger = logging.getLogger('notebook.zim')
 
 
-from zim.fs import FilePath, File, Dir, FileNotFoundError, adapt_from_newfs
+from zim.newfs import FileNotFoundError, localFileOrFolder, LocalFolder, FilePath
 from zim.parsing import url_decode
 
 
@@ -82,40 +82,40 @@ def build_notebook(location):
 
 	# Automount if needed
 	filepath = FilePath(uri)
-	if not (filepath.exists() or filepath.__add__('zim.notebook').exists()):
-		# The folder of a mount point can exist, so check for specific content
+	try:
+		fileorfolder = localFileOrFolder(filepath)
+	except FileNotFoundError:
 		mount_notebook(filepath)
-		if not filepath.exists():
-			raise FileNotFoundError(filepath)
-
-	# Figure out the notebook dir
-	if filepath.isdir():
-		dir = Dir(uri)
-		file = None
+		fileorfolder = localFileOrFolder(uri) # Can raise FileNotFoundError
 	else:
-		file = File(uri)
-		dir = file.dir
+		# The folder of a mount point can exist, so check for specific content
+		if isinstance(fileorfolder, LocalFolder) \
+			and not fileorfolder.file('notebook.zim').exists():
+				mount_notebook(filepath)
+				fileorfolder = localFileOrFolder(uri) # Can raise FileNotFoundError
 
-	if file and file.basename == 'notebook.zim':
-		file = None
+	if isinstance(fileorfolder, LocalFolder):
+		folder, file = fileorfolder, None
+	elif fileorfolder.basename == 'notebook.zim':
+		folder, file = fileorfolder.parent(), None
 	else:
-		parents = list(dir)
-		parents.reverse()
-		for parent in parents:
-			if parent.file('notebook.zim').exists():
-				dir = parent
-				break
+		folder, file = fileorfolder.parent(), fileorfolder
+
+	for parent in folder.parents():
+		if parent.file('notebook.zim').exists():
+			folder = parent
+			break
 
 	# Resolve the page for a file
 	if file:
-		path = file.relpath(dir)
+		path = file.relpath(folder)
 		if '.' in path:
 			path, _ = path.rsplit('.', 1) # remove extension
-		path = path.replace('/', ':')
+		path = path.replace('\\', ':').replace('/', ':')
 		page = Path(path)
 
 	# And finally create the notebook
-	notebook = Notebook.new_from_dir(dir)
+	notebook = Notebook.new_from_dir(folder)
 	return notebook, page
 
 
@@ -127,10 +127,10 @@ def mount_notebook(filepath):
 	groups = sorted([k for k in list(configdict.keys()) if k.startswith('Path')])
 	for group in groups:
 		path = group[4:].strip() # len('Path') = 4
-		dir = Dir(path)
-		if is_relevant_mount_point(dir, filepath):
+		folder = LocalFolder(path)
+		if is_relevant_mount_point(folder, filepath):
 			configdict[group].define(mount=String(None))
-			handler = ApplicationMountPointHandler(dir, **configdict[group])
+			handler = ApplicationMountPointHandler(folder, **configdict[group])
 			if handler(filepath):
 				break
 
@@ -138,23 +138,19 @@ def mount_notebook(filepath):
 def is_relevant_mount_point(root, path):
 	# path can be notebook folder, or file path below notebook folder
 	# root can be parent folder of notebook folder or notebook folder itself
-	if path.path == root.path:
+	# mount point itself can exist, and can even contain files (e.g. README with mount instructions)
+	# so only check existance of specific path and notebook.zim file
+	if root.file('notebook.zim').exists():
+		return False
+	elif path.path == root.path:
 		return True
 	elif path.ischild(root):
 		# Check none of the intermediate folders exist
-		parent = path.dir
-		if parent.path == root.path:
-			return not (parent.exists() or parent.__add__('zim.notebook').exists())
-				# Folder can exists, but also needs to be valid notebook
-		else:
-			while parent.path != root.path:
-				if parent.exists():
-					return False
-				parent = parent.dir
-			else:
-				# Do not check "zim.notebook", mount point can be parent
-				# of notebook folder, missing folder tree says enough
-				return True
+		for parent in path.parents():
+			if parent.path == root.path:
+				break
+			elif parent.exists():
+				return False
 	else:
 		return False
 
@@ -173,13 +169,17 @@ class ApplicationMountPointHandler(object):
 			Application(self.mount).run()
 		except:
 			logger.exception('Failed to run: %s', self.mount)
-		return path.exists()
+
+		try:
+			path = localFileOrFolder(path)
+		except FileNotFoundError:
+			return False
+		else:
+			return path.exists()
 
 
 def init_notebook(dir, name=None):
 	'''Initialize a new notebook in a directory'''
-	dir = adapt_from_newfs(dir)
-	assert isinstance(dir, Dir)
 	from .notebook import NotebookConfig
 	dir.touch()
 	config = NotebookConfig(dir.file('notebook.zim'))

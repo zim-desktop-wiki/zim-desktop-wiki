@@ -38,8 +38,7 @@ except ImportError:
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL, init_signals_for_new_object
 from zim.utils import DefinitionOrderedDict
-from zim.fs import File, FileNotFoundError
-from zim.newfs import FileNotFoundError as NewFileNotFoundError
+from zim.newfs import FileNotFoundError
 from zim.errors import Error
 
 from .basedirs import XDG_CONFIG_HOME
@@ -741,7 +740,7 @@ class INIConfigFile(SectionedConfigDict):
 			with self.block_signals('changed'):
 				self.read()
 			self.set_modified(False)
-		except (FileNotFoundError, NewFileNotFoundError):
+		except FileNotFoundError:
 			pass
 
 		if monitor:
@@ -752,7 +751,7 @@ class INIConfigFile(SectionedConfigDict):
 			try:
 				with self.block_signals('changed'):
 					self.read()
-			except (FileNotFoundError, NewFileNotFoundError):
+			except FileNotFoundError:
 				pass
 			else:
 				# First emit top level to allow general changes

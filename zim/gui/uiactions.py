@@ -351,7 +351,7 @@ class UIActions(object):
 		# Of course users can still define a custom tool for other editors.
 		page = page or self.page
 
-		edit_file(self.widget, self.page.source, istextfile=True)
+		edit_file(self.widget, self.page.source_file, istextfile=True)
 		page.check_source_changed()
 
 	@action(_('Start _Web Server')) # T: Menu item

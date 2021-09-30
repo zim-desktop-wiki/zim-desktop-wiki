@@ -143,7 +143,10 @@ def _splitnormpath(path, force_rel=False):
 		if name == '.' and names:
 			pass
 		elif name == '..':
-			if names and names[-1] != '..':
+			if names and names[-1] == '.':
+				names[-1] = name # e.g. "./../foo" --> ['..', 'foo']
+				makeroot = False
+			elif names and names[-1] != '..':
 				names.pop()
 			else:
 				names.append(name)
@@ -162,10 +165,11 @@ def _splitnormpath(path, force_rel=False):
 
 
 if os.name == 'nt':
-	def _joinabspath(names):
+	def _joinabspath(names, origpath=None):
+		# "origpath" is only used for better readable error message
 		# first element must be either drive letter or UNC host
 		if not re.match(r'^(\w:|\\\\\w)', names[0]):
-			raise ValueError('Not an absolute path: %s' % '\\'.join(names))
+			raise ValueError('Not an absolute path: %s' % (origpath or '\\'.join(names)))
 		else:
 			return '\\'.join(names) # Don't rely on SEP here, msys sets it to '/'
 
@@ -179,13 +183,14 @@ if os.name == 'nt':
 			return 'file://' + url_encode(names[0].strip('\\') + '/' + '/'.join(names[1:]))
 
 else:
-	def _joinabspath(names):
+	def _joinabspath(names, origpath=None):
+		# "origpath" is only used for better readable error message
 		if names[0].startswith('\\\\'):
 			return '\\'.join(names) # Windows share drive
 		elif names[0].startswith('/'):
 			return '/'.join(names)
 		else:
-			raise ValueError('Not an absolute path: %s' % '/'.join(names))
+			raise ValueError('Not an absolute path: %s' % (origpath or '/'.join(names)))
 
 	def _joinuri(names):
 		if names[0][0] == '/':
@@ -215,7 +220,7 @@ def _os_expanduser(path):
 
 def is_abs_filepath(string):
 	try:
-		_joinabspath(_splitnormpath(string))
+		_joinabspath(_splitnormpath(string), origpath=string)
 	except ValueError:
 		return False
 	else:
@@ -241,7 +246,7 @@ class FilePath(object):
 	def __init__(self, path):
 		if isinstance(path, (tuple, list, str)):
 			self.pathnames = _splitnormpath(path)
-			self.path = _joinabspath(self.pathnames)
+			self.path = _joinabspath(self.pathnames, origpath=path)
 		elif isinstance(path, FilePath):
 			self.pathnames = path.pathnames
 			self.path = path.path
@@ -291,6 +296,16 @@ class FilePath(object):
 			return '~' + SEP + self.relpath(_HOME)
 		else:
 			return self.path
+
+	def parent(self):
+		dirname = self.dirname
+		return FilePath(dirname) if dirname else None
+
+	def parents(self):
+		parent = self.parent()
+		while parent:
+			yield parent
+			parent = parent.parent()
 
 	def get_childpath(self, path):
 		assert path
@@ -415,15 +430,17 @@ class FSObjectBase(FilePath, metaclass=FSObjectMeta):
 		logger.debug('Cross FS type move %s --> %s', (self, other))
 		self._copyto(other)
 		self.remove()
+		return other
 
 	def remove(self, cleanup=True):
 		raise NotImplementedError
 
 	def _cleanup(self):
-		try:
-			self.parent().remove()
-		except (ValueError, FolderNotEmptyError):
-			pass
+		for parent in self.parents():
+			try:
+				parent.remove()
+			except FolderNotEmptyError:
+				break
 
 
 class Folder(FSObjectBase):

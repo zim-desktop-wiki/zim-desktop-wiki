@@ -48,7 +48,7 @@ def _resolve_links_and_images(notebook, src_path, node):
 			try:
 				target = notebook.resolve_file(href, src_path)
 			except:
-				pass # may by e.g. file://host/path URI, not supported as local file
+				pass # may by e.g. malformed path
 			else:
 				node.set('_href', target.uri)
 		return node
@@ -168,10 +168,13 @@ def _replace_links_to_page_and_copy_images(notebook, old_folder, new_path, node)
 				return notebook._update_link_tag(node, new_path, target, oldhref)
 			elif my_type == 'file':
 				new_href = notebook.relative_filepath(LocalFile(abs_href), new_path)
-				if node.gettext() == node.get('href'): # *not* abs_href
-					node[:] = [new_href]
-				node.set('href', new_href)
-				return node
+				if new_href is None:
+					return node # could be VisitorSkip, but want to get rid of _href
+				else:
+					if node.gettext() == node.get('href'): # *not* abs_href
+						node[:] = [new_href]
+					node.set('href', new_href)
+					return node
 			else:
 				logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
 				raise VisitorSkip
@@ -205,13 +208,15 @@ def _replace_links_to_page_and_copy_images(notebook, old_folder, new_path, node)
 
 def _update_image(notebook, new_path, src_file, node):
 	new_src = notebook.relative_filepath(src_file, new_path)
-	node.set('src', new_src)
+	if new_src is not None:
+		node.set('src', new_src)
 	return node
 
 
 def _copy_image(notebook, new_path, src_file, node):
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = folder.new_file(src_file.basename)
+	print("COPY", src_file, "-->", new_file)
 	src_file.copyto(new_file)
 	node.set('src', '.' + SEP + new_file.basename)
 	return node

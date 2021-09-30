@@ -17,8 +17,8 @@ from zim.config import data_dirs
 def set_icon_search_path():
 	icon_theme = Gtk.IconTheme.get_default()
 	for dir in data_dirs():
-		if dir.subdir('icons').exists():
-			icon_theme.append_search_path(dir.subdir('icons').path)
+		if dir.folder('icons').exists():
+			icon_theme.append_search_path(dir.folder('icons').path)
 
 set_icon_search_path()
 
@@ -33,8 +33,9 @@ def load_zim_stock_icons():
 	factory = Gtk.IconFactory()
 	factory.add_default()
 	for dir in data_dirs(('pixmaps')):
-		for basename in dir.list('*.png'):
-			# not all installs have svg support, so only check png for now..
+		for basename in dir.list_names():
+			if not basename.endswith('.png'):
+				continue # not all installs have svg support, so only check png for now..
 			name = 'zim-' + basename[:-4] # e.g. checked-box.png -> zim-checked-box
 			icon_theme = Gtk.IconTheme.get_default()
 			try:

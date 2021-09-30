@@ -51,7 +51,7 @@ if GtkSource:
 	# add an optional path in PLUGIN_FOLDER  where the user can set his
 	# custom styles
 	plugin_name = __name__.split('.')[-1]
-	ssm.append_search_path(PLUGIN_FOLDER.subdir(plugin_name).path)
+	ssm.append_search_path(PLUGIN_FOLDER.folder(plugin_name).path)
 	# ~ print(ssm.get_search_path())
 
 	STYLES = ssm.get_scheme_ids()

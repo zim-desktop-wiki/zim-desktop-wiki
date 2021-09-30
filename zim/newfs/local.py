@@ -74,10 +74,7 @@ class LocalFSObjectBase(FSObjectBase):
 
 	def parent(self):
 		dirname = self.dirname
-		if dirname is None:
-			raise ValueError('Can not get parent of root')
-		else:
-			return LocalFolder(dirname, watcher=self.watcher)
+		return LocalFolder(dirname, watcher=self.watcher) if dirname else None
 
 	def ctime(self):
 		return self._stat().st_ctime
@@ -105,6 +102,9 @@ class LocalFSObjectBase(FSObjectBase):
 	def moveto(self, other):
 		# Using shutil.move instead of os.rename because move can cross
 		# file system boundaries, while rename can not
+		if not self.exists():
+			raise FileNotFoundError(self)
+
 		if isinstance(self, File):
 			if isinstance(other, Folder):
 				other = other.file(self.basename)
@@ -114,7 +114,7 @@ class LocalFSObjectBase(FSObjectBase):
 			assert isinstance(other, Folder)
 
 		if not isinstance(other, LocalFSObjectBase):
-			raise NotImplementedError('TODO: support cross object type move')
+			return self._moveto(other)
 
 		assert not other.path == self.path # case sensitive
 		logger.info('Move file %s to %s', self.path, other.path)
@@ -203,6 +203,9 @@ class LocalFolder(LocalFSObjectBase, Folder):
 			raise FileNotFoundError(childpath)
 
 	def copyto(self, other):
+		if not self.exists():
+			raise FileNotFoundError(self)
+					
 		assert isinstance(other, Folder)
 		assert not other.path == self.path
 
@@ -407,6 +410,9 @@ class LocalFile(LocalFSObjectBase, File):
 					fh.write('')
 
 	def copyto(self, other):
+		if not self.exists():
+			raise FileNotFoundError(self)
+
 		if isinstance(other, Folder):
 			other = other.file(self.basename)
 

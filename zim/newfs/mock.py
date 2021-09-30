@@ -47,8 +47,12 @@ def os_native_path(unixpath, drive='M:'):
 	# Default drive letter is choosen arbitrary, should be OK for mock
 	assert isinstance(unixpath, str)
 	if os.name == 'nt':
-		if is_url_re.match(unixpath):
+		if unixpath.startswith('file:///'):
 			return unixpath.replace('file:///', 'file:///' + drive + '/')
+		if unixpath.startswith('file://localhost/'):
+			return unixpath.replace('file://localhost/', 'file://localhost/' + drive + '/')
+		if unixpath.startswith('file:/'):
+			return unixpath.replace('file:/', 'file:/' + drive + '/')
 		else:
 			if unixpath.startswith('/'):
 				unixpath = drive + unixpath
@@ -200,10 +204,7 @@ class MockFSObjectBase(FSObjectBase):
 
 	def parent(self):
 		dirname = self.dirname
-		if dirname is None:
-			raise ValueError('Can not get parent of root')
-		else:
-			return MockFolder(dirname, watcher=self.watcher, _fs=self._fs)
+		return MockFolder(dirname, watcher=self.watcher, _fs=self._fs) if dirname else None
 
 	def exists(self):
 		try:
@@ -233,11 +234,14 @@ class MockFSObjectBase(FSObjectBase):
 		return self._node().mtime
 
 	def moveto(self, other):
+		if not self.exists():
+			raise FileNotFoundError(self)
+
 		if isinstance(self, File) and isinstance(other, Folder):
 			other = other.file(self.basename)
 
 		if not isinstance(other, MockFSObjectBase):
-			raise NotImplementedError('TODO: support cross object type move')
+			return self._moveto(other)
 
 		if other.isequal(self):
 			if other.path == self.path:
@@ -260,6 +264,9 @@ class MockFSObjectBase(FSObjectBase):
 		return other
 
 	def copyto(self, other):
+		if not self.exists():
+			raise FileNotFoundError(self)
+
 		if isinstance(self, File) and isinstance(other, Folder):
 			other = other.file(self.basename)
 
@@ -327,10 +334,8 @@ class MockFolder(MockFSObjectBase, Folder):
 
 	def touch(self):
 		if not self.exists():
-			try:
-				self.parent().touch()
-			except ValueError:
-				pass
+			for parent in self.parents():
+				parent.touch()
 
 			node = self._fs.touch(self.pathnames, {})
 			if not node.isdir:

@@ -8127,7 +8127,7 @@ class InsertLinkDialog(Dialog):
 				notebook = self.pageview.notebook
 				href = notebook.relative_filepath(file, page) or file.uri
 			except:
-				pass # E.g. non-local file://host/path URI causing exception
+				pass # E.g. malformed path
 
 		text = self.form['text'] or href
 

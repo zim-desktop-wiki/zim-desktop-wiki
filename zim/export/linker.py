@@ -172,29 +172,14 @@ class ExportLinker(BaseLinker):
 			return self.file_object(file)
 
 	def _resolve_file(self, link):
-		# TODO checks here are copy of notebook.resolve_file - should be single function
-		#      to determine type of file link: attachment / document / other
-		#      or generic function that takes attachment folder & document folder as args
-
-		filename = link.replace('\\', '/')
-		if filename.startswith('~') or filename.startswith('file:/'):
-			file = LocalFile(filename) # Note: can raise for non-local file URI
-		elif filename.startswith('/'):
-			if self.notebook.document_root:
-				file = self.notebook.document_root.file(filename)
-			else:
-				file = LocalFile(filename)
-		elif is_win32_path_re.match(filename):
-			if not filename.startswith('/'):
-				filename = '/' + filename # make absolute on Unix
-			file = LocalFile(filename)
-		else:
+		file = self.notebook._resolve_abs_file(link)
+		if file is None:
 			if self.source:
 				folder = self.layout.attachments_dir(self.source)
 			else:
 				folder = self.layout.relative_root
 
-			file = LocalFile(folder.get_abspath(filename))
+			file = LocalFile(folder.get_abspath(link))
 
 		return file
 

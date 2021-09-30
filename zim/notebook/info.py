@@ -9,9 +9,7 @@ import logging
 logger = logging.getLogger('zim.notebook')
 
 
-import zim.fs
-
-from zim.fs import File, Dir, SEP
+from zim.newfs import SEP, FilePath, LocalFolder
 from zim.config import ConfigManager, INIConfigFile, XDGConfigFileIter, String
 from zim.parsing import is_url_re, is_win32_path_re, url_encode, \
 	is_interwiki_keyword_re, valid_interwiki_key
@@ -39,42 +37,29 @@ def resolve_notebook(string, pwd=None):
 	@returns: a L{NotebookInfo} or C{None}
 	'''
 	assert isinstance(string, str)
-	from zim.fs import isabs
 
 	if '/' in string or SEP in string:
-		# FIXME do we need a isfilepath() function in fs.py ?
 		if is_url_re.match(string):
 			uri = string
-		elif pwd and not isabs(string):
-			uri = pwd + SEP + string
+		elif pwd:
+			uri = LocalFolder(pwd).get_abspath(string).uri
 		else:
-			uri = string
+			uri = FilePath(string).uri # enforce absolute path
 		return NotebookInfo(uri)
 	else:
 		nblist = get_notebook_list()
 		return nblist.get_by_name(string)
 
 
-def _get_path_object(path):
-	if isinstance(path, str):
-		file = File(path)
-		if file.exists(): # exists and is a file
-			path = file
-		else:
-			path = Dir(path)
-	else:
-		assert isinstance(path, (File, Dir))
-	return path
-
-
 def get_notebook_info(path):
 	'''Look up the notebook info for either a uri,
-	or a File or a Dir object.
-	@param path: path as string, L{File} or L{Dir} object
+	or a File or a Folder object.
+	@param path: path as string, L{File} or L{Folder} object
 	@returns: L{NotebookInfo} object, or C{None} if no notebook config
 	was found
 	'''
-	path = _get_path_object(path)
+	if isinstance(path, str):
+		path = FilePath(path).uri # enforce absolute path
 	info = NotebookInfo(path.uri)
 	if info.update():
 		return info
@@ -134,7 +119,7 @@ class NotebookInfo(object):
 	'''This class keeps the info for a notebook
 
 	@ivar uri: The location of the notebook
-	@ivar user_path: The location of the notebook relative to the
+	@ivar userpath: The location of the notebook relative to the
 	home folder (starts with '~/') or C{None}
 	@ivar name: The notebook name (or the basename of the uri)
 	@ivar icon: The file uri for the notebook icon
@@ -157,7 +142,7 @@ class NotebookInfo(object):
 		object acts as a cache and L{update()} will only read the config
 		if it is newer than C{mtime}
 
-		@param uri: location uri or file path for the notebook (esp. C{user_path})
+		@param uri: location uri or file path for the notebook (esp. C{userpath})
 		@param name: notebook name
 		@param icon: the notebook icon path
 		@param mtime: the mtime when config was last read
@@ -168,15 +153,15 @@ class NotebookInfo(object):
 		if isinstance(uri, str) \
 		and is_url_re.match(uri) and not uri.startswith('file://'):
 			self.uri = uri
-			self.user_path = None
+			self.userpath = None
 			self.name = name
 		else:
-			f = File(uri)
+			f = FilePath(uri)
 			self.uri = f.uri
-			self.user_path = f.user_path # set to None when uri is not a file uri
+			self.userpath = f.userpath # set to None when uri is not a file uri
 			self.name = name or f.basename
 		self.icon_path = icon
-		self.icon = File(icon).uri
+		self.icon = FilePath(icon).uri if icon else None
 		self.mtime = mtime
 		self.interwiki = interwiki
 		self.active = None
@@ -203,7 +188,7 @@ class NotebookInfo(object):
 		@returns: C{True} when data was updated, C{False} otherwise
 		'''
 		# TODO support for paths that turn out to be files
-		dir = Dir(self.uri)
+		dir = LocalFolder(self.uri)
 		file = dir.file('notebook.zim')
 		if file.exists() and file.mtime() != self.mtime:
 			config = NotebookConfig(file)
@@ -225,8 +210,7 @@ class NotebookInfo(object):
 
 
 class VirtualFile(object):
-	### TODO - proper class for this in zim.fs
-	###        unify with code in config manager
+	### TODO - use MockFile object?
 
 	def __init__(self, lines):
 		self.lines = lines
@@ -384,13 +368,13 @@ class NotebookInfoList(list):
 				if name == '_default_':
 					default = path
 				else:
-					uri = File(path).uri
+					uri = FilePath(path).uri
 					uris.append(uri)
 					if name == default:
 						defaulturi = uri
 
 		if default and not defaulturi:
-			defaulturi = File(default).uri
+			defaulturi = FilePath(default).uri
 
 		# Populate ourselves
 		for uri in uris:
@@ -403,7 +387,7 @@ class NotebookInfoList(list):
 	def write(self):
 		'''Write the config and cache'''
 		if self.default:
-			default = self.default.user_path or self.default.uri
+			default = self.default.userpath or self.default.uri
 		else:
 			default = None
 
@@ -413,12 +397,12 @@ class NotebookInfoList(list):
 		]
 		for i, info in enumerate(self):
 			n = i + 1
-			uri = info.user_path or info.uri
+			uri = info.userpath or info.uri
 			lines.append('%i=%s\n' % (n, uri))
 
 		for i, info in enumerate(self):
 			n = i + 1
-			uri = info.user_path or info.uri
+			uri = info.userpath or info.uri
 			lines.extend([
 				'\n',
 				'[Notebook %i]\n' % n,
@@ -442,7 +426,7 @@ class NotebookInfoList(list):
 		'''Set the default notebook
 		@param uri: the file uri or file path for the default notebook
 		'''
-		uri = File(uri).uri # e.g. "~/foo" to file:// uri
+		uri = FilePath(uri).uri # e.g. "~/foo" to file:// uri
 		for info in self:
 			if info.uri == uri:
 				self.default = info

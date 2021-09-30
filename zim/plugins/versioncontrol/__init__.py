@@ -310,9 +310,10 @@ class VCS(object):
 			# return 'cvs', path
 		##
 		else:
-			try:
-				return klass._detect_in_folder(folder.parent()) # recurs
-			except ValueError:
+			parent = folder.parent()
+			if parent:
+				return klass._detect_in_folder(parent) # recurs
+			else:
 				return None, None
 
 	@classmethod
@@ -707,9 +708,8 @@ class VCSApplicationBase(ConnectorMixin):
 
 def get_side_by_side_app():
 	for dir in data_dirs('helpers/compare_files/'):
-		for name in dir.list(): # XXX need object list
-			file = dir.file(name)
-			if name.endswith('.desktop') and file.exists():
+		for file in dir.list_files():
+			if file.basename.endswith('.desktop'):
 				app = DesktopEntryFile(file)
 				if app.tryexec():
 					return app
@@ -972,7 +972,7 @@ state. Or select multiple versions to see changes between those versions.
 			if page \
 			and page.source_file is not None \
 			and page.source_file.ischild(self.vcs.root):
-				return page.source
+				return page.source_file
 			else:
 				return None # TODO error message ?
 

@@ -66,13 +66,10 @@ from zim.templates.functions import build_template_functions
 
 def list_template_categories():
 	'''Returns a list of categories (sub folders)'''
-	dirs = data_dirs('templates')
 	categories = set()
-	for dir in dirs:
-		for name in dir.list():
-			## TODO porting zim.fs list_objects would help here + a filter like type=Dir
-			if dir.subdir(name).isdir():
-				categories.add(name)
+	for dir in data_dirs('templates'):
+		for my_dir in dir.list_folders():
+			categories.add(my_dir.basename)
 
 	return sorted(categories)
 
@@ -85,13 +82,12 @@ def list_templates(category):
 	'''
 	category = category.lower()
 	templates = set()
-	path = list(data_dirs(('templates', category)))
-	path.reverse()
-	for dir in path:
-		for basename in dir.list():
-			if dir.file(basename).exists(): # is a file
-				name = basename.rsplit('.', 1)[0] # robust if no '.' in basename
-				templates.add((name, basename))
+	folders = list(data_dirs(('templates', category)))
+	folders.reverse()
+	for dir in folders:
+		for file in dir.list_files():
+			name = file.basename.rsplit('.', 1)[0] # robust if no '.' in basename
+			templates.add((name, file.basename))
 	return sorted(templates)
 
 
@@ -127,8 +123,6 @@ def get_template(category, template, pwd=None):
 		raise FileNotFoundError(file)
 
 	logger.info('Loading template from: %s', file)
-	#~ basename, ext = file.basename.rsplit('.', 1)
-	#~ resources = file.dir.subdir(basename)
 	return Template(file)
 
 
@@ -137,7 +131,7 @@ def _get_template_for_string(category, template, pwd):
 		return localFileOrFolder(template, pwd)
 	else:
 		for dir in data_dirs(('templates', category)):
-			for basename in dir.list():
+			for basename in dir.list_names():
 				name = basename.rsplit('.')[0] # robust if no '.' in basename
 				if basename == template or name == template:
 					file = dir.file(basename)

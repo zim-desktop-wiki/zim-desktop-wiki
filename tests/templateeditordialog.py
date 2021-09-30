@@ -36,7 +36,7 @@ def select_by_name(view, name):
 class TestTemplateEditor(tests.TestCase):
 
 	def setUp(self):
-		folder = LocalFolder(XDG_DATA_HOME.subdir('zim/templates').path)
+		folder = XDG_DATA_HOME.folder('zim/templates')
 		assert 'tests/tmp' in folder.path.replace('\\', '/')
 		if folder.exists():
 			folder.remove_children()
@@ -109,7 +109,7 @@ class TestTemplateEditor(tests.TestCase):
 
 		def open_folder(args):
 			got = LocalFolder(args[-1])
-			want = LocalFolder(XDG_DATA_HOME.subdir('zim/templates').path)
+			want = XDG_DATA_HOME.folder('zim/templates')
 			self.assertEqual(got, want)
 
 		with tests.ApplicationContext(open_folder):

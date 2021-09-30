@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger('zim.config')
 
+from zim.newfs import FileNotFoundError, LocalFolder
 
 from .basedirs import *
 from .dicts import *
@@ -38,13 +39,14 @@ in L{zim.config.basedirs}.
 
 
 
-def data_dirs(path=None):
+def data_dirs(path=None, include_non_existing=False):
 	'''Generator listing paths that contain zim data files in the order
 	that they should be searched. These will be the equivalent of
 	e.g. "~/.local/share/zim", "/usr/share/zim", etc.
 	@param path: a file path relative to to the data dir, including this
 	will list sub-folders with this relative path.
-	@returns: yields L{Dir} objects for the data dirs
+	@param include_non_existing: if C{False} only existing folders are returned
+	@returns: yields L{LocalFolder} objects for the data dirs
 	'''
 	zimpath = ['zim']
 	if path:
@@ -53,16 +55,19 @@ def data_dirs(path=None):
 		assert not path[0] == 'zim'
 		zimpath.extend(path)
 
-	yield XDG_DATA_HOME.subdir(zimpath)
+	folder = XDG_DATA_HOME.folder(zimpath)
+	if include_non_existing or folder.exists():
+		yield folder
 
 	if ZIM_DATA_DIR:
-		if path:
-			yield ZIM_DATA_DIR.subdir(path)
-		else:
-			yield ZIM_DATA_DIR
+		folder = ZIM_DATA_DIR.folder(path) if path else ZIM_DATA_DIR
+		if include_non_existing or folder.exists():
+			yield folder
 
 	for dir in XDG_DATA_DIRS:
-		yield dir.subdir(zimpath)
+		folder = dir.folder(zimpath)
+		if include_non_existing or folder.exists():
+			yield folder
 
 
 def data_dir(path):
@@ -114,7 +119,7 @@ def user_dirs():
 					assert '=' in line
 					key, value = line.split('=', 1)
 					value = os.path.expandvars(value.strip('"'))
-					dirs[key] = Dir(value)
+					dirs[key] = LocalFolder(value)
 				except:
 					logger.exception('Exception while parsing %s', file)
 	except FileNotFoundError:

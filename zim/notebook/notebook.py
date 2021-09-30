@@ -17,8 +17,8 @@ from functools import partial
 import zim.templates
 import zim.formats
 
-from zim.fs import File, Dir, SEP, adapt_from_newfs
-from zim.newfs import LocalFolder
+from zim.fs import adapt_from_oldfs
+from zim.newfs import SEP, LocalFile, LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error
 from zim.utils import natural_sort_key
@@ -40,15 +40,16 @@ class NotebookConfig(INIConfigFile):
 	# TODO - unify this call with NotebookInfo ?
 
 	def __init__(self, file):
+		file = adapt_from_oldfs(file)
 		INIConfigFile.__init__(self, file)
 		if os.name == 'nt':
 			endofline = 'dos'
 		else:
 			endofline = 'unix'
-		name = file.dir.basename if hasattr(file, 'dir') else file.parent().basename # HACK zim.fs and zim.newfs compat
+
 		self['Notebook'].define((
 			('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
-			('name', String(name)),
+			('name', String(file.parent().basename)),
 			('interwiki', String(None)),
 			('home', ConfigDefinitionByClass(Path('Home'))),
 			('icon', String(None)), # XXX should be file, but resolves relative
@@ -65,22 +66,17 @@ class NotebookConfig(INIConfigFile):
 
 def _resolve_relative_config(dir, config):
 	# Some code shared between Notebook and NotebookInfo
+	dir = adapt_from_oldfs(dir)
 
 	# Resolve icon, can be relative
 	icon = config.get('icon')
 	if icon:
-		if zim.fs.isabs(icon) or not dir:
-			icon = File(icon)
-		else:
-			icon = dir.resolve_file(icon)
+		icon = LocalFile(dir.get_abspath(icon))
 
 	# Resolve document_root, can also be relative
 	document_root = config.get('document_root')
 	if document_root:
-		if zim.fs.isabs(document_root) or not dir:
-			document_root = Dir(document_root)
-		else:
-			document_root = dir.resolve_dir(document_root)
+		document_root = LocalFolder(dir.get_abspath(document_root))
 
 	return icon, document_root
 
@@ -88,8 +84,6 @@ def _resolve_relative_config(dir, config):
 def _iswritable(dir):
 	if os.name == 'nt':
 		# Test access - (iswritable turns out to be unreliable for folders on windows..)
-		if isinstance(dir, Dir):
-			dir = LocalFolder(dir.path) # only newfs supports cleanup=False
 		f = dir.file('.zim.tmp')
 		try:
 			f.write('Test')
@@ -111,7 +105,7 @@ def _cache_dir_for_dir(dir):
 	else:
 		path = 'notebook-' + dir.path.replace('/', '_').strip('_')
 
-	return XDG_CACHE_HOME.subdir(('zim', path))
+	return XDG_CACHE_HOME.folder(('zim', path))
 
 
 class PageError(Error):
@@ -203,10 +197,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@ivar name: The name of the notebook (string)
 	@ivar icon: The path for the notebook icon (if any)
 	# FIXME should be L{File} object
-	@ivar document_root: The L{Dir} object for the X{document root} (if any)
-	@ivar dir: Optional L{Dir} object for the X{notebook folder}
+	@ivar document_root: The L{Folder} object for the X{document root} (if any)
+	@ivar dir: Optional L{Folder} object for the X{notebook folder}
 	@ivar file: Optional L{File} object for the X{notebook file}
-	@ivar cache_dir: A L{Dir} object for the folder used to cache notebook state
+	@ivar cache_dir: A L{Folder} object for the folder used to cache notebook state
 	@ivar config: A L{SectionedConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
 	@ivar index: The L{Index} object used by the notebook
@@ -236,11 +230,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		will return unique objects per location and keep (weak)
 		references for re-use.
 
-		@param dir: a L{Dir} object
+		@param dir: a L{Folder} object
 		@returns: a L{Notebook} object
 		'''
-		dir = adapt_from_newfs(dir)
-		assert isinstance(dir, Dir)
+		dir = adapt_from_oldfs(dir)
+		assert isinstance(dir, LocalFolder)
 
 		nb = _NOTEBOOK_CACHE.get(dir.uri)
 		if nb:
@@ -254,7 +248,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if config['Notebook']['shared']:
 			cache_dir = _cache_dir_for_dir(dir)
 		else:
-			cache_dir = dir.subdir('.zim')
+			cache_dir = dir.folder('.zim')
 			cache_dir.touch()
 			if not (cache_dir.exists() and _iswritable(cache_dir)):
 				cache_dir = _cache_dir_for_dir(dir)
@@ -370,25 +364,25 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		@param properties: the properties to update
 		'''
-		dir = Dir(self.layout.root.path) # XXX
+		dir = self.layout.root
 
 		# Check if icon is relative
 		icon = properties.get('icon')
 		if icon and not isinstance(icon, str):
-			assert isinstance(icon, File)
+			icon = adapt_from_oldfs(icon)
 			if icon.ischild(dir):
 				properties['icon'] = './' + icon.relpath(dir)
 			else:
-				properties['icon'] = icon.user_path or icon.path
+				properties['icon'] = icon.userpath
 
 		# Check document root is relative
 		root = properties.get('document_root')
 		if root and not isinstance(root, str):
-			assert isinstance(root, Dir)
+			root = adapt_from_oldfs(root)
 			if root.ischild(dir):
 				properties['document_root'] = './' + root.relpath(dir)
 			else:
-				properties['document_root'] = root.user_path or root.path
+				properties['document_root'] = root.userpath
 
 		# Set home page as string
 		if 'home' in properties and isinstance(properties['home'], Path):
@@ -402,7 +396,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			self.config.write()
 
 	def on_properties_changed(self, properties):
-		dir = Dir(self.layout.root.path) # XXX
+		dir = self.layout.root
 
 		self.name = properties['name'] or self.folder.basename
 		icon, document_root = _resolve_relative_config(dir, properties)
@@ -1048,27 +1042,36 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param path: a L{Path} object for the page
 		@returns: a L{File} object.
 		'''
-		# NOTE: common logic in export.linker _resolve_file()
-		# when porting zim.fs check there as well for commonality
 		assert isinstance(filename, str)
+		file = self._resolve_abs_file(filename)
+		if file is None:
+			if path:
+				folder = self.get_attachments_dir(path)
+			else:
+				folder = self.layout.root
+
+			file = LocalFile(folder.get_abspath(filename))
+
+		return file
+
+	def _resolve_abs_file(self, filename):
+		# Code shared between notebook & export linker
 		filename = filename.replace('\\', '/')
 		if filename.startswith('~') or filename.startswith('file:/'):
-			return File(filename)
+			file = LocalFile(filename) # Note: can raise for non-local file URI
 		elif filename.startswith('/'):
-			dir = self.document_root or Dir('/')
-			return dir.file(filename)
+			if self.document_root:
+				file = self.document_root.file(filename)
+			else:
+				file = LocalFile(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
-				filename = '/' + filename
-				# make absolute on Unix
-			return File(filename)
+				filename = '/' + filename # make absolute on Unix
+			file = LocalFile(filename)
 		else:
-			if path:
-				dir = self.get_attachments_dir(path)
-				return File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
-			else:
-				dir = Dir(self.layout.root.path) # XXX
-				return File((dir, filename))
+			file = None
+
+		return file
 
 	def relative_filepath(self, file, path=None):
 		'''Get a file path relative to the notebook or page
@@ -1098,7 +1101,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		relative path was found
 		'''
 		from zim.newfs import LocalFile, LocalFolder
-		file = LocalFile(file.path) # XXX
+		file = adapt_from_oldfs(file)
+		if not file.islocal:
+			return None
+
 		notebook_root = self.layout.root
 		document_root = LocalFolder(self.document_root.path) if self.document_root else None# XXX
 
@@ -1149,9 +1155,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''Get the X{attachment folder} for a specific page
 
 		@param path: a L{Path} object
-		@returns: a L{Dir} object or C{None}
+		@returns: a L{Folder} object or C{None}
 
-		Always returns a Dir object when the page can have an attachment
+		Always returns an object when the page can have an attachment
 		folder, even when the folder does not (yet) exist. However when
 		C{None} is returned the store implementation does not support
 		an attachments folder for this page.

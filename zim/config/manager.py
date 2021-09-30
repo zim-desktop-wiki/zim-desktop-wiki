@@ -134,14 +134,14 @@ class DefaultFileIter(object):
 
 class XDGConfigDirsIter(object):
 	'''Generator for iterating XDG config dirs
-	Yields the "zim" subdir of each XDG config file.
+	Yields the "zim" folder of each XDG config file.
 	'''
 
 	def __iter__(self):
 		from . import data_dirs # XXX
-		yield basedirs.XDG_CONFIG_HOME.subdir(('zim'))
+		yield basedirs.XDG_CONFIG_HOME.folder(('zim'))
 		for dir in basedirs.XDG_CONFIG_DIRS:
-			yield dir.subdir(('zim'))
+			yield dir.folder(('zim'))
 		for dir in data_dirs():
 			yield dir
 

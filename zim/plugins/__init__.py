@@ -70,9 +70,9 @@ logger = logging.getLogger('zim.plugins')
 # Also this switch makes it easier to have a single instruction for
 # users where to put custom plugins.
 
-PLUGIN_FOLDER = XDG_DATA_HOME.subdir('zim/plugins')
+PLUGIN_FOLDER = XDG_DATA_HOME.folder('zim/plugins')
 
-for dir in data_dirs('plugins'):
+for dir in data_dirs('plugins', include_non_existing=True):
 	__path__.append(dir.path)
 
 __path__.append(__path__.pop(0)) # reshuffle real module path to the end

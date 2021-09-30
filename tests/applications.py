@@ -135,9 +135,10 @@ class TestApplicationManager(tests.TestCase):
 				os.unlink(path)
 
 		remove_file(XDG_CONFIG_HOME.file('mimeapps.list').path)
-		dir = XDG_DATA_HOME.subdir('applications')
-		for basename in dir.list():
-			remove_file(dir.file(basename).path)
+		dir = XDG_DATA_HOME.folder('applications')
+		if dir.exists():
+			for file in dir.list_files():
+				remove_file(file.path)
 
 	def testGetMimeType(self):
 		for obj, mimetype in (
@@ -282,7 +283,7 @@ class TestApplicationManager(tests.TestCase):
 		desktopfile = XDG_CONFIG_HOME.file('Test-mimeapps.list')
 		defaultfile = XDG_CONFIG_HOME.file('mimeapps.list')
 
-		dir = XDG_DATA_HOME.subdir('applications')
+		dir = XDG_DATA_HOME.folder('applications')
 		for basename in ('desktop-foo.desktop', 'normal-foo.desktop', 'ignore_this.desktop'):
 			_create_application(dir, basename, 'test', 'test')
 
@@ -311,7 +312,7 @@ class TestApplicationManager(tests.TestCase):
 		defaultfile = XDG_CONFIG_HOME.file('mimeapps.list')
 		backwardfile = XDG_DATA_HOME.file('applications/defaults.list')
 
-		dir = XDG_DATA_HOME.subdir('applications')
+		dir = XDG_DATA_HOME.folder('applications')
 		for basename in ('foo.desktop', 'bar.desktop', 'ignore_this.desktop'):
 			_create_application(dir, basename, 'test', 'test')
 
@@ -335,7 +336,7 @@ class TestApplicationManager(tests.TestCase):
 		defaultfile = XDG_CONFIG_HOME.file('mimeapps.list')
 		cachefile = XDG_DATA_HOME.file('applications/mimeinfo.cache')
 
-		dir = XDG_DATA_HOME.subdir('applications')
+		dir = XDG_DATA_HOME.folder('applications')
 		for basename in ('aaa.desktop', 'bbb.desktop', 'ccc.desktop', 'ddd.desktop', 'ignore_this.desktop', 'browser.desktop'):
 			_create_application(dir, basename, 'test', 'test', NoDisplay=False)
 		_create_application(dir, 'do_not_list.desktop', 'test', 'test', NoDisplay=True)

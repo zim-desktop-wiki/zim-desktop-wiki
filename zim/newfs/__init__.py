@@ -21,6 +21,12 @@ from .local import *
 from .helpers import *
 
 
+# NOTE: key design principle in this module is that we never take relative
+# paths implicitely. Relative paths should always be explicit with the
+# reference path being provided as an object. One reason is that this makes
+# the code more robust and secure by being explicit. Secondly it allows
+# test cases without touching real files, which is in general faster.
+
 # Functions
 # - (relative) pathname manipulation - specifically for links
 # - file/folder info - iswritable, mtime, ctime, exists
@@ -51,56 +57,6 @@ from .helpers import *
 # - FSObjectMonitor - monitor single file or folder for external changes
 #	- ObjectMonitorFallback - at least report internal changes
 # - FSTreeMonitor - monitor internal changes, passes itself as "logger" to children
-
-
-# Key is that we always use objects to signal file vs folder,
-# get rid of all uses of "isdir" because it shows a constructor issue.
-# Instead use "folder.child(path)" to get either file or folder.
-# Also no common FS object, just construct the parent folder first
-#
-# When instatiating you need to use specific LocalFolder or LocalFile
-# this will alert you to the non-mockable nature of the code
-#
-# This also means that folder provide access to children, not parents
-# if a object needs access to larger file system, a root folder
-# should be passed as a requirement to the constructor; else you can
-# not mock the function for testing.
-
-# TODO
-# - test on FAT file system - e.g. USB stick ?
-
-# TODO - put in helper modules:
-# - trash - optional, only support for local file - separate gui object
-# - monitor with gio - separate gui object
-# - thumbnailer - separate gui object
-
-# TODO - don't do
-# - lock for fs operations --> checkin / checkout mechanism in notebook, use notebook lock
-
-# With respect to page interface:
-# Page.source is used for:
-# - StubLinker - export with links to real source
-# - cusomt tools to get commandline arg
-# - edit source command
-# - versioncontrol & zeitgeist logger plugins
-#   --> these are also only one interested in FS signals
-# --> very limitted access needed
-
-# Re checkin//checkout --> only needed for interface editing page
-# implement by setting callbacks that can be called by the notebook
-# before any operation.
-# notebook.checkout(page, callback)
-# notebook.checkin(page)
-# notebook.update_checked_pages()
-#   called automatically by most methods, call explicitly from export
-#
-# by calling all callbacks *before* any action we allow for error dialogs
-# etc before modification - no surprises once running
-# --> Make it a context manager lock to block checkout during operation etc.
-
-
-
-
 
 
 def localFileOrFolder(path, pwd=None):

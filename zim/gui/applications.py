@@ -56,10 +56,10 @@ def _application_dirs():
 	for dir in data_dirs('applications'):
 		yield dir
 
-	yield XDG_DATA_HOME.subdir('applications')
+	yield XDG_DATA_HOME.folder('applications')
 
 	for dir in XDG_DATA_DIRS:
-		yield dir.subdir('applications')
+		yield dir.folder('applications')
 
 
 def _create_application(dir, basename, Name, Exec, NoDisplay=True, **param):
@@ -301,7 +301,7 @@ class ApplicationManager(object):
 		if os.environ.get('XDG_CURRENT_DESKTOP'):
 			desktops = os.environ['XDG_CURRENT_DESKTOP'].split(';')
 		folders = [XDG_CONFIG_HOME] + XDG_CONFIG_DIRS
-		folders += [f.subdir('applications') for f in [XDG_DATA_HOME] + XDG_DATA_DIRS]
+		folders += [f.folder('applications') for f in [XDG_DATA_HOME] + XDG_DATA_DIRS]
 
 		for folder in folders:
 			for desktop in desktops:
@@ -391,7 +391,7 @@ class ApplicationManager(object):
 		@returns: the L{DesktopEntryFile} object with some
 		sensible defaults for a user created application entry.
 		'''
-		dir = XDG_DATA_HOME.subdir('applications')
+		dir = XDG_DATA_HOME.folder('applications')
 		param['MimeType'] = mimetype
 		basename = cleanup_filename(Name.lower()) + '-usercreated.desktop'
 		file = _create_application(dir, basename, Name, Exec, **param)

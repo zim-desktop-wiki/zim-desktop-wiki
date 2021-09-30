@@ -136,7 +136,7 @@ def gtk_window_set_default_icon():
 	from zim.config import ZIM_DATA_DIR, XDG_DATA_HOME, XDG_DATA_DIRS
 	iconlist = []
 	if ZIM_DATA_DIR:
-		dir = ZIM_DATA_DIR + '../icons'
+		dir = ZIM_DATA_DIR.parent().folder('icons')
 		for name in ('zim16.png', 'zim32.png', 'zim48.png'):
 			file = dir.file(name)
 			if file.exists():
@@ -1636,7 +1636,7 @@ class FSPathEntry(InputEntry):
 			dialog.set_file(path)
 		elif self.notebook and self.notebookpath:
 			page = self.notebook.get_page(self.notebookpath)
-			dialog.set_current_dir(page.source.dir)
+			dialog.set_current_dir(page.source_file.parent())
 		elif self.notebook:
 			dialog.set_current_dir(self.notebook.folder)
 
@@ -3575,9 +3575,9 @@ class FileDialog(Dialog):
 
 		if path:
 			page = notebook.get_page(path)
-			if hasattr(page, 'source') and page.source is not None:
+			if page and page.source_file is not None:
 				try:
-					self.filechooser.add_shortcut_folder(page.source.dir.path)
+					self.filechooser.add_shortcut_folder(page.source_file.dirname)
 				except:
 					pass # GError on doubles ..
 

@@ -936,7 +936,7 @@ def main(*argv):
 			'ERROR: Could not find data files in path: \n'
 			'%s\n'
 			'Try setting XDG_DATA_DIRS'
-				% list(map(str, zim.config.data_dirs()))
+				% list(map(str, zim.config.data_dirs(include_non_existing=True)))
 		)
 
 	try:

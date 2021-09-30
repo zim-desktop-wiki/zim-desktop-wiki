@@ -142,7 +142,7 @@ class CustomToolManager(SignalEmitter):
 
 		@returns: a new L{CustomTool} object.
 		'''
-		dir = XDG_CONFIG_HOME.subdir('zim/customtools')
+		dir = XDG_CONFIG_HOME.folder('zim/customtools')
 		basename = cleanup_filename(Name.lower()) + '-usercreated.desktop'
 		tool = _create_application(dir, basename, Name, '', NoDisplay=False, **properties)
 
@@ -302,8 +302,8 @@ class CustomToolDict(DesktopEntryDict):
 				cmd[cmd.index('%d')] = ''
 
 		if '%s' in cmd:
-			if hasattr(page, 'source') and isinstance(page.source, File):
-				cmd[cmd.index('%s')] = page.source.path
+			if page.source_file is not None:
+				cmd[cmd.index('%s')] = page.source_file.path
 			else:
 				cmd[cmd.index('%s')] = ''
 
