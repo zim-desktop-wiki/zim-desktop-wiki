@@ -82,7 +82,11 @@ class ZeitGeistMainWindowExtension(MainWindowExtension):
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.connectto(window, 'page-changed')
-		self.page = None
+		if window.page is not None:
+			self.plugin.create_and_send_event(window.page, Interpretation.ACCESS_EVENT)
+			self.page = window.page
+		else:
+			self.page = None
 
 	def on_page_changed(self, pageview, page):
 		if self.page is not None:
