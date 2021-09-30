@@ -32,7 +32,9 @@ For the name keyword a '*' is allowed on both sides
 For content '*' can occur on both sides, but does not match whitespace
 '''
 
+# TODO keyword for recent changes "changed>=date" - see KQl for inspiration
 # TODO keyword for deadlinks, keyword for pages with no content
+#     "no:links" "no:content" ?
 
 # Queries are parsed into trees of groups of search terms
 # Terms have a keyword and a string to look for
@@ -508,16 +510,18 @@ class SearchSelection(PageSelection):
 			term.content_regex = self._content_regex(term.string)
 			# term.name_regex already defined in _process_from_index
 
+		def page_generator(paths):
+			for path in paths:
+				try:
+					yield self.notebook.get_page(path)
+				except:
+					logger.exception('Exception opening: %s', page)
+					continue
+
 		if scope:
-			def page_generator():
-				for path in scope:
-					try:
-						yield self.notebook.get_page(path)
-					except PageNotFoundError:
-						pass
-			generator = page_generator()
+			generator = page_generator(scope)
 		else:
-			generator = list(map(self.notebook.get_page, self.notebook.pages.walk()))
+			generator = page_generator(self.notebook.pages.walk())
 
 		if results is None:
 			results = SearchSelection(None)
@@ -527,7 +531,7 @@ class SearchSelection(PageSelection):
 			try:
 				tree = page.get_parsetree()
 			except:
-				logger.exception('Exception while reading: %s', page)
+				logger.exception('Exception reading: %s', page)
 				continue
 
 			if tree is None:
