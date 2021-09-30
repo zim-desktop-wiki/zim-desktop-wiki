@@ -306,7 +306,7 @@ class ImageGeneratorDialog(Dialog):
 
 	@classmethod
 	def run_dialog_for_model(cls, widget, model, label, syntax):
-		text, image_file = cls(
+		result = cls(
 			widget,
 			label,
 			model.generator,
@@ -314,7 +314,8 @@ class ImageGeneratorDialog(Dialog):
 			model.get_text(),
 			syntax
 		).run()
-		if text is not None:
+		if result is not None:
+			text, image_file = result
 			model.set_from_generator(text, image_file)
 		model.generator.cleanup()
 
