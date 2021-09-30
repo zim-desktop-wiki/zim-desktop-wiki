@@ -104,10 +104,10 @@ class ZeitgeistNotebookExtension(NotebookExtension):
 		self.connectto_all(notebook,
 			('deleted-page', 'stored-page'), order=SIGNAL_AFTER)
 
-	def on_deleted_page(self, page, path):
+	def on_deleted_page(self, notebook, page):
 		logger.debug("Deleted page: %s", page.name)
 		self.plugin.create_and_send_event(page, Interpretation.DELETE_EVENT)
 
-	def on_stored_page(self, page, path):
+	def on_stored_page(self, notebook, page):
 		logger.debug("Modified page: %s", page.name)
 		self.plugin.create_and_send_event(page, Interpretation.MODIFY_EVENT)
