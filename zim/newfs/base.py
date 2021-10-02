@@ -616,6 +616,22 @@ IMAGE_EXTENSIONS = (
 )
 
 
+def get_mimetype_from_path(path):
+	if xdgmime:
+		mimetype = xdgmime.get_type(path, name_pri=80)
+		return str(mimetype)
+	else:
+		mimetype, encoding = mimetypes.guess_type(path, strict=False)
+		if encoding == 'gzip':
+			return 'application/x-gzip'
+		elif encoding == 'bzip2':
+			return 'application/x-bzip2'
+		elif encoding == 'compress':
+			return 'application/x-compress'
+		else:
+			return mimetype or 'application/octet-stream'
+
+
 def _md5(content):
 	# Provide encoded content to avoid double work
 	if isinstance(content, str):
@@ -662,18 +678,7 @@ class File(FSObjectBase):
 		@returns: the mimetype as a string, e.g. "text/plain"
 		'''
 		if self._mimetype is None:
-			if xdgmime:
-				mimetype = xdgmime.get_type(self.path, name_pri=80)
-				self._mimetype = str(mimetype)
-			else:
-				mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
-				if encoding == 'gzip':
-					mimetype = 'application/x-gzip'
-				elif encoding == 'bzip2':
-					mimetype = 'application/x-bzip2'
-				elif encoding == 'compress':
-					mimetype = 'application/x-compress'
-				self._mimetype = mimetype or 'application/octet-stream'
+			self._mimetype = get_mimetype_from_path(self.path)
 
 		return self._mimetype
 

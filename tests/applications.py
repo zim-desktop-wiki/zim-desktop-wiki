@@ -6,16 +6,18 @@
 
 import tests
 
+from tests import os_native_path
+
 import os
 import sys
 import shutil
 
 from gi.repository import Gtk
 
+from zim.newfs import LocalFile, FilePath
 from zim.gui.applications import *
 from zim.gui.applications import _create_application
 from zim.notebook import Path
-from zim.fs import adapt_from_oldfs, adapt_from_newfs
 
 
 THUMB_SIZE_NORMAL = 128
@@ -25,7 +27,7 @@ THUMB_SIZE_NORMAL = 128
 class TestXDGMimeInfo(tests.TestCase):
 
 	def setUp(self):
-		data_dir = adapt_from_oldfs(XDG_DATA_DIRS[0])
+		data_dir = XDG_DATA_DIRS[0]
 		tests.TEST_DATA_FOLDER.file('png.xml').copyto(data_dir.file('mime/image/png.xml'))
 
 	def runTest(self):
@@ -69,15 +71,12 @@ class TestApplications(tests.TestCase):
 			('foo %F hmm', ('bar', 'baz'), ('foo', 'bar', 'baz', 'hmm')),
 			('foo %U', ('bar', 'baz'), ('foo', 'bar', 'baz')),
 			('foo %U hmm', ('bar', 'baz'), ('foo', 'bar', 'baz', 'hmm')),
-			('foo %f', (File('/foo/bar'),), ('foo', '/foo/bar')),
-			('foo %u', (File('/foo/bar'),), ('foo', 'file:///foo/bar')),
-			('foo %F', (File('/foo/bar'),), ('foo', '/foo/bar')),
-			('foo %U', (File('/foo/bar'),), ('foo', 'file:///foo/bar')),
+			('foo %f', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('/foo/bar'))),
+			('foo %f', (FilePath(os_native_path('/foo/bar')),), ('foo', os_native_path('/foo/bar'))),
+			('foo %u', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('file:///foo/bar'))),
+			('foo %F', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('/foo/bar'))),
+			('foo %U', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('file:///foo/bar'))),
 		):
-			if os.name == 'nt':
-				wanted = replace(wanted, '/foo/bar', 'C:\\foo\\bar')
-				wanted = replace(wanted, 'file:///foo/bar', r'file:///C:/foo/bar')
-
 			#print app, args
 			entry['Desktop Entry']['Exec'] = app
 			result = entry.parse_exec(args)
@@ -87,11 +86,11 @@ class TestApplications(tests.TestCase):
 			self.assertEqual(argv, wanted)
 
 		entry['Desktop Entry']['Icon'] = 'xxx'
-		entry.file = File('/foo.desktop')
+		entry.file = LocalFile(os_native_path('/foo.desktop'))
 		for app, args, wanted in (
 			# Test cases should be compliant with spec
 			('foo %f %i', (), ('foo', '--icon', 'xxx')),
-			('foo %f %k', (), ('foo', '/foo.desktop')),
+			('foo %f %k', (), ('foo', os_native_path('/foo.desktop'))),
 			('foo %f %c', (), ('foo', 'Foo')),
 		):
 			if os.name == 'nt':
@@ -142,7 +141,7 @@ class TestApplicationManager(tests.TestCase):
 
 	def testGetMimeType(self):
 		for obj, mimetype in (
-			(File('file.txt'), 'text/plain'),
+			(LocalFile(os_native_path('/non-existent/file.txt')), 'text/plain'),
 			('file.txt', 'text/plain'),
 			('ssh://host', 'x-scheme-handler/ssh'),
 			('http://host', 'x-scheme-handler/http'),
@@ -391,7 +390,7 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 
 		# Check menu
 		for obj, mimetype, test_entry in (
-			(File('file.txt'), 'text/plain', entry_text),
+			(LocalFile(os_native_path('/non-existent/file.txt')), 'text/plain', entry_text),
 			('ssh://host', 'x-scheme-handler/ssh', entry_url),
 		):
 			manager.set_default_application(mimetype, test_entry)
@@ -480,7 +479,7 @@ class TestOpenFunctions(tests.TestCase):
 		widget = tests.MockObject()
 
 		with self.assertRaises(FileNotFoundError):
-			open_file(widget, File('/non-existing'))
+			open_file(widget, LocalFile(os_native_path('/non-existing')))
 
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		myfile = folder.file('test.txt')
@@ -491,10 +490,10 @@ class TestOpenFunctions(tests.TestCase):
 		manager.set_default_application('text/plain', entry)
 
 		open_file(widget, myfile)
-		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfile), None))
+		self.assertEqual(self.calls[-1], (widget, entry, myfile, None))
 
 		open_file(widget, myfile, mimetype='text/plain')
-		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfile), None))
+		self.assertEqual(self.calls[-1], (widget, entry, myfile, None))
 
 		with self.assertRaises(NoApplicationFoundError):
 			open_file(widget, myfile, mimetype='x-mimetype/x-with-no-application')
@@ -508,7 +507,7 @@ class TestOpenFunctions(tests.TestCase):
 		widget = tests.MockObject()
 
 		with self.assertRaises(FileNotFoundError):
-			open_folder(widget, File('/non-existing'))
+			open_folder(widget, LocalFile(os_native_path('/non-existing')))
 
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		myfolder = folder.folder('test')
@@ -516,7 +515,7 @@ class TestOpenFunctions(tests.TestCase):
 
 		entry = ApplicationManager().get_fallback_filebrowser()
 		open_folder(widget, myfolder)
-		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfolder), None))
+		self.assertEqual(self.calls[-1], (widget, entry, myfolder, None))
 
 	def testOpenFolderCreate(self):
 		from zim.gui.applications import open_folder_prompt_create
@@ -542,7 +541,7 @@ class TestOpenFunctions(tests.TestCase):
 			open_folder_prompt_create(widget, myfolder)
 
 		self.assertTrue(myfolder.exists())
-		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfolder), None))
+		self.assertEqual(self.calls, [(widget, entry, myfolder, None)])
 
 	def testOpenUrl(self):
 		from zim.gui.applications import open_url

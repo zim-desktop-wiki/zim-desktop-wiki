@@ -56,9 +56,9 @@ import zim
 
 import zim.errors
 import zim.config
-import zim.fs
 
-from zim.fs import File, Dir, adapt_from_newfs
+from zim.fs import adapt_from_oldfs
+from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.config import value_is_coord
 from zim.notebook import Notebook, Path, PageNotFoundError
 from zim.parsing import link_type
@@ -978,7 +978,7 @@ class InputForm(Gtk.Table):
 			- "C{page}" - a page L{Path} (L{PageEntry})
 			- "C{namespace}" - a namespace L{Path} (L{NamespaceEntry})
 			- "C{link}" - a link as string (L{LinkEntry})
-			- "C{dir}" - a L{Dir} object (L{FolderEntry})
+			- "C{dir}" - a L{Folder} object (L{FolderEntry})
 			- "C{file}" - a L{File} object for an existing file (L{FileEntry})
 			- "C{image}" - like 'file' but specific for images
 			- "C{output-file}" - like 'file' but for new or existing file
@@ -1294,11 +1294,10 @@ class InputForm(Gtk.Table):
 				else:
 					widget.set_text(value or '')
 			elif isinstance(widget, FSPathEntry):
-				value = adapt_from_newfs(value)
-				if isinstance(value, (File, Dir)):
-					widget.set_path(value)
-				else:
+				if not value or isinstance(value, str):
 					widget.set_text(value or '')
+				else:
+					widget.set_path(value)
 			elif isinstance(widget, InputEntry):
 				value = value or ''
 				widget.set_text(value)
@@ -1582,24 +1581,24 @@ class FSPathEntry(InputEntry):
 
 	def set_path(self, path):
 		'''Set the file path for this entry
-		@param path: a L{File} or L{Dir} object
+		@param path: a L{File} or L{Folder} object
 		'''
-		path = adapt_from_newfs(path)
-		assert isinstance(path, (File, Dir))
+		path = adapt_from_oldfs(path)
+		assert isinstance(path, FilePath)
 		if self.notebook:
 			text = self.notebook.relative_filepath(path, self.notebookpath)
 			if text is None:
 				if self.notebook.document_root:
 					text = path.uri
 				else:
-					text = path.path
+					text = path.userpath
 			self.set_text(text)
 		else:
-			self.set_text(path.user_path or path.path)
+			self.set_text(path.userpath)
 
 	def get_path(self):
 		'''Get the file path for this entry
-		@returns: a L{File} or L{Dir} object (depending on sub-class)
+		@returns: a L{File} or L{Folder} object (depending on sub-class)
 		'''
 		text = self.get_text()
 		if text:
@@ -1649,7 +1648,7 @@ class FSPathEntry(InputEntry):
 class FileEntry(FSPathEntry):
 	'''Widget to select a file'''
 
-	_class = File
+	_class = LocalFile
 
 	def __init__(self, file=None, new=False):
 		'''Constructor.
@@ -1676,12 +1675,12 @@ class FileEntry(FSPathEntry):
 class FolderEntry(FSPathEntry):
 	'''Widget to select a folder'''
 
-	_class = Dir
+	_class = LocalFolder
 
 	def __init__(self, folder=None):
 		'''Constructor
 
-		@param folder: a L{Dir} object
+		@param folder: a L{Folder} object
 		'''
 		FSPathEntry.__init__(self)
 		self.file_type_hint = 'dir'
@@ -1981,7 +1980,7 @@ class LinkEntry(PageEntry, FileEntry):
 	zim page paths, file paths and URLs.
 	'''
 
-	_class = File
+	_class = LocalFile
 
 	def __init__(self, notebook, path=None):
 		'''Constructor
@@ -3544,7 +3543,7 @@ class FileDialog(Dialog):
 	def set_current_dir(self, dir):
 		'''Set the current folder for the dialog
 		(Only needed if not followed by L{set_file()})
-		@param dir: a L{Dir} object
+		@param dir: a L{Folder} object
 		'''
 		ok = self.filechooser.set_current_folder_uri(dir.uri)
 		if not ok:
@@ -3583,7 +3582,7 @@ class FileDialog(Dialog):
 
 	def set_file(self, file):
 		'''Set the file or dir to pre select in the dialog
-		@param file: a L{File} or L{Dir} object
+		@param file: a L{File} or L{Folder} object
 		'''
 		ok = self.filechooser.set_uri(file.uri)
 		if not ok:
@@ -3595,14 +3594,14 @@ class FileDialog(Dialog):
 
 	def get_file(self):
 		'''Get the current selected file
-		@returns: a L{File} object or C{None}.
+		@returns: a L{LocalFile} object or C{None}.
 		'''
 		if self.filechooser.get_select_multiple():
 			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
 		if uri:
-			return File(uri)
+			return LocalFile(uri)
 		elif TEST_MODE and hasattr(self, '_file') and self._file:
 			return self._file
 		else:
@@ -3611,9 +3610,9 @@ class FileDialog(Dialog):
 	def get_files(self):
 		'''Get list of selected file. Assumes the dialog was created
 		with C{multiple=True}.
-		@returns: a list of L{File} objects
+		@returns: a list of L{LocalFile} objects
 		'''
-		files = [File(uri) for uri in self.filechooser.get_uris()]
+		files = [LocalFile(uri) for uri in self.filechooser.get_uris()]
 		if files:
 			return files
 		elif TEST_MODE and hasattr(self, '_file') and self._file:
@@ -3625,13 +3624,13 @@ class FileDialog(Dialog):
 		'''Get the the current selected dir. Assumes the dialog was
 		created with action C{Gtk.FileChooserAction.SELECT_FOLDER} or
 		C{Gtk.FileChooserAction.CREATE_FOLDER}.
-		@returns: a L{Dir} object or C{None}
+		@returns: a L{LocalFolder} object or C{None}
 		'''
 		if self.filechooser.get_select_multiple():
 			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
-		return Dir(uri) if uri else None
+		return LocalFolder(uri) if uri else None
 
 	def _add_filter_all(self):
 		filter = Gtk.FileFilter()
@@ -4118,7 +4117,7 @@ class ImageView(Gtk.Layout):
 
 		if file and file.exists():
 			try:
-				pixbuf = GdkPixbuf.Pixbuf.new_from_file(str(file))
+				pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 			except:
 				logger.exception('Could not load image "%s"', file)
 		else:

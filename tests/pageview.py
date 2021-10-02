@@ -8,7 +8,6 @@ import os
 
 logger = logging.getLogger('tests.pageview')
 
-from zim.fs import adapt_from_newfs
 from zim.newfs import LocalFile, LocalFolder
 from zim.formats import get_format, ParseTree
 from zim.notebook import Path
@@ -748,7 +747,7 @@ C
 		file = tests.ZIM_DATA_FOLDER.file('zim.png')
 		notebook = tests.MockObject(
 			return_values={
-				'resolve_file': adapt_from_newfs(file),
+				'resolve_file': file,
 				'relative_filepath': './data/zim.png'
 			}
 		)
@@ -3533,7 +3532,7 @@ class TestPageviewDialogs(tests.TestCase):
 		imagedata = buffer.get_image_data(iter)
 		self.assertEqual(imagedata, {
 			'src': './data/zim.png', # preserve relative path
-			'_src_file': adapt_from_newfs(file),
+			'_src_file': file,
 			'height': 24,
 		})
 		self.assertEqual(type(imagedata['height']).__name__, 'int')
@@ -3762,7 +3761,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 		notebook = tests.MockObject(
 			return_values={
 				'relative_filepath': None,
-				'get_attachments_dir': adapt_from_newfs(folder)
+				'get_attachments_dir': folder
 			}
 		)
 		notebook.resolve_file = lambda fpath, ppath: fpath

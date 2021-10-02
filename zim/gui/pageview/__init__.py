@@ -32,7 +32,7 @@ import zim.datetimetz as datetime
 import zim.formats
 import zim.errors
 
-from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
+from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean, Choice, ConfigManager
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
@@ -51,7 +51,7 @@ from zim.gui.widgets import \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result, \
 	widget_set_css
-from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
+from zim.gui.applications import OpenWithMenu, open_url, open_file, open_folder_prompt_create, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.gui.insertedobjects import \
@@ -1131,7 +1131,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'''Creates an anonymouse TextTag for a link'''
 		# These are created after __init__, so higher priority for Formatting
 		# properties than any of the _static_style_tags
-		if isinstance(href, File):
+		if hasattr(href, 'uri'):
 			href = href.uri
 		assert isinstance(href, str) or href is None
 
@@ -1423,7 +1423,7 @@ class TextBuffer(Gtk.TextBuffer):
 		#~ If there is a property 'alt' in attrib we try to set a tooltip.
 		#~ '''
 		if isinstance(file, str):
-			file = File(file)
+			file = LocalFile(file)
 		try:
 			pixbuf = image_file_load_pixels(file, int(attrib.get('width', -1)), int(attrib.get('height', -1)))
 		except:
@@ -6107,14 +6107,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			window.connect('set-focus', set_actiongroup_sensitive)
 
 	def on_link_enter(self, view, link):
-		href = normalize_file_uris(link['href'])
-		if link_type(href) == 'page':
-			href = HRef.new_from_wiki_link(href)
+		if link_type(link['href']) == 'page':
+			href = HRef.new_from_wiki_link(link['href'])
 			path = self.notebook.pages.resolve_link(self.page, href)
 			name = path.name + '#' + href.anchor if href.anchor else path.name
 			self._overlay_label.set_text('Go to "%s"' % name)# T: tooltip text for links to pages
 		else:
-			self._overlay_label.set_text('Open "%s"' % href) # T: tooltip text for links to files/URLs etc.
+			self._overlay_label.set_text('Open "%s"' % link['href']) # T: tooltip text for links to files/URLs etc.
 
 		self._overlay_label.show()
 
@@ -6492,10 +6491,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if not isinstance(link, str):
 			link = link['href']
 
-		href = normalize_file_uris(link)
-			# can translate file:// -> smb:// so do before link_type()
-			# FIXME implement function in notebook to resolve any link
-			#       type and take care of this stuff ?
 		logger.debug('Activate link: %s', link)
 
 		if link_type(link) == 'interwiki':
@@ -7017,8 +7012,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param file: the image file to insert. If C{file} does not exist or
 		isn't an image, a "broken image" icon will be shown
 		'''
-		file = adapt_from_newfs(file)
-		assert isinstance(file, File)
 		src = self.notebook.relative_filepath(file, self.page) or file.uri
 		self.textview.get_buffer().insert_image_at_cursor(file, src)
 
@@ -7107,17 +7100,20 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param links: list of links, either as string, L{Path} objects,
 		or L{File} objects
 		'''
-		links = list(map(adapt_from_newfs, links))
+		links = list(links)
 		for i in range(len(links)):
 			if isinstance(links[i], Path):
 				links[i] = links[i].name
 				continue
-			elif isinstance(links[i], File):
+			elif isinstance(links[i], FilePath):
 				file = links[i]
 			else:
 				type = link_type(links[i])
 				if type == 'file':
-					file = File(links[i])
+					try:
+						file = FilePath(links[i])
+					except:
+						continue # mal-formed path
 				else:
 					continue # not a file
 			links[i] = self.notebook.relative_filepath(file, self.page) or file.uri
@@ -7142,27 +7138,25 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		InsertLinkDialog(self, self).run()
 
 	def _update_new_file_submenu(self, action):
-		dir = self.preferences['file_templates_folder']
-		if isinstance(dir, str):
-			dir = Dir(dir)
+		folder = self.preferences['file_templates_folder']
+		if isinstance(folder, str):
+			folder = LocalFolder(folder)
 
 		items = []
-		if dir.exists():
+		if folder.exists():
 			def handler(menuitem, file):
 				self.insert_new_file(file)
 
-			for name in dir.list(): # FIXME could use list objects here
-				file = dir.file(name)
-				if file.exists(): # it is a file
-					name = file.basename
-					if '.' in name:
-						name, x = name.rsplit('.', 1)
-					name = name.replace('_', ' ')
-					item = Gtk.MenuItem.new_with_mnemonic(name)
-						# TODO mimetype icon would be nice to have
-					item.connect('activate', handler, file)
-					item.zim_new_file_action = True
-					items.append(item)
+			for name in folder.list_files():
+				name = file.basename
+				if '.' in name:
+					name, x = name.rsplit('.', 1)
+				name = name.replace('_', ' ')
+				item = Gtk.MenuItem.new_with_mnemonic(name)
+					# TODO mimetype icon would be nice to have
+				item.connect('activate', handler, file)
+				item.zim_new_file_action = True
+				items.append(item)
 
 		if not items:
 			item = Gtk.MenuItem.new_with_mnemonic(_('No templates installed'))
@@ -7217,25 +7211,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('File _Templates...')) # T: Menu item in "Insert > New File Attachment" submenu
 	def open_file_templates_folder(self):
 		'''Menu action to open the templates folder'''
-		dir = self.preferences['file_templates_folder']
-		if isinstance(dir, str):
-			dir = Dir(dir)
-
-		if dir.exists():
-			open_file(self, dir)
-		else:
-			path = dir.user_path or dir.path
-			question = (
-				_('Create folder?'),
-					# T: Heading in a question dialog for creating a folder
-				_('The folder\n%s\ndoes not yet exist.\nDo you want to create it now?')
-					% path
-			)
-					# T: Text in a question dialog for creating a folder, %s is the folder path
-			create = QuestionDialog(self, question).run()
-			if create:
-				dir.touch()
-				open_file(self, dir)
+		folder = self.preferences['file_templates_folder']
+		if isinstance(folder, str):
+			folder = LocalFolder(folder)
+		open_folder_prompt_create(self, folder)
 
 	@action(_('_Clear Formatting'), accelerator='<Primary>9', menuhints='edit', verb_icon='edit-clear-all-symbolic') # T: Menu item
 	def clear_formatting(self):
@@ -7696,7 +7675,7 @@ class InsertImageDialog(FileDialog):
 			return False
 
 		if not image_file_get_dimensions(file.path):
-			ErrorDialog(self, _('File type not supported: %s') % file.get_mimetype()).run()
+			ErrorDialog(self, _('File type not supported: %s') % file.mimetype()).run()
 				# T: Error message when trying to insert a not supported file as image
 			return False
 

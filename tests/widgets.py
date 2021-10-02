@@ -140,13 +140,13 @@ class TestFileEntry(tests.TestCase):
 
 		file1 = LocalFile(os_native_path('/test.txt'))
 		for file, text in (
-			(home.file('zim-test.txt'), '~/zim-test.txt'),
+			(home.file('zim-test.txt'), os_native_path('~/zim-test.txt')),
 			#~ (dir.file('Foo/Bar/test.txt'), './test.txt'),
 			(file1, file1.path), # win32 save
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
-			self.assertEqual(adapt_from_oldfs(entry.get_file()), file)
+			self.assertEqual(entry.get_file(), file)
 
 
 class TestPageEntry(tests.TestCase):

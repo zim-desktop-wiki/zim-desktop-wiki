@@ -10,7 +10,7 @@ import logging
 import zim.formats
 import zim.templates
 
-from zim.fs import File, Dir, TmpFile
+from zim.newfs import LocalFile, LocalFolder, TmpFile
 from zim.notebook import Path, encode_filename
 from zim.notebook.operations import NotebookOperation
 
@@ -135,8 +135,8 @@ class ExportDialog(Assistant):
 				return None, None
 
 	def get_folder(self):
-		dir = Dir(self.uistate['output_folder'])
-		if dir.exists() and len(dir.list()) > 0:
+		dir = LocalFolder(self.uistate['output_folder'])
+		if dir.exists() and len(dir.list_names()) > 0:
 			ok = QuestionDialog(self, (
 				_('Folder exists: %s') % dir.path, # T: message heading
 				_('Folder already exists and has content, '
@@ -149,7 +149,7 @@ class ExportDialog(Assistant):
 		return dir
 
 	def get_file(self):
-		file = File(self.uistate['output_file'])
+		file = LocalFile(self.uistate['output_file'])
 		if file.exists():
 			ok = QuestionDialog(self, (
 				_('File exists'), # T: message heading
@@ -339,9 +339,9 @@ class OutputPage(AssistantPage):
 		# on whether we selected full notebook or single page in the
 		# first page
 		self.uistate.setdefault('output', 'multi_file')
-		self.uistate.setdefault('output_folder', None, Dir)
+		self.uistate.setdefault('output_folder', None, LocalFolder)
 		self.uistate.setdefault('index_page', '')
-		self.uistate.setdefault('output_file', None, File)
+		self.uistate.setdefault('output_file', None, LocalFile)
 
 		if self.uistate.get('format', '').startswith('MHTML'):
 			# XXX make this a format property to be queried
@@ -368,11 +368,11 @@ class OutputPage(AssistantPage):
 			ext = zim.formats.get_format(format).info['extension']
 
 		if self.uistate['output_file'] \
-		and isinstance(self.uistate['output_file'], File):
-			dir = self.uistate['output_file'].dir
+		and isinstance(self.uistate['output_file'], LocalFile):
+			dir = self.uistate['output_file'].parent()
 			file = dir.file(encode_filename(basename + '.' + ext))
 		else:
-			file = File('~/' + encode_filename(basename + '.' + ext))
+			file = LocalFile('~/' + encode_filename(basename + '.' + ext))
 		self.uistate['output_file'] = file
 
 		self.form['file'] = self.uistate['output_file']
@@ -455,6 +455,7 @@ class LogContext(object):
 		self.level = level
 		self.file = TmpFile(basename='export-log.txt', unique=False, persistent=True)
 		self.file.remove() # clean up previous run
+		self.file.parent().touch()
 		self.handler = LogHandler(self.file.path)
 		self.handler.setLevel(self.level)
 		self.handler.addFilter(LogFilter(names))

@@ -331,6 +331,8 @@ class UnixPath(object):
 		element is allowed to be an absolute path, URL or L{FilePath}
 		object as well.
 		'''
+		logger.warning('Using deprecated class "zim.fs.%s" - please update your code to use the "zim.newfs" module instead' % self.__class__.__name__)
+
 		self._serialized = None
 
 		if isinstance(path, FilePath):

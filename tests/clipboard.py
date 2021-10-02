@@ -192,7 +192,7 @@ some <b>bold</b> text
 
 	def _testCopyImageFileURIPasteAsParseTree(self, set_func):
 		page = self.notebook.get_page(Path('Test:wiki'))
-		file = tests.ZIM_DATA_FOLDER.file('./data/zim.png') # image file
+		file = tests.ZIM_DATA_FOLDER.file('./zim.png') # image file
 		set_func(file.uri)
 		tree = Clipboard.get_parsetree(self.notebook, page)
 		img = tree.find('img')

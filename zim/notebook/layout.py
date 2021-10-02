@@ -188,6 +188,9 @@ class FilesAttachmentFolder(object):
 		self._inner_fs_object = folder
 		self._is_source_file_func = is_source_file_func
 
+	def __str__(self):
+		return str(self._inner_fs_object)
+
 	def __getattr__(self, name):
 		return getattr(self._inner_fs_object, name)
 

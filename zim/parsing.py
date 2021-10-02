@@ -4,7 +4,7 @@
 '''This module contains utilities for parsing strings and text'''
 
 import re
-
+import os
 
 def split_quoted_strings(string, unescape=True, strict=True):
 	'''Split a word list respecting quotes
@@ -466,6 +466,28 @@ def uri_scheme(link):
 		return is_uri_re[1]
 	else:
 		return None
+
+
+def normalize_win32_share(path):
+	'''Translates paths for windows shares in the platform specific
+	form. So on windows it translates C{smb://} URLs to C{\\host\share}
+	form, and vice versa on all other platforms.
+	Just returns the original path if it was already in the right form,
+	or when it is not a path for a share drive.
+	@param path: a filesystem path or URL
+	@returns: the platform specific path or the original input path
+	'''
+	if os.name == 'nt':
+		if path.startswith('smb://'):
+			# smb://host/share/.. -> \\host\share\..
+			path = path[4:].replace('/', '\\')
+			path = url_decode(path)
+	else:
+		if path.startswith('\\\\'):
+			# \\host\share\.. -> smb://host/share/..
+			path = 'smb:' + url_encode(path.replace('\\', '/'))
+
+	return path
 
 
 def link_type(link):

@@ -18,7 +18,7 @@ import logging
 from functools import partial
 
 
-from zim.fs import File, TmpFile, cleanup_filename
+from zim. newfs import FilePath, LocalFile, TmpFile, cleanup_filename
 from zim.parsing import split_quoted_strings
 from zim.config import ConfigManager, XDG_CONFIG_HOME, INIConfigFile
 from zim.signals import SignalEmitter, SIGNAL_NORMAL, SignalHandler
@@ -311,7 +311,7 @@ class CustomToolDict(DesktopEntryDict):
 			cmd[cmd.index('%p')] = page.name
 
 		if '%n' in cmd:
-			cmd[cmd.index('%n')] = File(notebook.uri).path
+			cmd[cmd.index('%n')] = FilePath(notebook.uri).path
 
 		if '%D' in cmd:
 			dir = notebook.document_root
@@ -677,7 +677,7 @@ class EditCustomToolDialog(Dialog):
 		self.iconbutton = IconChooserButton(stock=Gtk.STOCK_EXECUTE)
 		if tool and tool.icon and tool.icon != Gtk.STOCK_EXECUTE:
 			try:
-				self.iconbutton.set_file(File(tool.icon))
+				self.iconbutton.set_file(LocalFile(tool.icon))
 			except Exception as error:
 				logger.exception('Could not load: %s', tool.icon)
 		label = Gtk.Label(label=_('Icon') + ':') # T: Input in "Edit Custom Tool" dialog

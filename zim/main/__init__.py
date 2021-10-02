@@ -19,7 +19,7 @@ import signal
 logger = logging.getLogger('zim')
 
 import zim
-import zim.fs
+import zim.newfs
 import zim.errors
 import zim.config
 import zim.config.basedirs
@@ -184,7 +184,7 @@ class NotebookCommand(Command):
 		notebookinfo, page = self.get_notebook_argument() 	# can raise NotebookLookupError
 		if not notebookinfo:
 			raise NotebookLookupError(_('Please specify a notebook'))
-		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFoundError
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
 			for info in notebook.index.update_iter():
@@ -430,7 +430,7 @@ class ExportCommand(NotebookCommand):
 	)
 
 	def get_exporter(self, page):
-		from zim.fs import File, Dir
+		from zim.newfs import localFileOrFolder, FilePath, LocalFile, LocalFolder, FileNotFoundError
 		from zim.templates import get_template
 		from zim.export import \
 			build_mhtml_file_exporter, \
@@ -439,26 +439,33 @@ class ExportCommand(NotebookCommand):
 			build_notebook_exporter
 
 		format = self.opts.get('format', 'html')
-		if not 'output' in self.opts:
-			raise UsageError(_('Output location needed for export')) # T: error in export command
-		output = Dir(self.opts['output'])
-		if not output.isdir():
-			output = File(self.opts.get('output'))
 		template = get_template(format, self.opts.get('template', 'Default'), pwd=self.pwd)
 
-		if output.exists() and not self.opts.get('overwrite'):
-			if output.isdir():
-				if len(output.list()) > 0:
-					raise Error(_('Output folder exists and not empty, specify "--overwrite" to force export'))  # T: error message for export
+		if not 'output' in self.opts:
+			raise UsageError(_('Output location needed for export')) # T: error in export command
+
+		try:
+			output = localFileOrFolder(self.opts['output'], pwd=self.pwd)
+		except FileNotFoundError:
+			# resolve path, but type undecided
+			output = FilePath(self.pwd).get_abspath(self.opts['output']) # can raise again for mal-formed paths
+		else:
+			# file or folder exists
+			if not self.opts.get('overwrite'):
+				if isinstance(output, LocalFolder):
+					if len(output.list_names()) > 0:
+						raise Error(_('Output folder exists and not empty, specify "--overwrite" to force export'))  # T: error message for export
+					else:
+						pass
 				else:
-					pass
-			else:
-				raise Error(_('Output file exists, specify "--overwrite" to force export'))  # T: error message for export
+					raise Error(_('Output file exists, specify "--overwrite" to force export'))  # T: error message for export
 
 		if format == 'mhtml':
 			self.ignore_options('index-page')
-			if output.isdir():
+			if isinstance(output, LocalFolder): # implies exists
 				raise UsageError(_('Need output file to export MHTML')) # T: error message for export
+			else:
+				output = LocalFile(output) # FilePath --> LocalFile
 
 			exporter = build_mhtml_file_exporter(
 				output, template,
@@ -466,9 +473,11 @@ class ExportCommand(NotebookCommand):
 			)
 		elif self.opts.get('singlefile'):
 			self.ignore_options('index-page')
-			if output.exists() and output.isdir():
+			if isinstance(output, LocalFolder):
 				ext = get_format(format).info['extension']
 				output = output.file(page.basename) + '.' + ext
+			else:
+				output = LocalFile(output) # FilePath --> LocalFile
 
 			exporter = build_single_file_exporter(
 				output, format, template, namespace=page,
@@ -476,19 +485,21 @@ class ExportCommand(NotebookCommand):
 			)
 		elif page:
 			self.ignore_options('index-page')
-			if output.exists() and output.isdir():
+			if isinstance(output, LocalFolder):
 				ext = get_format(format).info['extension']
 				output = output.file(page.basename) + '.' + ext
+			else:
+				output = LocalFile(output) # FilePath --> LocalFile
 
 			exporter = build_page_exporter(
 				output, format, template, page,
 				document_root_url=self.opts.get('root-url'),
 			)
 		else:
-			if not output.exists():
-				output = Dir(output.path)
-			elif not output.isdir():
+			if isinstance(output, LocalFile): # implies exists
 				raise UsageError(_('Need output folder to export full notebook')) # T: error message for export
+			else:
+				output = LocalFolder(output) # FilePath --> LocalFolder
 
 			exporter = build_notebook_exporter(
 				output, format, template,
@@ -862,7 +873,7 @@ class ZimApplication(object):
 	def _daemonize(self):
 		# Decouple from parent environment
 		# and redirect standard file descriptors
-		os.chdir(zim.fs.Dir('~').path)
+		os.chdir(LocalFolder('~').path)
 			# Using HOME because this folder will not disappear normally
 			# and because it is a sane starting point for file choosers etc.
 
@@ -879,7 +890,7 @@ class ZimApplication(object):
 			pass
 		else:
 			# Redirect output to file
-			dir = zim.fs.get_tmpdir()
+			dir = zim.newfs.get_tmpdir()
 			zim.debug_log_file = os.path.join(dir.path, "zim.log")
 			err_stream = open(zim.debug_log_file, "w")
 

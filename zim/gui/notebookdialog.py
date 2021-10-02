@@ -20,7 +20,7 @@ import os
 import logging
 
 import zim.main
-from zim.fs import File, Dir
+from zim.newfs import FilePath, LocalFolder
 from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
 from zim.gui.widgets import Dialog, IconButton, encode_markup_text, ScrolledWindow, \
@@ -59,7 +59,7 @@ def prompt_notebook():
 		logger.debug('First time usage - prompt for notebook folder')
 		fields = _run_dialog_with_mainloop(AddNotebookDialog(None))
 		if fields:
-			dir = Dir(fields['folder'])
+			dir = LocalFolder(fields['folder'])
 			init_notebook(dir, name=fields['name'])
 			list.append(NotebookInfo(dir.uri, name=fields['name']))
 			list.write()
@@ -125,14 +125,14 @@ class NotebookTreeModel(Gtk.ListStore):
 		return len(self) - 1 # iter
 
 	def _append(self, info):
-		path = File(info.uri).path
+		path = FilePath(info.uri).path
 		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s</span>' % \
 				(encode_markup_text(info.name), encode_markup_text(path))
 				# T: Path label in 'open notebook' dialog
 
-		if info.icon and File(info.icon).exists():
+		if info.icon and FilePath(info.icon).exists():
 			w, h = strip_boolean_result(Gtk.icon_size_lookup(Gtk.IconSize.BUTTON))
-			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(File(info.icon).path, w, h)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(FilePath(info.icon).path, w, h)
 		else:
 			pixbuf = None
 
@@ -204,7 +204,7 @@ class NotebookComboBox(Gtk.ComboBox):
 
 		@param model: either a L{NotebookTreeModel} or C{None} to use
 		the default list.
-		@param current: uri, C{Dir}, C{NotebookInfo}, or C{Notebook}
+		@param current: uri, C{Folder}, C{NotebookInfo}, or C{Notebook}
 		object for the current notebook. If C{None} the default
 		notebook will be shown (if any).
 		'''
@@ -235,7 +235,7 @@ class NotebookComboBox(Gtk.ComboBox):
 	def set_notebook(self, uri, append=False):
 		'''Select a specific notebook in the combobox.
 
-		@param uri: uri, C{Dir}, C{NotebookInfo}, or C{Notebook}
+		@param uri: uri, C{Folder}, C{NotebookInfo}, or C{Notebook}
 		object for a notebook (string or any object with an C{uri}
 		property)
 		@param append: if C{True} the notebook will appended to the list
@@ -371,7 +371,7 @@ class NotebookDialog(Dialog):
 	def do_add_notebook(self, *a):
 		fields = AddNotebookDialog(self).run()
 		if fields:
-			dir = Dir(fields['folder'])
+			dir = LocalFolder(fields['folder'])
 			init_notebook(dir, name=fields['name'])
 			model = self.treeview.get_model()
 			model.append_notebook(dir.uri, name=fields['name'])

@@ -16,8 +16,7 @@ import logging
 
 
 from zim.fs import adapt_from_oldfs
-from zim.fs import File, Dir, FS
-from zim.newfs import FilePath, LocalFolder
+from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.notebook import Path, HRef, set_parsetree_attributes_to_resolve_links, \
 	replace_parsetree_links_and_copy_images
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
@@ -186,8 +185,8 @@ def deserialize_image(register_buf, content_buf, iter, data, length, create_tags
 
 	file = dir.new_file('pasted_image.%s' % extension)
 	logger.debug("Saving image from clipboard to %s", file)
+	file.touch() # notify version control
 	pixbuf.savev(file.path, format, [], [])
-	FS.emit('path-created', file) # notify version control
 
 	# and insert it in the page
 	links = [file.uri]
@@ -275,8 +274,8 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 
 		file = dir.new_file('pasted_image.%s' % extension)
 		logger.debug("Saving image from clipboard to %s", file)
+		file.touch() # notify version control
 		pixbuf.savev(file.path, format, [], [])
-		FS.emit('path-created', file) # notify version control
 
 		links = [file.uri]
 		return _link_tree(links, notebook, path)
@@ -304,10 +303,11 @@ def _link_tree(links, notebook, path):
 				type = link_type(link)
 		elif type == 'file':
 			try:
-				file = File(link)
-				isimage = file.isimage()
-			except:
+				file = LocalFile(link)
+			except ValueError:
 				pass
+			else:
+				isimage = file.isimage()
 
 		logger.debug('Pasting link: %s (type: %s, isimage: %s)', link, type, isimage)
 
@@ -332,8 +332,11 @@ def _link_tree(links, notebook, path):
 					if anchor:
 						name += '#' + anchor
 			elif type == 'file':
-				file = File(link) # Assume links are always URIs
-				link = notebook.relative_filepath(file, path) or file.uri
+				try:
+					file = LocalFile(link) # Assume links are always URIs
+					link = notebook.relative_filepath(file, path) or file.uri
+				except:
+					pass
 
 			builder.append(LINK, {'href': link}, name or link)
 

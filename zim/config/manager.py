@@ -14,8 +14,6 @@ from . import basedirs
 from .dicts import INIConfigFile
 
 from zim.newfs import FileNotFoundError
-from zim.fs import FileNotFoundError as oldFileNotFoundError
-
 from zim.signals import ConnectorMixin, SignalEmitter, SignalHandler, SIGNAL_NORMAL
 
 
@@ -242,7 +240,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		'''
 		try:
 			return self.file.read()
-		except (FileNotFoundError, oldFileNotFoundError):
+		except FileNotFoundError:
 			for default in self.defaults:
 				return default.read()
 			else:
@@ -260,7 +258,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		'''
 		try:
 			return self.file.readlines()
-		except (FileNotFoundError, oldFileNotFoundError):
+		except FileNotFoundError:
 			for default in self.defaults:
 				return default.readlines()
 			else:

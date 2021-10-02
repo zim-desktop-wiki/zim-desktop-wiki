@@ -21,13 +21,19 @@ from gi.repository import GObject
 from gi.repository import GLib
 from gi.repository import GdkPixbuf
 
-import zim.fs
-from zim.fs import File, Dir, TmpFile, cleanup_filename
+from zim.fs import adapt_from_oldfs
+
+from zim.errors import Error
+from zim.newfs import File, LocalFile, TmpFile, FileNotFoundError, \
+	cleanup_filename, get_mimetype_from_path
 from zim.config import XDG_CONFIG_HOME, XDG_CONFIG_DIRS, XDG_DATA_HOME, XDG_DATA_DIRS, \
 	data_dirs, SectionedConfigDict, INIConfigFile
-from zim.parsing import split_quoted_strings, uri_scheme
+from zim.parsing import split_quoted_strings, uri_scheme, is_win32_share_re, \
+	normalize_win32_share, is_win32_share_re, is_url_re, is_uri_re, is_www_link_re
 from zim.applications import Application, WebBrowser, StartFile
-from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, strip_boolean_result
+from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, QuestionDialog, strip_boolean_result
+
+
 
 
 logger = logging.getLogger('zim.gui.applications')
@@ -104,17 +110,20 @@ def get_mimetype(obj):
 	@param obj: a L{File} object, or an URL
 	@returns: mimetype or C{None}
 	'''
-
-	for method in ('get_mimetype', 'mimetype'): # zim.fs.File, newfs
-		if hasattr(obj, method):
-			return getattr(obj, method)()
+	if hasattr(obj, 'mimetype'):
+		return obj.mimetype()
 	else:
 		scheme = uri_scheme(obj)
 		if scheme in (None, 'file'):
 			try:
-				return File(obj).get_mimetype()
+				return get_mimetype_from_path(FilePath(obj).uri)
 			except:
-				return None
+				try:
+					# Mal-formed or relative path, still valid mimetype from extension
+					return get_mimetype_from_path(obj)
+				except:
+					logger.exception('Failed mimetype for %s')
+					return None
 		else:
 			return "x-scheme-handler/%s" % scheme
 
@@ -269,7 +278,7 @@ class ApplicationManager(object):
 
 		file = _application_file(key, _application_dirs())
 		if file:
-			return DesktopEntryFile(File(file))
+			return DesktopEntryFile(LocalFile(file))
 		elif name == 'webbrowser':
 			return WebBrowser()
 		elif name == 'startfile':
@@ -472,7 +481,7 @@ class ApplicationManager(object):
 			if basename not in seen and basename not in blacklist:
 				file = _application_file(basename, dirs)
 				if file:
-					entries.append(DesktopEntryFile(File(file)))
+					entries.append(DesktopEntryFile(LocalFile(file)))
 					seen.add(basename)
 
 		for file in klass._mimeapps_files():
@@ -512,15 +521,6 @@ class ApplicationManager(object):
 		return entries
 
 
-from zim.errors import Error
-from zim.parsing import is_win32_share_re, is_url_re, is_uri_re, is_www_link_re
-
-from zim.fs import adapt_from_newfs, normalize_win32_share
-from zim.newfs import FileNotFoundError
-
-from zim.gui.widgets import QuestionDialog
-
-
 class NoApplicationFoundError(Error):
 	'''Exception raised when an application was not found'''
 	pass
@@ -544,22 +544,18 @@ def open_file(widget, file, mimetype=None, callback=None):
 	ignore the specified mimetype)
 	'''
 	logger.debug('open_file(%s, %s)', file, mimetype)
-	file = adapt_from_newfs(file)
-	assert isinstance(file, (File, Dir))
-	if isinstance(file, (File)) and file.isdir():
-		file = Dir(file.path)
-
+	file = adapt_from_oldfs(file)
 	if not file.exists():
 		raise FileNotFoundError(file)
 
-	if isinstance(file, File): # File
+	if isinstance(file, File):
 		manager = ApplicationManager()
 		if mimetype is None:
-			entry = manager.get_default_application(file.get_mimetype())
+			entry = manager.get_default_application(file.mimetype())
 			if entry is not None:
 				_open_with(widget, entry, file, callback)
 			else:
-				_open_with_filebrowser(widget, file, callback)
+				_open_with_filebrowser(widget, file.uri, callback)
 
 		else:
 			entry = manager.get_default_application(mimetype)
@@ -569,7 +565,7 @@ def open_file(widget, file, mimetype=None, callback=None):
 				raise NoApplicationFoundError('No Application found for: %s' % mimetype)
 				# Do not go to fallback, we can not force
 				# mimetype for fallback
-	else: # Dir
+	else: # Folder
 		_open_with_filebrowser(widget, file, callback)
 
 
@@ -599,8 +595,7 @@ def open_folder(widget, folder):
 	see L{open_folder_prompt_create} for alternative behavior when folder
 	does not exist.
 	'''
-	dir = adapt_from_newfs(folder)
-	open_file(widget, dir)
+	open_file(widget, folder)
 
 
 def open_url(widget, url):
@@ -635,7 +630,6 @@ def open_url(widget, url):
 		# Special case for outlook folder paths on windows
 		os.startfile(url)
 	else:
-		from zim.gui.applications import get_mimetype
 		manager = ApplicationManager()
 		type = get_mimetype(url) # Supports "x-scheme-handler/... for URL schemes"
 		logger.debug('Got type "%s" for "%s"', type, url)
@@ -663,9 +657,9 @@ def _open_with(widget, entry, uri, callback=None):
 		entry.spawn((uri,)) # E.g. webbrowser module does not support callback
 
 
-def _open_with_filebrowser(widget, file, callback=None):
+def _open_with_filebrowser(widget, uri, callback=None):
 	entry = ApplicationManager.get_fallback_filebrowser()
-	_open_with(widget, entry, file, callback)
+	_open_with(widget, entry, uri, callback)
 
 
 def _open_with_emailclient(widget, uri):
@@ -775,7 +769,7 @@ class IconString(LocaleString):
 
 	def check(self, value):
 		if hasattr(value, 'path'):
-			return value.path  # prevent fallback via serialize_zim_config to user_path
+			return value.path  # prevent fallback via serialize_zim_config to userpath
 		else:
 			return LocaleString.check(self, value)
 
@@ -890,8 +884,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		if not icon:
 			return None
 
-		if isinstance(icon, File):
-			icon = icon.path
+		icon = icon.path if hasattr(icon, 'path') else icon
 
 		w, h = strip_boolean_result(Gtk.icon_size_lookup(size))
 
@@ -920,7 +913,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		def uris(args):
 			uris = []
 			for arg in args:
-				if isinstance(arg, (File, Dir)):
+				if hasattr(arg, 'uri'):
 					uris.append(arg.uri)
 				else:
 					uris.append(str(arg))

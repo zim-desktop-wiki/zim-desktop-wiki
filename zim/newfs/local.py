@@ -205,7 +205,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
 	def copyto(self, other):
 		if not self.exists():
 			raise FileNotFoundError(self)
-					
+
 		assert isinstance(other, Folder)
 		assert not other.path == self.path
 

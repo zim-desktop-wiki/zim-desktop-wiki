@@ -498,6 +498,8 @@ class TestNotebook(tests.TestCase):
 				adapt_from_oldfs(self.notebook.resolve_file(link, path)), wanted)
 			self.assertEqual(
 				self.notebook.relative_filepath(wanted, path), cleaned)
+			self.assertEqual(
+				self.notebook.relative_filepath(FilePath(wanted.path), path), cleaned) # Ensure path manipulation only
 
 		# check relative path without Path
 		self.assertEqual(

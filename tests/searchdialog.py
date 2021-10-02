@@ -18,7 +18,8 @@ class testSearchDialog(tests.TestCase):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		page = None
 		navigation = tests.MockObject()
-		navigation.open_page = lambda page: tests.MockObject()
+		pageview = tests.MockObject(methods=('show_find',))
+		navigation.open_page = lambda page: pageview
 
 		dialog = SearchDialog(None, notebook, page, navigation)
 		dialog.query_entry.set_text('Foo')
@@ -34,7 +35,8 @@ class testSearchDialog(tests.TestCase):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		page = notebook.get_page(Path('TaskList'))
 		navigation = tests.MockObject()
-		navigation.open_page = lambda page: tests.MockObject()
+		pageview = tests.MockObject(methods=('show_find',))
+		navigation.open_page = lambda page: pageview
 
 		dialog = SearchDialog(None, notebook, page, navigation)
 		dialog.namespacecheckbox.set_active(True)

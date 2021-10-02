@@ -15,6 +15,12 @@ from zim.fs import SEP
 from zim.errors import Error
 
 
+class FilterDeprecationWarning(tests.LoggingFilter):
+
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.fs', 'Using deprecated class')
+
+
 def modify_file_mtime(path, func):
 	'''Helper function to modify a file in such a way that mtime
 	changed.
@@ -44,6 +50,9 @@ class FilterFileMissingWarning(tests.LoggingFilter):
 
 
 class TestFS(tests.TestCase):
+
+	def setUp(self):
+		FilterDeprecationWarning().wrap_test(self)
 
 	def testFunctions(self):
 		smb_urls = (
@@ -302,6 +311,7 @@ class TestFS(tests.TestCase):
 class TestFileOverwrite(tests.TestCase):
 
 	def setUp(self):
+		FilterDeprecationWarning().wrap_test(self)
 		self.path = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).path + '/file.txt'
 
 	def modify(self, func):
@@ -344,6 +354,9 @@ class TestFileOverwrite(tests.TestCase):
 @tests.slowTest
 @tests.skipUnless(hasattr(os, 'symlink') and os.name != 'nt', 'OS does not support symlinks')
 class TestSymlinks(tests.TestCase):
+
+	def setUp(self):
+		FilterDeprecationWarning().wrap_test(self)
 
 	def runTest(self):
 		'''Test file operations are safe for symlinks'''
