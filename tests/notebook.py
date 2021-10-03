@@ -1251,6 +1251,24 @@ class TestPage(TestPath):
 		page.reload_textbuffer()
 		self.assertFalse(buffer.get_modified())
 
+	def testEmptyFile(self):
+		self._testEmptyFile('')
+
+	def testEmptyFileOnlyHeaders(self):
+		self._testEmptyFile(
+			'Content-Type: text/x-zim-wiki\n'
+			'Wiki-Format: zim 0.6\n'
+			'Creation-Date: 2015-11-01T16:28:31+01:00\n'
+			'\n'
+		)
+
+	def _testEmptyFile(self, text):
+		page = self.generator('empty_page')
+		page.source_file.write(text)
+		with tests.LoggingFilter('zim.parser', 'Parser got empty string'):
+			parsetree = page.get_parsetree()
+		self.assertFalse(parsetree.hascontent)
+
 
 class MockTextBuffer(object):
 

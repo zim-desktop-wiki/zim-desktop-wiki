@@ -36,6 +36,7 @@ through to the final expression.
 '''
 
 import re
+import logging
 
 import xml.etree.ElementTree # needed to compile with cElementTree
 try:
@@ -45,6 +46,8 @@ except:  #pragma: no cover
 
 
 from zim.errors import Error
+
+logger = logging.getLogger('zim.parser')
 
 
 def fix_line_end(text):
@@ -401,8 +404,10 @@ class Parser(object):
 		@param builder: a L{Builder} object
 		@param text: to be parsed text as string
 		'''
+		if not text:
+			logger.warning('Parser got empty string')
+			return
 
-		assert text, 'BUG: processing empty string'
 		if self._re is None:
 			# Generate the regex and cache it for re-use
 			self.rules = tuple(self.rules) # freeze list
