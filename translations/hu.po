@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-23 20:04+0200\n"
-"PO-Revision-Date: 2021-10-04 08:20+0000\n"
+"PO-Revision-Date: 2021-10-04 11:12+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
 "Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
 "\n"
@@ -1809,7 +1809,7 @@ msgstr "Keresés csak a jelenlegi oldalon és aloldalain"
 #. menu item
 #: zim/gui/searchdialog.py:150 zim/plugins/scoreeditor.py:68
 msgid "Score"
-msgstr "Találat"
+msgstr "Kotta"
 
 #. Window title
 #: zim/gui/server.py:46
