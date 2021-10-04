@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-23 20:04+0200\n"
-"PO-Revision-Date: 2021-10-04 08:12+0000\n"
+"PO-Revision-Date: 2021-10-04 08:20+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
 "Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
 "\n"
@@ -1574,12 +1574,12 @@ msgstr "Tulajdonságok"
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:113
 msgid "Key bindings"
-msgstr "_Billentyűkombinációk"
+msgstr "Billentyűkombinációk"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:118
 msgid "Plugins"
-msgstr "Kiegészítők"
+msgstr "Bővítmények"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:128
@@ -1609,7 +1609,7 @@ msgstr "Tulajdonságok"
 #. button label
 #: zim/gui/preferencesdialog.py:271
 msgid "Open plugins folder"
-msgstr "Beépülők mappájának megnyitása"
+msgstr "Bővítmények mappájának megnyitása"
 
 #. label for button with URL
 #: zim/gui/preferencesdialog.py:280
@@ -2207,7 +2207,7 @@ msgstr "Egy asztali wiki"
 #. This string needs to be translated with names of the translators for this language
 #: zim/gui/uiactions.py:812
 msgid "translator-credits"
-msgstr "Fordító: Mukli Krisztián"
+msgstr "Mukli Krisztián"
 
 #. dialog title
 #: zim/gui/widgets.py:541 zim/gui/widgets.py:1625
@@ -2472,7 +2472,7 @@ msgid ""
 "It is based on the arithmetic module from\n"
 "http://pp.com.mx/python/arithmetic.\n"
 msgstr ""
-"Ezzel a beépülő modullal aritmetikai számításokat végezhetsz a Zim-ben.\n"
+"Ezzel a bővítménnyel aritmetikai számításokat végezhetsz a Zim-ben.\n"
 "Az alábbi helyen található aritmetikai modulra épül:\n"
 "http://pp.com.mx/python/arithmetic.\n"
 
@@ -2807,7 +2807,7 @@ msgid ""
 "This plugin adds settings that help using zim\n"
 "as a distraction free editor.\n"
 msgstr ""
-"Ez a beépülő modul átváltoztatja a Zim-et\n"
+"Ez a bővítmény átváltoztatja a Zim-et\n"
 "olyan szerkesztővé, ami nem vonja el a figyelmet.\n"
 
 #. plugin preference
@@ -2891,7 +2891,7 @@ msgstr "Gnuplot beillesztése"
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:33
 msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
-msgstr "Ez a beépülőmodul grafikonokat jelenít meg a Gnuplot segítségével.\n"
+msgstr "Ez a bővítmény grafikonokat jelenít meg a Gnuplot segítségével.\n"
 
 #. menu item
 #: zim/plugins/gnuplot_ploteditor.py:49
@@ -2935,10 +2935,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Ezzel a beépülőmodullal gyorsan ki lehet értékelni\n"
+"Ezzel a bővítménnyel gyorsan ki lehet értékelni\n"
 "egyszerű matematikai kifejezéseket a Zim-ben.\n"
 "\n"
-"Ez a kiegészítő szerves része a Zim-nek.\n"
+"Ez a bővítmény szerves része a Zim-nek.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:271
@@ -3048,7 +3048,7 @@ msgid ""
 "If the list is already sorted the order will be reversed\n"
 "(A-Z to Z-A).\n"
 msgstr ""
-"Ez a beépülőmodul sorba rendezi a kijelölt sorokat.\n"
+"Ez a bővítmény sorba rendezi a kijelölt sorokat.\n"
 "Már rendezett sorokon fordított sorrendben teszi ugyanezt\n"
 "(A-Z, majd Z-A).\n"
 
@@ -3321,10 +3321,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Ez a beépülőmodul lehetővé teszi, hogy közvetlenül\n"
+"Ez a bővítmény lehetővé teszi, hogy közvetlenül\n"
 "beillesszünk egy képernyőképet egy Zim oldalba.\n"
 "\n"
-"Ez a kiegészítő szerves része a Zimnek.\n"
+"Ez a bővítmény szerves része a Zimnek.\n"
 
 #. plugin preference
 #: zim/plugins/screenshot.py:119
@@ -3771,7 +3771,7 @@ msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
 msgstr ""
-"Ez a beépülőmodul lehetővé teszi az oldalak szűrését egy címkefelhő "
+"Ez a bővítmény lehetővé teszi az oldalak szűrését egy címkefelhő "
 "segítségével.\n"
 
 #. menu option
