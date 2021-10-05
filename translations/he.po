@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-23 20:04+0200\n"
-"PO-Revision-Date: 2020-10-20 06:26+0000\n"
+"PO-Revision-Date: 2021-10-06 18:15+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.3.1-dev\n"
+"X-Generator: Weblate 4.9-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -3895,7 +3895,7 @@ msgstr "להשתמש בתאריך מעמודי היומן"
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:69
 msgid "do not use"
-msgstr ""
+msgstr "לא להשתמש"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:70
@@ -3930,43 +3930,37 @@ msgstr "שימוש בשם הדף כתגיות לפרטי משימה"
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:84
 msgid "Flag tasks due on Monday or Tuesday before the weekend"
-msgstr ""
+msgstr "לסמן בדגל משימות שיפוגו בשני או בשלישי לפני סוף השבוע"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:35
-#, fuzzy
-#| msgid "Icon"
 msgid "Icons"
-msgstr "סמל"
+msgstr "סמלים"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:37
-#, fuzzy
-#| msgid "Icons _And Text"
 msgid "Icons & Text"
-msgstr "סמלים ו_טקסט"
+msgstr "סמלים וטקסט"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:38
 msgid "Icons & Text horizontal"
-msgstr ""
+msgstr "סמלים וטקסט אופקית"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:46
 msgid "Small"
-msgstr ""
+msgstr "קטן"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:47
 msgid "Large"
-msgstr ""
+msgstr "גדול"
 
 #. plugin name
 #: zim/plugins/toolbar.py:57
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Tool Bar"
-msgstr "סרגל _כלים"
+msgstr "סרגל כלים"
 
 #. plugin description
 #: zim/plugins/toolbar.py:58
@@ -3990,10 +3984,8 @@ msgstr "סרגל _כלים"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:75
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Toolbar size"
-msgstr "סרגל _כלים"
+msgstr "גודל סרגל כלים"
 
 #. plugin name
 #: zim/plugins/trayicon.py:71
@@ -4078,7 +4070,7 @@ msgstr "שמירת גרסה אוטומטית במרווחי זמן קבועים"
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:70
 msgid "Autosave interval in minutes"
-msgstr ""
+msgstr "מרווח בין שמירות אוטומטיות בדקות"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:205
