@@ -491,10 +491,10 @@ class ApplicationManager(object):
 					section=line.strip()
 				elif line.startswith(key):
 					if section in ('[Default Applications]', '[Added Associations]'):
-						for basename in line[len(key):].strip().split(';'):
+						for basename in line[len(key):].strip().strip(';').split(';'):
 							add_entry(basename, _application_dirs())
 					elif section == '[Removed Associations]':
-						for basename in line[len(key):].strip().split(';'):
+						for basename in line[len(key):].strip().strip(';').split(';'):
 							blacklist.add(basename)
 
 		for dir in _application_dirs():
@@ -503,7 +503,7 @@ class ApplicationManager(object):
 				continue
 			for line in cache.readlines():
 				if line.startswith(key):
-					for basename in line[len(key):].strip().split(';'):
+					for basename in line[len(key):].strip().strip(';').split(';'):
 						add_entry(basename, (dir,))
 
 		if mimetype in ('x-scheme-handler/http', 'x-scheme-handler/https'):
