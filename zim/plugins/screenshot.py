@@ -221,7 +221,7 @@ class InsertScreenshotDialog(Dialog):
 							_('Some error occurred while running "%s"') % self.screenshot_command).run()
 				# T: Error message in "insert screenshot" dialog, %s will be replaced by application name
 
-		tmpfile.dir.touch()
+		tmpfile.parent().touch()
 		fileop = ScreenshotPicker.get_file_option(self.screenshot_command)
 		args = (fileop, tmpfile) if fileop else (tmpfile,)
 		helper.spawn(args, callback, tmpfile)

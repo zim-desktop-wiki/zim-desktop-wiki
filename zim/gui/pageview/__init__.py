@@ -6736,7 +6736,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			item = Gtk.MenuItem.new_with_mnemonic(_('Open Folder'))
 				# T: menu item to open containing folder of files
 			menu.prepend(item)
-			dir = file.dir
+			dir = file.parent()
 			if dir.exists():
 				item.connect('activate', lambda o: open_file(self, dir))
 			else:
