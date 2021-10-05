@@ -20,7 +20,8 @@ from zim.notebook.index import IndexNotFoundError
 from zim.notebook.operations import ongoing_operation
 from zim.history import History, HistoryPath
 
-from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
+from zim.actions import action, toggle_action, radio_action, radio_option, \
+	get_gtk_actiongroup, initialize_actiongroup, \
 	PRIMARY_MODIFIER_STRING, PRIMARY_MODIFIER_MASK
 from zim.gui.widgets import \
 	MenuButton, \
@@ -470,6 +471,8 @@ class MainWindow(WindowBaseMixin, Window):
 			self.open_page_home()
 
 		PluginManager.register_new_extendable(self.pageview)
+		initialize_actiongroup(self, 'win')
+
 		self.pageview.grab_focus()
 
 	def _populate_headerbar(self, headerbar):
@@ -966,8 +969,11 @@ class PageWindow(WindowBaseMixin, Window):
 		self.connect('delete-event', do_delete_event)
 
 		PluginManager.register_new_extendable(self.pageview)
+		initialize_actiongroup(self, 'win')
+
 		if anchor:
 			self.pageview.navigate_to_anchor(anchor)
+
 		self.pageview.grab_focus()
 
 	def _populate_headerbar(self, headerbar):

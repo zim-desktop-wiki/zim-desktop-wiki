@@ -34,11 +34,12 @@ class TestToolBarPlugin(tests.TestCase):
 		self.assertEqual(len(self.extension.toolbar.get_children()), n_children + 1)
 
 	def testClassicMode(self):
+		self.plugin.preferences['include_formatting'] = False
 		n_children = len(self.extension.toolbar.get_children())
 		self.assertTrue(self.window.pageview.edit_bar.get_property('visible'))
-		self.plugin.preferences['classic'] = True
+		self.plugin.preferences['include_formatting'] = True
 		self.assertGreater(len(self.extension.toolbar.get_children()), n_children + 5)
 		self.assertFalse(self.window.pageview.edit_bar.get_property('visible'))
-		self.plugin.preferences['classic'] = False
+		self.plugin.preferences['include_formatting'] = False
 		self.assertEqual(len(self.extension.toolbar.get_children()), n_children)
 		self.assertTrue(self.window.pageview.edit_bar.get_property('visible'))
