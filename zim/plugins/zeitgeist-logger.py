@@ -82,7 +82,11 @@ class ZeitGeistMainWindowExtension(MainWindowExtension):
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.connectto(window, 'page-changed')
-		self.page = None
+		if window.page is not None:
+			self.plugin.create_and_send_event(window.page, Interpretation.ACCESS_EVENT)
+			self.page = window.page
+		else:
+			self.page = None
 
 	def on_page_changed(self, pageview, page):
 		if self.page is not None:
@@ -104,10 +108,10 @@ class ZeitgeistNotebookExtension(NotebookExtension):
 		self.connectto_all(notebook,
 			('deleted-page', 'stored-page'), order=SIGNAL_AFTER)
 
-	def on_deleted_page(self, page, path):
+	def on_deleted_page(self, notebook, page):
 		logger.debug("Deleted page: %s", page.name)
 		self.plugin.create_and_send_event(page, Interpretation.DELETE_EVENT)
 
-	def on_stored_page(self, page, path):
+	def on_stored_page(self, notebook, page):
 		logger.debug("Modified page: %s", page.name)
 		self.plugin.create_and_send_event(page, Interpretation.MODIFY_EVENT)
