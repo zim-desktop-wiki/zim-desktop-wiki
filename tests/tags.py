@@ -111,7 +111,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 	def testTreeView(self):
 		self.notebook.index.flush() # we want to index ourselves
-		navigation = tests.MockObject()
+		navigation = tests.MockObject(methods=('open_page',))
 		treestore = self.storeclass(self.notebook.index, self.tags)
 		init_model_validator_wrapper(self, treestore)
 		treeview = self.viewclass(self.notebook, navigation, treestore)
@@ -160,7 +160,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		#  - a:b
 
 		notebook = self.setUpNotebook()
-		navigation = tests.MockObject()
+		navigation = tests.MockObject(methods=('open_page',))
 		model = self.storeclass(notebook.index, ('foo', 'bar'))
 		init_model_validator_wrapper(self, model)
 		treeview = PageTreeView(notebook, navigation, model=model)
@@ -269,7 +269,7 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 		#  - a:b
 
 		notebook = self.setUpNotebook()
-		navigation = tests.MockObject()
+		navigation = tests.MockObject(methods=('open_page',))
 		model = self.storeclass(notebook.index, ('foo', 'bar'))
 		init_model_validator_wrapper(self, model)
 		treeview = PageTreeView(notebook, navigation, model=model)
@@ -362,7 +362,7 @@ class TestTagPluginWidget(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		navigation = tests.MockObject()
+		navigation = tests.MockObject(methods=('open_page',))
 		uistate = ConfigDict()
 		widget = TagsPluginWidget(notebook, navigation, uistate)
 
