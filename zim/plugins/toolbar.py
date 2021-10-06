@@ -187,10 +187,8 @@ class ToolBarMainWindowExtension(EditActionMixin, PageViewExtension):
 		else:
 			self.pageview.set_edit_bar_visible(True)
 
-		content = (
-			self._get_tools_actions(),
-			self._get_custom_tools(),
-		)
+		content = list(self._get_plugin_actions(include_headercontrols))
+		content.append(self._get_custom_tools())
 		content = [group for group in content if group]
 		for group in content:
 			for item in group:
@@ -236,18 +234,22 @@ class ToolBarMainWindowExtension(EditActionMixin, PageViewExtension):
 
 		return button
 
-	def _get_tools_actions(self):
-		items = []
+	def _get_plugin_actions(self, include_headercontrols):
+		viewitems, toolitems = [], []
 		pageview, window = self.pageview, self.pageview.get_toplevel()
 		for o in (window, pageview):
 			if o is not None:
 				for name, action in list_actions(o):
-					if 'tools' in action.menuhints and action.hasicon and not 'headerbar' in action.menuhints:
-						items.append(action.create_tool_button())
+					if 'tools' in action.menuhints and action.hasicon \
+						and (include_headercontrols or not 'headerbar' in action.menuhints):
+							toolitems.append(action.create_tool_button())
+					if 'view' in action.menuhints and action.hasicon \
+						and (include_headercontrols or not 'headerbar' in action.menuhints):
+							viewitems.append(action.create_tool_button())
 					elif 'toolbar' in action.menuhints:
-						items.append(action.create_tool_button(fallback_icon='system-run'))
+						toolitems.append(action.create_tool_button(fallback_icon='system-run'))
 
-		return items
+		return viewitems, toolitems
 
 	def _get_custom_tools(self):
 		items = []
