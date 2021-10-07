@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-23 20:04+0200\n"
+"POT-Creation-Date: 2021-10-07 21:09+0200\n"
 "PO-Revision-Date: 2021-02-09 19:50+0000\n"
 "Last-Translator: Michalis <michalisntovas@yahoo.gr>\n"
 "Language-Team: Greek <https://hosted.weblate.org/projects/zim/master/el/>\n"
@@ -443,7 +443,7 @@ msgstr "Εξαγωγή ολοκληρώθηκε"
 
 #. button in export dialog | 
 #. button in e.g. equation editor dialog
-#: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:356
+#: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:357
 msgid "View _Log"
 msgstr "Εμφάνιση _καταγραφής"
 
@@ -475,123 +475,123 @@ msgid "Unkown Image type"
 msgstr ""
 
 #. Menu title
-#: zim/gui/mainwindow.py:46
+#: zim/gui/mainwindow.py:47
 msgid "_File"
 msgstr "_Αρχείο"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:47 zim/gui/pageview/__init__.py:7582
+#: zim/gui/mainwindow.py:48 zim/gui/pageview/__init__.py:7582
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "_Επεξεργασία"
 
 #. Menu title | 
 #. button label
-#: zim/gui/mainwindow.py:48 zim/gui/templateeditordialog.py:43
+#: zim/gui/mainwindow.py:49 zim/gui/templateeditordialog.py:43
 msgid "_View"
 msgstr "_Προβολή"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:49 zim/gui/pageview/__init__.py:7532
+#: zim/gui/mainwindow.py:50 zim/gui/pageview/__init__.py:7532
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "Ε_ισαγωγή"
 
 #. Menu title | 
 #. input label
-#: zim/gui/mainwindow.py:50 zim/gui/searchdialog.py:34
+#: zim/gui/mainwindow.py:51 zim/gui/searchdialog.py:34
 msgid "_Search"
 msgstr "Ανα_ζήτηση"
 
 #. Menu title
-#: zim/gui/mainwindow.py:51
+#: zim/gui/mainwindow.py:52
 msgid "For_mat"
 msgstr "Μορ_φοποίηση"
 
 #. Menu title
-#: zim/gui/mainwindow.py:52
+#: zim/gui/mainwindow.py:53
 msgid "_Tools"
 msgstr "Ερ_γαλεία"
 
 #. Menu title
-#: zim/gui/mainwindow.py:53
+#: zim/gui/mainwindow.py:54
 msgid "_Go"
 msgstr "_Μετάβαση"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:54 zim/gui/widgets.py:2951
+#: zim/gui/mainwindow.py:55 zim/gui/widgets.py:2951
 msgid "_Help"
 msgstr "_Βοήθεια"
 
 #. Menu title
-#: zim/gui/mainwindow.py:55
+#: zim/gui/mainwindow.py:56
 msgid "_Checkbox"
 msgstr ""
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
-#: zim/gui/mainwindow.py:65
+#: zim/gui/mainwindow.py:66
 #, python-format
 msgid "Use %s to switch to the side pane"
 msgstr ""
 
 #. Option in the preferences dialog
-#: zim/gui/mainwindow.py:69
+#: zim/gui/mainwindow.py:70
 msgid "Always use last cursor position when opening a page"
 msgstr ""
 "Να χρησιμοποιείται πάντα η τελευταία θέση του κέρσορα όταν ανοίγει μια σελίδα"
 
 #. button label for fullscreen window header
-#: zim/gui/mainwindow.py:143
+#: zim/gui/mainwindow.py:144
 #, fuzzy
 #| msgid "_Fullscreen"
 msgid "Leave Fullscreen"
 msgstr "_Πλήρης οθόνη"
 
 #. Menu item
-#: zim/gui/mainwindow.py:181
+#: zim/gui/mainwindow.py:182
 msgid "_Fullscreen"
 msgstr "_Πλήρης οθόνη"
 
 #. menu item
-#: zim/gui/mainwindow.py:191
+#: zim/gui/mainwindow.py:192
 #, fuzzy
 #| msgid "Notebook _Editable"
 msgid "Toggle _Editable"
 msgstr "Ε_πεξεργάσιμο σημειωματάριο"
 
 #. menu item
-#: zim/gui/mainwindow.py:191
+#: zim/gui/mainwindow.py:192
 #, fuzzy
 #| msgid "Notebook _Editable"
 msgid "Toggle editable"
 msgstr "Ε_πεξεργάσιμο σημειωματάριο"
 
 #. message in toggle editable tooltip
-#: zim/gui/mainwindow.py:222
+#: zim/gui/mainwindow.py:223
 msgid "Page is read-only and cannot be edited"
 msgstr ""
 
 #. Menu item
-#: zim/gui/mainwindow.py:256
+#: zim/gui/mainwindow.py:257
 msgid "_Side Panes"
 msgstr "Π_λαϊνά Πλαίσια"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:493 zim/gui/widgets.py:2912
+#: zim/gui/mainwindow.py:496 zim/gui/widgets.py:2912
 msgid "_Close"
 msgstr "_Κλείσιμο"
 
 #. label for View->Menubar menu item
-#: zim/gui/mainwindow.py:564
+#: zim/gui/mainwindow.py:567
 msgid "Menubar"
 msgstr ""
 
 #. short question on open-page if file exists
-#: zim/gui/mainwindow.py:679 zim/gui/uiactions.py:502
+#: zim/gui/mainwindow.py:682 zim/gui/uiactions.py:502
 #, fuzzy
 #| msgid ""
 #| "This file already exists.\n"
@@ -602,7 +602,7 @@ msgstr ""
 "Θέλετε να το αντικαταστήσετε;"
 
 #. longer question on open-page if file exists
-#: zim/gui/mainwindow.py:680 zim/gui/uiactions.py:503
+#: zim/gui/mainwindow.py:683 zim/gui/uiactions.py:503
 #, fuzzy, python-format
 #| msgid ""
 #| "The folder \"%s\" does not yet exist.\n"
@@ -615,75 +615,75 @@ msgstr ""
 "Επιθυμείτε να το δημιουργήσετε τώρα;"
 
 #. page status for title bar
-#: zim/gui/mainwindow.py:739 zim/gui/mainwindow.py:906
+#: zim/gui/mainwindow.py:742 zim/gui/mainwindow.py:909
 msgid "readonly"
 msgstr "Μόνο για ανάγνωση"
 
 #. Menu item
-#: zim/gui/mainwindow.py:767
+#: zim/gui/mainwindow.py:770
 msgid "_Jump To..."
 msgstr "Μετάβαση σε..."
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:772 zim/gui/widgets.py:3827
+#: zim/gui/mainwindow.py:775 zim/gui/widgets.py:3827
 msgid "_Back"
 msgstr "_Πίσω"
 
 #. tooltip for navigation button
-#: zim/gui/mainwindow.py:774
+#: zim/gui/mainwindow.py:777
 msgid "Go back"
 msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:785 zim/gui/widgets.py:3831
+#: zim/gui/mainwindow.py:788 zim/gui/widgets.py:3831
 msgid "_Forward"
 msgstr "_Μπροστά"
 
 #. tooltip for navigation button
-#: zim/gui/mainwindow.py:787
+#: zim/gui/mainwindow.py:790
 #, fuzzy
 #| msgid "_Forward"
 msgid "Go forward"
 msgstr "_Μπροστά"
 
 #. Menu item
-#: zim/gui/mainwindow.py:797
+#: zim/gui/mainwindow.py:800
 msgid "_Parent"
 msgstr "Πάν_ω"
 
 #. Menu item
-#: zim/gui/mainwindow.py:806
+#: zim/gui/mainwindow.py:809
 msgid "_Child"
 msgstr "_Κάτω"
 
 #. Menu item
-#: zim/gui/mainwindow.py:822
+#: zim/gui/mainwindow.py:825
 #, fuzzy
 #| msgid "_Previous in index"
 msgid "_Previous in Index"
 msgstr "Προη_γούμενη στο ευρετήριο"
 
 #. Menu item
-#: zim/gui/mainwindow.py:831
+#: zim/gui/mainwindow.py:834
 #, fuzzy
 #| msgid "_Next in index"
 msgid "_Next in Index"
 msgstr "Επόμε_νη στο ευρετήριο"
 
 #. Menu item
-#: zim/gui/mainwindow.py:840
+#: zim/gui/mainwindow.py:843
 msgid "_Home"
 msgstr "_Αρχική"
 
 #. Menu item
-#: zim/gui/mainwindow.py:840
+#: zim/gui/mainwindow.py:843
 msgid "Go to home page"
 msgstr ""
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/mainwindow.py:862
+#: zim/gui/mainwindow.py:865
 #, fuzzy, python-format
 #| msgid "%i _Backlink..."
 #| msgid_plural "%i _Backlinks..."
@@ -693,17 +693,17 @@ msgstr[0] "%i _Backlink..."
 msgstr[1] "%i _Backlinks..."
 
 #. Dialog title
-#: zim/gui/mainwindow.py:996
+#: zim/gui/mainwindow.py:1002
 msgid "Jump to"
 msgstr "Μετάβαση σε"
 
 #. Button label
-#: zim/gui/mainwindow.py:997
+#: zim/gui/mainwindow.py:1003
 msgid "_Jump"
 msgstr ""
 
 #. Label for page input
-#: zim/gui/mainwindow.py:1002
+#: zim/gui/mainwindow.py:1008
 msgid "Jump to Page"
 msgstr "Μετάβαση στη σελίδα"
 
@@ -857,7 +857,7 @@ msgstr "_Δεσμός"
 #. tooltip label for image with anchor id | 
 #. input label for object ID
 #: zim/gui/pageview/__init__.py:4972 zim/gui/pageview/__init__.py:7883
-#: zim/plugins/sourceview.py:378
+#: zim/plugins/sourceview.py:379
 msgid "Id"
 msgstr ""
 
@@ -1442,7 +1442,7 @@ msgstr "_Δεσμός"
 
 #. Input in 'insert link' dialog | 
 #. toolbar style
-#: zim/gui/pageview/__init__.py:8040 zim/plugins/toolbar.py:36
+#: zim/gui/pageview/__init__.py:8040 zim/plugins/toolbar.py:42
 msgid "Text"
 msgstr "Κείμενο"
 
@@ -2510,12 +2510,12 @@ msgid "Can not modify page: %s"
 msgstr "Αδύνατη η τροποποίηση της σελίδας: %s"
 
 #. placeholder for unknown file name
-#: zim/parser.py:278
+#: zim/parser.py:281
 msgid "<Unknown>"
 msgstr "<Άγνωστο>"
 
 #. Extended error message while parsing a file, gives file name, line number and words where error occurred
-#: zim/parser.py:284
+#: zim/parser.py:287
 #, python-format
 msgid "Error in %(file)s at line %(line)i near \"%(snippet)s\""
 msgstr "Σφάλμα στο %(file)s στη γραμμή %(line)i κοντά στο \"%(snippet)s\""
@@ -2633,7 +2633,7 @@ msgstr ""
 #: zim/plugins/attachmentbrowser/__init__.py:82 zim/plugins/backlinkpane.py:35
 #: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:61
 #: zim/plugins/tableofcontents.py:116 zim/plugins/tags.py:47
-#: zim/plugins/tasklist/__init__.py:56 zim/plugins/toolbar.py:71
+#: zim/plugins/tasklist/__init__.py:56 zim/plugins/toolbar.py:82
 msgid "Position in the window"
 msgstr "Θέση μέσα στο παράθυρο"
 
@@ -2712,18 +2712,18 @@ msgid "_Edit..."
 msgstr ""
 
 #. dialog title, %s is the object name like "Equation"
-#: zim/plugins/base/imagegenerator.py:322
+#: zim/plugins/base/imagegenerator.py:323
 #, python-format
 msgid "Edit %s"
 msgstr ""
 
 #. button in e.g. equation editor dialog
-#: zim/plugins/base/imagegenerator.py:347
+#: zim/plugins/base/imagegenerator.py:348
 msgid "_Preview"
 msgstr "_Προεπισκόπηση"
 
 #. Question prompt when e.g. equation editor encountered an error generating the image to insert
-#: zim/plugins/base/imagegenerator.py:401
+#: zim/plugins/base/imagegenerator.py:402
 msgid ""
 "An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
@@ -3200,24 +3200,34 @@ msgid "This plugin adds the page index pane to the main window.\n"
 msgstr ""
 
 #. preferences option
-#: zim/plugins/pageindex/__init__.py:63 zim/plugins/tags.py:49
+#: zim/plugins/pageindex/__init__.py:63
+msgid "Use drag&drop to move pages in the notebook"
+msgstr ""
+
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
 #, fuzzy
 #| msgid "Automatically saved version from zim"
 msgid "Automatically expand sections on open page"
 msgstr "Αυτόματα αποθηκευμένη έκδοση από το zim"
 
 #. preferences option
-#: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:51
+#: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:51
 msgid "Automatically collapse sections on close page"
 msgstr ""
 
 #. preferences option
-#: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:53
+#: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
 msgstr ""
 
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
+msgid "Use tooltips"
+msgstr ""
+
 #. tab label for side pane
-#: zim/plugins/pageindex/__init__.py:126 data/templates/html/Default.html:52
+#: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
 #: data/templates/html/Default.html:54
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
@@ -3528,22 +3538,22 @@ msgid "Code Block"
 msgstr "Μπλοκ κώδικα"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:319
+#: zim/plugins/sourceview.py:320
 msgid "Show Line Numbers"
 msgstr "Εμφάνιση αριθμών γραμμής"
 
 #. input label
-#: zim/plugins/sourceview.py:329 zim/plugins/sourceview.py:356
+#: zim/plugins/sourceview.py:330 zim/plugins/sourceview.py:357
 msgid "Syntax"
 msgstr "Σύνταξη"
 
 #. dialog title
-#: zim/plugins/sourceview.py:346
+#: zim/plugins/sourceview.py:347
 msgid "Insert Code Block"
 msgstr "Εισαγωγή μπλοκ κώδικα"
 
 #. input checkbox
-#: zim/plugins/sourceview.py:383
+#: zim/plugins/sourceview.py:384
 msgid "Display line numbers"
 msgstr ""
 
@@ -3825,7 +3835,7 @@ msgstr "ΠΠ"
 #. plugin name | 
 #. title for sidepane tab | 
 #. Column header for tag list in Task List dialog
-#: zim/plugins/tags.py:37 zim/plugins/tags.py:95
+#: zim/plugins/tags.py:37 zim/plugins/tags.py:98
 #: zim/plugins/tasklist/gui.py:247
 msgid "Tags"
 msgstr "Ετικέτες"
@@ -3840,17 +3850,17 @@ msgstr ""
 "την επιλογή ετικετών από ένα σύνεφο.\n"
 
 #. menu option
-#: zim/plugins/tags.py:145
+#: zim/plugins/tags.py:148
 msgid "Show full page name"
 msgstr "Εμφάνιση ονόματος πλήρους σελίδας"
 
 #. menu option
-#: zim/plugins/tags.py:150
+#: zim/plugins/tags.py:153
 msgid "Sort pages by tags"
 msgstr "Ταξινόμηση σελίδων ανά ετικέτα"
 
 #. Context menu item for tag cloud
-#: zim/plugins/tags.py:441
+#: zim/plugins/tags.py:444
 msgid "Sort alphabetically"
 msgstr "Αλφαβητική ταξινόμηση"
 
@@ -4002,63 +4012,83 @@ msgid "Flag tasks due on Monday or Tuesday before the weekend"
 msgstr ""
 
 #. toolbar style
-#: zim/plugins/toolbar.py:35
+#: zim/plugins/toolbar.py:41
 #, fuzzy
 #| msgid "Icon"
 msgid "Icons"
 msgstr "Εικονίδιο"
 
 #. toolbar style
-#: zim/plugins/toolbar.py:37
+#: zim/plugins/toolbar.py:43
 #, fuzzy
 #| msgid "Icons _And Text"
 msgid "Icons & Text"
 msgstr "Εικονίδι_α και κείμενο"
 
 #. toolbar style
-#: zim/plugins/toolbar.py:38
+#: zim/plugins/toolbar.py:44
 msgid "Icons & Text horizontal"
 msgstr ""
 
 #. Toolbar size small
-#: zim/plugins/toolbar.py:46
+#: zim/plugins/toolbar.py:52
 msgid "Small"
 msgstr ""
 
 #. Toolbar size large
-#: zim/plugins/toolbar.py:47
+#: zim/plugins/toolbar.py:53
 msgid "Large"
 msgstr ""
 
 #. plugin name
-#: zim/plugins/toolbar.py:57
+#: zim/plugins/toolbar.py:63
 #, fuzzy
 #| msgid "_Toolbar"
 msgid "Tool Bar"
 msgstr "Εργαλειο_θήκη"
 
 #. plugin description
-#: zim/plugins/toolbar.py:58
+#: zim/plugins/toolbar.py:64
 msgid ""
 "This plugin adds a \"tool bar\" to the main window.\n"
 "It can be a \"classic\" toolbar at the top of the window\n"
-"or running along the side of the window.\n"
+"or running along the side of the window. It also allows\n"
+"configuring the window decoration.\n"
 msgstr ""
 
 #. option for plugin preferences
-#: zim/plugins/toolbar.py:69
-msgid "Include editing tools (classic toolbar)"
+#: zim/plugins/toolbar.py:76
+msgid "Show controls in the window decoration"
 msgstr ""
 
 #. option for plugin preferences
-#: zim/plugins/toolbar.py:73
+#: zim/plugins/toolbar.py:76
+msgid "This option requires restart of the application"
+msgstr ""
+
+#. option for plugin preferences
+#: zim/plugins/toolbar.py:78
+#, fuzzy
+#| msgid "Show in the toolbar"
+msgid "Show toolbar"
+msgstr "Εμφάνιση στην εργαλειοθήκη"
+
+#. option for plugin preferences
+#: zim/plugins/toolbar.py:80
+#, fuzzy
+#| msgid "horizontal lines"
+msgid "Include formatting tools in toolbar"
+msgstr "οριζόντιες γραμμές"
+
+#. option for plugin preferences
+#: zim/plugins/toolbar.py:84
 #, fuzzy
 #| msgid "_Toolbar"
 msgid "Toolbar style"
 msgstr "Εργαλειο_θήκη"
 
 #. option for plugin preferences
-#: zim/plugins/toolbar.py:75
+#: zim/plugins/toolbar.py:86
 #, fuzzy
 #| msgid "_Toolbar"
 msgid "Toolbar size"
