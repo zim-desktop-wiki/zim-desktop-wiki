@@ -66,6 +66,8 @@ This plugin adds the page index pane to the main window.
 			# T: preferences option
 		('use_hscroll', 'bool', _('Use horizontal scrollbar (may need restart)'), False),
 			# T: preferences option
+		('use_tooltip', 'bool', _('Use tooltips'), True),
+			# T: preferences option
 	)
 
 
@@ -95,6 +97,7 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.plugin.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
+		self.treeview.set_use_tooltip(preferences['use_tooltip'])
 		self.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
 		self.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'])
@@ -397,8 +400,6 @@ class PageTreeView(BrowserTreeView):
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
-		self.set_tooltip_column(TIP_COL)
-
 		self.set_headers_visible(False)
 
 		self.set_enable_search(True)
@@ -413,6 +414,12 @@ class PageTreeView(BrowserTreeView):
 
 		if model:
 			self.set_model(model)
+
+	def set_use_tooltip(self, use_tooltip):
+		if use_tooltip:
+			self.set_tooltip_column(TIP_COL)
+		else:
+			self.set_tooltip_column(-1)
 
 	def set_use_ellipsize(self, use_ellipsize):
 		'''Set whether to use ellipsize ("...") for page names that are longer

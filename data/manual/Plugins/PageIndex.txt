@@ -23,6 +23,9 @@ horizontal scrolling or not. Without horizontal scrollbar long page names get
 shortened by ellipsis ("..."). When you change this option, you may need to
 restart Zim to see the correct rendering.
 
+The option **Use tooltips** allows toggling whether or not tooltips are shown
+for pages in the index.
+
 ===== Style =====
 
 This plugin uses a widget name to allow CSS styling for the floating widget:
