@@ -60,6 +60,8 @@ This plugin adds the page index pane to the main window.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
 			# T: preferences option
+		('use_drag_and_drop', 'bool', _('Use drag&drop to move pages in the notebook'), False),
+			# T: preferences option
 		('autoexpand', 'bool', _('Automatically expand sections on open page'), True),
 			# T: preferences option
 		('autocollapse', 'bool', _('Automatically collapse sections on close page'), True),
@@ -97,6 +99,7 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.plugin.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
+		self.treeview.set_use_drag_and_drop(preferences['use_drag_and_drop'])
 		self.treeview.set_use_tooltip(preferences['use_tooltip'])
 		self.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
@@ -405,15 +408,20 @@ class PageTreeView(BrowserTreeView):
 		self.set_enable_search(True)
 		self.set_search_column(0)
 
-		self.enable_model_drag_source(
-			Gdk.ModifierType.BUTTON1_MASK, (PAGELIST_TARGET,),
-			Gdk.DragAction.LINK | Gdk.DragAction.MOVE)
-		self.enable_model_drag_dest(
-			(PAGELIST_TARGET,),
-			Gdk.DragAction.MOVE)
-
 		if model:
 			self.set_model(model)
+
+	def set_use_drag_and_drop(self, use_drag_and_drop):
+		if use_drag_and_drop:
+			self.enable_model_drag_source(
+				Gdk.ModifierType.BUTTON1_MASK, (PAGELIST_TARGET,),
+				Gdk.DragAction.LINK | Gdk.DragAction.MOVE)
+			self.enable_model_drag_dest(
+				(PAGELIST_TARGET,),
+				Gdk.DragAction.MOVE)
+		else:
+			self.unset_rows_drag_source()
+			self.unset_rows_drag_dest()
 
 	def set_use_tooltip(self, use_tooltip):
 		if use_tooltip:

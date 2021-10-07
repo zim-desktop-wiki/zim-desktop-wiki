@@ -10,6 +10,9 @@ This plugin provides the page index side pane for the main window.
 ===== Options =====
 The option **Position in the window** determines in which side pane the browser is shown.
 
+The option **Use drag&drop to move pages in the notebook** determines whether
+you can use drag&drop on the page index to re-arrange pages in the notebook.
+
 The option **Automatically expand sections on open page** determines whether
 the section for the current page is automatically expanded.
 
