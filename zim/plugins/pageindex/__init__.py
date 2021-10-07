@@ -540,7 +540,7 @@ class PageTreeView(BrowserTreeView):
 		assert len(names) == 1, 'Could not get pagenames from: %r' % data
 		if '?' in names[0]:
 			notebookname, path = names[0].split('?', 1)
-			if notebookname == self.notebook.name:
+			if notebookname in (self.notebook.name, self.notebook.interwiki):
 				source = Path(path)
 			else:
 				return None # TODO: move here from other notebook - might need dialog to confirm ?
