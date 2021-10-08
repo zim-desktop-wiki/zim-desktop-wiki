@@ -238,9 +238,9 @@ class WindowBaseMixin(object):
 		def _change_style_on_toggle(button):
 			context = button.get_style_context()
 			if button.get_active():
-				context.remove_class("suggested-action")
+				context.remove_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
 			else:
-				context.add_class("suggested-action")
+				context.add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
 		_change_style_on_toggle(button)
 		button.connect('toggled', _change_style_on_toggle)
 
