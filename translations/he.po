@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-10-06 18:15+0000\n"
+"PO-Revision-Date: 2021-10-09 06:04+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -423,13 +423,13 @@ msgstr "אירעו %(n_error)i שגיאות ו־%(n_warning)i אזהרות, נא
 #: zim/gui/exportdialog.py:418
 #, python-format
 msgid "%i errors occurred, see log"
-msgstr ""
+msgstr "אירעו %i שגיאות, נא לעיין ברישום"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:421
 #, python-format
 msgid "%i warnings occurred, see log"
-msgstr ""
+msgstr "אירעו %i אזהרות, נא לעיין ברישום"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:426
@@ -446,7 +446,7 @@ msgstr "הצ_גת רישום"
 #: zim/gui/insertedobjects.py:265
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "אין תוסף זמין להצגת פריטים מסוג: %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:273
@@ -586,14 +586,8 @@ msgstr ""
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:682 zim/gui/uiactions.py:502
-#, fuzzy
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
 msgid "File exists, do you want to import?"
-msgstr ""
-"קובץ זה כבר קיים.\n"
-"לשכתב עליו?"
+msgstr "הקובץ כבר קיים, לייבא?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:683 zim/gui/uiactions.py:503
@@ -1623,10 +1617,8 @@ msgstr "ה_גדרה"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:256
-#, fuzzy
-#| msgid "Properties"
 msgid "_Properties"
-msgstr "מאפיינים"
+msgstr "מ_אפיינים"
 
 #. button label
 #: zim/gui/preferencesdialog.py:271
@@ -2157,25 +2149,23 @@ msgstr ""
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
-#, fuzzy, python-format
-#| msgid "Move page \"%s\""
+#, python-format
 msgid "Move page \"%s\" to trash?"
-msgstr "העברת העמוד \"%s\""
+msgstr "להעביר את העמוד „%s” לאשפה?"
 
 #. Text in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:728
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be moved to your system's trash.\n"
 "\n"
 "To undo later, go to your system's trashcan."
 msgstr ""
-"העמוד \"%s\" על כל תת־עמודיו\n"
-"והקבצים המצורפים לו ימחקו"
+"העמוד „%s” על כל תת־עמודיו\n"
+"והקבצים המצורפים אליו יועברו לאשפה של המערכת שלך.\n"
+"\n"
+"כדי לבטל בהמשך, יש לגשת לאשפה של המערכת שלך."
 
 #. label in the TrashPage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:732
@@ -2205,18 +2195,17 @@ msgstr "האם למחוק את העמוד \"%s\"?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:770
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be deleted.\n"
 "\n"
 "This deletion is permanent and cannot be un-done."
 msgstr ""
-"העמוד \"%s\" על כל תת־עמודיו\n"
-"והקבצים המצורפים לו ימחקו"
+"העמוד „%s” על כל תת־עמודיו\n"
+"והקבצים המצורפים אליו ימחקו.\n"
+"\n"
+"זאת מחיקה לצמיתות ולא ניתן לשחזר אותה."
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:774
@@ -2512,10 +2501,8 @@ msgstr ""
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
-#, fuzzy
-#| msgid "_Delete"
 msgid "_Delete..."
-msgstr "מ_חיקה"
+msgstr "מ_חיקה…"
 
 #. menu item to rename file
 #: zim/plugins/attachmentbrowser/filebrowser.py:396
