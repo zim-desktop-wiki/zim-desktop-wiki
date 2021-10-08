@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-23 20:04+0200\n"
+"POT-Creation-Date: 2021-10-07 21:09+0200\n"
 "PO-Revision-Date: 2021-09-21 20:36+0000\n"
 "Last-Translator: Alex Gabilondo <alexgabi@disroot.org>\n"
 "Language-Team: Basque <https://hosted.weblate.org/projects/zim/master/eu/>\n"
@@ -454,7 +454,7 @@ msgstr "Esportazioa burutu da"
 
 #. button in export dialog | 
 #. button in e.g. equation editor dialog
-#: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:356
+#: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:357
 msgid "View _Log"
 msgstr "Ikusi _egunkaria"
 
@@ -486,123 +486,123 @@ msgid "Unkown Image type"
 msgstr "Irudi mota ezezaguna"
 
 #. Menu title
-#: zim/gui/mainwindow.py:46
+#: zim/gui/mainwindow.py:47
 msgid "_File"
 msgstr "_Fitxategia"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:47 zim/gui/pageview/__init__.py:7582
+#: zim/gui/mainwindow.py:48 zim/gui/pageview/__init__.py:7582
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "_Editatu"
 
 #. Menu title | 
 #. button label
-#: zim/gui/mainwindow.py:48 zim/gui/templateeditordialog.py:43
+#: zim/gui/mainwindow.py:49 zim/gui/templateeditordialog.py:43
 msgid "_View"
 msgstr "_Ikusi"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:49 zim/gui/pageview/__init__.py:7532
+#: zim/gui/mainwindow.py:50 zim/gui/pageview/__init__.py:7532
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "_Txertatu"
 
 #. Menu title | 
 #. input label
-#: zim/gui/mainwindow.py:50 zim/gui/searchdialog.py:34
+#: zim/gui/mainwindow.py:51 zim/gui/searchdialog.py:34
 msgid "_Search"
 msgstr "_Bilatu"
 
 #. Menu title
-#: zim/gui/mainwindow.py:51
+#: zim/gui/mainwindow.py:52
 msgid "For_mat"
 msgstr "For_matua"
 
 #. Menu title
-#: zim/gui/mainwindow.py:52
+#: zim/gui/mainwindow.py:53
 msgid "_Tools"
 msgstr "_Tresnak"
 
 #. Menu title
-#: zim/gui/mainwindow.py:53
+#: zim/gui/mainwindow.py:54
 msgid "_Go"
 msgstr "_Joan"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:54 zim/gui/widgets.py:2951
+#: zim/gui/mainwindow.py:55 zim/gui/widgets.py:2951
 msgid "_Help"
 msgstr "_Laguntza"
 
 #. Menu title
-#: zim/gui/mainwindow.py:55
+#: zim/gui/mainwindow.py:56
 msgid "_Checkbox"
 msgstr "_Kontrol-laukia"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
-#: zim/gui/mainwindow.py:65
+#: zim/gui/mainwindow.py:66
 #, python-format
 msgid "Use %s to switch to the side pane"
 msgstr "Erabili %s aldatzeko alboko panelera"
 
 #. Option in the preferences dialog
-#: zim/gui/mainwindow.py:69
+#: zim/gui/mainwindow.py:70
 msgid "Always use last cursor position when opening a page"
 msgstr "Erabili beti kurtsorearen azken kokapena orri bat irekitzean"
 
 #. button label for fullscreen window header
-#: zim/gui/mainwindow.py:143
+#: zim/gui/mainwindow.py:144
 msgid "Leave Fullscreen"
 msgstr "Utzi pantaila osoa"
 
 #. Menu item
-#: zim/gui/mainwindow.py:181
+#: zim/gui/mainwindow.py:182
 msgid "_Fullscreen"
 msgstr "_Pantaila osoan"
 
 #. menu item
-#: zim/gui/mainwindow.py:191
+#: zim/gui/mainwindow.py:192
 msgid "Toggle _Editable"
 msgstr "Editagarria"
 
 #. menu item
-#: zim/gui/mainwindow.py:191
+#: zim/gui/mainwindow.py:192
 msgid "Toggle editable"
 msgstr "Editagarria"
 
 #. message in toggle editable tooltip
-#: zim/gui/mainwindow.py:222
+#: zim/gui/mainwindow.py:223
 msgid "Page is read-only and cannot be edited"
 msgstr "Orria irakurtzeko soilik da eta ezin da editatu"
 
 #. Menu item
-#: zim/gui/mainwindow.py:256
+#: zim/gui/mainwindow.py:257
 msgid "_Side Panes"
 msgstr "_Alboko panelak"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:493 zim/gui/widgets.py:2912
+#: zim/gui/mainwindow.py:496 zim/gui/widgets.py:2912
 msgid "_Close"
 msgstr "It_xi"
 
 #. label for View->Menubar menu item
-#: zim/gui/mainwindow.py:564
+#: zim/gui/mainwindow.py:567
 msgid "Menubar"
 msgstr "Menu-barra"
 
 #. short question on open-page if file exists
-#: zim/gui/mainwindow.py:679 zim/gui/uiactions.py:502
+#: zim/gui/mainwindow.py:682 zim/gui/uiactions.py:502
 msgid "File exists, do you want to import?"
 msgstr ""
 "Fitxategia badago.\n"
 "Inportatu nahi duzu?"
 
 #. longer question on open-page if file exists
-#: zim/gui/mainwindow.py:680 zim/gui/uiactions.py:503
+#: zim/gui/mainwindow.py:683 zim/gui/uiactions.py:503
 #, python-format
 msgid ""
 "The file \"%s\" exists but is not a wiki page.\n"
@@ -612,69 +612,69 @@ msgstr ""
 "Inportatu nahi duzu?"
 
 #. page status for title bar
-#: zim/gui/mainwindow.py:739 zim/gui/mainwindow.py:906
+#: zim/gui/mainwindow.py:742 zim/gui/mainwindow.py:909
 msgid "readonly"
 msgstr "irakurtzeko soilik"
 
 #. Menu item
-#: zim/gui/mainwindow.py:767
+#: zim/gui/mainwindow.py:770
 msgid "_Jump To..."
 msgstr "_Saltatu hona..."
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:772 zim/gui/widgets.py:3827
+#: zim/gui/mainwindow.py:775 zim/gui/widgets.py:3827
 msgid "_Back"
 msgstr "At_zera"
 
 #. tooltip for navigation button
-#: zim/gui/mainwindow.py:774
+#: zim/gui/mainwindow.py:777
 msgid "Go back"
 msgstr "Atzera"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:785 zim/gui/widgets.py:3831
+#: zim/gui/mainwindow.py:788 zim/gui/widgets.py:3831
 msgid "_Forward"
 msgstr "_Aurrera"
 
 #. tooltip for navigation button
-#: zim/gui/mainwindow.py:787
+#: zim/gui/mainwindow.py:790
 msgid "Go forward"
 msgstr "Aurrera"
 
 #. Menu item
-#: zim/gui/mainwindow.py:797
+#: zim/gui/mainwindow.py:800
 msgid "_Parent"
 msgstr "_Gurasoa"
 
 #. Menu item
-#: zim/gui/mainwindow.py:806
+#: zim/gui/mainwindow.py:809
 msgid "_Child"
 msgstr "_Umea"
 
 #. Menu item
-#: zim/gui/mainwindow.py:822
+#: zim/gui/mainwindow.py:825
 msgid "_Previous in Index"
 msgstr "_Aurrekoa aurkibidean"
 
 #. Menu item
-#: zim/gui/mainwindow.py:831
+#: zim/gui/mainwindow.py:834
 msgid "_Next in Index"
 msgstr "_Hurrengoa aurkibidean"
 
 #. Menu item
-#: zim/gui/mainwindow.py:840
+#: zim/gui/mainwindow.py:843
 msgid "_Home"
 msgstr "_Hasiera"
 
 #. Menu item
-#: zim/gui/mainwindow.py:840
+#: zim/gui/mainwindow.py:843
 msgid "Go to home page"
 msgstr "Joan hasierako orrira"
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/mainwindow.py:862
+#: zim/gui/mainwindow.py:865
 #, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
@@ -682,17 +682,17 @@ msgstr[0] "%i_Bueltako esteka..."
 msgstr[1] "%i_Bueltako estekak..."
 
 #. Dialog title
-#: zim/gui/mainwindow.py:996
+#: zim/gui/mainwindow.py:1002
 msgid "Jump to"
 msgstr "Jausi egin hona"
 
 #. Button label
-#: zim/gui/mainwindow.py:997
+#: zim/gui/mainwindow.py:1003
 msgid "_Jump"
 msgstr "_Jauzi egin"
 
 #. Label for page input
-#: zim/gui/mainwindow.py:1002
+#: zim/gui/mainwindow.py:1008
 msgid "Jump to Page"
 msgstr "Jausi egin orri honetara"
 
@@ -843,7 +843,7 @@ msgstr "Esteka"
 #. tooltip label for image with anchor id | 
 #. input label for object ID
 #: zim/gui/pageview/__init__.py:4972 zim/gui/pageview/__init__.py:7883
-#: zim/plugins/sourceview.py:378
+#: zim/plugins/sourceview.py:379
 msgid "Id"
 msgstr "Id"
 
@@ -1404,7 +1404,7 @@ msgstr "_Esteka"
 
 #. Input in 'insert link' dialog | 
 #. toolbar style
-#: zim/gui/pageview/__init__.py:8040 zim/plugins/toolbar.py:36
+#: zim/gui/pageview/__init__.py:8040 zim/plugins/toolbar.py:42
 msgid "Text"
 msgstr "Testua"
 
@@ -2456,12 +2456,12 @@ msgid "Can not modify page: %s"
 msgstr "Ezin da %s orria aldatu"
 
 #. placeholder for unknown file name
-#: zim/parser.py:278
+#: zim/parser.py:281
 msgid "<Unknown>"
 msgstr "<Ezezaguna>"
 
 #. Extended error message while parsing a file, gives file name, line number and words where error occurred
-#: zim/parser.py:284
+#: zim/parser.py:287
 #, python-format
 msgid "Error in %(file)s at line %(line)i near \"%(snippet)s\""
 msgstr "Errorea %(file)s at line %(line)i near \"%(snippet)s\""
@@ -2577,7 +2577,7 @@ msgstr ""
 #: zim/plugins/attachmentbrowser/__init__.py:82 zim/plugins/backlinkpane.py:35
 #: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:61
 #: zim/plugins/tableofcontents.py:116 zim/plugins/tags.py:47
-#: zim/plugins/tasklist/__init__.py:56 zim/plugins/toolbar.py:71
+#: zim/plugins/tasklist/__init__.py:56 zim/plugins/toolbar.py:82
 msgid "Position in the window"
 msgstr "Kokalekua leihoan"
 
@@ -2651,18 +2651,18 @@ msgid "_Edit..."
 msgstr "_Editatu..."
 
 #. dialog title, %s is the object name like "Equation"
-#: zim/plugins/base/imagegenerator.py:322
+#: zim/plugins/base/imagegenerator.py:323
 #, python-format
 msgid "Edit %s"
 msgstr "Editatu %s"
 
 #. button in e.g. equation editor dialog
-#: zim/plugins/base/imagegenerator.py:347
+#: zim/plugins/base/imagegenerator.py:348
 msgid "_Preview"
 msgstr "_Aurrebista"
 
 #. Question prompt when e.g. equation editor encountered an error generating the image to insert
-#: zim/plugins/base/imagegenerator.py:401
+#: zim/plugins/base/imagegenerator.py:402
 msgid ""
 "An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
@@ -3141,22 +3141,32 @@ msgid "This plugin adds the page index pane to the main window.\n"
 msgstr "Plugin honek leiho nagusiari orrien atalen panela gehitzen dio.\n"
 
 #. preferences option
-#: zim/plugins/pageindex/__init__.py:63 zim/plugins/tags.py:49
+#: zim/plugins/pageindex/__init__.py:63
+msgid "Use drag&drop to move pages in the notebook"
+msgstr ""
+
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
 msgid "Automatically expand sections on open page"
 msgstr "Zabaldu atala automatikoki orria irekitzean"
 
 #. preferences option
-#: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:51
+#: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:51
 msgid "Automatically collapse sections on close page"
 msgstr "Tolestu atalak automatikoki orria ixtean."
 
 #. preferences option
-#: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:53
+#: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
 msgstr "Erabili korritze-barra horizontala (berrabiarazi behar da)"
 
+#. preferences option
+#: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
+msgid "Use tooltips"
+msgstr ""
+
 #. tab label for side pane
-#: zim/plugins/pageindex/__init__.py:126 data/templates/html/Default.html:52
+#: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
 #: data/templates/html/Default.html:54
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
@@ -3469,22 +3479,22 @@ msgid "Code Block"
 msgstr "Kode blokea"
 
 #. preference option for sourceview plugin
-#: zim/plugins/sourceview.py:319
+#: zim/plugins/sourceview.py:320
 msgid "Show Line Numbers"
 msgstr "Erakutsi lerro zenbakiak"
 
 #. input label
-#: zim/plugins/sourceview.py:329 zim/plugins/sourceview.py:356
+#: zim/plugins/sourceview.py:330 zim/plugins/sourceview.py:357
 msgid "Syntax"
 msgstr "Sintaxia"
 
 #. dialog title
-#: zim/plugins/sourceview.py:346
+#: zim/plugins/sourceview.py:347
 msgid "Insert Code Block"
 msgstr "Txertatu kode blokea"
 
 #. input checkbox
-#: zim/plugins/sourceview.py:383
+#: zim/plugins/sourceview.py:384
 msgid "Display line numbers"
 msgstr "Bistaratu lerroen zenbakiak"
 
@@ -3764,7 +3774,7 @@ msgstr "Edukien aurkibidea"
 #. plugin name | 
 #. title for sidepane tab | 
 #. Column header for tag list in Task List dialog
-#: zim/plugins/tags.py:37 zim/plugins/tags.py:95
+#: zim/plugins/tags.py:37 zim/plugins/tags.py:98
 #: zim/plugins/tasklist/gui.py:247
 msgid "Tags"
 msgstr "Etiketak"
@@ -3779,17 +3789,17 @@ msgstr ""
 "batean eskaintzen du.\n"
 
 #. menu option
-#: zim/plugins/tags.py:145
+#: zim/plugins/tags.py:148
 msgid "Show full page name"
 msgstr "Erakutsi orriaren izen osoa"
 
 #. menu option
-#: zim/plugins/tags.py:150
+#: zim/plugins/tags.py:153
 msgid "Sort pages by tags"
 msgstr "Ordenatu orriak etiketen arabera"
 
 #. Context menu item for tag cloud
-#: zim/plugins/tags.py:441
+#: zim/plugins/tags.py:444
 msgid "Sort alphabetically"
 msgstr "Ordenatu alfabetikoki"
 
@@ -3943,58 +3953,83 @@ msgid "Flag tasks due on Monday or Tuesday before the weekend"
 msgstr "Markatu egitekoak asteburu aurreko astelehen eta ostegunean"
 
 #. toolbar style
-#: zim/plugins/toolbar.py:35
+#: zim/plugins/toolbar.py:41
 msgid "Icons"
 msgstr "Ikonoak"
 
 #. toolbar style
-#: zim/plugins/toolbar.py:37
+#: zim/plugins/toolbar.py:43
 msgid "Icons & Text"
 msgstr "Ikonoak eta testua"
 
 #. toolbar style
-#: zim/plugins/toolbar.py:38
+#: zim/plugins/toolbar.py:44
 msgid "Icons & Text horizontal"
 msgstr "Ikonoak eta testua horizontalean"
 
 #. Toolbar size small
-#: zim/plugins/toolbar.py:46
+#: zim/plugins/toolbar.py:52
 msgid "Small"
 msgstr "Txikia"
 
 #. Toolbar size large
-#: zim/plugins/toolbar.py:47
+#: zim/plugins/toolbar.py:53
 msgid "Large"
 msgstr "Handia"
 
 #. plugin name
-#: zim/plugins/toolbar.py:57
+#: zim/plugins/toolbar.py:63
 msgid "Tool Bar"
 msgstr "Tresna-barra"
 
 #. plugin description
-#: zim/plugins/toolbar.py:58
+#: zim/plugins/toolbar.py:64
+#, fuzzy
+#| msgid ""
+#| "This plugin adds a \"tool bar\" to the main window.\n"
+#| "It can be a \"classic\" toolbar at the top of the window\n"
+#| "or running along the side of the window.\n"
 msgid ""
 "This plugin adds a \"tool bar\" to the main window.\n"
 "It can be a \"classic\" toolbar at the top of the window\n"
-"or running along the side of the window.\n"
+"or running along the side of the window. It also allows\n"
+"configuring the window decoration.\n"
 msgstr ""
 "Plugin honek \"tresna-barra\" bat gehitzen du leiho nagusian.\n"
 "Leihoaren goialdeko tresna-barra \"klasikoa\" izan daiteke\n"
 "edo eraman daiteke leihoaren aldeetara.\n"
 
 #. option for plugin preferences
-#: zim/plugins/toolbar.py:69
-msgid "Include editing tools (classic toolbar)"
+#: zim/plugins/toolbar.py:76
+msgid "Show controls in the window decoration"
+msgstr ""
+
+#. option for plugin preferences
+#: zim/plugins/toolbar.py:76
+msgid "This option requires restart of the application"
+msgstr ""
+
+#. option for plugin preferences
+#: zim/plugins/toolbar.py:78
+#, fuzzy
+#| msgid "Show in the toolbar"
+msgid "Show toolbar"
+msgstr "Erakutsi tresna-barran"
+
+#. option for plugin preferences
+#: zim/plugins/toolbar.py:80
+#, fuzzy
+#| msgid "Include editing tools (classic toolbar)"
+msgid "Include formatting tools in toolbar"
 msgstr "Edizio tresnak barne (tresna-barra klasikoa)"
 
 #. option for plugin preferences
-#: zim/plugins/toolbar.py:73
+#: zim/plugins/toolbar.py:84
 msgid "Toolbar style"
 msgstr "Tresna-barraren estiloa"
 
 #. option for plugin preferences
-#: zim/plugins/toolbar.py:75
+#: zim/plugins/toolbar.py:86
 msgid "Toolbar size"
 msgstr "Tresna-barraren tamaina"
 
