@@ -58,11 +58,11 @@ jobs:
           git config --global user.name "Your Name"
 
       - name: Test MacOS
-        run: LC_COLLATE="en_US.UTF-8" python3 ./test.py
+        run: python3 ./test.py
         if: matrix.os == 'macos-latest'
 
       - name: Test Ubuntu
-        run: LC_COLLATE="en_US.UTF-8" xvfb-run ./test.py
+        run: xvfb-run ./test.py
         if: matrix.os == 'ubuntu-latest'
 
       - name: Test Windows
