@@ -226,7 +226,7 @@ class TestPageEntry(tests.TestCase):
 			entry.set_text(text)
 			entry.update_completion()
 			self.assertTrue(entry.get_input_valid())
-			self.assertEqual([r[0] for r in self.completion_model], wanted)
+			self.assertEqual(sorted([r[0] for r in self.completion_model]), sorted(wanted))
 
 
 class TestNamespaceEntry(TestPageEntry):
