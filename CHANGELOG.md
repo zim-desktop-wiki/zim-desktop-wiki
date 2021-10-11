@@ -5,6 +5,18 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.74.2 - Mon 11 Oct 2021
+* Let Toolbar plugin also remove window decoration
+* Fix execution of custom tools from Toolbar
+* Add plugin "view" items to Toolbar plugin
+* Make drag&drop optional in the pageindex
+* Add option to toggle tooltips for index panes
+* Fix Zeitgeist plugin to work with Gtk3 branch
+* Improve dialog feedback for invalid input
+* Fix error on cancel insert dialog
+* Let exceptions not block search
+* Make page parser robust for empty files
+
 ##  0.74.1 - Thu 23 Sep 2021
 * Add preference to hide edit bar
 * Add separate parameter for wrapped lines linespacing
