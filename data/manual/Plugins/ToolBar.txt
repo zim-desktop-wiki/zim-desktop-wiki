@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 Creation-Date: 2021-02-22T13:37:50+01:00
 
 ====== ToolBar ======
@@ -10,7 +10,9 @@ The toolbar will show a few default tools as well as tools defined in plugins an
 
 ===== Options =====
 
-* **Include editing tools (classic toolbar):** when enabled the editing controls which are normally shown in the "edit bar" on the bottom of the screen are moved to the toolbar. This looks best when the toolbar is placed on top of the window and as a style "Both text & icons horizontal" is selected.
+* **Show controls in the window decoration**: set whether controls like page navigation and search button are shown in the window border (which is the default without the plugin). If disabled, some controls will be moved into the toolbar. This option requires restart of the application to fully take effect.
+* **Show toolbar**: whether to show a toolbar at all
+* **Include formatting tools in toolbar**: when enabled the editing controls which are normally shown in the "edit bar" on the bottom of the screen are moved to the toolbar. This looks best when the toolbar is placed on top of the window and as a style "Both text & icons horizontal" is selected.
 * **Position in the window:** the position in the window to place the toolbar
 * **Toolbar style:** the style of the toolbar buttons (text and/or icons)
 * **Toolbar size:** the size of the toolbar buttons

@@ -449,8 +449,8 @@ class RadioActionClassMethod(ActionDescriptor):
 			(name + '_' + opt[0],) + opt[1:] + (i,)
 				for i, opt in enumerate(radio_options)
 		)
+		self.hasicon = False
 		self.menuhints = menuhints.split(':')
-
 		self._bound_actions = weakref.WeakKeyDictionary()
 
 

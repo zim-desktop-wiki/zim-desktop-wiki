@@ -1425,15 +1425,6 @@ class InputEntry(Gtk.Entry):
 		self.update_input_valid()
 		self.connect('changed', self.__class__.update_input_valid)
 
-		def _init_base_color(*a):
-			# This is handled on expose event, because style does not
-			# yet reflect theming on construction
-			if self._normal_color is None:
-				self._normal_color = self.style.base[Gtk.StateType.NORMAL]
-				self._set_base_color(self.get_input_valid())
-
-		#self.connect('expose-event', _init_base_color)
-
 	def set_check_func(self, check_func):
 		'''Set a function to check whether input is valid or not
 		@param check_func: the function
@@ -1516,22 +1507,19 @@ class InputEntry(Gtk.Entry):
 		if show_empty_invalid is not None:
 			self.show_empty_invalid = show_empty_invalid
 
-		if valid == self._input_valid:
-			return
+		if valid != self._input_valid:
+			self._input_valid = valid
+			self.emit('input-valid-changed')
 
-		#if self._normal_color:
-		#	self._set_base_color(valid)
-		# else: not yet initialized
-
-		self._input_valid = valid
-		self.emit('input-valid-changed')
-
-	def _set_base_color(self, valid):
-		if valid \
-		or (not self.get_text() and not self.show_empty_invalid):
-			self.modify_base(Gtk.StateType.NORMAL, self._normal_color)
+	def do_input_valid_changed(self):
+		context = self.get_style_context()
+		if not self.show_empty_invalid and not self.get_text():
+			# Maybe invalid, but don't show it
+			context.remove_class(Gtk.STYLE_CLASS_ERROR)
+		elif not self._input_valid:
+			context.add_class(Gtk.STYLE_CLASS_ERROR)
 		else:
-			self.modify_base(Gtk.StateType.NORMAL, Gdk.color_parse(self.ERROR_COLOR))
+			context.remove_class(Gtk.STYLE_CLASS_ERROR)
 
 	def clear(self):
 		'''Clear the text in the entry'''

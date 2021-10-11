@@ -52,6 +52,8 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 			# T: preferences option
 		('use_hscroll', 'bool', _('Use horizontal scrollbar (may need restart)'), False),
 			# T: preferences option
+		('use_tooltip', 'bool', _('Use tooltips'), True),
+			# T: preferences option
 	)
 
 
@@ -84,6 +86,7 @@ class TagsNotebookViewExtension(NotebookViewExtension):
 		self.plugin.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
+		self.widget.treeview.set_use_tooltip(preferences['use_tooltip'])
 		self.widget.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
 		self.widget.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'])

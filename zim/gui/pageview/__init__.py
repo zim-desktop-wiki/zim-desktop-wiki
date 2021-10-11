@@ -7865,7 +7865,9 @@ class EditImageDialog(Dialog):
 			# range for width and height are set in set_ranges()
 		)
 		self.form.widgets['file'].set_use_relative_paths(notebook, path)
-			# Show relative paths
+		self.form.widgets['file'].allow_empty = False
+		self.form.widgets['file'].show_empty_invalid = True
+		self.form.widgets['file'].update_input_valid()
 
 		reset_button = Gtk.Button.new_with_mnemonic(_('_Reset Size'))
 			# T: Button in 'edit image' dialog
@@ -7898,6 +7900,8 @@ class EditImageDialog(Dialog):
 		height = self.form.widgets['height']
 		file = self.form['file']
 		try:
+			if file is None:
+				raise AssertionError
 			w, h = image_file_get_dimensions(file.path)
 			if w <= 0 or h <= 0:
 				raise AssertionError
@@ -7918,6 +7922,9 @@ class EditImageDialog(Dialog):
 
 	def do_file_changed(self):
 		# Prevent images becoming one pixel wide
+		file = self.form['file']
+		if file is None:
+			return
 		try:
 			if self._image_data['width'] == 1:
 				self.reset_dimensions()
@@ -7947,6 +7954,9 @@ class EditImageDialog(Dialog):
 
 	def do_response_ok(self):
 		file = self.form['file']
+		if file is None:
+			return False
+
 		attrib = self._image_data
 		attrib['src'] = self.notebook.relative_filepath(file, self.path) or file.uri
 
@@ -7958,6 +7968,8 @@ class EditImageDialog(Dialog):
 				linkfile = self.form.widgets['href'].get_file()
 				href = self.notebook.relative_filepath(linkfile, self.path) or linkfile.uri
 			attrib['href'] = href
+		else:
+			attrib.pop('href', None)
 
 		id = self.form['anchor']
 		if id:

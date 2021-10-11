@@ -35,6 +35,22 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2021-10-11" version="0.74.2">
+      <description>
+        <ul>
+          <li>Let Toolbar plugin also remove window decoration</li>
+          <li>Fix execution of custom tools from Toolbar</li>
+          <li>Add plugin "view" items to Toolbar plugin</li>
+          <li>Make drag&amp;drop optional in the pageindex</li>
+          <li>Add option to toggle tooltips for index panes</li>
+          <li>Fix Zeitgeist plugin to work with Gtk3 branch</li>
+          <li>Improve dialog feedback for invalid input</li>
+          <li>Fix error on cancel insert dialog</li>
+          <li>Let exceptions not block search</li>
+          <li>Make page parser robust for empty files</li>
+        </ul>
+      </description>
+    </release>
     <release date="2021-09-23" version="0.74.1">
       <description>
         <ul>

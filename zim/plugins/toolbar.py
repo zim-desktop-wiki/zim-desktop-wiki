@@ -29,6 +29,7 @@ from gi.repository import Gtk
 
 from zim.plugins import PluginClass, list_actions, PluginManager
 from zim.gui.pageview import PageViewExtension
+from zim.gui.notebookview import NotebookView
 from zim.gui.pageview.editbar import EditActionMixin
 from zim.gui.widgets import TOP, BOTTOM, RIGHT, POSITIONS
 from zim.gui.customtools import CustomToolManager
@@ -63,7 +64,8 @@ class ToolBarPlugin(PluginClass):
 		'description': _('''\
 This plugin adds a "tool bar" to the main window.
 It can be a "classic" toolbar at the top of the window
-or running along the side of the window.
+or running along the side of the window. It also allows
+configuring the window decoration.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:ToolBar',
@@ -71,9 +73,13 @@ or running along the side of the window.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('classic', 'bool', _('Include editing tools (classic toolbar)'), False),
+		('show_headerbar', 'bool', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), True),
 			# T: option for plugin preferences
-		('position', 'choice', _('Position in the window'), RIGHT, POSITIONS),
+		('show_toolbar', 'bool', _('Show toolbar'), True),
+			# T: option for plugin preferences
+		('include_formatting', 'bool', _('Include formatting tools in toolbar'), True),
+			# T: option for plugin preferences
+		('position', 'choice', _('Position in the window'), TOP, POSITIONS),
 			# T: option for plugin preferences
 		('style', 'choice', _('Toolbar style'), 'ICONS', STYLES),
 			# T: option for plugin preferences
@@ -89,67 +95,123 @@ class ToolBarMainWindowExtension(EditActionMixin, PageViewExtension):
 		EditActionMixin.__init__(self, view)
 		self.toolbar = None
 		self._customtoolmanager = CustomToolManager()
-		self.refresh_toolbar()
+		self.setup()
+		self.update()
 
 		def on_change(o, *a):
-			self.refresh_toolbar()
+			self.update()
 
 		self.connectto(plugin.preferences, 'changed', on_change)
 		self.connectto(self._customtoolmanager, 'changed', on_change)
 
 		def on_extensions_changed(o, obj):
 			if obj in (view, view.get_toplevel()):
-				self.refresh_toolbar()
+				self.update()
 
 		self.connectto(PluginManager, 'extensions-changed', on_extensions_changed)
 
-	def refresh_toolbar(self):
+		self.on_readonly_changed(self.pageview, self.pageview.readonly)
+		self.connectto(self.pageview, 'readonly-changed')
+
+	def on_readonly_changed(self, pageview, readonly):
+		for item in self._formatting_items:
+			item.set_sensitive(not readonly)
+
+		if self._toggle_editable_item:
+			self._toggle_editable_item.set_sensitive(not self.pageview.page.readonly)
+
+	def setup(self):
+		if self.plugin.preferences['show_headerbar']:
+			pass
+		else:
+			window = self.pageview.get_toplevel()
+			if not window.get_property('visible'):
+				# only do this when window not yet realized
+				window.set_titlebar(None)
+
+	def update(self):
+		window = self.pageview.get_toplevel()
+
 		if self.toolbar is not None:
-			self.pageview.get_toplevel().remove(self.toolbar)
+			try:
+				window.remove(self.toolbar)
+			except ValueError:
+				pass
+			finally:
+				self.toolbar = None
 
-		self.toolbar = Gtk.Toolbar()
+		if self.plugin.preferences['show_toolbar']:
+			self.toolbar = Gtk.Toolbar()
+			include_headercontrols = not self.plugin.preferences['show_headerbar']
+			self._populate_toolbar(window, self.toolbar, include_headercontrols)
+			window.add_bar(self.toolbar, self.plugin.preferences['position'])
 
-		if self.plugin.preferences['classic']:
+	def _populate_toolbar(self, window, toolbar, include_headercontrols):
+		if include_headercontrols:
+			if isinstance(self.pageview, NotebookView):
+				for action in (
+					window.open_page_back,
+					window.open_page_home,
+					window.open_page_forward,
+				):
+					toolbar.insert(action.create_tool_button(), -1)
+				toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+			item = window.toggle_editable.create_tool_button(connect_button=False)
+			item.set_action_name('win.toggle_editable')
+			window._style_toggle_editable_button(item)
+			toolbar.insert(item, -1)
+			self._toggle_editable_item = item
+			toolbar.insert(Gtk.SeparatorToolItem(), -1)
+		else:
+			self._toggle_editable_item = None
+
+		self._formatting_items = []
+		if self.plugin.preferences['include_formatting']:
 			self.pageview.set_edit_bar_visible(False)
 
-			self.toolbar.insert_action_group('pageview', self.obj.get_action_group('pageview'))
+			toolbar.insert_action_group('pageview', self.obj.get_action_group('pageview'))
 			for action in self.edit_format_actions:
 				item = action.create_tool_button(connect_button=False)
 				item.set_action_name('pageview.' + action.name)
-				self.toolbar.insert(item, -1)
+				toolbar.insert(item, -1)
+				self._formatting_items.append(item)
 
 			for label, icon_name, menu in self.edit_menus:
 				button = self._create_menu_button(label, icon_name, menu)
 				button.set_is_important(True)
-				self.toolbar.insert(button, -1)
+				toolbar.insert(button, -1)
+				self._formatting_items.append(button)
 
-			self.toolbar.insert(Gtk.SeparatorToolItem(), -1)
+			toolbar.insert(Gtk.SeparatorToolItem(), -1)
 		else:
 			self.pageview.set_edit_bar_visible(True)
 
-		content = (
-			self._get_tools_actions(),
-			self._get_custom_tools(),
-		)
+		content = list(self._get_plugin_actions(include_headercontrols))
+		content.append(self._get_custom_tools())
 		content = [group for group in content if group]
 		for group in content:
 			for item in group:
-				self.toolbar.insert(item, -1)
+				toolbar.insert(item, -1)
 			if group != content[-1]:
-				self.toolbar.insert(Gtk.SeparatorToolItem(), -1)
+				toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+		if include_headercontrols and isinstance(self.pageview, NotebookView):
+			space = Gtk.SeparatorToolItem()
+			space.set_draw(False)
+			space.set_expand(True)
+			self.toolbar.insert(space, -1)
+			toolbar.insert(window._uiactions.show_search.create_tool_button(), -1)
 
 		position = self.plugin.preferences['position']
 		if position in (TOP, BOTTOM):
-			self.toolbar.set_orientation(Gtk.Orientation.HORIZONTAL)
+			toolbar.set_orientation(Gtk.Orientation.HORIZONTAL)
 		else: # LEFT, RIGHT
-			self.toolbar.set_orientation(Gtk.Orientation.VERTICAL)
+			toolbar.set_orientation(Gtk.Orientation.VERTICAL)
 
-		self.toolbar.set_style(_get_style(self.plugin.preferences['style']))
-		self.toolbar.set_icon_size(_get_size(self.plugin.preferences['size']))
-		self.toolbar.show_all()
-
-		window = self.pageview.get_toplevel()
-		window.add_bar(self.toolbar, position)
+		toolbar.set_style(_get_style(self.plugin.preferences['style']))
+		toolbar.set_icon_size(_get_size(self.plugin.preferences['size']))
+		toolbar.show_all()
 
 	def _create_menu_button(self, label, icon_name, menu):
 		button = Gtk.ToggleToolButton()
@@ -172,18 +234,22 @@ class ToolBarMainWindowExtension(EditActionMixin, PageViewExtension):
 
 		return button
 
-	def _get_tools_actions(self):
-		items = []
+	def _get_plugin_actions(self, include_headercontrols):
+		viewitems, toolitems = [], []
 		pageview, window = self.pageview, self.pageview.get_toplevel()
 		for o in (window, pageview):
 			if o is not None:
 				for name, action in list_actions(o):
-					if 'tools' in action.menuhints and action.hasicon and not 'headerbar' in action.menuhints:
-						items.append(action.create_tool_button())
+					if 'tools' in action.menuhints and action.hasicon \
+						and (include_headercontrols or not 'headerbar' in action.menuhints):
+							toolitems.append(action.create_tool_button())
+					if 'view' in action.menuhints and action.hasicon \
+						and (include_headercontrols or not 'headerbar' in action.menuhints):
+							viewitems.append(action.create_tool_button())
 					elif 'toolbar' in action.menuhints:
-						items.append(action.create_tool_button(fallback_icon='system-run'))
+						toolitems.append(action.create_tool_button(fallback_icon='system-run'))
 
-		return items
+		return viewitems, toolitems
 
 	def _get_custom_tools(self):
 		items = []
