@@ -329,7 +329,7 @@ class Calendar(Gtk.Calendar):
 
 class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
-	title = _('Journal') # T: side pane title
+	title = _('_Journal') # T: side pane title
 
 	def __init__(self, plugin, notebook, navigation):
 		GObject.GObject.__init__(self)

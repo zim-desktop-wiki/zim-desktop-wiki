@@ -113,10 +113,10 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 	def update_title(self, treeview_model):
 		if self.preferences['show_count']:
 			n = len(treeview_model)
-			self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
+			self.set_title(ngettext('%i _BackLink', '%i _BackLinks', n) % n)
 			# T: Label for the statusbar, %i is the number of BackLinks to the current page
 		else:
-			self.set_title(_('BackLinks')) # T: widget label
+			self.set_title(_('_BackLinks')) # T: widget label
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
