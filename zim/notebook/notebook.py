@@ -18,7 +18,7 @@ import zim.templates
 import zim.formats
 
 from zim.fs import adapt_from_oldfs
-from zim.newfs import SEP, LocalFile, LocalFolder
+from zim.newfs import SEP, Folder, LocalFile, LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error
 from zim.utils import natural_sort_key
@@ -1035,14 +1035,17 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		the I{attachment folder} of that page, otherwise they are
 		resolved relative to the I{notebook folder} - if any.
 
+		Paths ending with a "/" or "\" are considered folders.
+
 		The file is resolved purely based on the path, it does not have
-		to exist at all.
+		to exist at all. However if a folder of the name exists a L{Folder}
+		object is returned instead of a file.
 
 		@param filename: the (relative) file path or uri as string
 		@param path: a L{Path} object for the page
-		@returns: a L{File} object.
+		@returns: a L{File} or L{Folder} object.
 		'''
-		assert isinstance(filename, str)
+		assert isinstance(filename, str) and filename
 		file = self._resolve_abs_file(filename)
 		if file is None:
 			if path:
@@ -1052,7 +1055,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 			file = LocalFile(folder.get_abspath(filename))
 
-		return file
+		myfolder = LocalFolder(file)
+		if filename[-1] in ('/', '\\') or myfolder.exists():
+			return myfolder
+		else:
+			return file
 
 	def _resolve_abs_file(self, filename):
 		# Code shared between notebook & export linker
@@ -1100,7 +1107,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@returns: relative file path as string, or C{None} when no
 		relative path was found
 		'''
-		from zim.newfs import LocalFile, LocalFolder
 		file = adapt_from_oldfs(file)
 		if not file.islocal:
 			return None
@@ -1111,13 +1117,14 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		rootdir = '/'
 		mydir = '.' + SEP
 		updir = '..' + SEP
+		postfix = SEP if isinstance(file, Folder) else ''
 
 		# Look within the notebook
 		if path:
 			attachments_dir = self.get_attachments_dir(path)
 
 			if file.ischild(attachments_dir):
-				return mydir + file.relpath(attachments_dir)
+				return mydir + file.relpath(attachments_dir) + postfix
 			elif document_root and notebook_root \
 			and document_root.ischild(notebook_root) \
 			and file.ischild(document_root) \
@@ -1125,7 +1132,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				# special case when document root is below notebook root
 				# the case where document_root == attachment_folder is
 				# already caught by above if clause
-				return rootdir + file.relpath(document_root)
+				return rootdir + file.relpath(document_root) + postfix
 			elif notebook_root \
 			and file.ischild(notebook_root) \
 			and attachments_dir.ischild(notebook_root):
@@ -1133,22 +1140,22 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
 				up = 1 + uppath.replace('\\', '/').count('/')
-				return updir * up + downpath
+				return updir * up + downpath + postfix
 		else:
 			if document_root and notebook_root \
 			and document_root.ischild(notebook_root) \
 			and file.ischild(document_root):
 				# special case when document root is below notebook root
-				return rootdir + file.relpath(document_root)
+				return rootdir + file.relpath(document_root) + postfix
 			elif notebook_root and file.ischild(notebook_root):
-				return mydir + file.relpath(notebook_root)
+				return mydir + file.relpath(notebook_root) + postfix
 
 		# If that fails look for global folders
 		if document_root and file.ischild(document_root):
-			return rootdir + file.relpath(document_root)
+			return rootdir + file.relpath(document_root) + postfix
 
 		# Finally check HOME or give up
-		path = file.userpath
+		path = file.userpath + postfix
 		return path if path.startswith('~') else None
 
 	def get_attachments_dir(self, path):

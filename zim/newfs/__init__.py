@@ -62,21 +62,33 @@ from .helpers import *
 def localFileOrFolder(path, pwd=None):
 	'''Convenience method that resolves a local C{File} or C{Folder} object
 
-	NOTE: the object must exist in order to check the correct type, so a
-	C{FileNotFoundError} will be raised if the object does not exist.
+	If the path is a string and ends with either "/" or "\\" it is interpreted
+	as user input and a C{LocalFolder} object will be returned. Else the function
+	will try to sort out whether the path is a file or a folder by checking on
+	disk. This requires the object to exist.
 
-	@param path: file path as a string
+	NOTE: for consistency, this function only returns objects for existing files
+	or folders, else it raises C{FileNotFoundError}
+
+	@param path: file path as a string, L{FilePath} object, or list of path elements
 	@param pwd: working directory as a string, needed to allow relative paths
 	'''
 	if pwd:
-		path = FilePath(pwd).get_abspath(path)
+		filepath = FilePath(pwd).get_abspath(path)
 	else:
-		path = FilePath(path)
+		filepath = FilePath(path)
 
-	try:
-		return LocalFolder(path.dirname).child(path.basename)
-	except:
-		raise FileNotFoundError(path) # also catch mal-formed path etc.
+	if isinstance(path, str) and path and path[-1] in ('/', '\\'):
+		folder = LocalFolder(filepath)
+		if folder.exists():
+			return folder
+		else:
+			raise FileNotFoundError(filepath)
+	else:
+		try:
+			return LocalFolder(filepath.dirname).child(filepath.basename)
+		except:
+			raise FileNotFoundError(filepath) # translate parent not found error
 
 
 def cleanup_filename(name):

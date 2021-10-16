@@ -474,32 +474,35 @@ class TestNotebook(tests.TestCase):
 		for link, wanted, cleaned in (
 			('~/test.txt', LocalFile('~/test.txt'), '~/test.txt'),
 			(r'~\test.txt', LocalFile('~/test.txt'), '~/test.txt'),
+			('~/test/', LocalFolder('~/test'), '~/test/'),
 			(os_native_path('file:///test.txt'), LocalFile(os_native_path('file:///test.txt')), None),
 			(os_native_path('file:/test.txt'), LocalFile(os_native_path('file:///test.txt')), None),
 			(os_native_path('file://localhost/test.txt'), LocalFile(os_native_path('file:///test.txt')), None),
 			('file:///C:/test.txt', LocalFile('file:///C:/test.txt'), None),
+			('file:///C:/test/', LocalFolder('file:///C:/test'), None),
 			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('../../notebook_document_root/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
+			('./test/', dir.folder('Foo/Bar/test'), './test/'),
 			(r'.\test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
+			('../test/', dir.folder('Foo/test'), '../test/'),
 			(r'..\test.txt', dir.file('Foo/test.txt'), '../test.txt'),
 			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt'), './Baz/test.txt'),
 			('../Other/Baz/test.txt', dir.file('Foo/Other/Baz/test.txt'), '../Other/Baz/test.txt'),
 			('./../Other/Baz/test.txt', dir.file('Foo/Other/Baz/test.txt'), '../Other/Baz/test.txt'),
 			(r'C:\foo\bar', LocalFile('file:///C:/foo/bar'), None),
 			(r'Z:\foo\bar', LocalFile('file:///Z:/foo/bar'), None),
+			(r'Z:\foo\bar\\', LocalFolder('file:///Z:/foo/bar'), None),
 		):
 			#print("== LINK", link)
 			#print('>>', self.notebook.resolve_file(link, path))
 			if cleaned is not None and not cleaned.startswith('/'):
 				cleaned = os_native_path(cleaned)
 			self.assertEqual(
-				adapt_from_oldfs(self.notebook.resolve_file(link, path)), wanted)
+				self.notebook.resolve_file(link, path), wanted)
 			self.assertEqual(
 				self.notebook.relative_filepath(wanted, path), cleaned)
-			self.assertEqual(
-				self.notebook.relative_filepath(FilePath(wanted.path), path), cleaned) # Ensure path manipulation only
 
 		# check relative path without Path
 		self.assertEqual(

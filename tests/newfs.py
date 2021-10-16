@@ -805,7 +805,14 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertIsInstance(rfile, File)
 		self.assertEqual(rfile.path, file.path)
 
+		self.assertRaises(FileNotFoundError, localFileOrFolder, file.path + '/')
+			# object exists, but we explicitly expect a folder, which doesn't
+
 		rfile = localFileOrFolder(file.dirname)
+		self.assertIsInstance(rfile, Folder)
+		self.assertEqual(rfile.path, file.dirname)
+
+		rfile = localFileOrFolder(file.dirname + '/')
 		self.assertIsInstance(rfile, Folder)
 		self.assertEqual(rfile.path, file.dirname)
 

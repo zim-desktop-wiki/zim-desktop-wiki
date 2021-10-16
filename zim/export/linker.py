@@ -16,7 +16,7 @@ from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
-from zim.newfs import SEP, LocalFile
+from zim.newfs import SEP, LocalFile, LocalFolder
 from zim.config import data_file
 from zim.notebook import interwiki_link, encode_filename, HRef, PageNotFoundError
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
@@ -181,7 +181,11 @@ class ExportLinker(BaseLinker):
 
 			file = LocalFile(folder.get_abspath(link))
 
-		return file
+		myfolder = LocalFolder(file)
+		if link[-1] in ('/', '\\') or myfolder.exists():
+			return myfolder
+		else:
+			return file
 
 	def _link_mailto(self, link):
 		if link.startswith('mailto:'):
