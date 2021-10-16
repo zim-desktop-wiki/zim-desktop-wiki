@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
 "PO-Revision-Date: 2021-10-16 21:20+0000\n"
-"Last-Translator: Mingun <Alexander_Sergey@mail.ru>\n"
+"Last-Translator: Nick222 <nick222@yandex.ru>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/zim/master/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -2665,7 +2665,7 @@ msgstr "Положение в окне"
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
 msgid "Use thumbnails"
-msgstr ""
+msgstr "Использовать эскизы"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:86
