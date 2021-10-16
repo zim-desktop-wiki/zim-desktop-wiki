@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-10-16 12:47+0000\n"
+"PO-Revision-Date: 2021-10-16 21:20+0000\n"
 "Last-Translator: Mingun <Alexander_Sergey@mail.ru>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/zim/master/ru/>\n"
 "Language: ru\n"
@@ -641,10 +641,8 @@ msgstr "В_перед"
 
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:790
-#, fuzzy
-#| msgid "_Forward"
 msgid "Go forward"
-msgstr "В_перед"
+msgstr "Переход вперёд"
 
 #. Menu item
 #: zim/gui/mainwindow.py:800
@@ -678,7 +676,7 @@ msgstr "_Домашняя страница"
 #. Menu item
 #: zim/gui/mainwindow.py:843
 msgid "Go to home page"
-msgstr ""
+msgstr "Перейти на домашнюю страницу"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:865
@@ -764,7 +762,7 @@ msgstr "Новое _вложение"
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:170
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "Показывать в нижней части редактора панель редактирования"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
@@ -841,7 +839,7 @@ msgstr "Каталог с шаблонами для файлов-вложени�
 #. tooltip for button in anchor popover
 #: zim/gui/pageview/__init__.py:4727
 msgid "Copy link to clipboard"
-msgstr ""
+msgstr "Копировать ссылку в буфер обмена"
 
 #. tooltip label for image with href
 #: zim/gui/pageview/__init__.py:4970
@@ -855,7 +853,7 @@ msgstr "_Связать"
 #: zim/gui/pageview/__init__.py:4972 zim/gui/pageview/__init__.py:7883
 #: zim/plugins/sourceview.py:379
 msgid "Id"
-msgstr ""
+msgstr "Идентификатор"
 
 #. Heading of error dialog
 #: zim/gui/pageview/__init__.py:5523
@@ -979,7 +977,7 @@ msgstr "Неизвестная wiki-ссылка: %s"
 #: zim/gui/pageview/__init__.py:6561
 #, python-format
 msgid "Id \"%s\" not found on the current page"
-msgstr ""
+msgstr "Идентификатор «%s» на текущей странице не найден"
 
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6617
@@ -1441,7 +1439,7 @@ msgstr "Текст"
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:8041
 msgid "Prefer short link names for pages"
-msgstr ""
+msgstr "Использовать для ссылок на страницы краткие имена"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview/__init__.py:8157
@@ -1566,7 +1564,7 @@ msgstr "Открыть новую страницу"
 #. error message in "move selected text" action
 #: zim/gui/pageview/__init__.py:8519
 msgid "No text selected"
-msgstr ""
+msgstr "Нет выделенного текста"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:8552
@@ -1592,6 +1590,10 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
+"Ваша системная кодировка установлена в %s, если вам нужна поддержка "
+"специальных символов\n"
+"или вы видите возникшие из-за кодировки ошибки, пожалуйста, настройте "
+"систему на использование «UTF-8»."
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1652,6 +1654,10 @@ msgid ""
 "Please see the dependencies section below for details.\n"
 "\n"
 msgstr ""
+"Этот модуль не может быть включён из-за отсутствующих зависимостей.\n"
+"Для получения подробной информации смотрите ниже раздел с описанием "
+"зависимостей.\n"
+"\n"
 
 #. help text when plugin cannot be loaded due to bug / issue
 #: zim/gui/preferencesdialog.py:325
@@ -1659,6 +1665,8 @@ msgid ""
 "There was a problem loading this plugin\n"
 "\n"
 msgstr ""
+"При загрузке этого модуля возникла проблема\n"
+"\n"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:337
@@ -1770,7 +1778,7 @@ msgstr "Корневая папка документа"
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:21
 msgid "Prefer short names for page links"
-msgstr ""
+msgstr "Использовать для ссылок на страницы краткие имена"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:22
@@ -1952,7 +1960,7 @@ msgstr "_Удалить страницу"
 #. question in "delete page" action
 #: zim/gui/uiactions.py:224
 msgid "Trash failed, do you want to permanently delete instead ?"
-msgstr ""
+msgstr "Удалить в корзину не удалось, хотите ли вы удалить насовсем?"
 
 #. Menu item
 #: zim/gui/uiactions.py:230
@@ -2160,12 +2168,12 @@ msgstr "Обновление ссылок"
 #: zim/gui/uiactions.py:681
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "Удалить ссылки на %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
 msgid "Trash Page"
-msgstr ""
+msgstr "Удаление страницы в корзину"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
@@ -2447,6 +2455,9 @@ msgid ""
 "of the file name, please try using a name with less\n"
 "than 255 characters"
 msgstr ""
+"Не удалось записать этот файл. Возможно это связано с длиной\n"
+"имени файла, пожалуйста, попробуйте использовать имя,\n"
+"содержащее менее 255 символов"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
@@ -2461,6 +2472,9 @@ msgid ""
 "of the file path, please try using a folder structure resulting in less\n"
 "than 4096 characters"
 msgstr ""
+"Не удалось записать этот файл. Возможно это связано с длиной пути к файлу,\n"
+"пожалуйста, попробуйте использовать такую структуру папок, чтобы путь\n"
+"содержал менее 4096 символов"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
@@ -2554,7 +2568,7 @@ msgstr "_Арифметика"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "Вы уверены, что хотите удалить файл «%s»?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -2608,22 +2622,22 @@ msgstr "Отмена"
 #. dialog title
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
 msgid "Rename file"
-msgstr ""
+msgstr "Переименование файла"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
 msgid "File name should not be blank."
-msgstr ""
+msgstr "Имя файла не может быть пустым."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:72
 msgid "A file with that name already exists."
-msgstr ""
+msgstr "Файл с таким именем уже существует."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:75
 msgid "File name should not contain path declaration."
-msgstr ""
+msgstr "Имя файла не должно содержать путь к нему."
 
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
@@ -2656,7 +2670,7 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:86
 msgid "Support thumbnails for SVG"
-msgstr ""
+msgstr "Включить эскизы для SVG-файлов"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
