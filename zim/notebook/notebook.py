@@ -604,6 +604,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if (file.exists() or folder.exists()):
 			self._move_file_and_folder(path, newpath)
 			self._reload_pages_in_cache(path)
+			self._reload_pages_in_cache(newpath)
 			self.emit('moved-page', path, newpath)
 
 			if update_links:

@@ -986,6 +986,38 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 		)
 
 
+class TestUpdateCacheOnMovePage(tests.TestCase):
+	# This test case is based on a bug report (issue #1689) where the state
+	# of the page objects is not properly updated when moving back to a location
+	# with an existing page object state including a textbuffer.
+	# For completeness also added version without buffer
+
+	def testMoveBackForthWithTextBuffer(self):
+		self.move_back_forth(with_text_buffer=True)
+
+	def testMoveBackForthWithOutTextBuffer(self):
+		self.move_back_forth(with_text_buffer=False)
+
+	def move_back_forth(self, with_text_buffer):
+		notebook = self.setUpNotebook(mock=tests.MOCK_DEFAULT_REAL, content=('page1',))
+
+		page1 = notebook.get_page(Path('page1'))
+		if with_text_buffer:
+			buffer1 = page1.get_textbuffer(MockTextBuffer)
+		self.assertIn('test 123', ''.join(page1.dump('wiki')))
+
+		notebook.move_page(page1, Path('page2'))
+		page2 = notebook.get_page(Path('page2'))
+		if with_text_buffer:
+			buffer2 = page1.get_textbuffer(MockTextBuffer)
+		self.assertEqual(''.join(page1.dump('wiki')), '')
+		self.assertIn('test 123', ''.join(page2.dump('wiki')))
+
+		notebook.move_page(page2, Path('page1'))
+		self.assertIn('test 123', ''.join(page1.dump('wiki')))
+		self.assertEqual(''.join(page2.dump('wiki')), '')
+
+
 class TestPath(tests.TestCase):
 	'''Test path object'''
 
@@ -1292,7 +1324,7 @@ class MockTextBuffer(object):
 		return self.parsetree
 
 	def clear(self):
-		pass
+		self.parsetree = None
 
 
 class TestMovePageNewNotebook(tests.TestCase):
