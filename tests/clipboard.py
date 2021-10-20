@@ -196,8 +196,6 @@ some <b>bold</b> text
 		set_func(file.uri)
 		tree = Clipboard.get_parsetree(self.notebook, page)
 		img = tree.find('img')
-		file_obj = img.get('_src_file')
-		self.assertEqual(file_obj, file)
 		rel_path = img.get('src')
 		self.assertEqual(self.notebook.resolve_file(rel_path, page), file)
 
@@ -227,13 +225,8 @@ some <b>bold</b> text
 		set_clipboard_image(file)
 		tree = Clipboard.get_parsetree(self.notebook, page)
 		img = tree.find('img')
-		file_obj = img.get('_src_file')
-		self.assertFalse(file_obj == file)
-		self.assertTrue(file_obj.exists())
-		self.assertTrue(file_obj.isimage())
-		self.assertTrue(file_obj.path.endswith('.png'))
 		rel_path = img.get('src')
-		self.assertEqual(self.notebook.resolve_file(rel_path, page), file_obj)
+		self.assertEqual(self.notebook.resolve_file(rel_path, page), file)
 
 	def testCopyPageLinkPasteAsParseTree(self):
 		page = self.notebook.get_page(Path('Test:wiki'))

@@ -841,7 +841,6 @@ class TextBuffer(Gtk.TextBuffer):
 		in the buffer is handled.
 		'''
 		#print('INSERT AT CURSOR', tree.tostring())
-		tree.resolve_images(self.notebook, self.page)
 
 		# Check tree
 		root = tree._etree.getroot() # HACK - switch to new interface !
@@ -1037,8 +1036,7 @@ class TextBuffer(Gtk.TextBuffer):
 				self.set_textstyles(textstyles)
 				self.insert_anchor_at_cursor(element.attrib['name'])
 			elif element.tag == 'img':
-				file = element.attrib['_src_file']
-				self.insert_image_at_cursor(file, **element.attrib)
+				self.insert_image_at_cursor(None, **element.attrib)
 			elif element.tag == 'pre':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -1411,7 +1409,9 @@ class TextBuffer(Gtk.TextBuffer):
 		'''Insert an image in the buffer
 
 		@param iter: a C{Gtk.TextIter} for the insert position
-		@param file: a L{File} object or a file path or URI
+		@param file: a L{File} object or a absolute file path or URI,
+		if C{None} the file will be resolved based on C{src} relative to the
+		notebook and page
 		@param src: the file path the show to the user
 
 		If the image is e.g. specified in the page source as a relative
@@ -1420,11 +1420,12 @@ class TextBuffer(Gtk.TextBuffer):
 
 		@param attrib: any other image properties
 		'''
-		#~ If there is a property 'alt' in attrib we try to set a tooltip.
-		#~ '''
-		if isinstance(file, str):
-			file = LocalFile(file)
 		try:
+			if file is None:
+				file = self.notebook.resolve_file(src, self.page)
+			elif isinstance(file, str):
+				file = LocalFile(file)
+
 			pixbuf = image_file_load_pixels(file, int(attrib.get('width', -1)), int(attrib.get('height', -1)))
 		except:
 			#~ logger.exception('Could not load image: %s', file)
@@ -1436,7 +1437,6 @@ class TextBuffer(Gtk.TextBuffer):
 		pixbuf.zim_type = 'image'
 		pixbuf.zim_attrib = attrib
 		pixbuf.zim_attrib['src'] = src
-		pixbuf.zim_attrib['_src_file'] = file
 		self.insert_pixbuf(iter, pixbuf)
 
 	def insert_image_at_cursor(self, file, src, **attrib):

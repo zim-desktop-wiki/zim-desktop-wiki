@@ -511,30 +511,6 @@ class ParseTree(object):
 			heading.attrib['level'] = newlevel
 			path.append((level, newlevel))
 
-	def resolve_images(self, notebook=None, path=None):
-		'''Resolves the source files for all images relative to a page path	and
-		adds a '_src_file' attribute to the elements with the full file path.
-		'''
-		if notebook is None:
-			for element in self._etree.iter('img'):
-				filepath = element.attrib['src']
-				try:
-					element.attrib['_src_file'] = LocalFile(filepath)
-				except:
-					pass # non-local UIR or malformed path
-		else:
-			for element in self._etree.iter('img'):
-				filepath = element.attrib['src']
-				element.attrib['_src_file'] = notebook.resolve_file(filepath, path)
-
-	def unresolve_images(self):
-		'''Undo effect of L{resolve_images()}, mainly intended for
-		testing.
-		'''
-		for element in self._etree.iter('img'):
-			if '_src_file' in element.attrib:
-				element.attrib.pop('_src_file')
-
 	def encode_urls(self, mode=URL_ENCODE_READABLE):
 		'''Calls encode_url() on all links that contain urls.
 		See zim.parsing for details. Modifies the parse tree.

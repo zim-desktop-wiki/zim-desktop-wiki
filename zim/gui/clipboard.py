@@ -146,7 +146,6 @@ def serialize_parse_tree(register_buf, content_buf, start, end, user_data):
 def deserialize_parse_tree(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	notebook, path = user_data
 	tree = ParseTree().fromstring(data)
-	tree.resolve_images(notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
@@ -342,7 +341,6 @@ def _link_tree(links, notebook, path):
 
 	builder.end(FORMATTEDTEXT)
 	tree = builder.get_parsetree()
-	tree.resolve_images(notebook, path)
 	tree.decode_urls()
 	return tree
 

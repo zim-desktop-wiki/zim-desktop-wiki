@@ -20,22 +20,6 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	def __init__(self):
 		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
-def new_parsetree(testcase, path='Test'):
-	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
-	tree = tests.new_parsetree()
-	notebook = testcase.setUpNotebook()
-	page = notebook.get_page(Path(path))
-	tree.resolve_images(notebook, page)
-	return tree
-
-def new_parsetree_from_text(testcase, text):
-	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
-	tree = tests.new_parsetree_from_text(text)
-	notebook = testcase.setUpNotebook()
-	page = notebook.get_page(Path('Foo'))
-	tree.resolve_images(notebook, page)
-	return tree
-
 
 def setUpPageView(notebook, text=''):
 	'''Some bootstrap code to get an isolated PageView object'''
@@ -173,7 +157,7 @@ class TextBufferTestCaseMixin(object):
 class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testFormatRoundTrip(self):
-		tree = new_parsetree(self)
+		tree = tests.new_parsetree()
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
@@ -190,7 +174,7 @@ class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
-		tree = new_parsetree(self)
+		tree = tests.new_parsetree()
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
@@ -200,7 +184,6 @@ class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
 		raw1 = buffer.get_parsetree(raw=True)
 		result1 = buffer.get_parsetree()
 		reftree = tree.copy()
-		reftree.unresolve_images() # needed to make compare succeed
 		self.assertEqual(result1.tostring(), reftree.tostring())
 
 		# Compare we are stable when loading raw tree again
@@ -1285,7 +1268,7 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 
 		buffer = self.get_buffer()
 		undomanager = buffer.undostack
-		tree = new_parsetree(self)
+		tree = tests.new_parsetree()
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree._etree.getroot())
@@ -2207,7 +2190,7 @@ foo
 		buffer = TextBuffer(notebook, page)
 		view.set_buffer(buffer)
 
-		tree = new_parsetree_from_text(self, '''\
+		tree = tests.new_parsetree_from_text('''\
 ======= Test
 
 {{{somenewtype: foo=123
@@ -3532,7 +3515,6 @@ class TestPageviewDialogs(tests.TestCase):
 		imagedata = buffer.get_image_data(iter)
 		self.assertEqual(imagedata, {
 			'src': './data/zim.png', # preserve relative path
-			'_src_file': file,
 			'height': 24,
 		})
 		self.assertEqual(type(imagedata['height']).__name__, 'int')
@@ -3708,7 +3690,6 @@ class TestDragAndDropFunctions(tests.TestCase):
 	@tests.expectedFailure
 	def testSerializeParseTree(self):
 		tree = tests.new_parsetree()
-		tree.resolve_images()
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
@@ -3717,7 +3698,6 @@ class TestDragAndDropFunctions(tests.TestCase):
 
 		start, end = buffer.get_bounds()
 		xml = buffer.serialize(buffer, Gdk.Atom.intern('text/x-zim-parsetree', False), start, end)
-		tree.unresolve_images()
 		tree._etree.getroot().attrib['partial'] = True # HACK
 		self.assertEqual(xml, tree.tostring())
 
@@ -3757,14 +3737,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 		self.assertIn('Foo:Bar', xml) # FIXME: should use tree api
 
 	def testDeserializeImageData(self):
-		folder = self.setUpFolder(name='imagedata', mock=tests.MOCK_ALWAYS_REAL)
-		notebook = tests.MockObject(
-			return_values={
-				'relative_filepath': None,
-				'get_attachments_dir': folder
-			}
-		)
-		notebook.resolve_file = lambda fpath, ppath: fpath
+		notebook = self.setUpNotebook(name='imagedata', mock=tests.MOCK_ALWAYS_REAL)
 		path = Path('Mock')
 
 		buffer = TextBuffer(notebook, path)
