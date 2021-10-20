@@ -13,7 +13,7 @@ from zim.notebook.index import IndexNotFoundError
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
-	WindowSidePaneWidget
+	WindowSidePaneWidget, StatusPage
 
 
 class BackLinksPanePlugin(PluginClass):
@@ -78,8 +78,17 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		self.opener = opener
 		self.preferences = preferences
 
+		self._stack = Gtk.Stack()
 		self.treeview = LinksTreeView()
-		self.add(self.treeview)
+		for name, widget in (
+			('placeholder', StatusPage(None, _('No backlinks'))), # T: placeholder label in sidepane
+			('treeview', self.treeview),
+		):
+			widget.show_all()
+			self._stack.add_named(widget, name)
+		self._stack.set_visible_child_name('placeholder')
+
+		self.add(self._stack)
 		self.treeview.connect('row-activated', self.on_link_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 
@@ -104,19 +113,24 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 				#~ model.append(None, (link.source, text))
 				model.append((link.source, text))
 
-		self.update_title(model)
+		self.update_status(model)
 
 		## TODO make hierarchy by link type ?
 		## use link.type attribute
 		#self.treeview.expand_all()
 
-	def update_title(self, treeview_model):
+	def update_status(self, treeview_model):
+		n = len(treeview_model)
 		if self.preferences['show_count']:
-			n = len(treeview_model)
 			self.set_title(ngettext('%i BackLink', '%i BackLinks', n) % n)
 			# T: Label for the statusbar, %i is the number of BackLinks to the current page
 		else:
 			self.set_title(_('BackLinks')) # T: widget label
+
+		if n == 0:
+			self._stack.set_visible_child_name('placeholder')
+		else:
+			self._stack.set_visible_child_name('treeview')
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()

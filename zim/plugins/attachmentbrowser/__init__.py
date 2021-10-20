@@ -48,7 +48,7 @@ from zim.gui.pageview import PageViewExtension
 from zim.gui.applications import open_folder_prompt_create
 
 from zim.gui.widgets import BOTTOM_PANE, PANE_POSITIONS, \
-	IconButton, ScrolledWindow, \
+	IconButton, ScrolledWindow, StatusPage, \
 	WindowSidePaneWidget, uistate_property
 
 
@@ -140,7 +140,16 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 		self._close_button = None
 
 		self.iconview = FileBrowserIconView(opener, self.icon_size)
-		self.add(ScrolledWindow(self.iconview, shadow=Gtk.ShadowType.NONE))
+		self._stack = Gtk.Stack()
+		for name, widget in (
+			('iconview', ScrolledWindow(self.iconview, shadow=Gtk.ShadowType.NONE)),
+			('placeholder', StatusPage('folder-symbolic', _('No attachments'))), # T: placeholder label for sidepane
+		):
+			widget.show_all()
+			self._stack.add_named(widget, name)
+		self._stack.set_visible_child_name('placeholder')
+
+		self.add(self._stack)
 
 		self.on_preferences_changed()
 		self.preferences.connect('changed', self.on_preferences_changed)
@@ -167,7 +176,7 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 
 		self.set_icon_size(self.icon_size)
 
-		self.iconview.connect('folder-changed', lambda o: self.update_title())
+		self.iconview.connect('folder-changed', lambda o: self.update_status())
 
 	def on_preferences_changed(self, *a):
 		self.iconview.set_use_thumbnails(self.preferences['use_thumbnails'])
@@ -175,12 +184,21 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 
 	def set_folder(self, folder):
 		self.iconview.set_folder(folder)
-		self.update_title()
+		self.update_status()
 
-	def update_title(self):
+	def update_status(self):
 		n = len(self.iconview.get_model())
 		self.set_title(ngettext('%i Attachment', '%i Attachments', n) % n)
 		# T: Label for the statusbar, %i is the number of attachments for the current page
+
+		if n == 0:
+			self._stack.set_visible_child_name('placeholder')
+			self.zoomin_button.set_sensitive(False)
+			self.zoomout_button.set_sensitive(False)
+		else:
+			self._stack.set_visible_child_name('iconview')
+			self.zoomin_button.set_sensitive(self.icon_size < THUMB_SIZE_LARGE)
+			self.zoomout_button.set_sensitive(self.icon_size > MIN_ICON_ZOOM)
 
 	def set_embeded_closebutton(self, button):
 		if self._close_button:
@@ -200,7 +218,7 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 
 	def on_refresh_button(self):
 		self.iconview.refresh()
-		self.update_title()
+		self.update_status()
 
 	def on_zoom_in(self):
 		self.set_icon_size(
@@ -212,8 +230,6 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 
 	def set_icon_size(self, icon_size):
 		self.iconview.set_icon_size(icon_size)
-		self.zoomin_button.set_sensitive(False)
-		self.zoomout_button.set_sensitive(False)
 		self.zoomin_button.set_sensitive(icon_size < THUMB_SIZE_LARGE)
 		self.zoomout_button.set_sensitive(icon_size > MIN_ICON_ZOOM)
 		self.icon_size = icon_size # Do this last - avoid store state after fail

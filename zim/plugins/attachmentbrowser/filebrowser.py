@@ -122,7 +122,7 @@ class FileBrowserIconView(Gtk.IconView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'folder_changed': (GObject.SignalFlags.RUN_LAST, None, ()),
+		'folder-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	def __init__(self, opener, icon_size=THUMB_SIZE_NORMAL, use_thumbnails=True, thumbnail_svg=False):
@@ -154,24 +154,9 @@ class FileBrowserIconView(Gtk.IconView):
 		self.connect('drag-data-get', self.on_drag_data_get)
 		self.connect('drag-data-received', self.on_drag_data_received)
 
-		# custom tooltip
 		self.props.has_tooltip = True
 		self.connect("query-tooltip", self._query_tooltip_cb)
 
-		# Store colors
-		self._sensitive_color = None
-		self._insensitive_color = None
-
-		def _init_base_color(*a):
-			# This is handled on expose event, because style does not
-			# yet reflect theming on construction
-			self._sensitive_color = self.style.base[Gtk.StateType.NORMAL]
-			self._insensitive_color = self.style.base[Gtk.StateType.INSENSITIVE]
-			self._update_state()
-			self.disconnect(self._expose_event_id) # only need this once
-
-		#self._expose_event_id = self.connect('expose-event', _init_base_color)
-			# NOTE: when re-enabling the above, also enable occurences of _update_state
 		self.connect('button-press-event', self.on_button_press_event)
 		self.connect('item-activated', self.on_item_activated)
 
@@ -205,11 +190,7 @@ class FileBrowserIconView(Gtk.IconView):
 				self._mtime = self.folder.mtime()
 			except FileNotFoundError: # folder went missing?
 				self.teardown_folder()
-				#self._update_state()
 				return
-			else:
-				pass
-				#self._update_state()
 
 		#~ import time
 		#~ print("start", time.time())
@@ -316,18 +297,6 @@ class FileBrowserIconView(Gtk.IconView):
 			self.set_item_orientation(Gtk.Orientation.VERTICAL)
 			self.set_row_spacing(3)
 			self.set_column_spacing(3)
-
-	def _update_state(self):
-		# Here we set color like sensitive or insensitive widget without
-		# really making the widget insensitive - reason is to allow
-		# drag & drop for a non-existing folder; making the widget
-		# insensitive also blocks drag & drop.
-		if self.folder is None or not self.folder.exists():
-			self.modify_base(
-				Gtk.StateType.NORMAL, self._insensitive_color)
-		else:
-			self.modify_base(
-				Gtk.StateType.NORMAL, self._sensitive_color)
 
 	def teardown_folder(self):
 		try:

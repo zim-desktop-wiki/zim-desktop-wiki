@@ -4192,3 +4192,31 @@ class ImageView(Gtk.Layout):
 		self._image.set_from_pixbuf(pixbuf)
 		self.set_size(wvirt, hvirt)
 		self.move(self._image, (wvirt - wimg) / 2, (hvirt - himg) / 2)
+
+
+class StatusPage(Gtk.Bin):
+	'''Widget to use e.g. as a placeholder for an empty view'''
+
+	def __init__(self, icon_name, title, info_text=None):
+		GObject.GObject.__init__(self)
+		box = Gtk.Box()
+		box.set_orientation(Gtk.Orientation.VERTICAL)
+		box.set_halign(Gtk.Align.CENTER)
+		box.set_valign(Gtk.Align.CENTER)
+		box.set_spacing(12)
+		self.add(box)
+
+		if icon_name:
+			image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.DIALOG)
+			image.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
+			box.add(image)
+
+		label = Gtk.Label()
+		label.set_markup("<span size=\"large\">%s</span>" % title)
+		label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
+		box.add(label)
+
+		if info_text:
+			label = Gtk.Label(info_text)
+			label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
+			box.add(label)
