@@ -35,6 +35,19 @@ Where ''%appdata%'' is the default Windows path to store application data, typic
 
 When there is no ''%HOME%'' environment parameter defined on Windows either the ''%USERPROFILE%'' parameter or ''%HOMEDRIVE%'' + ''%HOMEPATH%'' are used. Make sure to define ''%HOME%'' or ''%USERPROFILE%'' including a drive letter.
 
+===== Portable install =====
+For the portable install the config files are looked up relative to the installation folder. The defaults are:
+
+'''
+$XDG_CONFIG_HOME = ../config/
+$XDG_DATA_HOME   = ../data/
+'''
+
+The ''../'' means that the configuration folders are in the same parent folder as the installation folder. This is intentionally, so installing a new version does not overwrite the configuration.
+
+If you want to change the paths for the portable install, there is a special configuration file used at startup of the application that is called ''environ.ini'' which allows customizing the lookup.
+
+
 ==== macOS ====
 On macOS the default paths are:
 
