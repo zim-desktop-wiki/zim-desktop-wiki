@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-09-21 20:36+0000\n"
-"Last-Translator: Alex Gabilondo <alexgabi@disroot.org>\n"
+"PO-Revision-Date: 2021-10-24 22:40+0000\n"
+"Last-Translator: Alexander Gabilondo <alexgabi@openmailbox.org>\n"
 "Language-Team: Basque <https://hosted.weblate.org/projects/zim/master/eu/>\n"
 "Language: eu\n"
 "MIME-Version: 1.0\n"
@@ -756,7 +756,7 @@ msgstr "Eranskin berria"
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:170
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "Erakutsi edizio-barra editorearen beheko aldean"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
@@ -3143,7 +3143,7 @@ msgstr "Plugin honek leiho nagusiari orrien atalen panela gehitzen dio.\n"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
-msgstr ""
+msgstr "Arrastatu eta jaregin koadernoko orriak mugitzeko"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3163,7 +3163,7 @@ msgstr "Erabili korritze-barra horizontala (berrabiarazi behar da)"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "Erabili aholkuak"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -3523,13 +3523,12 @@ msgstr "Ezin izan da kargatu zuzentzaile ortografikoa"
 
 #. error message explanation
 #: zim/plugins/spell.py:161
-#, fuzzy
 msgid ""
 "This could mean you don't have the proper\n"
 "dictionaries installed"
 msgstr ""
 "Agian ez dauzkazu instalatuta\n"
-"dagozkion hiztegiak."
+"dagozkion hiztegiak"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:54
@@ -3737,9 +3736,8 @@ msgstr ""
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
-#, fuzzy
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr "Erakutsi atalak alboko paneleko trepeta mugikorrean."
+msgstr "Erakutsi atalak alboko paneleko trepeta mugikorrean"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
@@ -3984,11 +3982,6 @@ msgstr "Tresna-barra"
 
 #. plugin description
 #: zim/plugins/toolbar.py:64
-#, fuzzy
-#| msgid ""
-#| "This plugin adds a \"tool bar\" to the main window.\n"
-#| "It can be a \"classic\" toolbar at the top of the window\n"
-#| "or running along the side of the window.\n"
 msgid ""
 "This plugin adds a \"tool bar\" to the main window.\n"
 "It can be a \"classic\" toolbar at the top of the window\n"
@@ -3997,31 +3990,28 @@ msgid ""
 msgstr ""
 "Plugin honek \"tresna-barra\" bat gehitzen du leiho nagusian.\n"
 "Leihoaren goialdeko tresna-barra \"klasikoa\" izan daiteke\n"
-"edo eraman daiteke leihoaren aldeetara.\n"
+"edo eraman daiteke leihoaren aldeetara. Gainera leihoaren \n"
+"dekorazioa konfiguratzeko aukera ematen du.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "Erakutsi kontrolak leihoaren dekorazioan"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "Aukera honek aplikazioa berrabiaraztea eskatzen du"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
-#, fuzzy
-#| msgid "Show in the toolbar"
 msgid "Show toolbar"
-msgstr "Erakutsi tresna-barran"
+msgstr "Erakutsi tresna-barra"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:80
-#, fuzzy
-#| msgid "Include editing tools (classic toolbar)"
 msgid "Include formatting tools in toolbar"
-msgstr "Edizio tresnak barne (tresna-barra klasikoa)"
+msgstr "Sartu formateatzeko tresnak tresna-barran"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:84
