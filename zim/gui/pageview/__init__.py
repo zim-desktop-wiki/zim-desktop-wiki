@@ -6175,8 +6175,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self._buffer_signals = (
 				buffer.connect('end-insert-tree', self._hack_on_inserted_tree),
 			)
+			# TODO: also connect after insert widget ?
 
 			self.textview.set_buffer(buffer)
+			self._hack_on_inserted_tree()
 
 			if cursor is None:
 				cursor = -1 if buffer.showing_template else 0
