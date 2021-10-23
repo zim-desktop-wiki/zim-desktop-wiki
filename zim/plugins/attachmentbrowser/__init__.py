@@ -127,7 +127,7 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 	for zoom / open folder / etc. ...
 	'''
 
-	title = _('Attachments') # T: label for attachment browser pane
+	title = _('Atta_chments') # T: label for attachment browser pane
 
 	icon_size = uistate_property('icon_size', DEFAULT_ICON_ZOOM)
 
@@ -188,7 +188,7 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 
 	def update_status(self):
 		n = len(self.iconview.get_model())
-		self.set_title(ngettext('%i Attachment', '%i Attachments', n) % n)
+		self.set_title(ngettext('%i Atta_chment', '%i Atta_chments', n) % n)
 		# T: Label for the statusbar, %i is the number of attachments for the current page
 
 		if n == 0:

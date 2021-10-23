@@ -2300,7 +2300,7 @@ class WindowSidePaneWidget(ConnectorMixin):
 	'''
 
 	def get_title_label(self):
-		label = Gtk.Label(label=self.title)
+		label = Gtk.Label.new_with_mnemonic(self.title)
 		if not hasattr(self, '_title_labels'):
 			self._title_labels = set()
 		self._title_labels.add(label)
@@ -2315,7 +2315,7 @@ class WindowSidePaneWidget(ConnectorMixin):
 		self.title = text
 		if hasattr(self, '_title_labels'):
 			for label in self._title_labels:
-				label.set_text(text)
+				label.set_text_with_mnemonic(text)
 
 	def set_embeded_closebutton(self, button):
 		'''Embed a button in the widget to close the side pane
@@ -2481,7 +2481,7 @@ class Window(Gtk.Window):
 			pane.connect('close', lambda o, k: self.set_pane_state(k, False), key)
 			pane.zim_pane_state = (False, 200, None)
 			minimized.set_no_show_all(True)
-			minimized.connect('clicked', lambda o, a, k: self.set_pane_state(k, True, activetab=a), key)
+			minimized.connect('clicked', lambda o, a, k: self.set_pane_state(k, True, activetab=a, grab_focus=True), key)
 
 			pane.notebook.connect_after('switch-page', _on_switch_page, key)
 

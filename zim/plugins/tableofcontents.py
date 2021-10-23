@@ -480,7 +480,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 class SidePaneToC(ToCWidget, WindowSidePaneWidget):
 
-	title = _('ToC') # T: widget label
+	title = _('T_oC') # T: widget label
 
 	def __init__(self, pageview):
 		ToCWidget.__init__(self, pageview, ellipsis=True)

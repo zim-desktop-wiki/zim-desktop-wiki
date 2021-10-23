@@ -95,7 +95,7 @@ class TagsNotebookViewExtension(NotebookViewExtension):
 class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 	'''Widget combining a tag cloud and a tag based page treeview'''
 
-	title = _('Tags') # T: title for sidepane tab
+	title = _('T_ags') # T: title for sidepane tab
 
 	def __init__(self, notebook, navigation, uistate):
 		GObject.GObject.__init__(self)

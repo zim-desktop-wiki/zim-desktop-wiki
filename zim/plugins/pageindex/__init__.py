@@ -129,7 +129,7 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 
 class PageIndexWidget(Gtk.VBox, WindowSidePaneWidget):
 
-	title = _('Index')	# T: tab label for side pane
+	title = _('Inde_x')	# T: tab label for side pane
 
 	def __init__(self, treeview):
 		GObject.GObject.__init__(self)
