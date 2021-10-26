@@ -8,17 +8,17 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-01-27 20:32+0000\n"
+"PO-Revision-Date: 2021-10-28 18:04+0000\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
-"Language-Team: Croatian <https://hosted.weblate.org/projects/zim/master/hr/"
-">\n"
+"Language-Team: Croatian <https://hosted.weblate.org/projects/zim/master/hr/>"
+"\n"
 "Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.5-dev\n"
+"X-Generator: Weblate 4.9-dev\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
@@ -557,10 +557,8 @@ msgstr "Uvijek koristi zadnji položaj kursora prilikom otvaranja stranice"
 
 #. button label for fullscreen window header
 #: zim/gui/mainwindow.py:144
-#, fuzzy
-#| msgid "_Fullscreen"
 msgid "Leave Fullscreen"
-msgstr "_Cjeloekranski prikaz"
+msgstr "Napusti cjeloekranski prikaz"
 
 #. Menu item
 #: zim/gui/mainwindow.py:182
@@ -569,22 +567,18 @@ msgstr "_Cjeloekranski prikaz"
 
 #. menu item
 #: zim/gui/mainwindow.py:192
-#, fuzzy
-#| msgid "Notebook _Editable"
 msgid "Toggle _Editable"
-msgstr "Bilježnica _urediva"
+msgstr "Uklj./Isklj. _uredive"
 
 #. menu item
 #: zim/gui/mainwindow.py:192
-#, fuzzy
-#| msgid "Notebook _Editable"
 msgid "Toggle editable"
-msgstr "Bilježnica _urediva"
+msgstr "Uklj./Isklj. uredive"
 
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:223
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "Stranica je samo za čitanje i ne može se uređivati"
 
 #. Menu item
 #: zim/gui/mainwindow.py:257
@@ -604,27 +598,18 @@ msgstr "Traka izbornika"
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:682 zim/gui/uiactions.py:502
-#, fuzzy
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
 msgid "File exists, do you want to import?"
-msgstr ""
-"Ova datoteka već postoji.\n"
-"Želiš li je prepisati?"
+msgstr "Datoteka već postoji. Želiš li je prepisati?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:683 zim/gui/uiactions.py:503
-#, fuzzy, python-format
-#| msgid ""
-#| "The folder \"%s\" does not yet exist.\n"
-#| "Do you want to create it now?"
+#, python-format
 msgid ""
 "The file \"%s\" exists but is not a wiki page.\n"
 "Do you want to import it?"
 msgstr ""
-"Mapa „%s” još ne postoji.\n"
-"Želiš li je sada stvoriti?"
+"Stranica „%s” postoji, ali nije wiki stranica.\n"
+"Želiš li je uvesti?"
 
 #. page status for title bar
 #: zim/gui/mainwindow.py:742 zim/gui/mainwindow.py:909
@@ -645,7 +630,7 @@ msgstr "Na_trag"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:777
 msgid "Go back"
-msgstr ""
+msgstr "Idi natrag"
 
 #. Menu item | 
 #. Button label
@@ -655,10 +640,8 @@ msgstr "_Dalje"
 
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:790
-#, fuzzy
-#| msgid "_Forward"
 msgid "Go forward"
-msgstr "_Dalje"
+msgstr "Idi naprijed"
 
 #. Menu item
 #: zim/gui/mainwindow.py:800
@@ -672,15 +655,11 @@ msgstr "P_određeni"
 
 #. Menu item
 #: zim/gui/mainwindow.py:825
-#, fuzzy
-#| msgid "_Previous in index"
 msgid "_Previous in Index"
 msgstr "Pret_hodni u indeksu"
 
 #. Menu item
 #: zim/gui/mainwindow.py:834
-#, fuzzy
-#| msgid "_Next in index"
 msgid "_Next in Index"
 msgstr "Slje_deći u indeksu"
 
@@ -692,7 +671,7 @@ msgstr "_Početna"
 #. Menu item
 #: zim/gui/mainwindow.py:843
 msgid "Go to home page"
-msgstr ""
+msgstr "Idi na početnu stranicu"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:865
@@ -2193,18 +2172,17 @@ msgstr ""
 
 #. Text in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:728
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be moved to your system's trash.\n"
 "\n"
 "To undo later, go to your system's trashcan."
 msgstr ""
-"Stranica „%s” i sve njene\n"
-"podstranice i poveznice će se izbrisati"
+"Stranica „%s” i sve njene podstranice i\n"
+"poveznice će se premjestiti u smeće.\n"
+"\n"
+"Za njihovo vraćanje, idi na smeće."
 
 #. label in the TrashPage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:732
@@ -2235,18 +2213,17 @@ msgstr "Ukloni stranicu „%s”?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:770
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be deleted.\n"
 "\n"
 "This deletion is permanent and cannot be un-done."
 msgstr ""
-"Stranica „%s” i sve njene\n"
-"podstranice i poveznice će se izbrisati"
+"Stranica „%s” i sve njene podstranice i\n"
+"poveznice će se izbrisati.\n"
+"\n"
+"Brišu se trajno i radnja se ne može poništiti."
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:774
@@ -2553,10 +2530,8 @@ msgstr ""
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
-#, fuzzy
-#| msgid "_Delete"
 msgid "_Delete..."
-msgstr "Iz_briši"
+msgstr "Iz_briši …"
 
 #. menu item to rename file
 #: zim/plugins/attachmentbrowser/filebrowser.py:396
