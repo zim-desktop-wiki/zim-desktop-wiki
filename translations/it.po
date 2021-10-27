@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2019-05-17 16:59+0000\n"
-"Last-Translator: Marco Cevoli <Unknown>\n"
-"Language-Team: Italian <it@li.org>\n"
+"PO-Revision-Date: 2021-10-28 18:04+0000\n"
+"Last-Translator: Alfredo Ferrazzi <alfredo93_@hotmail.it>\n"
+"Language-Team: Italian <https://hosted.weblate.org/projects/zim/master/it/>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.9-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
@@ -584,7 +584,7 @@ msgstr "Blocco note _modificabile"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:223
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "La pagina è di sola lettura e non può essere modificata"
 
 #. Menu item
 #: zim/gui/mainwindow.py:257
@@ -645,7 +645,7 @@ msgstr "_Indietro"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:777
 msgid "Go back"
-msgstr ""
+msgstr "torna indietro"
 
 #. Menu item | 
 #. Button label
@@ -781,7 +781,7 @@ msgstr "Nuovo _Allegato"
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:170
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "Mostra la barra di modifica nella parte inferiore dell'editor"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
@@ -2198,7 +2198,7 @@ msgstr "Aggiornamento dei collegamenti in corso"
 #: zim/gui/uiactions.py:681
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "Rimuovi i collegamenti a %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
@@ -2584,7 +2584,7 @@ msgstr "_Aritmetica"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "Sei sicuro di voler eliminare il file '%s'?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -3259,6 +3259,7 @@ msgstr ""
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
 msgstr ""
+"Usa il trascinamento della selezione per spostare le pagine nel blocco note"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3280,7 +3281,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "Usa i suggerimenti"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -4108,17 +4109,17 @@ msgstr "Testo _e icone"
 #. toolbar style
 #: zim/plugins/toolbar.py:44
 msgid "Icons & Text horizontal"
-msgstr ""
+msgstr "Icone e testo in orizzontale"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:52
 msgid "Small"
-msgstr ""
+msgstr "Piccola"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:53
 msgid "Large"
-msgstr ""
+msgstr "Grande"
 
 #. plugin name
 #: zim/plugins/toolbar.py:63
@@ -4135,6 +4136,12 @@ msgid ""
 "or running along the side of the window. It also allows\n"
 "configuring the window decoration.\n"
 msgstr ""
+"Questo plugin aggiunge una \"barra degli strumenti\" alla finestra "
+"principale.\n"
+"Può essere una barra degli strumenti \"classica\" nella parte superiore "
+"della finestra\n"
+"o correndo lungo il lato della finestra. Permette anche\n"
+"configurazione della decorazione della finestra.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
