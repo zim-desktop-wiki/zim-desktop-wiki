@@ -4198,6 +4198,13 @@ class StatusPage(Gtk.Bin):
 	'''Widget to use e.g. as a placeholder for an empty view'''
 
 	def __init__(self, icon_name, title, info_text=None):
+		'''Constructor
+		@param icon_name: Icon to show as image, should be an "symbolic" icon name.
+		Can be C{None} if no suitable icon is available
+		@param title: Main message to show, should be rather short.
+		Can be C{None} but should be used only in very specific cases
+		@param info_text: Optional informational text to show below the title
+		'''
 		GObject.GObject.__init__(self)
 		box = Gtk.Box()
 		box.set_orientation(Gtk.Orientation.VERTICAL)
@@ -4211,12 +4218,14 @@ class StatusPage(Gtk.Bin):
 			image.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
 			box.add(image)
 
-		label = Gtk.Label()
-		label.set_markup("<span size=\"large\">%s</span>" % title)
-		label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
-		box.add(label)
+		if title:
+			label = Gtk.Label()
+			label.set_markup("<span size=\"large\">%s</span>" % title)
+			label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
+			box.add(label)
 
 		if info_text:
 			label = Gtk.Label(info_text)
+			label.set_line_wrap(True)
 			label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
 			box.add(label)
