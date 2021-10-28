@@ -11,6 +11,7 @@ import os
 from gi.repository import Gtk
 
 from zim.errors import Error
+from zim.newfs import LocalFolder
 from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
 from zim.notebook.notebook import NotebookConfig
 from zim.formats import ParseTree
@@ -493,11 +494,14 @@ class TestUIActions(tests.TestCase):
 		self.uiactions.widget = Gtk.Window()
 
 		with tests.DialogContext(
-			(PropertiesDialog, lambda d: d.set_input(home='NewHome'))
+			(PropertiesDialog, lambda d: d.set_input(home='NewHome', document_root='../my_rel_root'))
 		):
 			self.uiactions.show_properties()
 
 		self.assertEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
+		self.assertEqual(self.notebook.get_home_page(), Path('NewHome'))
+		self.assertEqual(self.notebook.config['Notebook']['document_root'], '../my_rel_root')
+		self.assertEqual(self.notebook.document_root, LocalFolder(self.notebook.folder.parent().folder('my_rel_root').path))
 
 	def testEditPropertiesReadOnly(self):
 		from zim.gui.propertiesdialog import PropertiesDialog

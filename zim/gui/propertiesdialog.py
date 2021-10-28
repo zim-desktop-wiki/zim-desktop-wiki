@@ -54,6 +54,7 @@ class PropertiesDialog(Dialog):
 			values=notebook.config['Notebook']
 		)
 		self.form.widgets['icon'].set_use_relative_paths(self.notebook)
+		self.form.widgets['document_root'].set_use_relative_paths(self.notebook)
 		add_widget(self.form, 'notebook', _('Notebook'))
 
 		self.plugin_forms = {}
@@ -72,8 +73,10 @@ class PropertiesDialog(Dialog):
 	def do_response_ok(self):
 		if not self.notebook.readonly:
 			properties = self.form.copy()
+			properties['icon'] = self.form.widgets['icon'].get_text() # XXX should be file, but resolves relative
+			properties['document_root'] = self.form.widgets['document_root'].get_text() # XXX should be file, but resolves relative
 
-			self.notebook.save_properties(**properties)
+			self.notebook.properties.update(properties)
 
 			for key, form in self.plugin_forms.items():
 				self.notebook.config[key].update(form)

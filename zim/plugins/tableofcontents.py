@@ -299,7 +299,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 		self.pageview = pageview
 		if self.pageview.page:
-			self.load_page(self.pageview.page)
+			self.on_page_changed(self.pageview, self.pageview.page)
 
 	def set_preferences(self, show_h1, include_hr, fontsize):
 		changed = (show_h1, include_hr, fontsize) != (self.show_h1, self.include_hr, self.fontsize)
@@ -500,12 +500,12 @@ class MyEventBox(Gtk.EventBox):
 
 class FloatingToC(Gtk.VBox, ConnectorMixin):
 
-	# This class does all the work to keep the floating window in
-	# the right place, and with the right size
+	# This class puts the floating window in the pageview overlay layer
+	# and adjusts it's size on the fly
 
-	X_OFFSET = 10 # offset right side textview
-	Y_OFFSET = 5 # offset top textview
-	S_MARGIN = 5 # margin inside the toc for scrollbars
+	MARGIN_END = 12 # offset right side textview
+	MARGIN_TOP = 12 # offset top textview
+	SCROLL_MARGIN = 10 # margin inside the toc for scrollbars
 
 	def __init__(self, pageview):
 		GObject.GObject.__init__(self)
@@ -527,23 +527,21 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		widget_set_css(self, 'zim-toc-widget', 'border: 1px solid @fg_color')
 		widget_set_css(self.head, 'zim-toc-head', 'border-bottom: 1px solid @fg_color')
 
-		## Add self to textview
-		# Need to wrap in event box to make widget visible
-		# probably because Containers normally don't have their own
-		# gdk window. So would paint directly on background window.
-		self.textview = pageview.textview
-		self._event_box = MyEventBox()
-		self._event_box.add(self)
+		self.set_halign(Gtk.Align.END)
+		self.set_margin_end(self.MARGIN_END)
+		self.set_valign(Gtk.Align.START)
+		self.set_margin_top(self.MARGIN_TOP)
+		pageview.overlay.add_overlay(self)
 
-		self.textview.add_child_in_window(self._event_box, Gtk.TextWindowType.WIDGET, 0, 0)
-		self.connectto(self.textview,
+		self._textview = pageview.textview
+		self.connectto(self._textview,
 			'size-allocate',
 			handler=DelayedCallback(10, self.update_size_and_position),
 				# Callback wrapper to prevent glitches for fast resizing of the window
 		)
 		self.connectto(self.tocwidget, 'changed', handler=self.update_size_and_position_after_change)
 
-		self._event_box.show_all()
+		self.show_all()
 
 	def set_preferences(self, show_h1, include_hr, fontsize):
 		self.tocwidget.set_preferences(show_h1, include_hr, fontsize)
@@ -551,10 +549,6 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 	def disconnect_all(self):
 		self.tocwidget.disconnect_all()
 		ConnectorMixin.disconnect_all(self)
-
-	def destroy(self):
-		self._event_box.destroy()
-		Gtk.VBox.destroy(self)
 
 	def on_toggle(self, *a):
 		self.tocwidget.set_visible(
@@ -574,18 +568,18 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		else:
 			self.show()
 
-		text_window = self.textview.get_window(Gtk.TextWindowType.WIDGET)
+		text_window = self._textview.get_window(Gtk.TextWindowType.WIDGET)
 		if text_window is None:
 			return
 
 		text_x, text_y, text_w, text_h = text_window.get_geometry()
-		max_w = 0.5 * text_w - self.X_OFFSET
-		max_h = 0.7 * text_h - self.Y_OFFSET
+		max_w = 0.5 * text_w - self.MARGIN_END
+		max_h = 0.7 * text_h - self.MARGIN_TOP
 
 		head_minimum, head_natural = self.head.get_preferred_width()
 		view_minimum, view_natural = self.tocwidget.treeview.get_preferred_width()
 		if self.tocwidget.get_visible():
-			my_width = max(head_natural, view_natural + self.S_MARGIN)
+			my_width = max(head_natural, view_natural + self.SCROLL_MARGIN)
 			width = min(my_width, max_w)
 		else:
 			width = head_natural
@@ -593,13 +587,9 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		head_minimum, head_natural = self.head.get_preferred_height()
 		view_minimum, view_natural = self.tocwidget.treeview.get_preferred_height()
 		if self.tocwidget.get_visible():
-			my_height = head_natural + view_natural + self.S_MARGIN
+			my_height = head_natural + view_natural + self.SCROLL_MARGIN
 			height = min(my_height, max_h)
 		else:
 			height = head_natural
 
 		self.set_size_request(width, height)
-
-		x = text_w - width - self.X_OFFSET
-		y = self.Y_OFFSET
-		self.textview.move_child(self._event_box, x, y)

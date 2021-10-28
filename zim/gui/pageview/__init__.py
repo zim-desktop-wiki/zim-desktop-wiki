@@ -5893,9 +5893,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._hack_label = Gtk.Label() # any widget would do I guess
 		self._hack_hbox.pack_end(self._hack_label, False, True, 1)
 
-		overlay = Gtk.Overlay()
-		overlay.add(self._hack_hbox)
-		self._overlay_label = Gtk.Label("TEST 123")
+		self.overlay = Gtk.Overlay()
+		self.overlay.add(self._hack_hbox)
+		self._overlay_label = Gtk.Label()
 		self._overlay_label.set_halign(Gtk.Align.START)
 		self._overlay_label.set_margin_start(12)
 		self._overlay_label.set_valign(Gtk.Align.END)
@@ -5906,9 +5906,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			'color: #fff; '
 		) # Tried to make it look like tooltip - based on Adwaita css
 		self._overlay_label.set_no_show_all(True)
-		overlay.add_overlay(self._overlay_label)
-		overlay.set_overlay_pass_through(self._overlay_label, True)
-		self.add(overlay)
+		self.overlay.add_overlay(self._overlay_label)
+		self.overlay.set_overlay_pass_through(self._overlay_label, True)
+		self.add(self.overlay)
 
 		self.textview.connect_object('link-clicked', PageView.activate_link, self)
 		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
