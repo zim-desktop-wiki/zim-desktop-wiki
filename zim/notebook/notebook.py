@@ -361,46 +361,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		return NotebookInfo(uri, **self.config['Notebook'])
 
-	@notebook_state
-	def save_properties(self, **properties):
-		'''Save a set of properties in the notebook config
-
-		This method does an C{update()} on the dict with properties but
-		also updates the object attributes that map those properties.
-
-		@param properties: the properties to update
-		'''
-		dir = Dir(self.layout.root.path) # XXX
-
-		# Check if icon is relative
-		icon = properties.get('icon')
-		if icon and not isinstance(icon, str):
-			assert isinstance(icon, File)
-			if icon.ischild(dir):
-				properties['icon'] = './' + icon.relpath(dir)
-			else:
-				properties['icon'] = icon.user_path or icon.path
-
-		# Check document root is relative
-		root = properties.get('document_root')
-		if root and not isinstance(root, str):
-			assert isinstance(root, Dir)
-			if root.ischild(dir):
-				properties['document_root'] = './' + root.relpath(dir)
-			else:
-				properties['document_root'] = root.user_path or root.path
-
-		# Set home page as string
-		if 'home' in properties and isinstance(properties['home'], Path):
-			properties['home'] = properties['home'].name
-
-		# Actual update and signals
-		# ( write is the last action - in case update triggers a crash
-		#   we don't want to get stuck with a bad config )
-		self.properties.update(properties)
-		if hasattr(self.config, 'write'): # XXX Check needed for tests
-			self.config.write()
-
 	def on_properties_changed(self, properties):
 		dir = Dir(self.layout.root.path) # XXX
 

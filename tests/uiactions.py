@@ -493,11 +493,15 @@ class TestUIActions(tests.TestCase):
 		self.uiactions.widget = Gtk.Window()
 
 		with tests.DialogContext(
-			(PropertiesDialog, lambda d: d.set_input(home='NewHome'))
+			(PropertiesDialog, lambda d: d.set_input(home='NewHome', document_root='../my_rel_root'))
 		):
 			self.uiactions.show_properties()
 
 		self.assertEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
+		self.assertEqual(self.notebook.get_home_page(), Path('NewHome'))
+		self.assertEqual(self.notebook.config['Notebook']['document_root'], '../my_rel_root')
+		from zim.fs import Dir
+		self.assertEqual(self.notebook.document_root, Dir(self.notebook.folder.parent().folder('my_rel_root').path)) # XXX: newfs merge needed
 
 	def testEditPropertiesReadOnly(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
