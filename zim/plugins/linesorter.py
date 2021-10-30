@@ -108,7 +108,9 @@ class LineSorterPageViewExtension(PageViewExtension):
 
 
 	def move_line(self, offset):
-		'''Move line at the current cursor position #offset lines down (up if offset is negative) '''
+		'''Move line at the current cursor position up or Down
+		@param offset: number of lines to move down, or up if value is negative
+		'''
 		buffer = self.pageview.textview.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
 
@@ -151,6 +153,8 @@ class LineSorterPageViewExtension(PageViewExtension):
 			else:
 				iter = buffer.get_iter_at_line_offset(insert_line, cursor_offset)
 				buffer.place_cursor(iter)
+
+			self.pageview.scroll_cursor_on_screen()
 
 
 	@action(_('_Move Line Up'), accelerator='<Primary>Up', menuhints='edit')  # T: Menu item
