@@ -569,8 +569,7 @@ _cal_days_to_work_days = [
 
 def days_to_str(days, use_workweek, weekday):
 	# days are calendar days, not working days
-	# convert to working week and working days here
-	# years and months remain calendar years and calendar months
+	# convert to working days if period is less than 2 weeks
 	days_per_week = 5 if use_workweek else 7
 	if days >= 300:
 		return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months

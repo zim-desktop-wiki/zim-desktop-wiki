@@ -47,8 +47,11 @@ class ActionExtensionBase(ExtensionBase):
 				self.remove_from_headerbar(action)
 
 	def add_to_headerbar(self, action):
-		button = action.create_icon_button()
 		headerbar = self.obj.get_toplevel().get_titlebar()
+		if not headerbar:
+			return
+
+		button = action.create_icon_button()
 		if 'view' in action.menuhints:
 			headerbar.pack_end(button)
 		else:
@@ -58,6 +61,9 @@ class ActionExtensionBase(ExtensionBase):
 	def remove_from_headerbar(self, action):
 		# fails silently
 		headerbar = self.obj.get_toplevel().get_titlebar()
+		if not headerbar:
+			return
+
 		for button in action._proxies:
 			try:
 				headerbar.remove(button)
@@ -67,6 +73,9 @@ class ActionExtensionBase(ExtensionBase):
 	def set_action_in_headerbar(self, action, visible):
 		if visible:
 			headerbar = self.obj.get_toplevel().get_titlebar()
+			if not headerbar:
+				return
+
 			children = headerbar.get_children()
 			for button in action._proxies:
 				if button in children:
