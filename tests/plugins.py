@@ -66,10 +66,11 @@ class TestPluginClasses(tests.TestCase):
 			props = [p for p in klass.plugin_notebook_properties]
 			for pref in prefs + props:
 				label = pref[2]
-				if '\n' in label:
-					label, x = label.split('\n', 1)
-					label = label.rstrip(',')
-				self.assertTrue(label in manual, 'Preference or property "%s" for %s plugin not documented in manual page' % (label, name))
+				if label is not None: # else it is hidden option
+					if '\n' in label:
+						label, x = label.split('\n', 1)
+						label = label.rstrip(',')
+					self.assertTrue(label in manual, 'Preference or property "%s" for %s plugin not documented in manual page' % (label, name))
 
 			# test dependencies data
 			dep = klass.check_dependencies()

@@ -13,22 +13,25 @@ The Task List plugin adds a dialog that lists open items across all pages of the
 ===== Preferences =====
 The option **Show tasklist button in headerbar** determines whether a button is shown in the headerbar on the top of the window for opening the tasklist dialog.
 
+The option **Show "GTD-style" inbox & next actions lists** determines what lists are shown in the selection pane. See details below.
+
 The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window; **Show due date in sidepane** selects whether a tasklist in a side pane displays the due date of a task.
+
 
 ===== Notebook properties =====
 If the option "**Consider all checkboxes as tasks**" is enabled any checkboxes found will appear in the task list. If it is disabled only checkboxes that have a task label (like "FIXME" or "TODO") will appear in the list.
 
 The option **Labels marking tasks** gives a comma-separated list of labels that are used to flag tasks. By default, these are "TODO" and "FIXME" but this can be customized.
 
+The option **Labels for "waiting" tasks** gives specific labels for tasks that are waiting for something and thus are not immediately actionable.
+
 If **Use date from journal pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as starting date and/or due date. If the page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date while for the start day the first day will be used. If the page covers a week or a month and the task appears under a heading which gives the specific day, the task will be assigned to that day. For this to work, the heading must contain an explicit anchor id which gives the date in the standard date format (see the default Journal template for an example how to generate those).
 
 The options **Section(s) to index** and **Section(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default, the whole notebook is used, but if either or both of these options are used, only the specified set of sections is indexed. Multiple namespaces can be given separated by a "'',''".
 
-The option **Tags for non-actionable tasks** lists tags that will flag a task as "non-actionable"
+If the option **Show page names in selection pane** is enabled, it will add the page name elements of the page where the task is found in the selection pane.
 
-If the option **Turn page name into tags for task items** is enabled, it will add the page name elements of the page where the task is found as tags
-
-If the option **Flag tasks due on Monday or Tuesday before the weekend** is enabled the "due date" will be highlighted assuming a 5 day workweek (monday - friday).
+If the option **Don't count Saturday and Sunday as working days** is enabled the remaining days before a task is due are counted based on a 5 day workweek (Monday - Friday).
 
 
 ===== Selection =====
