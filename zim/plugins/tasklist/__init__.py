@@ -78,7 +78,7 @@ This is a core plugin shipping with zim.
 			# Hidden option - deprecated
 		('show_pages', 'bool', _('Show page names in selection pane'), True),
 			# T: label for plugin preferences dialog
-		('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), False),
+		('use_workweek', 'bool', _('Don\'t count Saturday and Sunday as working days'), False),
 			# T: label for plugin preferences dialog
 	)
 

@@ -551,15 +551,47 @@ ALERT_COLOR = '#FCEB65' # yellow ("idem" - #FCE94F)
 
 COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
 
-def days_to_str(days):
-	if days > 290:
-			return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months
-	elif days > 25:
-			return '%im' % round(float(days) / 30)
-	elif days > 10:
-			return '%iw' % round(float(days) / 7)
+_cal_days_to_work_days = [
+	# for each weekday 5 offsets used in algo below
+	# represent weekends in a 14 day period starting at given weekday
+	# first number is offset for weekend at start of the range
+	# next 4 numbers are weekend days in the range
+	None,
+	[0, 5, 6, 12, 13], # monday
+	[0, 4, 5, 11, 12], # tuesday
+	[0, 3, 4, 10, 11], # wednesday
+	[0, 2, 3,  9, 10], # thursday
+	[0, 1, 2,  8,  9], # friday
+	[2, 5, 6, 12, 13], # saturday
+	[1, 5, 6, 12, 13], # sunday
+]
+
+
+def days_to_str(days, use_workweek, weekday):
+	# days are calendar days, not working days
+	# convert to working week and working days here
+	# years and months remain calendar years and calendar months
+	days_per_week = 5 if use_workweek else 7
+	if days >= 300:
+		return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months
+	elif days >= 28:
+		return '%im' % round(float(days) / 30) # round up to 1 year from 4 calendar weeks
+	elif days >= 14:
+		return '%iw' % round(float(days) / 7)
+	elif use_workweek:
+		offsets = _cal_days_to_work_days[weekday]
+		days -= offsets[0]
+		if days >= offsets[4]:
+			days -= 4
+		elif days == offsets[3]:
+			days -= 3
+		elif days >= offsets[2]:
+			days -= 2
+		elif days == offset[1]:
+			days -= 1
+		return '%id' % days
 	else:
-			return '%id' % days
+		return '%id' % days
 
 
 class TaskListTreeView(BrowserTreeView):
@@ -611,6 +643,7 @@ class TaskListTreeView(BrowserTreeView):
 		self.page_filter = None
 		self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
 		self.task_labels = task_labels
+		self.use_workweek = use_workweek
 		self._render_waiting_actionable = False
 
 		# Add some rendering for the Prio column
@@ -751,7 +784,7 @@ class TaskListTreeView(BrowserTreeView):
 			self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
 
 		if use_workweek is not None:
-			print("TODO udate_use_workweek rendering")
+			self.use_workweek = use_workweek
 
 		self.refresh()
 
@@ -768,6 +801,7 @@ class TaskListTreeView(BrowserTreeView):
 		task_label_re = _task_labels_re(self.task_labels)
 		today = datetime.date.today()
 		today_str = str(today)
+		weekday = today.isoweekday()
 
 		for prio_sort_int, row in enumerate(task_iter):
 			path = Path(row['name'])
@@ -788,7 +822,7 @@ class TaskListTreeView(BrowserTreeView):
 				actionable = False
 				y, m, d = row['start'].split('-')
 				td = datetime.date(int(y), int(m), int(d)) - today
-				prio_sort_label = '>' + days_to_str(td.days)
+				prio_sort_label = '>' + days_to_str(td.days, self.use_workweek, weekday)
 				if row['prio'] > 0:
 					prio_sort_label += ' ' + '!' * min(row['prio'], 3)
 			elif row['due'] < _MAX_DUE_DATE:
@@ -801,7 +835,7 @@ class TaskListTreeView(BrowserTreeView):
 				elif td.days == 0:
 						prio_sort_label += '<u>TD</u>' # today
 				else:
-						prio_sort_label += days_to_str(td.days)
+						prio_sort_label += days_to_str(td.days, self.use_workweek, weekday)
 			else:
 				prio_sort_label = '!' * min(row['prio'], 3)
 
