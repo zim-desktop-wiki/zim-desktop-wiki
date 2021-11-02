@@ -50,10 +50,13 @@ class TaskListWidgetMixin(object):
 
 	def __init__(self, index, uistate, properties):
 		self.index = index
+		self.taskselection_type = SELECTION_ALL
 		self.taskselection = AllTasks.new_from_index(index)
 		self.status = [TASK_STATUS_OPEN]
+		self.label_tag_filter = (None, None, None)
 
 		self.tasklisttreeview = None
+		self.selection_list = None
 		self.tag_list = None
 		self._mbutton = None
 
@@ -62,6 +65,14 @@ class TaskListWidgetMixin(object):
 		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
 		self.connectto(properties, 'changed', self.on_properties_changed)
+
+	def _get_selection_state(self):
+		return (self.taskselection_type, self.status[:], self.label_tag_filter)
+
+	def _set_selection_state(self, state):
+		self.status = state[1]
+		self.selection_list._select(state[0])
+		self.tag_list._set_selected_labels_tags_pages(*state[2])
 
 	def _create_tasklisttreeview(self, opener, properties, column_layout):
 		self.tasklisttreeview = TaskListTreeView(
@@ -88,7 +99,7 @@ class TaskListWidgetMixin(object):
 		popout.set_tooltip_text(_('Show tasklist window'))
 		popout.set_alignment(0.5, 0.5)
 		popout.set_relief(Gtk.ReliefStyle.NONE)
-		popout.connect('clicked', lambda b: self._show_dialog_action())
+		popout.connect('clicked', lambda b: self._show_dialog_action(self._get_selection_state()))
 
 		hbox = Gtk.HBox()
 		hbox.set_border_width(3)
@@ -103,9 +114,9 @@ class TaskListWidgetMixin(object):
 		vbox1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 		vbox1.set_border_width(5) # Else scrollbar overlays numbers
 
-		selectionlist = ListSelectionView(show_inbox_next=show_inbox_next)
-		selectionlist.connect('row-activated', self.on_selection_activated)
-		vbox1.add(selectionlist)
+		self.selection_list = ListSelectionView(show_inbox_next=show_inbox_next)
+		self.selection_list.connect('row-activated', self.on_selection_activated)
+		vbox1.add(self.selection_list)
 
 		self.tag_list = LabelAndTagView(self.taskselection, self, _parse_task_labels(properties['labels']), properties['show_pages'])
 		vbox1.add(self.tag_list)
@@ -163,6 +174,7 @@ class TaskListWidgetMixin(object):
 		self.set_selection(label._zim_key)
 
 	def set_selection(self, key):
+		self.taskselection_type = key
 		label, cls = self.SELECTION_MAP[key]
 		self._set_mbutton_label(label)
 		taskselection = cls.new_from_index(self.index)
@@ -194,6 +206,7 @@ class TaskListWidgetMixin(object):
 		self._mbutton.add(hbox)
 
 	def set_label_tag_filter(self, labels, tags, pages):
+		self.label_tag_filter = (labels, tags, pages)
 		self.tasklisttreeview.set_label_tag_filter(labels, tags, pages)
 
 
@@ -406,6 +419,11 @@ class ListSelectionView(Gtk.ListBox):
 			label.set_markup('<b>%s</b>' % _('Lists'))
 			row.set_header(label)
 
+	def _select(self, key):
+		for row in self.get_children():
+			if row.get_child()._zim_key == key:
+				self.select_row(row)
+				return
 
 class LabelAndTagView(Gtk.ListBox):
 
@@ -458,6 +476,15 @@ class LabelAndTagView(Gtk.ListBox):
 			else: # 'page'
 				pages.append(row._zim_label)
 		return labels, tags, pages
+
+	def _set_selected_labels_tags_pages(self, labels, tags, pages):
+		selection = {'label': labels, 'tag': tags, 'page': pages}
+		for row in self.get_children():
+			myselection = selection[row._zim_type]
+			if myselection is not None and row._zim_label in myselection:
+					self.select_row(row)
+			else:
+				self.unselect_row(row)
 
 	def set_taskselection(self, taskselection):
 		self.taskselection = taskselection

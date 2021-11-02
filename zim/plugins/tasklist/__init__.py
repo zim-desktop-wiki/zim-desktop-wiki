@@ -157,18 +157,28 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 
 	@action(_('Task List'), icon='task-list-symbolic', menuhints='view:headerbar') # T: menu item
 	def show_task_list(self):
+		# This action keeps a ref to present unique window. However using the
+		# "popout" action from the side pane can create multiple windows by
+		# directly calling ``_show_task_window()``
+
 		# TODO: add check + dialog for index probably_up_to_date
 
 		if self._task_list_window is None:
+			self._task_list_window = self._show_task_window(selection_state=None)
+
+		self._task_list_window.present()
+
+	def _show_task_window(self, selection_state):
 			notebook = self.pageview.notebook
 			index = self.pageview.notebook.index
 			navigation = self.pageview.navigation
 			properties = self.plugin.notebook_properties(self.pageview.notebook)
-			self._task_list_window = TaskListWindow(notebook, index, navigation, properties, self.plugin.preferences['show_inbox_next'])
-			self._task_list_window.connect_after('destroy', self._drop_task_list_window_ref)
-			self._task_list_window.show_all()
-
-		self._task_list_window.present()
+			window = TaskListWindow(notebook, index, navigation, properties, self.plugin.preferences['show_inbox_next'])
+			window.connect_after('destroy', self._drop_task_list_window_ref)
+			if selection_state:
+				window._set_selection_state(selection_state)
+			window.show_all()
+			return window
 
 	def _drop_task_list_window_ref(self, *a):
 		self._task_list_window = None
@@ -199,7 +209,7 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 		properties = self.plugin.notebook_properties(self.pageview.notebook)
 		self._widget = TaskListWidget(index, self.navigation,
 			properties, self.plugin.preferences['show_due_date_in_pane'], self.plugin.preferences['show_inbox_next'], self.uistate,
-			self.show_task_list)
+			self._show_task_window)
 		self._widget_state = (
 			self.plugin.preferences['show_inbox_next'],
 			self.plugin.preferences['show_due_date_in_pane']
