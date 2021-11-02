@@ -148,9 +148,6 @@ class VersionControlMainWindowExtension(MainWindowExtension):
 		if self.plugin.preferences['autosave_at_interval']:
 			self._start_timer()
 
-	def destroy(self):
-		self._stop_timer()
-
 	def _start_timer(self):
 		timeout = 60000 * self.plugin.preferences['autosave_interval']
 		self._autosave_timer = GObject.timeout_add(
