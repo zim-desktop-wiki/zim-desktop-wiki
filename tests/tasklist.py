@@ -383,6 +383,22 @@ TODO: Task 2
 			'daterange': daterange
 		})
 
+	def testInheritTags(self):
+		text = '''
+[ ] Task 1 @work
+	[ ] Task 2 @phone
+[ ] Task 3 @home
+'''
+
+		wanted = [
+			(t('Task 1 @work', tags='work'), [
+				(t('Task 2 @phone', tags='work,phone'), []),
+			]),
+			(t('Task 3 @home', tags='home'), []),
+		]
+
+		self.assertWikiTextToTasks(text, wanted)
+
 
 class TestTaskList(tests.TestCase):
 
