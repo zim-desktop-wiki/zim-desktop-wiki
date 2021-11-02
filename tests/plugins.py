@@ -152,13 +152,21 @@ class TestPlugins(tests.TestCase):
 			manager[name].preferences.emit('changed')
 				# Checking for exceptions and infinite recursion
 
+		loaded = list(manager)
 		for name in manager:
-			#~ print("REMOVE:", name)
+			# print("REMOVE:", name)
 			self.assertIsInstance(manager[name], PluginClass)
 			manager.remove_plugin(name)
 			self.assertNotIn(name, manager)
 
-		self.assertTrue(len(manager) == 0)
+		self.assertEqual(len(manager), 0)
+
+		for name in sorted(loaded):
+			# print("LOAD AGAIN:", name)
+			manager.load_plugin(name)
+			self.assertIsInstance(manager[name], PluginClass)
+
+		self.assertEqual(len(manager), len(loaded))
 
 
 class TestFunctions(tests.TestCase):

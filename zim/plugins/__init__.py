@@ -391,10 +391,23 @@ class PluginManagerClass(ConnectorMixin, SignalEmitter, abc.Mapping, metaclass=_
 		self._preferences.setdefault('plugins', [])
 
 		self._plugins = {}
-		self._extendables = weakref.WeakSet()
+		self._extendable_weakrefs = []
 		self.failed = set()
 
 		self.insertedobjects = InsertedObjectTypeMap()
+
+	def _extendables(self):
+		 # Used WeakSet before, but order of loading is important. This method
+		 # returns the alive objects and cleans up the list in one go
+		extendables = []
+		weakrefs = []
+		for ref in self._extendable_weakrefs:
+			ext = ref()
+			if ext is not None:
+				extendables.append(ext)
+				weakrefs.append(ref)
+		self._extendable_weakrefs = weakrefs
+		return extendables
 
 	def load_plugins_from_preferences(self, names):
 		'''Calls L{load_plugin()} for each plugin in C{names} but does not
@@ -467,7 +480,7 @@ class PluginManagerClass(ConnectorMixin, SignalEmitter, abc.Mapping, metaclass=_
 		Relies on C{obj} already being setup correctly by the L{extendable} decorator.
 		'''
 		logger.debug("New extendable: %s", obj)
-		assert not obj in self._extendables
+		assert not obj in self._extendables()
 
 		count = 0
 		for name, plugin in sorted(self._plugins.items()):
@@ -477,7 +490,7 @@ class PluginManagerClass(ConnectorMixin, SignalEmitter, abc.Mapping, metaclass=_
 		if count > 0:
 			self.emit('extensions-changed', obj)
 
-		self._extendables.add(obj)
+		self._extendable_weakrefs.append(weakref.ref(obj))
 		obj._zim_extendable_registered = True
 
 	def _extend(self, plugin, obj):
@@ -517,7 +530,7 @@ class PluginManagerClass(ConnectorMixin, SignalEmitter, abc.Mapping, metaclass=_
 		plugin = klass()
 		self._plugins[name] = plugin
 
-		for obj in self._extendables:
+		for obj in self._extendables():
 			count = self._extend(plugin, obj)
 			if count > 0:
 				self.emit('extensions-changed', obj)
