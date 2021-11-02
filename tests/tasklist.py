@@ -399,6 +399,31 @@ TODO: Task 2
 
 		self.assertWikiTextToTasks(text, wanted)
 
+	def testLabelsWithAndWithoutColon(self):
+		text = '''
+=== TODO heading 1 ===
+
+=== TODO: heading 2 ===
+
+TODO: Task 1
+TODO Task 2
+'''
+
+		wanted = [
+			(t('TODO heading 1'), []),
+			(t('TODO: heading 2'), []),
+			(t('TODO: Task 1'), []),
+			(t('TODO Task 2'), []),
+		]
+
+		self.assertWikiTextToTasks(text, wanted)
+
+	def testParseTaskLabels(self):
+		from zim.plugins.tasklist.indexer import _parse_task_labels
+		self.assertEqual(_parse_task_labels('TODO, FIXME'), ['TODO', 'FIXME'])
+		self.assertEqual(_parse_task_labels('TODO,FIXME'), ['TODO', 'FIXME'])
+		self.assertEqual(_parse_task_labels('TODO FIXME'), ['TODO', 'FIXME'])
+
 
 class TestTaskList(tests.TestCase):
 

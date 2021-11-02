@@ -67,7 +67,7 @@ def _parse_task_labels(string):
 	if string is None:
 		return []
 	else:
-		labels = [s.strip(',').strip() for s in string.split()]
+		labels = [s.strip() for s in string.replace(',', ' ').split()]
 		return [l for l in labels if l]
 
 
