@@ -397,8 +397,8 @@ class PluginManagerClass(ConnectorMixin, SignalEmitter, abc.Mapping, metaclass=_
 		self.insertedobjects = InsertedObjectTypeMap()
 
 	def _extendables(self):
-		 # Used WeakSet before, but order of loading is important. This method
-		 # returns the alive objects and cleans up the list in one go
+		# Used WeakSet before, but order of loading is important. This method
+		# returns the alive objects and cleans up the list in one go
 		extendables = []
 		weakrefs = []
 		for ref in self._extendable_weakrefs:
