@@ -7,7 +7,7 @@ The Task List plugin adds a dialog that lists open items across all pages of the
 
 **Dependencies:** This plugin has no additional dependencies.
 
-**See also:** [[Usage:Getting Things Done]]
+**See also:** This manual page documents the options of the plugin and how the plugin interpretes tasks. For more background information on how and when to use it see:  [[Usage:ToDo Lists]] and [[Usage:Getting Things Done]]. This plugin is often used in combination with the [[Journal]] plugin.
 
 
 ===== Preferences =====
@@ -38,12 +38,12 @@ If the option **Don't count Saturday and Sunday as working days** is enabled the
 The selection pane has several categories for selection: **Lists**, **Labels**, **Tags** and **Page**.
 
 * Lists: The default lists are described below
-* Labels: These task labels list "TODO" or "FIXME" that can occur at the start of a task description. The exact labels can be configured with the **Labels marking tasks** preference. If you select multiple labels, tasks with any of the selected labels will be shown ("or" selections)
+* Labels: These are labels like "TODO" or "FIXME" that can occur at the start of a task description. The exact labels can be configured with the **Labels marking tasks** preference. If you select multiple labels, tasks with any of the selected labels will be shown ("or" selections)
 * Tags: These are "@name" tags that occur in the task description. If you select multiple tags, tasks will be shown that match all selected tags ("and" selection)
 * Page: These are unique parts of a page name, which allows to use the page path in a tag-like way. If you select multiple pages, tasks of any of the selected pages will be shown ("or" selection)
 
 
-===== Lists =====
+==== Lists ====
 In the selection pane there are 3 "lists": **All tasks**, **Active** and **Waiting**:
 
 * All tasks: this is an overview of all tasks, it is represented as a tree with parent and child tasks
@@ -58,6 +58,22 @@ When the preference **Show "GTD-style" inbox & next actions lists** is enabled t
 
 With these 3 lists one can work with a "GTD like" approach. To create an inbox item you just write down a task anywhere in a page without adding prio or due date (tags are allowed). When you are in review mode, you classify these tasks, add child tasks etc. and they move to either the "Next actions" or the "Projects" list automatically. Similarly in review mode you can go over the projects and find where to add more child tasks.
 
+==== Labels ====
+Labels like "TODO" or "FIXME" can occur at the start of a task description. The exact labels can be configured with the **Labels marking tasks** preference. The selection pane allows selecting specific labels because typically when multiple labels are used, they are represent different categories of tasks.
+
+==== Tags ====
+Another way to select sets of tasks is by using tags. A typical way to use these is to give context to when or where a task is relevant. E.g. tasks can be labelled @home or @work or you might label tasks by the person you need to talk to - that way you can draw up a quick lists of things to discuss in the next meeting.
+
+Tags are inherited by sub-tasks. Therefore selection by tag also includes tasks that may not have the tag directly. The reason is that sub-tasks are expected to have the same context as their parent task.
+
+==== Page selection ====
+In the selection page the unique parts of a page name are shown if the option **Show page names in selection pane** is enabled. This allows to use the page path in a tag-like way.
+
+It allows selecting all tasks that share a common parent page. E.g. if you have a notebook section "Projects" selecting the "Projects" label in the page selection will show all tasks that are on a sub-page of the "Projects" section. And similar you can select all tasks in the "Journal" section.
+
+It also allows to combine tasks from different pages that have a common name. E.g. if you organize your tasks per customer and you have pages "Customer A:Brainstorm" and "Customer B:Brainstorm" selecting the "Brainstorm" label in the page selecting will show alls tasks on both pages combined.
+
+If you want to show tasks of one specific page only, the page selection may not be what you want. In that case you can just type the full page name in the entry for filtering tasks. This works because the filter also takes into account the "page" column of the task view.
 
 ===== Usage =====
 
@@ -101,7 +117,8 @@ A task in a checkbox list can also have sub-items. This can help split up a comp
 
 Such sub-items will also show up in the tasklist as sub-items below the main task in a hierarchical tree. Note that sub-items that do not have an explicit due date or priority will inherit these from the main task. In this example, "//cleanup living room//" and "//buy food & drinks//" items inherit the due date and priority from the main task. "//send invitations//" will have an earlier due date and a higher priority because they are explicitly specified.
 
-In this example the "**Show Tasks as Flat List**" option in the context menu would show only 4 items: "Send invitations", "Git rid of moving boxes", "Buy vacuum cleaner" and "Buy food & drinks". These 4 represent the lowest level "next steps" that can be acted upon.
+In this example the "Active tasks" list will show only 4 items: "Send invitations", "Git rid of moving boxes", "Buy vacuum cleaner" and "Buy food & drinks". These 4 represent the lowest level "next steps" that can be acted upon. When you close the tasks "get rid of moving boxes" and "buy vacuum cleaner" the "cleanup living room" becomes active. This should prompt you to either do it and close it, or detail our further sub-tasks.
+
 
 ==== Using labels ====
 The second way to use the task list is by using labels like "TODO" or "FIXME" in your notes. Labels can appear at the start of a line or directly after a checkbox. The rest of the lines are parsed the same as a task description after a checkbox. So the following will also be considered a task:
