@@ -66,10 +66,11 @@ class TestPluginClasses(tests.TestCase):
 			props = [p for p in klass.plugin_notebook_properties]
 			for pref in prefs + props:
 				label = pref[2]
-				if '\n' in label:
-					label, x = label.split('\n', 1)
-					label = label.rstrip(',')
-				self.assertTrue(label in manual, 'Preference or property "%s" for %s plugin not documented in manual page' % (label, name))
+				if label is not None: # else it is hidden option
+					if '\n' in label:
+						label, x = label.split('\n', 1)
+						label = label.rstrip(',')
+					self.assertTrue(label in manual, 'Preference or property "%s" for %s plugin not documented in manual page' % (label, name))
 
 			# test dependencies data
 			dep = klass.check_dependencies()
@@ -152,13 +153,21 @@ class TestPlugins(tests.TestCase):
 			manager[name].preferences.emit('changed')
 				# Checking for exceptions and infinite recursion
 
+		loaded = list(manager)
 		for name in manager:
-			#~ print("REMOVE:", name)
+			# print("REMOVE:", name)
 			self.assertIsInstance(manager[name], PluginClass)
 			manager.remove_plugin(name)
 			self.assertNotIn(name, manager)
 
-		self.assertTrue(len(manager) == 0)
+		self.assertEqual(len(manager), 0)
+
+		for name in sorted(loaded):
+			# print("LOAD AGAIN:", name)
+			manager.load_plugin(name)
+			self.assertIsInstance(manager[name], PluginClass)
+
+		self.assertEqual(len(manager), len(loaded))
 
 
 class TestFunctions(tests.TestCase):

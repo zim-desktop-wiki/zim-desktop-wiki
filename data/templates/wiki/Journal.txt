@@ -6,7 +6,7 @@
 [% strftime("%d %B", journal_plugin.date) %] to [% strftime("%d %B", journal_plugin.end_date) %]
 
 [% FOREACH day IN journal_plugin.days() %]
-=== [% strftime("%A %d %B", day) %] ===
+=== [% strftime("%A %d %B", day) %] {{id: [% strftime("%Y-%m-%d", day) %]}} ===
 
 [% END %]
 

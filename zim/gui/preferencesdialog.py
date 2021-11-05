@@ -469,13 +469,10 @@ class PluginConfigureDialog(Dialog):
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
 
-		ignore = getattr(self.plugin, 'hide_preferences', [])
-		fields = [
-			field for field in
-				self.plugin.form_fields(self.plugin.plugin_preferences)
-					if field[0] not in ignore
-		]
-		self.add_form(fields, self.plugin.preferences)
+		self.add_form(
+			inputs=self.plugin.form_fields(self.plugin.plugin_preferences),
+			values=self.plugin.preferences
+		)
 
 		if plugin.plugin_notebook_properties:
 			hbox = Gtk.Box(spacing=12)

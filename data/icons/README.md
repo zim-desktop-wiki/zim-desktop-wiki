@@ -47,3 +47,12 @@ Icon:  foundation-superscript
 Icon set: Foundation
 Author: Zurb
 License: MIT
+
+## window-pop-out-symbolic
+
+Obtained from: https://iconify.design/icon-sets/clarity/pop-out-line.html
+
+Icon:  clarity-pop-out-line
+Icon set: Clarity
+Author: VMware
+License: MIT

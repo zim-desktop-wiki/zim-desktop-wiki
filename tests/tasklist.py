@@ -5,6 +5,7 @@
 
 import tests
 
+from functools import partial
 
 import zim.plugins
 import zim.config
@@ -13,6 +14,7 @@ import zim.formats
 from zim.plugins import PluginManager
 from zim.parsing import parse_date
 from zim.plugins.tasklist import *
+from zim.plugins.tasklist.indexer import *
 
 
 from zim.tokenparser import TokenBuilder, testTokenStream
@@ -49,7 +51,7 @@ FIXME: dus
 [ ] Bar
 
 [ ] And then there are @tags
-[ ] Next: And due dates
+[ ] Waiting: waiting items
 [ ] Date [d: 11/12]
 [ ] Date [d: 11/12/2012]
 	[ ] TODO: BAR !!!
@@ -129,17 +131,31 @@ from zim.parsing import parse_date
 
 NO_DATE = '9999'
 
-def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
+def t(desc, status=TASK_STATUS_OPEN, waiting=False, start=0, due=NO_DATE, prio=0, tags=''):
 	# Generate a task tuple
-	# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
+	# 0:status, 1:prio, 2:waiting, 3:start, 4:due, 5:tags, 6:desc
 	if tags:
 		tags = set(str(tags).split(','))
 	else:
 		tags = set()
-	return [open, prio, start, due, tags, str(desc)]
+	return [status, prio, waiting, start, due, tags, str(desc)]
 
 
 class TestTaskParser(tests.TestCase):
+
+	def assertWikiTextToTasks(self, wikitext, wanted, parser_args={}, parse_args={}):
+		tree = WikiParser().parse(wikitext)
+		tb = TokenBuilder()
+		tree.visit(tb)
+		tokens = tb.tokens
+		testTokenStream(tokens)
+
+		parser = TaskParser(**parser_args)
+		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
+			tasks = parser.parse(tokens, **parse_args)
+
+		#~ import pprint; pprint.pprint(tasks)
+		self.assertEqual(tasks, wanted)
 
 	def testAllCheckboxes(self):
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
@@ -156,15 +172,15 @@ class TestTaskParser(tests.TestCase):
 			(t('List'), []),
 			(t('List with'), [
 				(t('Nested items'), []),
-				(t('Some are done', open=False), []),
-				(t('Done but with open child', open=True), [
-					(t('Others not', open=False), []),
+				(t('Some are done', status=TASK_STATUS_CLOSED), []),
+				(t('Done but with open child'), [
+					(t('Others not', status=TASK_STATUS_CANCELLED), []),
 					(t('FOOOOO'), []),
 				]),
 			]),
 			(t('Bar'), []),
 			(t('And then there are @tags', tags='tags'), []),
-			(t('Next: And due dates'), []),
+			(t('Waiting: waiting items', waiting=True), []),
 			(t('Date [d: 11/12]', due=mydate), []),
 			(t('Date [d: 11/12/2012]', due='2012-12-11'), [
 				(t('TODO: BAR !!!', prio=3, due='2012-12-11'), []),
@@ -188,10 +204,10 @@ class TestTaskParser(tests.TestCase):
 			(t('Sub item bullets'), []),
 			(t('Sub item numbered'), []),
 			(t('Main @tag1 @tag2 !', prio=1, tags='tag1,tag2'), [
-				(t('Sub1', prio=1, open=False, tags='tag1,tag2'), []),
+				(t('Sub1', prio=1, status=TASK_STATUS_CLOSED, tags='tag1,tag2'), []),
 				(t('Sub2 @tag3 !!!!', prio=4, tags='tag1,tag2,tag3'), [
-					(t('Sub2-1', prio=4, open=False, tags='tag1,tag2,tag3'), []),
-					(t('Sub2-2 @tag4', prio=4, open=False, tags='tag1,tag2,tag3,tag4'), []),
+					(t('Sub2-1', prio=4, status=TASK_STATUS_CLOSED, tags='tag1,tag2,tag3'), []),
+					(t('Sub2-2 @tag4', prio=4, status=TASK_STATUS_CLOSED, tags='tag1,tag2,tag3,tag4'), []),
 					(t('Sub2-3', prio=4, tags='tag1,tag2,tag3'), []),
 				]),
 				(t('Sub3', prio=1, tags='tag1,tag2'), []),
@@ -202,33 +218,21 @@ class TestTaskParser(tests.TestCase):
 			]),
 			(t('C', tags='someday'), []),
 			(t('main task', tags='home'), [
-				(t('do this', open=False, tags='home'), []),
+				(t('do this', status=TASK_STATUS_CANCELLED, tags='home'), []),
 				(t('Next: do that', tags='home'), []),
 				(t('Next: do something else', tags='home'), []),
 			]),
-			(t('Closed parent task', open=True), [
+			(t('Closed parent task'), [
 				(t('With open child'), []),
 				(t('Must be open as well to show up in list'), []),
 			]),
-			(t('Closed parent task', open=False), [
-				(t('With closed children', open=False), []),
-				(t('Should not', open=False), []),
+			(t('Closed parent task', status=TASK_STATUS_CLOSED), [
+				(t('With closed children', status=TASK_STATUS_CLOSED), []),
+				(t('Should not', status=TASK_STATUS_CLOSED), []),
 			]),
 		]
 
-
-		tree = WikiParser().parse(WIKI_TEXT)
-		tb = TokenBuilder()
-		tree.visit(tb)
-		tokens = tb.tokens
-		testTokenStream(tokens)
-
-		parser = TaskParser()
-		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
-			tasks = parser.parse(tokens)
-
-		#~ import pprint; pprint.pprint(tasks)
-		self.assertEqual(tasks, wanted)
+		self.assertWikiTextToTasks(WIKI_TEXT, wanted)
 
 	def testLabelledCheckboxes(self):
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
@@ -257,25 +261,13 @@ class TestTaskParser(tests.TestCase):
 			]),
 			(t('C', tags='someday'), []),
 			(t('main task', tags='home'), [
-				(t('do this', open=False, tags='home'), []),
+				(t('do this', status=TASK_STATUS_CANCELLED, tags='home'), []),
 				(t('Next: do that', tags='home'), []),
 				(t('Next: do something else', tags='home'), []),
 			]),
 		]
 
-
-		tree = WikiParser().parse(WIKI_TEXT)
-		tb = TokenBuilder()
-		tree.visit(tb)
-		tokens = tb.tokens
-		testTokenStream(tokens)
-
-		parser = TaskParser(all_checkboxes=False)
-		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
-			tasks = parser.parse(tokens)
-
-		#~ import pprint; pprint.pprint(tasks)
-		self.assertEqual(tasks, wanted)
+		self.assertWikiTextToTasks(WIKI_TEXT, wanted, parser_args={'all_checkboxes': False})
 
 	def testDate(self):
 		text = '''\
@@ -287,18 +279,150 @@ class TestTaskParser(tests.TestCase):
 			(t('Task >2018-12', start='2018-12-01'), [])
 		]
 
-		tree = WikiParser().parse(text)
-		tb = TokenBuilder()
-		tree.visit(tb)
-		tokens = tb.tokens
-		testTokenStream(tokens)
+		self.assertWikiTextToTasks(text, wanted)
 
-		parser = TaskParser()
-		tasks = parser.parse(tokens)
+	def testDueDateInHeading(self):
+		text = '''
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 1
 
-		#import pprint; pprint.pprint(tasks)
-		self.assertEqual(tasks, wanted)
+TODO: Task 2
+'''
+		wanted = [
+			(t('Task 1', due='2021-10-30'), []),
+			(t('TODO: Task 2', due='2021-10-30'), []),
+		]
 
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_due_date': daterange[1].isoformat(),
+			'daterange': daterange
+		})
+
+	def testStartDateInHeading(self):
+		text = '''
+=== Head {{id: 20211030}} ===
+[ ] Task 1
+
+TODO: Task 2
+'''
+		wanted = [
+			(t('Task 1', start='2021-10-30'), []),
+			(t('TODO: Task 2', start='2021-10-30'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
+
+	def testDateInHeadingEnforceRange(self):
+		text = '''
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 1
+=== Head {{id: 2022-10-30}} ===
+[ ] Task 2
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 3
+'''
+
+		wanted = [
+			(t('Task 1', start='2021-10-30'), []),
+			(t('Task 2', start='2021-10-25'), []),
+			(t('Task 3', start='2021-10-30'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
+
+	def testDateInHeadingMultipleIDs(self):
+		text = '''
+=== Head {{id: foo}} {{id: 2021-10-30}} {{id bar}} ===
+[ ] Task
+'''
+		wanted = [
+			(t('Task', start='2021-10-30'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
+
+	def testDateInHeadingResetNextHeading(self):
+		text = '''
+== Top Head ==
+=== Head {{id: 2021-10-30}} ===
+[ ] Task 1
+==== Subhead ====
+[ ] Task 2
+=== New Head ===
+[ ] Task 3
+=== New Head {{id: 2021-10-31}} ===
+[ ] Task 4
+== Top Head ==
+[ ] Task 5
+'''
+
+		wanted = [
+			(t('Task 1', start='2021-10-30'), []),
+			(t('Task 2', start='2021-10-30'), []),
+			(t('Task 3', start='2021-10-25'), []),
+			(t('Task 4', start='2021-10-31'), []),
+			(t('Task 5', start='2021-10-25'), []),
+		]
+
+		daterange = (datetime.date(2021, 10, 25), datetime.date(2021, 10, 31))
+		self.assertWikiTextToTasks(text, wanted, parse_args={
+			'default_start_date': daterange[0].isoformat(),
+			'daterange': daterange
+		})
+
+	def testInheritTags(self):
+		text = '''
+[ ] Task 1 @work
+	[ ] Task 2 @phone
+[ ] Task 3 @home
+'''
+
+		wanted = [
+			(t('Task 1 @work', tags='work'), [
+				(t('Task 2 @phone', tags='work,phone'), []),
+			]),
+			(t('Task 3 @home', tags='home'), []),
+		]
+
+		self.assertWikiTextToTasks(text, wanted)
+
+	def testLabelsWithAndWithoutColon(self):
+		text = '''
+=== TODO heading 1 ===
+
+=== TODO: heading 2 ===
+
+TODO: Task 1
+TODO Task 2
+'''
+
+		wanted = [
+			(t('TODO heading 1'), []),
+			(t('TODO: heading 2'), []),
+			(t('TODO: Task 1'), []),
+			(t('TODO Task 2'), []),
+		]
+
+		self.assertWikiTextToTasks(text, wanted)
+
+	def testParseTaskLabels(self):
+		from zim.plugins.tasklist.indexer import _parse_task_labels
+		self.assertEqual(_parse_task_labels('TODO, FIXME'), ['TODO', 'FIXME'])
+		self.assertEqual(_parse_task_labels('TODO,FIXME'), ['TODO', 'FIXME'])
+		self.assertEqual(_parse_task_labels('TODO FIXME'), ['TODO', 'FIXME'])
 
 
 class TestTaskList(tests.TestCase):
@@ -311,12 +435,10 @@ class TestTaskList(tests.TestCase):
 		# Test indexing based on index signals
 		notebook.index.check_and_update()
 
-		view = TasksView.new_from_index(notebook.index)
-		for tasks in (
-			list(view.list_open_tasks()),
-			list(view.list_open_tasks_flatlist()),
-		):
-			self.assertTrue(len(tasks) > 5)
+		for klass in (AllTasks, ActiveTasks, NextActionTasks, InboxTasks, OpenProjectsTasks): # WaitingTasks
+			view = klass.new_from_index(notebook.index)
+			tasks = list(view)
+			self.assertGreater(len(tasks), 3, klass.__name__)
 			for task in tasks:
 				path = view.get_path(task)
 				self.assertTrue(not path is None)
@@ -328,7 +450,7 @@ class TestTaskList(tests.TestCase):
 		notebook.index.check_and_update()
 
 		from zim.plugins.tasklist.gui import TaskListTreeView
-		view = TasksView.new_from_index(notebook.index)
+		view = AllTasks.new_from_index(notebook.index)
 		opener = tests.MockObject()
 		treeview = TaskListTreeView(view, opener, task_labels=['TODO', 'FIXME'])
 
@@ -348,10 +470,10 @@ class TestTaskList(tests.TestCase):
 		self.assertFalse(any('<span' in l for l in lines)) # make sure encoding is removed
 
 		# Test tags
-		tags = treeview.get_tags()
-		for tag in ('home', 'FIXME', '__no_tags__', 'tags'):
-			self.assertIn(tag, tags)
-			self.assertGreater(tags[tag], 0)
+		#tags = treeview.get_tags()
+		#for tag in ('home', 'FIXME', '__no_tags__', 'tags'):
+		#	self.assertIn(tag, tags)
+		#	self.assertGreater(tags[tag], 0)
 
 		# TODO test filtering for tags, labels, string - all case insensitive
 
@@ -360,3 +482,260 @@ class TestTaskList(tests.TestCase):
 		#~ '''Check tasklist plugin dialog'''
 		#
 		# TODO
+
+
+class TestIndexViewMixin(object):
+
+	def setUpClass():
+		PluginManager.load_plugin('tasklist')
+
+	def setUp(self):
+		self.notebook = self.setUpNotebook(content={'Test': self.input})
+		self.selection = self.klass.new_from_index(self.notebook.index)
+
+	def testListTasks(self):
+		def walk(parent):
+			tasks = []
+			for row in self.selection.list_tasks(parent=parent):
+				start = 0 if row['start'] == '0' else row['start'] # HACK for int/str confusion
+				task = t(row['description'], row['status'], bool(row['waiting']), start, row['due'], row['prio'], row['tags'])
+				if row['haschildren']:
+					children = walk(row)
+					tasks.append((task, children))
+				else:
+					tasks.append((task, []))
+
+			return tasks
+
+		tasks = walk(None)
+		self.assertEqual(tasks, self.tasks)
+
+
+class TestAllTasks(TestIndexViewMixin, tests.TestCase):
+
+	klass = AllTasks
+
+	input = '''
+	[ ] Foo
+	[*] Bar
+	[ ] Parent 1
+		[ ] Child 1.1
+	[ ] Parent 2
+		[x] Child 2.1
+	[ ] Parent with prio !!!
+		[*] Child with prio !!!
+	[ ] Later >3000-01-01
+	[ ] Started >2000-01-01
+	[ ] Waiting: foo
+	[ ] Prio !!!
+	[ ] With due date <3000-01-01
+	'''
+
+	tasks = [
+		(t('Parent with prio !!!', prio=3), []),
+		(t('Prio !!!', prio=3), []),
+		(t('With due date <3000-01-01', due='3000-01-01'), []),
+		(t('Foo'), []),
+		(t('Parent 1'), [
+			(t('Child 1.1'), [])
+		]),
+		(t('Parent 2'), []),
+		(t('Started >2000-01-01', start='2000-01-01'), []),
+		(t('Waiting: foo', waiting=True), []),
+		(t('Later >3000-01-01', start='3000-01-01'), []),
+	]
+
+
+class TestActiveTasks(TestIndexViewMixin, tests.TestCase):
+
+	klass = ActiveTasks
+
+	input = '''
+	[ ] Foo
+	[*] Bar
+	[ ] Parent 1
+		[ ] Child 1.1
+	[ ] Parent 2
+		[x] Child 2.1
+	[ ] Later >3000-01-01
+	[ ] Started >2000-01-01
+	[ ] Waiting: foo
+	'''
+
+	tasks = [
+		(t('Foo'), []),
+		(t('Child 1.1'), []),
+		(t('Parent 2'), []),
+		(t('Started >2000-01-01', start='2000-01-01'), []),
+	]
+
+
+class TestNextActionTasks(TestIndexViewMixin, tests.TestCase):
+
+	klass = NextActionTasks
+
+	input = '''
+	[ ] Foo
+	[*] Bar
+	[ ] Parent 1
+		[ ] Child 1.1
+	[ ] Parent 2
+		[x] Child 2.1
+	[ ] Parent with prio !!!
+		[*] Child with prio !!!
+	[ ] Later >3000-01-01
+	[ ] Started >2000-01-01
+	[ ] Waiting: foo
+	[ ] Prio !!!
+	[ ] With due date <3000-01-01
+	'''
+
+	tasks = [
+		(t('Prio !!!', prio=3), []),
+		(t('With due date <3000-01-01', due='3000-01-01'), []),
+		(t('Child 1.1'), []),
+	]
+
+
+class TestInboxTasks(TestIndexViewMixin, tests.TestCase):
+
+	klass = InboxTasks
+
+	input = '''
+	[ ] Foo
+	[*] Bar
+	[ ] Parent 1
+		[ ] Child 1.1
+	[ ] Parent 2
+		[x] Child 2.1
+	[ ] Parent with prio !!!
+		[*] Child with prio !!!
+	[ ] Later >3000-01-01
+	[ ] Started >2000-01-01
+	[ ] Waiting: foo
+	[ ] Prio !!!
+	[ ] With due date <3000-01-01
+	'''
+
+	tasks = [
+		(t('Foo'), []),
+		(t('Started >2000-01-01', start='2000-01-01'), []),
+	]
+
+
+class TestOpenProjectsTasks(TestIndexViewMixin, tests.TestCase):
+
+	klass = OpenProjectsTasks
+
+	input = '''
+	[ ] Foo
+	[*] Bar
+	[ ] Parent 1
+		[ ] Child 1.1
+	[ ] Parent 2
+		[x] Child 2.1
+	[ ] Parent with prio !!!
+		[*] Child with prio !!!
+	[ ] Later >3000-01-01
+	[ ] Started >2000-01-01
+	[ ] Waiting: foo
+	[ ] Prio !!!
+	[ ] With due date <3000-01-01
+	'''
+
+	tasks = [
+		(t('Parent with prio !!!', prio=3), []),
+		(t('Parent 1'), [
+			(t('Child 1.1'), [])
+		]),
+		(t('Parent 2'), []),
+	]
+
+
+class TestWaitingTasks(TestIndexViewMixin, tests.TestCase):
+
+	klass = WaitingTasks
+
+	input = '''
+	[ ] Foo
+	[ ] Waiting: Bar
+	'''
+
+	tasks = [
+		(t('Waiting: Bar', waiting=True), [])
+	]
+
+
+class TestSelection(tests.TestCase):
+
+	def runTest(self):
+		PluginManager.load_plugin('tasklist')
+		notebook = self.setUpNotebook(content={
+			'PageA': '''
+			[ ] Foo
+			[ ] Bar @bar
+
+			TODO: test
+			TODO: test @bar
+			''',
+			'PageB': '''
+			[ ] Foo
+			[ ] Bar @bar
+			[ ] Test @foo @bar
+			''',
+			'PageB:Child': '''
+			[ ] Foo
+			[ ] Bar @bar
+
+			FIXME: dus
+			FIXME: dus @foo
+			'''
+		})
+		alltasks = AllTasks.new_from_index(notebook.index)
+		count = partial(alltasks.count_labels_and_tags_pages, task_labels=('TODO', 'FIXME'))
+
+		self.assertEqual(count(), (
+			{'TODO': 2, 'FIXME': 2},
+			{'__no_tags__': 5, 'bar': 5, 'foo': 2},
+			{'PageA': 4, 'PageB': 7, 'Child': 4} # "PageB" includes child pages
+		))
+		self.assertEqual(count(intersect=((), ('bar',))), (
+			{'TODO': 1},
+			{'__no_tags__': 0, 'bar': 5, 'foo': 1},
+			{'PageA': 2, 'PageB': 3, 'Child': 1}
+		))
+		self.assertEqual(count(intersect=((), ('foo',))), (
+			{'FIXME': 1},
+			{'__no_tags__': 0, 'bar': 1, 'foo': 2},
+			{'PageB': 2, 'Child': 1}
+		))
+		self.assertEqual(count(intersect=((), ('foo', 'bar'))), ( # "Tag AND tag"
+			{},
+			{'__no_tags__': 0, 'bar': 1, 'foo': 1},
+			{'PageB': 1}
+		))
+		self.assertEqual(count(intersect=(('TODO',), ())), (
+			{'TODO': 2},
+			{'__no_tags__': 1, 'bar': 1},
+			{'PageA': 2}
+		))
+		self.assertEqual(count(intersect=(('TODO',), ('bar',))), ( # "Label AND tag"
+			{'TODO': 1},
+			{'__no_tags__': 0, 'bar': 1},
+			{'PageA': 1}
+		))
+		self.assertEqual(count(intersect=(('TODO', 'FIXME'), ())), ( # "Label OR label"
+			{'TODO': 2, 'FIXME': 2},
+			{'__no_tags__': 2, 'bar': 1, 'foo': 1},
+			{'PageA': 2, 'PageB': 2, 'Child': 2}
+		))
+		self.assertEqual(count(intersect=(('TODO', 'FIXME'), ('bar',))), ( # "(Label OR label) AND tag"
+			{'TODO': 1},
+			{'__no_tags__': 0, 'bar': 1},
+			{'PageA': 1}
+		))
+		self.assertEqual(count(intersect=(('TODO', 'FIXME'), ('bar', 'foo'))), ( # "(Label OR label) AND (tag AND tag)"
+			{},
+			{'__no_tags__': 0},
+			{}
+		))

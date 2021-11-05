@@ -1,14 +1,13 @@
 
-# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Pango
 
 import logging
 import re
-
-from zim.plugins import find_extension
 
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
@@ -17,204 +16,353 @@ from zim.notebook import Path
 from zim.gui.widgets import \
 	Dialog, WindowSidePaneWidget, InputEntry, \
 	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, \
-	encode_markup_text, decode_markup_text
+	encode_markup_text, decode_markup_text, widget_set_css
 from zim.gui.clipboard import Clipboard
-from zim.signals import DelayedCallback, SIGNAL_AFTER
-from zim.plugins import DialogExtensionBase, extendable
+from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
+from zim.plugins import ExtensionBase, extendable
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
-from .indexer import _MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re
+from .indexer import AllTasks, ActiveTasks, InboxTasks, NextActionTasks, OpenProjectsTasks, WaitingTasks, \
+	_MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re, \
+	TASK_STATUS_OPEN, TASK_STATUS_CLOSED, TASK_STATUS_CANCELLED, TASK_STATUS_MIGRATED
+
+
+SELECTION_ALL = 'all'
+SELECTION_ACTIVE = 'active'
+SELECTION_INBOX = 'inbox'
+SELECTION_NEXT = 'next'
+SELECTION_PROJECTS = 'projects'
+SELECTION_WAITING = 'waiting'
 
 
 class TaskListWidgetMixin(object):
+	'''Common functions between side-pane widget and dialog'''
 
-		def on_populate_popup(self, o, menu):
-			sep = Gtk.SeparatorMenuItem()
-			menu.append(sep)
+	SELECTION_MAP = { # Define in class to make sure translations are intialized
+		SELECTION_ALL: (_('All Tasks'), AllTasks),
+		SELECTION_ACTIVE: (_('Active'), ActiveTasks),
+		SELECTION_INBOX: (' \u2012 ' + _('Inbox'), InboxTasks),
+		SELECTION_NEXT: (' \u2012 ' + _('Next Actions'), NextActionTasks),
+		SELECTION_PROJECTS: (' \u2012 ' + _('Projects'), OpenProjectsTasks),
+		SELECTION_WAITING: (_('Waiting'), WaitingTasks),
+	}
 
-			item = Gtk.CheckMenuItem(_('Show Tasks as Flat List'))
-				# T: Checkbox in task list - hides parent items
-			item.set_active(self.uistate['show_flatlist'])
-			item.connect('toggled', self.on_show_flatlist_toggle)
-			item.show_all()
-			menu.append(item)
+	def __init__(self, index, uistate, properties):
+		self.index = index
+		self.taskselection_type = SELECTION_ALL
+		self.taskselection = AllTasks.new_from_index(index)
+		self.status = [TASK_STATUS_OPEN]
+		self.label_tag_filter = (None, None, None)
 
-			item = Gtk.CheckMenuItem(_('Only Show Active Tasks'))
-				# T: Checkbox in task list - this options hides tasks that are not yet started
-			item.set_active(self.uistate['only_show_act'])
-			item.connect('toggled', self.on_show_active_toggle)
-			item.show_all()
-			menu.append(item)
+		self.tasklisttreeview = None
+		self.selection_list = None
+		self.tag_list = None
+		self._mbutton = None
 
-		def on_show_active_toggle(self, *a):
-			active = not self.uistate['only_show_act']
-			self.uistate['only_show_act'] = active
-			self.task_list.set_filter_actionable(active)
+		self.uistate = uistate
+		self.uistate.setdefault('sort_column', 0)
+		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
-		def on_show_flatlist_toggle(self, *a):
-			active = not self.uistate['show_flatlist']
-			self.uistate['show_flatlist'] = active
-			self.task_list.set_flatlist(active)
+		self.connectto(properties, 'changed', self.on_properties_changed)
+
+	def _get_selection_state(self):
+		return (self.taskselection_type, self.status[:], self.label_tag_filter)
+
+	def _set_selection_state(self, state):
+		self.status = state[1]
+		self.selection_list._select(state[0])
+		self.tag_list._set_selected_labels_tags_pages(*state[2])
+
+	def _create_tasklisttreeview(self, opener, properties, column_layout):
+		self.tasklisttreeview = TaskListTreeView(
+			self.taskselection, opener,
+			_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
+			use_workweek=properties['use_workweek'],
+			sort_column=self.uistate['sort_column'],
+			sort_order=self.uistate['sort_order'],
+			column_layout=column_layout,
+		)
+		return ScrolledWindow(self.tasklisttreeview)
+
+	def _create_selection_menubutton(self, opener, properties, show_inbox_next):
+		self._mbutton = Gtk.MenuButton()
+		self._set_mbutton_label(self.SELECTION_MAP[SELECTION_ALL][0])
+		popover = Gtk.Popover()
+		self._mbutton.set_popover(popover)
+		popover.add(self._create_selection_pane(properties, show_inbox_next))
+
+		popout = Gtk.Button()
+		icon = Gtk.Image.new_from_icon_name('window-pop-out-symbolic', Gtk.IconSize.SMALL_TOOLBAR)
+		popout.add(icon)
+		popout.set_tooltip_text(_('Show tasklist window'))
+		popout.set_alignment(0.5, 0.5)
+		popout.set_relief(Gtk.ReliefStyle.NONE)
+		popout.connect('clicked', lambda b: self._show_dialog_action(self._get_selection_state()))
+
+		hbox = Gtk.HBox()
+		hbox.set_border_width(3)
+		hbox.set_spacing(5)
+		hbox.pack_start(self._mbutton, True, True, 0)
+		hbox.pack_start(popout, False, True, 0)
+
+		return hbox
+
+	def _create_selection_pane(self, properties, show_inbox_next, width=300):
+		vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+		vbox1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+		vbox1.set_border_width(5) # Else scrollbar overlays numbers
+
+		self.selection_list = ListSelectionView(show_inbox_next=show_inbox_next)
+		self.selection_list.connect('row-activated', self.on_selection_activated)
+		vbox1.add(self.selection_list)
+
+		self.tag_list = LabelAndTagView(self.taskselection, self, _parse_task_labels(properties['labels']), properties['show_pages'])
+		vbox1.add(self.tag_list)
+
+		swindow = ScrolledWindow(vbox1, shadow=Gtk.ShadowType.NONE)
+		swindow.set_size_request(width, 500)
+		vbox.pack_start(swindow, True, True, 0)
+		vbox.pack_end(self._create_clear_tags_button(), False, False, 0)
+		vbox.show_all()
+		return vbox
+
+	def _create_clear_tags_button(self):
+		button = Gtk.Button('Clear selection')
+		button.connect('clicked', lambda o: self.tag_list.unselect_all())
+
+		def update_button(tag_list):
+			selected = tag_list.get_selected_rows()
+			button.set_sensitive(bool(selected))
+
+		update_button(self.tag_list)
+		self.tag_list.connect('selected-rows-changed', update_button)
+		return button
+
+	def _create_filter_entry(self):
+		filter_entry = InputEntry(placeholder_text=_('Filter tasks')) # T: label for filtering/searching tasks
+		filter_entry.set_icon_to_clear()
+		filter_cb = DelayedCallback(500,
+			lambda o: self.on_filter_changed(filter_entry.get_text()))
+		filter_entry.connect('changed', filter_cb)
+		return filter_entry
+
+	def on_filter_changed(self, text):
+		self.tasklisttreeview.set_filter(text)
+
+	def on_properties_changed(self, properties):
+		task_labels = _parse_task_labels(properties['labels'])
+		nonactionable_tags = _parse_task_labels(properties['nonactionable_tags'])
+		self.tasklisttreeview.update_properties(
+			task_labels=task_labels,
+			nonactionable_tags=nonactionable_tags,
+			use_workweek=properties['use_workweek'],
+		)
+		self.tag_list.update_properties(
+			task_labels=_parse_task_labels(properties['labels']),
+			show_pages=properties['show_pages']
+		)
+
+	def reload_view(self):
+		for view in (self.tasklisttreeview, self.tag_list):
+			if view is not None:
+				view.refresh()
+
+	def on_selection_activated(self, listbox, boxrow):
+		label = boxrow.get_children()[0]
+		self.set_selection(label._zim_key)
+
+	def set_selection(self, key):
+		self.taskselection_type = key
+		label, cls = self.SELECTION_MAP[key]
+		self._set_mbutton_label(label)
+		taskselection = cls.new_from_index(self.index)
+		taskselection.set_status_included(*self.status)
+
+		if key == SELECTION_INBOX:
+			style = TaskListTreeView.STYLE_INBOX
+		elif key == SELECTION_WAITING:
+			style = TaskListTreeView.STYLE_WAITING
+		else:
+			style = TaskListTreeView.STYLE_DEFAULT
+
+		self.tasklisttreeview.set_taskselection(taskselection, style)
+		self.tag_list.set_taskselection(taskselection)
+
+	def _set_mbutton_label(self, text):
+		if self._mbutton is None:
+			return
+
+		child = self._mbutton.get_children()[0]
+		self._mbutton.remove(child)
+
+		hbox = Gtk.HBox()
+		label = Gtk.Label(text)
+		label.set_alignment(0.1, 0.5)
+		hbox.add(label)
+		hbox.pack_end(Gtk.Image.new_from_icon_name('pan-down-symbolic', Gtk.IconSize.MENU), False, False, 0)
+		hbox.show_all()
+		self._mbutton.add(hbox)
+
+	def set_label_tag_filter(self, labels, tags, pages):
+		self.label_tag_filter = (labels, tags, pages)
+		self.tasklisttreeview.set_label_tag_filter(labels, tags, pages)
 
 
 class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 	title = _('Tas_ks') # T: tab label for side pane
 
-	def __init__(self, tasksview, opener, properties, with_due, uistate):
+	def __init__(self, index, opener, properties, show_due_date, show_inbox_next, uistate, show_dialog_action):
 		GObject.GObject.__init__(self)
-		self.uistate = uistate
-		self.uistate.setdefault('only_show_act', False)
-		self.uistate.setdefault('show_flatlist', False)
+		TaskListWidgetMixin.__init__(self, index, uistate, properties)
+		self._close_button = None
+		self._show_dialog_action = show_dialog_action
 
 		column_layout=TaskListTreeView.COMPACT_COLUMN_LAYOUT_WITH_DUE \
-			if with_due else TaskListTreeView.COMPACT_COLUMN_LAYOUT
-		self.task_list = TaskListTreeView(
-			tasksview, opener,
-			_parse_task_labels(properties['labels']),
-			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
-			filter_actionable=self.uistate['only_show_act'],
-			tag_by_page=properties['tag_by_page'],
-			use_workweek=properties['use_workweek'],
-			column_layout=column_layout,
-			flatlist=self.uistate['show_flatlist'],
-		)
-		self.task_list.connect('populate-popup', self.on_populate_popup)
-		self.task_list.set_headers_visible(True)
+			if show_due_date else TaskListTreeView.COMPACT_COLUMN_LAYOUT
 
-		self.connectto(properties, 'changed', self.on_properties_changed)
+		swindow = self._create_tasklisttreeview(opener, properties, column_layout)
+		self._header_hbox = self._create_selection_menubutton(opener, properties, show_inbox_next)
+		self.pack_start(self._header_hbox, False, True, 0)
+		self.pack_start(swindow, True, True, 0)
 
-		self.filter_entry = InputEntry(placeholder_text=_('Filter')) # T: label for filtering/searching tasks
-		self.filter_entry.set_icon_to_clear()
-		filter_cb = DelayedCallback(500,
-			lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
-		self.filter_entry.connect('changed', filter_cb)
+		filter_entry = self._create_filter_entry()
+		self.pack_end(filter_entry, False, True, 0)
 
-		self.pack_start(ScrolledWindow(self.task_list), True, True, 0)
-		self.pack_end(self.filter_entry, False, True, 0)
+	def set_embeded_closebutton(self, button):
+		if self._close_button:
+			self._header_hbox.remove(self._close_button)
 
-	def on_properties_changed(self, properties):
-		self.task_list.update_properties(
-			task_labels=_parse_task_labels(properties['labels']),
-			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
-			tag_by_page=properties['tag_by_page'],
-			use_workweek=properties['use_workweek'],
-		)
+		if button is not None:
+			self._header_hbox.pack_end(button, False, True, 0)
+
+		self._close_button = button
+		return True
+
+from zim.actions import get_actions, RadioActionMethod
+class TaskListWindowExtension(ExtensionBase):
+	'''Base class for window extensions
+	Actions can be defined using e.g. C{@action} decorator, see
+	L{zim.actions}, and will automatically be added to the window on
+	initialization.
+	'''
+
+	# TODO - remove actions on teardown !!!
+
+	def __init__(self, plugin, window):
+		ExtensionBase.__init__(self, plugin, window)
+		self.window = window
+		self.connectto(window, 'destroy')
+
+		for name, action in get_actions(self):
+			self.add_action(action)
+
+	def on_destroy(self, dialog):
+		self.destroy()
+
+	def add_action(self, action):
+		if isinstance(action, RadioActionMethod):
+			raise NotImplementedError
+
+		if 'headerstart' in action.menuhints:
+			button = action.create_button()
+			headerbar = self.window.get_titlebar()
+			headerbar.pack_start(button)
+			button.show_all()
+		else:
+			raise NotImplementedError
 
 
-class TaskListDialogExtension(DialogExtensionBase):
-	pass
+@extendable(TaskListWindowExtension)
+class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 
-@extendable(TaskListDialogExtension)
-class TaskListDialog(TaskListWidgetMixin, Dialog):
+	def __init__(self, notebook, index, navigation, properties, show_inbox_next):
+		Gtk.Window.__init__(self)
+		self.uistate = notebook.state[self.__class__.__name__]
+		#Dialog.__init__(self, parent, _('Task List'), # T: dialog title
+		#	buttons=Gtk.ButtonsType.CLOSE, help=':Plugins:Task List',
+		defaultwindowsize=(550, 400)
+		from zim.config import value_is_coord
 
-	def __init__(self, parent, tasksview, properties):
-		Dialog.__init__(self, parent, _('Task List'), # T: dialog title
-			buttons=Gtk.ButtonsType.CLOSE, help=':Plugins:Task List',
-			defaultwindowsize=(550, 400))
-		self.properties = properties
-		self.tasksview = tasksview
-		self.notebook = parent.notebook
+		# note: _windowpos is defined with a leading "_" so it is not
+		# persistent across instances, this is intentional to avoid
+		# e.g. messy placement for seldom used dialogs
+		self.uistate.setdefault('_windowpos', None, check=value_is_coord)
+		if self.uistate['_windowpos'] is not None:
+			x, y = self.uistate['_windowpos']
+			self.move(x, y)
 
-		hbox = Gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False, True, 0)
+		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
+		if self.uistate['windowsize'] is not None:
+			w, h = self.uistate['windowsize']
+			self.set_default_size(w, h)
+
+		self.connect('delete-event', self.save_uistate)
+
+		TaskListWidgetMixin.__init__(self, index, self.uistate, properties)
+
+		headerbar = Gtk.HeaderBar()
+		headerbar.set_title(_('Tasks') + '  -  ' + notebook.name)
+		headerbar.set_show_close_button(True)
+		self.set_titlebar(headerbar)
+
 		self.hpane = HPaned()
 		self.uistate.setdefault('hpane_pos', 75)
 		self.hpane.set_position(self.uistate['hpane_pos'])
-		self.vbox.pack_start(self.hpane, True, True, 0)
+		pane2_vbox = Gtk.VBox()
+		self.hpane.add2(pane2_vbox)
 
-		# Task list
-		self.uistate.setdefault('only_show_act', False)
-		self.uistate.setdefault('show_flatlist', False)
-		self.uistate.setdefault('sort_column', 0)
-		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
+		column_layout = TaskListTreeView.RICH_COLUMN_LAYOUT
+		swindow = self._create_tasklisttreeview(navigation, properties, column_layout)
+		self.add(self.hpane)
+		pane2_vbox.pack_start(swindow, True, True, 0)
 
-		opener = parent.navigation
-		self.task_list = TaskListTreeView(
-			self.tasksview, opener,
-			_parse_task_labels(properties['labels']),
-			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
-			filter_actionable=self.uistate['only_show_act'],
-			tag_by_page=properties['tag_by_page'],
-			use_workweek=properties['use_workweek'],
-			flatlist=self.uistate['show_flatlist'],
-			sort_column=self.uistate['sort_column'],
-			sort_order=self.uistate['sort_order']
-		)
-		self.task_list.set_headers_visible(True)
-		self.task_list.connect('populate-popup', self.on_populate_popup)
-		self.hpane.add2(ScrolledWindow(self.task_list))
+		filter_entry = self._create_filter_entry()
+		pane2_vbox.pack_start(filter_entry, False, True, 0)
 
-		# Tag list
-		self.tag_list = TagListTreeView(self.task_list)
-		self.hpane.add1(ScrolledWindow(self.tag_list))
+		self.hpane.add1(self._create_selection_pane(properties, show_inbox_next, width=150))
 
-		self.connectto(properties, 'changed', self.on_properties_changed)
+		self._create_menu()
 
-		# Filter input
-		hbox.pack_start(Gtk.Label(_('Filter') + ': '), False, True, 0) # T: Input label
-		filter_entry = InputEntry()
-		filter_entry.set_icon_to_clear()
-		hbox.pack_start(filter_entry, False, True, 0)
-		filter_cb = DelayedCallback(500,
-			lambda o: self.task_list.set_filter(filter_entry.get_text()))
-		filter_entry.connect('changed', filter_cb)
+	def _create_menu(self):
+		button = Gtk.MenuButton()
+		button.set_direction(Gtk.ArrowType.NONE)
+		popover = Gtk.Popover()
+		button.set_popover(popover)
 
-		# TODO: use menu button here and add same options as in context menu
-		#       for filtering the list
-		def on_show_active_toggle(o):
-			active = self.act_toggle.get_active()
-			if self.uistate['only_show_act'] != active:
-				self.uistate['only_show_act'] = active
-				self.task_list.set_filter_actionable(active)
+		vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+		for key, label in (
+			(TASK_STATUS_OPEN, _('Show open tasks')),
+			(TASK_STATUS_CLOSED, _('Show closed tasks')),
+			(TASK_STATUS_CANCELLED, _('Show cancelled tasks')),
+			(TASK_STATUS_MIGRATED, _('Show migrated tasks'))
+		):
+			checkbutton = Gtk.CheckButton.new_with_label(label)
+			checkbutton.set_active(key in self.status)
+			checkbutton.connect('toggled', self.on_status_checkbox_toggled, key)
+			vbox.add(checkbutton)
 
-		self.act_toggle = Gtk.CheckButton.new_with_mnemonic(_('Only Show Active Tasks'))
-			# T: Checkbox in task list - this options hides tasks that are not yet started
-		self.act_toggle.set_active(self.uistate['only_show_act'])
-		self.act_toggle.connect('toggled', on_show_active_toggle)
-		self.uistate.connect('changed', lambda o: self.act_toggle.set_active(self.uistate['only_show_act']))
-		hbox.pack_start(self.act_toggle, False, True, 0)
+		popover.add(vbox)
+		button.show_all()
+		vbox.show_all()
 
-		# Statistics label
-		self.statistics_label = Gtk.Label()
-		hbox.pack_end(self.statistics_label, False, True, 0)
+		#headerbar = self.get_titlebar()
+		#headerbar.pack_end(button)
 
-		def set_statistics():
-			total = self.task_list.get_n_tasks()
-			text = ngettext('%i open item', '%i open items', total) % total
-				# T: Label for task List, %i is the number of tasks
-			self.statistics_label.set_text(text)
+	def on_status_checkbox_toggled(self, checkbox, key):
+		if checkbox.get_active():
+			self.status.append(key)
+		else:
+			self.status = [s for s in self.status if s != key]
+		self.taskselection.set_status_included(*self.status)
+		self.tasklisttreeview.refresh()
 
-		set_statistics()
-
-		def on_tasklist_changed(o):
-			self.task_list.refresh()
-			self.tag_list.refresh(self.task_list)
-			set_statistics()
-
-		callback = DelayedCallback(10, on_tasklist_changed)
-			# Don't really care about the delay, but want to
-			# make it less blocking - should be async preferably
-			# now it is at least on idle
-
-		from . import TaskListNotebookExtension
-		nb_ext = find_extension(self.notebook, TaskListNotebookExtension)
-		self.connectto(nb_ext, 'tasklist-changed', callback)
-
-	def on_properties_changed(self, properties):
-		self.task_list.update_properties(
-			task_labels=_parse_task_labels(properties['labels']),
-			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
-			tag_by_page=properties['tag_by_page'],
-			use_workweek=properties['use_workweek'],
-		)
-		self.tag_list.refresh(self.task_list)
-
-	def do_response(self, response):
+	def save_uistate(self, *a):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
 
-		for column in self.task_list.get_columns():
+		for column in self.tasklisttreeview.get_columns():
 			if column.get_sort_indicator():
 				self.uistate['sort_column'] = column.get_sort_column_id()
 				self.uistate['sort_order'] = int(column.get_sort_order())
@@ -224,124 +372,203 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 			self.uistate['sort_column'] = TaskListTreeView.PRIO_COL
 			self.uistate['sort_order'] = Gtk.SortType.ASCENDING
 
-		Dialog.do_response(self, response)
+		try:
+			x, y = self.get_position()
+			self.uistate['_windowpos'] = (x, y)
+			w, h = self.get_size()
+			self.uistate['windowsize'] = (w, h)
+		except:
+			logger.exception('Exception in save_uistate')
 
 
-class TagListTreeView(SingleClickTreeView):
-	'''TreeView with a single column 'Tags' which shows all tags available
-	in a TaskListTreeView. Selecting a tag will filter the task list to
-	only show tasks with that tag.
-	'''
+class ListSelectionView(Gtk.ListBox):
 
-	_type_separator = 0
-	_type_label = 1
-	_type_tag = 2
-	_type_untagged = 3
-
-	def __init__(self, task_list):
-		model = Gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
-		SingleClickTreeView.__init__(self, model)
-		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-		self.task_list = task_list
-
-		column = Gtk.TreeViewColumn(_('Tags'))
-			# T: Column header for tag list in Task List dialog
-		column.set_expand(True)
-		self.append_column(column)
-
-		cr1 = Gtk.CellRendererText()
-		cr1.set_property('ellipsize', Pango.EllipsizeMode.END)
-		column.pack_start(cr1, True)
-		column.set_attributes(cr1, text=0, weight=3) # tag name, weight
-
-		column = Gtk.TreeViewColumn('')
-		self.append_column(column)
-
-		cr2 = self.get_cell_renderer_number_of_items()
-		column.pack_start(cr2, False)
-		column.set_attributes(cr2, text=1) # number of tasks
-
-		self.set_row_separator_func(lambda m, i: m[i][2] == self._type_separator)
-
-		self._block_selection_change = False
-		self.get_selection().connect('changed', self.on_selection_changed)
-
-		self.refresh(task_list)
-
-	def get_tags(self):
-		'''Returns current selected tags, or None for all tags'''
-		tags = []
-		for row in self._get_selected():
-			if row[2] == self._type_tag:
-				tags.append(row[0])
-			elif row[2] == self._type_untagged:
-				tags.append(_NO_TAGS)
-		return tags or None
-
-	def get_labels(self):
-		'''Returns current selected labels'''
-		labels = []
-		for row in self._get_selected():
-			if row[2] == self._type_label:
-				labels.append(row[0])
-		return labels or None
-
-	def _get_selected(self):
-		selection = self.get_selection()
-		if selection:
-			model, paths = selection.get_selected_rows()
-			if not paths or any(p == Gtk.TreePath(0) for p in paths):
-				return []
-			else:
-				return [model[path] for path in paths]
+	def __init__(self, show_inbox_next=False):
+		Gtk.ListBox.__init__(self)
+		if show_inbox_next:
+			lists = (
+				SELECTION_ALL,
+				SELECTION_ACTIVE,
+				SELECTION_INBOX,
+				SELECTION_NEXT,
+				SELECTION_PROJECTS,
+				SELECTION_WAITING,
+			)
 		else:
-			return []
+			lists = (
+				SELECTION_ALL,
+				SELECTION_ACTIVE,
+				SELECTION_WAITING,
+			)
 
-	def refresh(self, task_list):
-		self._block_selection_change = True
-		selected = [(row[0], row[2]) for row in self._get_selected()] # remember name and type
+		for key in lists:
+			mylabel = Gtk.Label(TaskListWidgetMixin.SELECTION_MAP[key][0])
+			mylabel.set_alignment(0.0, 0.5)
+			mylabel._zim_key = key
+			self.insert(mylabel, -1)
 
-		# Rebuild model
-		model = self.get_model()
-		if model is None:
+		widget_set_css(self, self.__class__.__name__, 'background-color: rgba(0.0, 0.0, 0.0, 0.0)')
+			# Removing white background for listbox
+
+		self.set_header_func(self._update_header_func)
+
+	def _update_header_func(self, row, before):
+		# Only set header once on first row
+		if before is None and not row.get_header():
+			label = Gtk.Label()
+			label.set_markup('<b>%s</b>' % _('Lists'))
+			row.set_header(label)
+
+	def _select(self, key):
+		for row in self.get_children():
+			if row.get_child()._zim_key == key:
+				self.select_row(row)
 				return
-		model.clear()
 
-		n_all = self.task_list.get_n_tasks()
-		model.append((_('All Tasks'), n_all, self._type_label, Pango.Weight.BOLD)) # T: "tag" for showing all tasks
+class LabelAndTagView(Gtk.ListBox):
 
-		used_labels = self.task_list.get_labels()
-		for label in self.task_list.task_labels: # explicitly keep sorting from properties
-			if label in used_labels:
-				model.append((label, used_labels[label], self._type_label, Pango.Weight.BOLD))
+	def __init__(self, taskselection, tasklist_widget, task_labels, show_pages=True):
+		Gtk.ListBox.__init__(self)
 
-		tags = self.task_list.get_tags()
-		if _NO_TAGS in tags:
-			n_untagged = tags.pop(_NO_TAGS)
-			model.append((_('Untagged'), n_untagged, self._type_untagged, Pango.Weight.NORMAL))
-			# T: label in tasklist plugins for tasks without a tag
+		self.taskselection = taskselection
+		self.tasklist_widget = tasklist_widget
+		self.task_labels = task_labels
+		self.show_pages = show_pages
 
-		model.append(('', 0, self._type_separator, 0)) # separator
+		widget_set_css(self, self.__class__.__name__, 'background-color: rgba(0.0, 0.0, 0.0, 0.0)')
+			# Removing white background for listbox
 
-		for tag in natural_sorted(tags):
-			model.append((tag, tags[tag], self._type_tag, Pango.Weight.NORMAL))
+		self.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
 
-		# Restore selection
-		def reselect(model, path, iter):
-			row = model[path]
-			name_type = (row[0], row[2])
-			if name_type in selected:
-				self.get_selection().select_iter(iter)
+		self.set_header_func(self._update_header_func)
+		self.set_filter_func(self._filter_func)
+		self.refresh()
 
-		if selected:
-			model.foreach(reselect)
-		self._block_selection_change = False
+	def update_properties(self, show_pages, task_labels):
+		self.show_pages = show_pages
+		self.task_labels = task_labels
+		self.refresh()
 
-	def on_selection_changed(self, selection):
-		if not self._block_selection_change:
-			tags = self.get_tags()
-			labels = self.get_labels()
-			self.task_list.set_tag_filter(tags, labels)
+	def do_button_release_event(self, event):
+		# Implement behavior for de-selecting rows
+		if event.type == Gdk.EventType.BUTTON_RELEASE \
+		and event.button == 1 and not event.get_state() & (Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.META_MASK):
+			x, y = list(map(int, event.get_coords()))
+			row = self.get_row_at_y(y)
+			if row and row.is_selected():
+				self.unselect_row(row)
+				return True
+
+		return Gtk.ListBox.do_button_release_event(self, event)
+
+	def do_selected_rows_changed(self):
+		labels, tags, pages = self._get_selected_labels_tags_pages()
+		self.tasklist_widget.set_label_tag_filter(labels, tags, pages)
+		self.update()
+
+	def _get_selected_labels_tags_pages(self):
+		labels, tags, pages = [], [], []
+		for row in self.get_selected_rows():
+			if row._zim_type == 'label':
+				labels.append(row._zim_label)
+			elif row._zim_type == 'tag':
+				tags.append(row._zim_label)
+			else: # 'page'
+				pages.append(row._zim_label)
+		return labels, tags, pages
+
+	def _set_selected_labels_tags_pages(self, labels, tags, pages):
+		selection = {'label': labels, 'tag': tags, 'page': pages}
+		for row in self.get_children():
+			myselection = selection[row._zim_type]
+			if myselection is not None and row._zim_label in myselection:
+					self.select_row(row)
+			else:
+				self.unselect_row(row)
+
+	def set_taskselection(self, taskselection):
+		self.taskselection = taskselection
+		self.refresh()
+
+	def refresh(self):
+		for child in self.get_children():
+			self.remove(child)
+
+		labels, tags, pages = self.taskselection.count_labels_and_tags_pages(self.task_labels)
+
+		for label in self.task_labels: # Keep original order
+			count = labels.get(label, 0)
+			self.add(self._create_item(label, count, 'label'))
+
+		for tag in natural_sorted(tags.keys()):
+			count = tags[tag]
+			if tag == _NO_TAGS:
+				row = self._create_item(_('Untagged'), count, 'tag')
+				row._zim_label = _NO_TAGS
+				self.add(row)
+			else:
+				self.add(self._create_item(tag, count, 'tag'))
+
+		if self.show_pages:
+			for name in natural_sorted(pages.keys()):
+				count = pages[name]
+				self.add(self._create_item(name, count, 'page'))
+
+		self.show_all()
+
+	def update(self):
+		intersect = self._get_selected_labels_tags_pages()
+		labels, tags, pages = self.taskselection.count_labels_and_tags_pages(self.task_labels, intersect)
+		tags = {k.lower(): c for k, c in tags.items()} # Convert to lower because potential case mismatch with labels
+		for row in self.get_children():
+			if row._zim_type == 'label':
+				count = labels.get(row._zim_label, 0)
+			elif row._zim_type == 'tag':
+				count = tags.get(row._zim_label.lower(), 0)
+			else: #'page'
+				count = pages.get(row._zim_label, 0)
+			hbox = row.get_child()
+			count_label = hbox.get_children()[-1]
+			count_label.set_text(str(count))
+			row._zim_count = count
+			row.changed()
+
+	def _create_item(self, label, count, type):
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		glabel = Gtk.Label(label)
+		glabel.set_alignment(0.0, 0.5)
+		glabel.set_ellipsize(Pango.EllipsizeMode.END)
+		countlabel = Gtk.Label(str(count))
+		countlabel.set_sensitive(False) # Lighter color compared to main label
+		hbox.pack_start(glabel, True, True, 0)
+		hbox.pack_start(countlabel, False, False, 0)
+
+		row = Gtk.ListBoxRow()
+		row.add(hbox)
+		row._zim_type = type
+		row._zim_label = label
+		row._zim_count = count
+		row.set_activatable(False)
+		return row
+
+	def _filter_func(self, row):
+		return row._zim_count > 0
+
+	def _update_header_func(self, row, before):
+		if before is None or before._zim_type != row._zim_type:
+			if not row.get_header():
+				if row._zim_type == 'label':
+					text = _('Labels') # T: header in selection drop down
+				elif row._zim_type == 'tag':
+					text = _('Tags') # T: header in selection drop down
+				else: # 'page'
+					text = _('Page') # T: header in selection drop down
+				label = Gtk.Label()
+				label.set_markup('<b>%s</b>' % text)
+				row.set_header(label)
+		else:
+			if row.get_header():
+				row.set_header(None)
 
 
 HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
@@ -351,15 +578,46 @@ ALERT_COLOR = '#FCEB65' # yellow ("idem" - #FCE94F)
 
 COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
 
-def days_to_str(days):
-	if days > 290:
-			return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months
-	elif days > 25:
-			return '%im' % round(float(days) / 30)
-	elif days > 10:
-			return '%iw' % round(float(days) / 7)
+_cal_days_to_work_days = [
+	# for each weekday 5 offsets used in algo below
+	# represent weekends in a 14 day period starting at given weekday
+	# first number is offset for weekend at start of the range
+	# next 4 numbers are weekend days in the range
+	None,
+	[0, 5, 6, 12, 13], # monday
+	[0, 4, 5, 11, 12], # tuesday
+	[0, 3, 4, 10, 11], # wednesday
+	[0, 2, 3,  9, 10], # thursday
+	[0, 1, 2,  8,  9], # friday
+	[2, 5, 6, 12, 13], # saturday
+	[1, 5, 6, 12, 13], # sunday
+]
+
+
+def days_to_str(days, use_workweek, weekday):
+	# days are calendar days, not working days
+	# convert to working days if period is less than 2 weeks
+	days_per_week = 5 if use_workweek else 7
+	if days >= 300:
+		return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months
+	elif days >= 28:
+		return '%im' % round(float(days) / 30) # round up to 1 year from 4 calendar weeks
+	elif days >= 14:
+		return '%iw' % round(float(days) / 7)
+	elif use_workweek:
+		offsets = _cal_days_to_work_days[weekday]
+		days -= offsets[0]
+		if days >= offsets[4]:
+			days -= 4
+		elif days == offsets[3]:
+			days -= 3
+		elif days >= offsets[2]:
+			days -= 2
+		elif days == offset[1]:
+			days -= 1
+		return '%id' % days
 	else:
-			return '%id' % days
+		return '%id' % days
 
 
 class TaskListTreeView(BrowserTreeView):
@@ -382,12 +640,16 @@ class TaskListTreeView(BrowserTreeView):
 	COMPACT_COLUMN_LAYOUT = 12
 	COMPACT_COLUMN_LAYOUT_WITH_DUE = 13
 
+	STYLE_DEFAULT = 0
+	STYLE_INBOX = 1
+	STYLE_WAITING = 2
+
 	def __init__(self,
-		tasksview, opener,
+		taskselection, opener,
 		task_labels,
 		nonactionable_tags=(),
-		filter_actionable=False, tag_by_page=False, use_workweek=False,
-		column_layout=RICH_COLUMN_LAYOUT, flatlist=False,
+		use_workweek=False,
+		column_layout=RICH_COLUMN_LAYOUT,
 		sort_column=PRIO_COL, sort_order=Gtk.SortType.DESCENDING
 	):
 		self.real_model = Gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str)
@@ -397,28 +659,27 @@ class TaskListTreeView(BrowserTreeView):
 		model = Gtk.TreeModelSort(model)
 		model.set_sort_column_id(sort_column, sort_order)
 		BrowserTreeView.__init__(self, model)
+		self.set_headers_visible(True)
 
-		self.tasksview = tasksview
+		self.taskselection = taskselection
 		self.opener = opener
 		self.filter = None
 		self.tag_filter = None
 		self.label_filter = None
-		self.filter_actionable = filter_actionable
+		self.page_filter = None
 		self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
-		self.tag_by_page = tag_by_page
 		self.task_labels = task_labels
-		self._tags = {}
-		self._labels = {}
-		self.flatlist = flatlist
+		self.use_workweek = use_workweek
+		self._render_waiting_actionable = False
 
 		# Add some rendering for the Prio column
 		def render_prio(col, cell, model, i, data):
-			prio = model.get_value(i, self.PRIO_COL)
 			text = model.get_value(i, self.PRIO_SORT_LABEL_COL)
-			if text.startswith('>'):
+			if not model.get_value(i, self.ACT_COL):
 				text = '<span color="darkgrey">%s</span>' % text
 				bg = None
 			else:
+				prio = model.get_value(i, self.PRIO_COL)
 				bg = COLORS[min(prio, 3)]
 			cell.set_property('markup', text)
 			cell.set_property('cell-background', bg)
@@ -428,6 +689,7 @@ class TaskListTreeView(BrowserTreeView):
 		column.set_cell_data_func(cell_renderer, render_prio)
 		column.set_sort_column_id(self.PRIO_SORT_COL)
 		self.append_column(column)
+		self._prio_column = column
 
 		# Rendering for task description column
 		cell_renderer = Gtk.CellRendererText()
@@ -467,33 +729,46 @@ class TaskListTreeView(BrowserTreeView):
 			if date == _MAX_DUE_DATE:
 				cell.set_property('text', '')
 			else:
-				cell.set_property('text', date)
+				if not model.get_value(i, self.ACT_COL):
+					date = '<span color="darkgrey">%s</span>' % date
+				cell.set_property('markup', date)
 				# TODO allow strftime here
 
 			if date <= today:
-					color = HIGH_COLOR
+				color = HIGH_COLOR
 			elif date <= tomorrow:
-					color = MEDIUM_COLOR
+				color = MEDIUM_COLOR
 			elif date <= dayafter:
-					color = ALERT_COLOR
 				# "<=" because tomorrow and/or dayafter can be after the weekend
+				color = ALERT_COLOR
 			else:
-					color = None
+				color = None
 			cell.set_property('cell-background', color)
 
 		if column_layout != self.COMPACT_COLUMN_LAYOUT:
 			cell_renderer = Gtk.CellRendererText()
-			column = Gtk.TreeViewColumn(_('Date'), cell_renderer)
+			column = Gtk.TreeViewColumn(_('Due'), cell_renderer)
 				# T: Column header Task List dialog
 			column.set_cell_data_func(cell_renderer, render_date)
 			column.set_sort_column_id(self.DUE_COL)
 			self.append_column(column)
+			self._due_column = column
+		else:
+			self._due_column = None
 
 		# Rendering for page name column
+		def render_page(col, cell, model, i, data):
+			text = model.get_value(i, self.PAGE_COL)
+			text = encode_markup_text(text)
+			if not model.get_value(i, self.ACT_COL):
+				text = '<span color="darkgrey">%s</span>' % text
+			cell.set_property('markup', text)
+
 		if column_layout == self.RICH_COLUMN_LAYOUT:
 			cell_renderer = Gtk.CellRendererText()
-			column = Gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.PAGE_COL)
+			column = Gtk.TreeViewColumn(_('Page'), cell_renderer)
 					# T: Column header Task List dialog
+			column.set_cell_data_func(cell_renderer, render_page)
 			column.set_sort_column_id(self.PAGE_COL)
 			self.append_column(column)
 
@@ -504,10 +779,28 @@ class TaskListTreeView(BrowserTreeView):
 		self.connect('row_activated', self.__class__.do_row_activated)
 		self.connect('focus-in-event', self.__class__.do_focus_in_event)
 
+	def set_taskselection(self, taskselection, style=None):
+		self.taskselection = taskselection
+
+		if style == self.STYLE_INBOX:
+			self._prio_column.set_visible(False)
+			if self._due_column:
+				self._due_column.set_visible(False)
+		else:
+			self._prio_column.set_visible(True)
+			if self._due_column:
+				self._due_column.set_visible(True)
+
+		if style == self.STYLE_WAITING:
+			self._render_waiting_actionable = True
+		else:
+			self._render_waiting_actionable = False
+
+		self.refresh()
+
 	def update_properties(self,
 		task_labels=None,
 		nonactionable_tags=None,
-		tag_by_page=None,
 		use_workweek=None,
 	):
 		if task_labels is not None:
@@ -516,89 +809,46 @@ class TaskListTreeView(BrowserTreeView):
 		if nonactionable_tags is not None:
 			self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
 
-		if tag_by_page is not None:
-			self.tag_by_page = tag_by_page
-
 		if use_workweek is not None:
-			print("TODO udate_use_workweek rendering")
+			self.use_workweek = use_workweek
 
 		self.refresh()
 
 	def refresh(self):
 		'''Refresh the model based on index data'''
-		# Update data
-		self._clear()
-		self._append_tasks(None, None, {})
+		self.real_model.clear() # flush
+		self._append_tasks(self.taskselection.list_tasks(), None)
+
 		self._today = datetime.date.today()
-
-		# Make tags case insensitive
-		tags = sorted((t.lower(), t) for t in self._tags)
-			# tuple sorting will sort ("foo", "Foo") before ("foo", "foo"),
-			# but ("bar", ..) before ("foo", ..)
-		prev = ('', '')
-		for tag in tags:
-			if tag[0] == prev[0]:
-				self._tags[prev[1]] += self._tags[tag[1]]
-				self._tags.pop(tag[1])
-			else:
-				prev = tag
-
-		# Set view
 		self._eval_filter() # keep current selection
 		self.expand_all()
 
-	def _clear(self):
-		self.real_model.clear() # flush
-		self._tags = {}
-		self._labels = {}
-
-	def _append_tasks(self, task, iter, path_cache):
+	def _append_tasks(self, task_iter, parent_tree_iter):
 		task_label_re = _task_labels_re(self.task_labels)
 		today = datetime.date.today()
 		today_str = str(today)
+		weekday = today.isoweekday()
 
-		if self.flatlist:
-			assert task is None
-			tasks = self.tasksview.list_open_tasks_flatlist()
-		else:
-			tasks = self.tasksview.list_open_tasks(task)
-
-		for prio_sort_int, row in enumerate(tasks):
-			if row['source'] not in path_cache:
-				# TODO: add pagename to list_open_tasks query - need new index
-				path = self.tasksview.get_path(row)
-				if path is None:
-					# Be robust for glitches - filter these out
-					continue
-				else:
-					path_cache[row['source']] = path
-
-			path = path_cache[row['source']]
-
-			# Update labels
-			for label in task_label_re.findall(row['description']):
-				self._labels[label] = self._labels.get(label, 0) + 1
-
-			# Update tag count
+		for prio_sort_int, row in enumerate(task_iter):
+			path = Path(row['name'])
 			tags = [t for t in row['tags'].split(',') if t]
-			if self.tag_by_page:
-				tags = tags + path.parts
-
-			if tags:
-				for tag in tags:
-					self._tags[tag] = self._tags.get(tag, 0) + 1
-			else:
-				self._tags[_NO_TAGS] = self._tags.get(_NO_TAGS, 0) + 1
-
 			lowertags = [t.lower() for t in tags]
-			actionable = not any(t in lowertags for t in self.nonactionable_tags)
+			if self._render_waiting_actionable:
+				actionable = not (
+					any(t in lowertags for t in self.nonactionable_tags)
+				)
+			else:
+				actionable = not (
+					row['waiting'] or
+					any(t in lowertags for t in self.nonactionable_tags)
+				)
 
 			# Format label for "prio" column
 			if row['start'] > today_str:
 				actionable = False
 				y, m, d = row['start'].split('-')
 				td = datetime.date(int(y), int(m), int(d)) - today
-				prio_sort_label = '>' + days_to_str(td.days)
+				prio_sort_label = '>' + days_to_str(td.days, self.use_workweek, weekday)
 				if row['prio'] > 0:
 					prio_sort_label += ' ' + '!' * min(row['prio'], 3)
 			elif row['due'] < _MAX_DUE_DATE:
@@ -611,7 +861,7 @@ class TaskListTreeView(BrowserTreeView):
 				elif td.days == 0:
 						prio_sort_label += '<u>TD</u>' # today
 				else:
-						prio_sort_label += days_to_str(td.days)
+						prio_sort_label += days_to_str(td.days, self.use_workweek, weekday)
 			else:
 				prio_sort_label = '!' * min(row['prio'], 3)
 
@@ -629,21 +879,11 @@ class TaskListTreeView(BrowserTreeView):
 			modelrow = [False, actionable, row['prio'], row['start'], row['due'], tags, desc, path.name, row['id'], prio_sort_int, prio_sort_label]
 				# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL
 			modelrow[0] = self._filter_item(modelrow)
-			myiter = self.real_model.append(iter, modelrow)
+			myiter = self.real_model.append(parent_tree_iter, modelrow)
 
-			if row['haschildren'] and not self.flatlist:
-				self._append_tasks(row, myiter, path_cache) # recurs
-
-	def set_filter_actionable(self, filter):
-		'''Set filter state for non-actionable items
-		@param filter: if C{False} all items are shown, if C{True} only actionable items
-		'''
-		self.filter_actionable = filter
-		self._eval_filter()
-
-	def set_flatlist(self, flatlist):
-		self.flatlist = flatlist
-		self.refresh()
+			if row['haschildren']:
+				child_tasks = self.taskselection.list_tasks(row)
+				self._append_tasks(child_tasks, myiter) # recurs
 
 	def set_filter(self, string):
 		# TODO allow more complex queries here - same parse as for search
@@ -658,31 +898,7 @@ class TaskListTreeView(BrowserTreeView):
 			self.filter = None
 		self._eval_filter()
 
-	def get_labels(self):
-		'''Get all labels that are in use
-		@returns: a dict with labels as keys and the number of tasks
-		per label as value
-		'''
-		return self._labels
-
-	def get_tags(self):
-		'''Get all tags that are in use
-		@returns: a dict with tags as keys and the number of tasks
-		per tag as value
-		'''
-		return self._tags
-
-	def get_n_tasks(self):
-		'''Get the number of tasks in the list
-		@returns: total number
-		'''
-		counter = [0]
-		def count(model, path, iter):
-			counter[0] += 1
-		self.real_model.foreach(count)
-		return counter[0]
-
-	def set_tag_filter(self, tags=None, labels=None):
+	def set_label_tag_filter(self, labels=None, tags=None, pages=None):
 		if tags:
 			self.tag_filter = [tag.lower() for tag in tags]
 		else:
@@ -692,6 +908,11 @@ class TaskListTreeView(BrowserTreeView):
 			self.label_filter = [label.lower() for label in labels]
 		else:
 			self.label_filter = None
+
+		if pages:
+			self.page_filter = pages
+		else:
+			self.page_filter = None
 
 		self._eval_filter()
 
@@ -715,15 +936,18 @@ class TaskListTreeView(BrowserTreeView):
 		# text are first converted to lower case text.
 		visible = True
 
-		if not modelrow[self.ACT_COL] and self.filter_actionable:
-			visible = False
-
-		description = modelrow[self.DESC_COL].lower()
 		pagename = modelrow[self.PAGE_COL].lower()
+		description = modelrow[self.DESC_COL].lower()
 		tags = [t.lower() for t in modelrow[self.TAGS_COL]]
+
+
+		if visible and self.page_filter:
+			pageparts = modelrow[self.PAGE_COL].split(':')
+			visible = any(p in pageparts for p in self.page_filter)
 
 		if visible and self.label_filter:
 			# Any labels need to be present
+			# (all does not make sense as they are mutual exclusive)
 			for label in self.label_filter:
 				if label in description:
 					break
@@ -731,10 +955,10 @@ class TaskListTreeView(BrowserTreeView):
 				visible = False # no label found
 
 		if visible and self.tag_filter:
-			# Any tag should match
+			# All tag should match
 			if (_NO_TAGS in self.tag_filter and not tags) \
-			or any(tag in tags for tag in self.tag_filter):
-				visible = True
+				or all(tag in tags for tag in self.tag_filter):
+					visible = True
 			else:
 				visible = False
 
@@ -766,7 +990,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def _get_raw_text(self, task):
 		id = task[self.TASKID_COL]
-		row = self.tasksview.get_task(id)
+		row = self.taskselection.get_task(id)
 		return row['description']
 
 	def do_initialize_popup(self, menu):
@@ -826,7 +1050,7 @@ class TaskListTreeView(BrowserTreeView):
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<title>Task List - Zim</title>
+		<title>Tasks</title>
 		<meta name='Generator' content='Zim [%% zim.version %%]'>
 		<style type='text/css'>
 			table.tasklist {
@@ -855,7 +1079,7 @@ class TaskListTreeView(BrowserTreeView):
 	</head>
 	<body>
 
-<h1>Task List - Zim</h1>
+<h1>Tasks</h1>
 
 <table class="tasklist">
 <tr><th>Prio</th><th>Task</th><th>Date</th><th>Page</th></tr>

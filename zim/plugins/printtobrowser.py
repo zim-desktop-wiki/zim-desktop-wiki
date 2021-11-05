@@ -1,5 +1,5 @@
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin to serve as work-around for the lack of printing support'''
 
@@ -21,7 +21,7 @@ from zim.export.linker import StaticExportLinker
 from zim.gui.pageview import PageViewExtension
 from zim.gui.applications import open_url
 
-from zim.plugins.tasklist.gui import TaskListDialogExtension
+from zim.plugins.tasklist.gui import TaskListWindowExtension
 
 
 class PrintToBrowserPlugin(PluginClass):
@@ -70,19 +70,13 @@ class PrintToBrowserPageViewExtension(PageViewExtension):
 			# file browser which can have unexpected results
 
 
-class PrintTaskListDialogExtension(TaskListDialogExtension):
+class PrintTaskListWindowExtension(TaskListWindowExtension):
 
-	def __init__(self, plugin, dialog):
-		TaskListDialogExtension.__init__(self, plugin, dialog)
-
-		button = Gtk.Button.new_with_mnemonic(_('_Print')) # T: Button label
-		button.connect('clicked', self.on_print_tasklist)
-		self.add_dialog_button(button)
-
-	def on_print_tasklist(self, o):
-		html = self.dialog.task_list.get_visible_data_as_html()
+	@action(_('_Print'), menuhints='headerstart', tooltip=_('Print tasklist to browser'))
+	def print_tasklist(self):
+		html = self.window.tasklisttreeview.get_visible_data_as_html()
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		file.write(html)
-		open_url(self.dialog, 'file://%s' % file) # XXX
+		open_url(self.window, 'file://%s' % file) # XXX
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results
