@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-11-08 09:56+0000\n"
+"PO-Revision-Date: 2021-11-09 11:52+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://hosted.weblate.org/projects/zim/master/it/>\n"
 "Language: it\n"
@@ -251,7 +251,7 @@ msgstr "Il comando non modifica i dati"
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:693
 msgid "Output should replace current selection"
-msgstr "L'output deve sostituire la selezione attuale"
+msgstr "Il risultato deve sostituire la selezione attuale"
 
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:694
@@ -463,18 +463,19 @@ msgstr "Visualizza _registro"
 #: zim/gui/insertedobjects.py:265
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr "Non sono disponibili plugin per visualizzare gli oggetti del tipo: %s"
+msgstr ""
+"Non sono disponibili estensioni per visualizzare gli oggetti del tipo: %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:273
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr "Per visualizzare questo oggetto è necessario il plugin \"%s\""
+msgstr "Per visualizzare questo oggetto è necessaria l'estensione \"%s\""
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:277
 msgid "Enable plugin"
-msgstr "Attiva plugin"
+msgstr "Abilita estensione"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:310
@@ -948,7 +949,7 @@ msgstr "_Apice"
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5782 zim/gui/pageview/__init__.py:5795
 msgid "_Verbatim"
-msgstr "_Letterale"
+msgstr "_Testo non formattato"
 
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5796
@@ -980,7 +981,7 @@ msgstr "Copi_a come..."
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6623
 msgid "Paste As _Verbatim"
-msgstr "Incolla come_verbatim"
+msgstr "Incolla senza _formattazione"
 
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview/__init__.py:6631
@@ -1232,7 +1233,7 @@ msgstr "_Elimina formattazione"
 #. Menu item
 #: zim/gui/pageview/__init__.py:7260
 msgid "_Remove Heading"
-msgstr "_Rimuovi intestazione"
+msgstr "_Rimuovi titolo"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7366
@@ -1615,7 +1616,7 @@ msgstr "_Proprietà"
 #. button label
 #: zim/gui/preferencesdialog.py:271
 msgid "Open plugins folder"
-msgstr "Apri la cartella dei plugin"
+msgstr "Apri la cartella delle estensioni"
 
 #. label for button with URL
 #: zim/gui/preferencesdialog.py:280
@@ -1629,7 +1630,7 @@ msgid ""
 "Please see the dependencies section below for details.\n"
 "\n"
 msgstr ""
-"Questa estensione non può essere abilitato a causa di dipendenze mancanti.\n"
+"Questa estensione non può essere abilitata a causa di dipendenze mancanti.\n"
 "Consulta la sezione delle dipendenze di seguito per i dettagli.\n"
 "\n"
 
@@ -1676,7 +1677,7 @@ msgstr "Autore"
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:453
 msgid "Enabled"
-msgstr "Attivo"
+msgstr "Abilitata"
 
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:456
@@ -1700,7 +1701,7 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
-"Il plugin ha anche delle proprietà;\n"
+"L'estensione ha anche delle proprietà;\n"
 "vedi la finestra delle proprietà del blocco note"
 
 #. button in preferences dialog to change default text editor
@@ -1723,7 +1724,7 @@ msgid ""
 msgstr ""
 "Le scorciatoie dei tasti possono essere modificate facendo clic su un campo "
 "con una\n"
-"combinazione di tasti nell'elenco e quindi premere la nuova combinazione di "
+"combinazione di tasti nell'elenco e quindi premendo la nuova combinazione di "
 "tasti.\n"
 "Per disabilitare una scorciatoia di tasti, selezionala nell'elenco e usa "
 "<tt>&lt;Backspace&gt;</tt>."
@@ -1973,7 +1974,7 @@ msgstr "Cerca in questa sezione"
 #. Menu item
 #: zim/gui/uiactions.py:298
 msgid "Search _Backlinks..."
-msgstr "Cerca _link entranti..."
+msgstr "Cerca _collegamenti in entrata..."
 
 #. Menu item
 #: zim/gui/uiactions.py:306
@@ -2247,7 +2248,7 @@ msgstr "Espandi _tutto"
 #. menu item in context menu
 #: zim/gui/widgets.py:671
 msgid "_Collapse All"
-msgstr "_Collassa tutto"
+msgstr "_Contrai tutto"
 
 #. tooltip for the inline icon to clear a text entry widget
 #: zim/gui/widgets.py:1480
@@ -2386,7 +2387,7 @@ msgstr ""
 #. error message for export
 #: zim/main/__init__.py:454
 msgid "Need output file to export MHTML"
-msgstr "È necessario un file di output per esportare l'MHTML"
+msgstr "È necessario un file di destinazione per esportare MHTML"
 
 #. error message for export
 #: zim/main/__init__.py:484
@@ -2502,8 +2503,8 @@ msgid ""
 "It is based on the arithmetic module from\n"
 "http://pp.com.mx/python/arithmetic.\n"
 msgstr ""
-"Questo plugin permette di includere espressioni aritmetiche in zim.\n"
-"Si basa sul modulo aritmetico \n"
+"Questa estensione permette di includere espressioni aritmetiche in zim.\n"
+"Si basa sul modulo aritmetico\n"
 "http://pp.com.mx/python/arithmetic.\n"
 
 #. menu item
@@ -2642,7 +2643,7 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Questa estensione aggiunge un nuovo widget che mostra \n"
+"Questa estensione aggiunge un nuovo widget che mostra\n"
 "l'elenco delle pagine collegate a quella corrente.\n"
 "\n"
 "È un'estensione di base distribuita insieme a Zim.\n"
@@ -2650,7 +2651,7 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:37
 msgid "Show BackLink count in title"
-msgstr "Mostra il conteggio dei backlink nel titolo"
+msgstr "Mostra il conteggio dei collegamenti in entrata nel titolo"
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:39
@@ -3078,7 +3079,7 @@ msgstr "%A %d %B %Y"
 #. plugin name
 #: zim/plugins/linesorter.py:26
 msgid "Line Sorter"
-msgstr "Ordina linee"
+msgstr "Ordinamento righe"
 
 #. plugin description
 #: zim/plugins/linesorter.py:27
@@ -3218,10 +3219,10 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
-"Questo componente aggiuntivo aggiunge una \"barra percorso\" nella parte "
+"Questo componente aggiuntivo aggiunge una \"barra del percorso\" nella parte "
 "superiore della finestra.\n"
-"La \"barra percorso\" può mostrare il percorso del blocco note per la pagina "
-"corrente,\n"
+"La \"barra del percorso\" può mostrare il percorso del blocco note per la "
+"pagina corrente,\n"
 "le pagine visitate per ultime o quelle modificate per ultime.\n"
 
 #. Menu title
@@ -3368,7 +3369,7 @@ msgstr "Includi piè di pagina"
 #. dialog title
 #: zim/plugins/screenshot.py:107 zim/plugins/screenshot.py:174
 msgid "Insert Screenshot"
-msgstr "Inserisci screenshot"
+msgstr "Inserisci schermata"
 
 #. plugin description
 #: zim/plugins/screenshot.py:108
@@ -3378,7 +3379,7 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Questa estensione crea un'istantanea dello schermo e la inserisce\n"
+"Questa estensione crea una schermata e la inserisce\n"
 "in una pagina di Zim.\n"
 "\n"
 "È un'estensione di base distribuita insieme a Zim.\n"
@@ -3386,12 +3387,12 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/screenshot.py:119
 msgid "Screenshot Command"
-msgstr "Comando per screenshot"
+msgstr "Comando per schermata"
 
 #. menu item for insert screenshot plugin
 #: zim/plugins/screenshot.py:161
 msgid "_Screenshot..."
-msgstr "_Screenshot..."
+msgstr "_Schermata..."
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:179
@@ -3783,7 +3784,7 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr "Mostra il sommario come widget mobile anziché nel pannello laterale"
+msgstr "Mostra l'indice come widget mobile anziché nel pannello laterale"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
@@ -3813,7 +3814,7 @@ msgstr "Aumenta di livello"
 #. widget label
 #: zim/plugins/tableofcontents.py:483 zim/plugins/tableofcontents.py:513
 msgid "ToC"
-msgstr "Sommario"
+msgstr "Indice"
 
 #. plugin name | 
 #. title for sidepane tab | 
@@ -3831,7 +3832,7 @@ msgid ""
 msgstr ""
 "Questa estensione mette a disposizione l'indice delle pagine filtrato "
 "attraverso la selezione\n"
-"di una o più etichette da una tag cloud.\n"
+"di una o più etichette da una nuvola.\n"
 
 #. menu option
 #: zim/plugins/tags.py:148
@@ -3924,7 +3925,7 @@ msgstr ""
 "presenti nel blocco note. Le attività in sospeso possono essere caselle di "
 "controllo\n"
 "o elementi marcati con le etichette \"TODO\" (da fare) o \"FIXME\" (da "
-"risolvere).\n"
+"correggere).\n"
 "\n"
 "È un'estensione di base distribuita insieme a Zim.\n"
 
@@ -4036,7 +4037,7 @@ msgid ""
 "or running along the side of the window. It also allows\n"
 "configuring the window decoration.\n"
 msgstr ""
-"Questo plugin aggiunge una \"barra degli strumenti\" alla finestra "
+"Questa estensione aggiunge una \"barra degli strumenti\" alla finestra "
 "principale.\n"
 "Può essere una barra degli strumenti \"classica\" nella parte superiore "
 "della finestra\n"
@@ -4365,7 +4366,7 @@ msgstr "Prec"
 #: data/templates/html/Default_with_index.html:67
 #: data/templates/html/Default_with_index.html:69
 msgid "Next"
-msgstr "Pross"
+msgstr "Succ"
 
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
