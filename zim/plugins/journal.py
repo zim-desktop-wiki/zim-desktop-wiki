@@ -349,13 +349,20 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		button.set_relief(Gtk.ReliefStyle.NONE)
 		button.connect('clicked', lambda b: self.go_today())
 
+
+		image_size = Gtk.IconSize.SMALL_TOOLBAR
+		image_substract = Gtk.Image()
+		image_substract.set_from_icon_name( "pan-start-symbolic", image_size)
+		image_add = Gtk.Image()
+		image_add.set_from_icon_name( "pan-end-symbolic", image_size)
+
 		button_substract = Gtk.Button()
-		button_substract.set_label('<')
+		button_substract.set_image(image_substract)
 		button_substract.set_relief(Gtk.ReliefStyle.NONE)
 		button_substract.connect('clicked', lambda b: self.substract_day())
 
 		button_add = Gtk.Button()
-		button_add.set_label('>')
+		button_add.set_image(image_add)
 		button_add.set_relief(Gtk.ReliefStyle.NONE)
 		button_add.connect('clicked', lambda b: self.add_day())
 
