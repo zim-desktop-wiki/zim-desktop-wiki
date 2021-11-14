@@ -349,7 +349,6 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		button.set_relief(Gtk.ReliefStyle.NONE)
 		button.connect('clicked', lambda b: self.go_today())
 
-
 		image_size = Gtk.IconSize.SMALL_TOOLBAR
 		image_substract = Gtk.Image()
 		image_substract.set_from_icon_name( "pan-start-symbolic", image_size)
@@ -409,6 +408,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		elif granularity == WEEK:
 			d = timedelta(weeks=1)
 		else:
+			# When the granularity is set to months or years we switch back to days
 			d = timedelta(days=1)
 
 		day = self.calendar.get_date()
@@ -425,6 +425,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		elif granularity == WEEK:
 			d = timedelta(weeks=-1)
 		else:
+			# When the granularity is set to months or years we switch back to days
 			d = timedelta(days=-1)
 
 		day = self.calendar.get_date()
