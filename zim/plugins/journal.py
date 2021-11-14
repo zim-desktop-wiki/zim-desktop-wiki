@@ -359,12 +359,12 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		button_substract = Gtk.Button()
 		button_substract.set_image(image_substract)
 		button_substract.set_relief(Gtk.ReliefStyle.NONE)
-		button_substract.connect('clicked', lambda b: self.substract_day())
+		button_substract.connect('clicked', lambda b: self.substract_delta())
 
 		button_add = Gtk.Button()
 		button_add.set_image(image_add)
 		button_add.set_relief(Gtk.ReliefStyle.NONE)
-		button_add.connect('clicked', lambda b: self.add_day())
+		button_add.connect('clicked', lambda b: self.add_delta())
 
 		self.label_box.add(button_substract)
 		self.label_box.add(button)
@@ -400,15 +400,34 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		self.calendar.select_date(datetime.date.today())
 		self.calendar.emit('activate')
 
-	def add_day(self):
+	def add_delta(self):
+		properties = self.plugin.notebook_properties(self.notebook)
+		granularity = properties['granularity']
+
+		if granularity == DAY:
+			d = timedelta(days=1)
+		elif granularity == WEEK:
+			d = timedelta(weeks=1)
+		else:
+			d = timedelta(days=1)
+
 		day = self.calendar.get_date()
-		d = timedelta(days=1)
+
 		self.calendar.select_date(day+d)
 		self.calendar.emit('activate')
 
-	def substract_day(self):
+	def substract_delta(self):
+		properties = self.plugin.notebook_properties(self.notebook)
+		granularity = properties['granularity']
+
+		if granularity == DAY:
+			d = timedelta(days=-1)
+		elif granularity == WEEK:
+			d = timedelta(weeks=-1)
+		else:
+			d = timedelta(days=-1)
+
 		day = self.calendar.get_date()
-		d = timedelta(days=-1)
 		self.calendar.select_date(day+d)
 		self.calendar.emit('activate')
 
