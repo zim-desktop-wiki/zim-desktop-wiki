@@ -12,6 +12,8 @@ from functools import partial
 
 import logging
 
+from datetime import timedelta
+
 from zim.plugins import PluginClass
 from zim.actions import action
 from zim.signals import SignalHandler, ConnectorMixin
@@ -346,7 +348,20 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		button.add(self.label)
 		button.set_relief(Gtk.ReliefStyle.NONE)
 		button.connect('clicked', lambda b: self.go_today())
+
+		button_substract = Gtk.Button()
+		button_substract.set_label('<')
+		button_substract.set_relief(Gtk.ReliefStyle.NONE)
+		button_substract.connect('clicked', lambda b: self.substract_day())
+
+		button_add = Gtk.Button()
+		button_add.set_label('>')
+		button_add.set_relief(Gtk.ReliefStyle.NONE)
+		button_add.connect('clicked', lambda b: self.add_day())
+
+		self.label_box.add(button_substract)
 		self.label_box.add(button)
+		self.label_box.add(button_add)
 
 		self._close_button = None
 
@@ -377,6 +392,19 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 	def go_today(self):
 		self.calendar.select_date(datetime.date.today())
 		self.calendar.emit('activate')
+
+	def add_day(self):
+		day = self.calendar.get_date()
+		d = timedelta(days=1)
+		self.calendar.select_date(day+d)
+		self.calendar.emit('activate')
+
+	def substract_day(self):
+		day = self.calendar.get_date()
+		d = timedelta(days=-1)
+		self.calendar.select_date(day+d)
+		self.calendar.emit('activate')
+
 
 	def set_embeded_closebutton(self, button):
 		if self._close_button:
