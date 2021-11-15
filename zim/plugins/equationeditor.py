@@ -11,11 +11,9 @@ from zim.fs import File, TmpFile
 from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
-
 # TODO put these commands in preferences
 latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
-dvipngcmd = ('dvipng', '-q', '-bg', 'Transparent', '-T', 'tight', '-o')
-
+dvipngcmd={'cmd':'dvipng','o_quiet':'-q','o_bg':'-bg','o_bg_arg':'Transparent','o_imgsize':'-T','o_imgsize_arg':'tight','o_dpi':'-D','o_dpi_arg':'96','o_output':'-o'}
 
 class InsertEquationPlugin(PluginClass):
 
@@ -33,12 +31,13 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('dark_mode', 'bool', _('Use font color for dark theme'), False), # T: plugin preference
+		('output_dpi', 'choice', _('Equation image DPI'), "96", ("96","120","150","200","300","400","600")), # T: plugin preference
     )
 
 	@classmethod
 	def check_dependencies(klass):
 		has_latex = Application(latexcmd).tryexec()
-		has_dvipng = Application(dvipngcmd).tryexec()
+		has_dvipng = Application(dvipngcmd['cmd']).tryexec()
 		return (has_latex and has_dvipng), \
 				[('latex', has_latex, True), ('dvipng', has_dvipng, True)]
 
@@ -69,6 +68,7 @@ class EquationGenerator(ImageGeneratorClass):
 		self.preferences = plugin.preferences
 		self.template = get_template('plugins', 'equationeditor.tex')
 		self.texfile = TmpFile('equation.tex')
+		dvipngcmd['o_dpi_arg']=self.preferences['output_dpi']
 
 	def generate_image(self, text):
 
@@ -101,9 +101,9 @@ class EquationGenerator(ImageGeneratorClass):
 		# Call dvipng
 		dvifile = File(self.texfile.path[:-4] + '.dvi') # len('.tex') == 4
 		pngfile = File(self.texfile.path[:-4] + '.png') # len('.tex') == 4
-		dvipng = Application(dvipngcmd)
+		dvipng = Application([v for v in dvipngcmd.values()])
 		dvipng.run((pngfile, dvifile)) # output, input
-			# No try .. except here - should never fail
+		# No try .. except here - should never fail
 		# TODO dvipng can start processing before latex finished - can we win speed there ?
 
 		return pngfile, logfile
