@@ -6545,7 +6545,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		return True # handled
 
-	def navigate_to_anchor(self, name, select_line=False):
+	def navigate_to_anchor(self, name, select_line=False, fail_silent=False):
 		"""Navigate to an anchor on the current page.
 		@param name: The name of the anchor to navigate to
 		@param select_line: Select the whole line after
@@ -6555,7 +6555,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer = textview.get_buffer()
 		iter = buffer.find_anchor(name)
 		if not iter:
-			ErrorDialog(self, _('Id "%s" not found on the current page') % name).run() # T: error when anchor location in page not found
+			if not fail_silent:
+				ErrorDialog(self, _('Id "%s" not found on the current page') % name).run() # T: error when anchor location in page not found
 			return
 		buffer.place_cursor(iter)
 		if select_line:

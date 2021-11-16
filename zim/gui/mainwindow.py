@@ -659,7 +659,7 @@ class MainWindow(WindowBaseMixin, Window):
 				logger.debug("Unused mouse button %i", event.button)
 		#~ return Window.do_button_press_event(self, event)
 
-	def open_page(self, path, anchor=None):
+	def open_page(self, path, anchor=None, anchor_fail_silent=False):
 		'''Method to open a page in the mainwindow, and menu action for
 		the "jump to" menu item.
 
@@ -689,7 +689,7 @@ class MainWindow(WindowBaseMixin, Window):
 
 		if self.page and id(self.page) == id(page):
 			if anchor:
-				self.pageview.navigate_to_anchor(anchor)
+				self.pageview.navigate_to_anchor(anchor, fail_silent=anchor_fail_silent)
 			return
 		elif self.page:
 			self.pageview.save_changes() # XXX - should connect to signal instead of call here
@@ -725,7 +725,7 @@ class MainWindow(WindowBaseMixin, Window):
 		self.pageview.set_page(page, cursor)
 
 		if anchor:
-			self.pageview.navigate_to_anchor(anchor)
+			self.pageview.navigate_to_anchor(anchor, fail_silent=anchor_fail_silent)
 
 		self.emit('page-changed', page)
 
@@ -891,7 +891,7 @@ class PageWindow(WindowBaseMixin, Window):
 		'readonly-changed': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
 	}
 
-	def __init__(self, notebook, page, anchor, navigation, editable=True):
+	def __init__(self, notebook, page, navigation, editable=True):
 		Window.__init__(self)
 		self._block_toggle_panes = False
 		self._sidepane_autoclose = False
@@ -970,9 +970,6 @@ class PageWindow(WindowBaseMixin, Window):
 
 		PluginManager.register_new_extendable(self.pageview)
 		initialize_actiongroup(self, 'win')
-
-		if anchor:
-			self.pageview.navigate_to_anchor(anchor)
 
 		self.pageview.grab_focus()
 

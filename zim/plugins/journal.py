@@ -270,7 +270,8 @@ class JournalNotebookViewExtension(NotebookViewExtension):
 	def go_page_today(self):
 		today = datetime.date.today()
 		path = self.plugin.path_from_date(self.pageview.notebook, today)
-		self.navigation.open_page(path)
+		anchor = today.isoformat() # yyyy-mm-dd
+		self.navigation.open_page(path, anchor, anchor_fail_silent=True)
 
 
 class Calendar(Gtk.Calendar):

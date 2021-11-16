@@ -325,13 +325,13 @@ class TestReadOnlyPageWindow(TestReadOnlyMainWindow):
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('Test',))
 		page = notebook.get_page(Path('Test'))
-		window = PageWindow(notebook, page, anchor=None, navigation=None)
+		window = PageWindow(notebook, page, navigation=None)
 		self.assertReadWriteState(window)
 
 		notebook.readonly = True # XXX: should never be assigned liek this in apoplication usage
 		notebook._page_cache.clear() # XXX
 		page = notebook.get_page(Path('Test'))
-		window = PageWindow(notebook, page, anchor=None, navigation=None)
+		window = PageWindow(notebook, page, navigation=None)
 		self.assertReadOnlyState(window)
 
 
@@ -345,7 +345,7 @@ class TestUIStateInitSave(tests.TestCase):
 	def testPageWindow(self):
 		notebook = self.setUpNotebook(content=('Test',))
 		page = notebook.get_page(Path('Test'))
-		window = PageWindow(notebook, page, anchor=None, navigation=None)
+		window = PageWindow(notebook, page, navigation=None)
 		self.doTest(window)
 
 	def doTest(self, window):

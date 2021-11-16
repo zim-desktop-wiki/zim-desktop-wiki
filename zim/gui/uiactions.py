@@ -145,18 +145,22 @@ class UIActions(object):
 		ImportPageDialog(self.widget, self.navigation, self.notebook, self.page).run()
 
 	@action(_('Open in New _Window')) # T: Menu item
-	def open_new_window(self, page=None, anchor=None):
+	def open_new_window(self, page=None, anchor=None, anchor_fail_silent=False):
 		'''Menu action to open a page in a L{PageWindow}
 		@param page: the page L{Path}, deafults to current selected
+		@param anchor: optional anchor id
+		@param anchor_fail_silent: ignore error when anchor id does not exist in page
 		'''
 		from zim.gui.mainwindow import PageWindow
 
-		PageWindow(
+		window = PageWindow(
 			self.notebook,
 			page or self.page,
-			anchor,
-			self.navigation
-		).present()
+			self.navigation,
+		)
+		window.present()
+		if anchor:
+			window.pageview.navigate_to_anchor(anchor, fail_silent=anchor_fail_silent)
 
 	@action(_('Save A _Copy...')) # T: Menu item
 	def save_copy(self):
