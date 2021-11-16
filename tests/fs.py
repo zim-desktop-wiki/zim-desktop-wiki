@@ -186,7 +186,7 @@ class TestFS(tests.TestCase):
 
 		# test byte order mark
 		file = File('tests/data/byteordermark.txt')
-		self.assertEqual(file.raw(), b'\xef\xbb\xbffoobar\n')
+		self.assertTrue(file.raw().startswith(b'\xef\xbb\xbffoobar'))
 		self.assertEqual(file.read(), 'foobar\n')
 		self.assertEqual(file.readlines(), ['foobar\n'])
 

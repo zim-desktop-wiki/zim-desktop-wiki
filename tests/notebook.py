@@ -171,14 +171,18 @@ class TestResolveNotebook(tests.TestCase):
 
 	def runTest(self):
 		# First test some paths
-		for input, uri in (
-			('file:///foo/bar', 'file:///foo/bar'),
-			('~/bar', LocalFolder('~/bar').uri),
-		):
-			if os.name == 'nt':
-				input = input.replace('///', '///C:/')
-				if not '///C:/' in uri:
-					uri = uri.replace('///', '///C:/')
+		if os.name == 'nt':
+			test_paths = (
+				('file:///C:/foo/bar', 'file:///C:/foo/bar'),
+				('~/bar', LocalFolder('~/bar').uri),
+			)
+		else:
+			test_paths =(
+				('file:///foo/bar', 'file:///foo/bar'),
+				('~/bar', LocalFolder('~/bar').uri),
+			)
+
+		for input, uri in test_paths:
 			info = resolve_notebook(input)
 			self.assertEqual(info.uri, uri)
 
