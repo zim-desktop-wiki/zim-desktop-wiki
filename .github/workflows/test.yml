@@ -52,10 +52,18 @@ jobs:
           pip install PyGObject
           pip install pyxdg
 
-      - name: Configure git
+      - name: Configure git (Ubuntu & MacOS)
         run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
+        if: matrix.os != 'windows-latest'
+
+      - name: Configure git (Windows)
+        shell: msys2 {0}
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+        if: matrix.os == 'windows-latest'
 
       - name: Test MacOS
         run: python3 ./test.py
