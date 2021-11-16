@@ -28,17 +28,7 @@ Zim can be used to:
 Most Linux distributions include zim in their package repository. On Debian and
 Ubuntu, the package is simply called "zim".
 
-Debian/Ubuntu packages and a Windows installer can be found via https://zim-wiki.org/downloads.html
-
-On Mac OS X, zim can be installed from Homebrew using,
-
-```
-brew install zim
-```
-
-Optionally, you can [create a .app
-wrapper](https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OSX-App-%28wrapper%29)
-for convenience.
+Debian/Ubuntu packages, a Windows installer and an app for macOS can be found via https://zim-wiki.org/downloads.html.
 
 ## Installing from Source
 
@@ -107,28 +97,9 @@ shell. When you installed the "64" packages for Gtk, they will only run from
 the "64" shell.
 
 
-### Mac OS X
+### macOS
 
-You can run zim on Mac if you have the proper dependencies installed.
-
-If you are using Mac Ports packages installing the following ports should work:
-
-TODO: new instructions for Gtk3 / Python3
-
-If you are using [Homebrew package manager](https://brew.sh/), the proper dependencies can be installed using
-
-`brew install python gtk+3 pygobject3`
-
-Once done, install
-
-`brew install zim`
-
-Then run from terminal
-
-`zim`
-
-Or [make a wrapper app](https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OSX-App-%28wrapper%29) for Zim so that you can keep it in the launcher and open it as a native Mac OSX app.
-
+You can use a package manager like [Homebrew](https://brew.sh) (instructions [here](https://formulae.brew.sh/formula/zim)) or [MacPorts](https://www.macports.org) (instructions [here](https://ports.macports.org/port/zim/)) to install Zim and its dependencies. Please note that we do not have the resources to offer any support for this.
 
 ### Install Paths
 
