@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: [ '3.8', '3.9', '3.10' ]
+        python-version: ["3.8", "3.9", "3.10"]
 
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     steps:
@@ -44,7 +44,7 @@ jobs:
       - name: Install Windows system dependencies
         shell: msys2 {0}
         run: |
-          pacman -S --noconfirm mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject
+          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject
         if: matrix.os == 'windows-latest'
 
       - name: Install python dependencies
