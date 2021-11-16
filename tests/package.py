@@ -35,7 +35,11 @@ def zim_modules():
 class TestGit(tests.TestCase):
 
 	def runTest(self):
-		unknown = subprocess.check_output(['git', 'clean', '-dn'])
+		try:
+			unknown = subprocess.check_output(['git', 'clean', '-dn'])
+		except FileNotFoundError:
+			self.skipTest('git not found')
+
 		if unknown:
 			unknown = unknown.decode(sys.getfilesystemencoding())
 			raise AssertionError('File unknown to git - need to be added or ignored:\n' + unknown)
