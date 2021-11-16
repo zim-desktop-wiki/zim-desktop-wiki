@@ -739,3 +739,52 @@ class TestSelection(tests.TestCase):
 			{'__no_tags__': 0},
 			{}
 		))
+
+
+class TestUI(tests.TestCase):
+
+	def testDaysToString(self):
+		from zim.plugins.tasklist.gui import days_to_str
+
+		# Without use_workweek
+		for days, wanted in (
+			(600, '2y'),
+			(300, '1y'),
+			(270, '9m'),
+			(200, '7m'),
+			(30, '1m'),
+			(21, '3w'),
+			(14, '2w'),
+			(10, '10d'),
+			(7, '7d'),
+			(2, '2d'),
+		):
+			self.assertEqual(days_to_str(days, False, 1), wanted)
+
+		# With use_workweek
+		for days, weekday, wanted in (
+			# all offsets for monday
+			(14, 1, '2w'), # due: mon in two weeks
+			(13, 1, '9d'), # due: next sun == fri
+			(12, 1, '9d'), # due: next sat == fri
+			(11, 1, '9d'), # due: next fri
+			(10, 1, '8d'), # due: next thu
+			(9, 1, '7d'), # due: next wed
+			(8, 1, '6d'), # due: next tue
+			(7, 1, '5d'), # due: next mon
+			(6, 1, '4d'), # due: sun == fri
+			(5, 1, '4d'), # due: sat == fri
+			(4, 1, '4d'), # due: fri
+			(3, 1, '3d'), # due: thu
+			(2, 1, '2d'), # due: wed
+			(1, 1, '1d'), # due: tue
+			# different weekdays
+			(4, 1, '4d'), # mon: tue, wed, thu, fri
+			(4, 2, '3d'), # tue: wed, thu, fri, (sat)
+			(4, 3, '2d'), # wed: thu, fri, (sat, sun)
+			(4, 4, '2d'), # thu: fri (sat, sun), mon
+			(4, 5, '2d'), # fri: (sat, sun) mon, thu
+			(4, 6, '3d'), # sat: (sun), mon, tue, wed
+			(4, 7, '4d'), # sun: mon, tue, wed, thu
+		):
+			self.assertEqual(days_to_str(days, True, weekday), wanted)

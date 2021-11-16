@@ -589,15 +589,14 @@ _cal_days_to_work_days = [
 	[0, 3, 4, 10, 11], # wednesday
 	[0, 2, 3,  9, 10], # thursday
 	[0, 1, 2,  8,  9], # friday
-	[2, 5, 6, 12, 13], # saturday
-	[1, 5, 6, 12, 13], # sunday
+	[1, 5, 6, 12, 13], # saturday
+	[0, 6, 7, 13, 14], # sunday
 ]
 
 
 def days_to_str(days, use_workweek, weekday):
 	# days are calendar days, not working days
 	# convert to working days if period is less than 2 weeks
-	days_per_week = 5 if use_workweek else 7
 	if days >= 300:
 		return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months
 	elif days >= 28:
@@ -613,7 +612,7 @@ def days_to_str(days, use_workweek, weekday):
 			days -= 3
 		elif days >= offsets[2]:
 			days -= 2
-		elif days == offset[1]:
+		elif days == offsets[1]:
 			days -= 1
 		return '%id' % days
 	else:
