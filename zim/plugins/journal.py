@@ -233,6 +233,8 @@ class JournalNotebookViewExtension(NotebookViewExtension):
 		self.notebook = pageview.notebook
 		self.calendar_widget = CalendarWidget(plugin, self.notebook, self.navigation)
 		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
+		if pageview.page is not None:
+			self.calendar_widget.set_page(pageview.page)
 
 		properties = self.plugin.notebook_properties(self.notebook)
 		self.connectto(properties, 'changed', self.on_properties_changed)
