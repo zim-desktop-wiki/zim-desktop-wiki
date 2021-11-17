@@ -1,8 +1,6 @@
-Zim - A Desktop Wiki Editor
-===========================
+# Zim - A Desktop Wiki Editor
 
 ![zim banner](./website/files/images/invade_your_desktop.png)
-
 
 Zim is a graphical text editor used to maintain a collection of wiki pages. Each
 page can contain links to other pages, simple formatting, and images. Pages are
@@ -15,6 +13,7 @@ icon, and support for version control.
 ![Screenshot](./website/files/screenshots/zim-normal.png)
 
 Zim can be used to:
+
 * Keep an archive of notes
 * Keep a daily or weekly journal
 * Take notes during meetings or lectures
@@ -22,20 +21,18 @@ Zim can be used to:
 * Draft blog entries and emails
 * Do brainstorming
 
-
 ## Installing from a Package
 
 Most Linux distributions include zim in their package repository. On Debian and
 Ubuntu, the package is simply called "zim".
 
-Debian/Ubuntu packages, a Windows installer and an app for macOS can be found via https://zim-wiki.org/downloads.html.
+Debian/Ubuntu packages, a Windows installer and an app for macOS can be found on the [website](https://zim-wiki.org/downloads.html).
 
 ## Installing from Source
 
 **NOTE:** You don't need to install zim in order to test it. You should be able to run it
 directly from the source directory by calling `./zim.py`. (To run a translated
 version from the source, run `./setup.py build_trans`.)
-
 
 First, you should verify you have the dependencies zim needs. To list all dependencies check `./setup.py --requires`.
 
@@ -69,7 +66,6 @@ On Ubuntu or other Debian derived systems, the following packages should be inst
 * python3-gi
 * python3-xdg
 
-
 ### Windows
 
 Download, install and update [MSYS2](https://www.msys2.org/) 64-bit by following the instructions on their website.
@@ -90,12 +86,11 @@ Or from any Windows terminal using:
 
 `C:\msys64\mingw64\bin\python3.exe zim.py`
 
-For more details see https://www.gtk.org/docs/installations/windows/ and https://pygobject.readthedocs.io/en/latest/getting_started.html.
+For more details see [GTK installation instructions for Windows](https://www.gtk.org/docs/installations/windows/) and [PyGObject Getting Started](https://pygobject.readthedocs.io/en/latest/getting_started.html).
 
 *Note:* installation of the "msys" environment offers a "32" and a "64" bit
 shell. When you installed the "64" packages for Gtk, they will only run from
 the "64" shell.
-
 
 ### macOS
 
@@ -111,13 +106,11 @@ Also, zim uses the XDG paths to locate data and config files. If you get an erro
 
     XDG_DATA_DIRS=/home/user/share:/usr/local/share:/usr/share
 
-
 ## Contributing
 
 See [CONTRIBUTING](./CONTRIBUTING.md) and [PLUGIN_WRITING](./PLUGIN_WRITING.md)
 for information on contributing to the zim source code, translations and
 documentation.
-
 
 ## Copyright and License
 
@@ -132,6 +125,7 @@ that are entered through the launchpad website are distributed under the BSD
 license. See the translation files for detailed translator credits.
 
 The following files were included from other sources:
+
 * `zim/inc/xdot.py` - Copyright 2008 Jose Fonseca
 * `zim/inc/arithmetic.py` - Copyright 2010, 2011 Patricio Paez
 * From the default Gnome icon theme:
