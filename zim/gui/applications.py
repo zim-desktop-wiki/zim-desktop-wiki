@@ -15,6 +15,7 @@ user can define a new command on the fly.
 '''
 
 import os
+import sys
 import logging
 from gi.repository import Gtk
 from gi.repository import GObject
@@ -412,7 +413,7 @@ class ApplicationManager(object):
 		# should handle all file types
 		if os.name == 'nt':
 			return StartFile()
-		elif os.name == 'darwin':
+		elif sys.platform == 'darwin':
 			app = Application('open')
 		else: # linux and friends
 			app = Application('xdg-open')
@@ -431,7 +432,7 @@ class ApplicationManager(object):
 		# Don't use mimetype lookup here, this is a fallback
 		if os.name == 'nt':
 			return StartFile()
-		elif os.name == 'darwin':
+		elif sys.platform == 'darwin':
 			app = Application('open')
 		else: # linux and friends
 			app = Application('xdg-email')

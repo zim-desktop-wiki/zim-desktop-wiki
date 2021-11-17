@@ -5,6 +5,8 @@ from gi.repository.Gtk import ImageMenuItem
 
 import tests
 
+import sys
+
 from zim.notebook import Path
 from zim.plugins import PluginManager
 
@@ -274,10 +276,15 @@ class TestMenuDocs(tests.TestCase):
 				Gtk.AccelMap().lookup_entry(accel_path).key.accel_key,
 				Gtk.AccelMap().lookup_entry(accel_path).key.accel_mods)
 			if accel_label:
+				if sys.platform == 'darwin':
+					accel_label = accel_label.replace('⌘', 'Ctrl+')
+
 				if '++' in accel_label:
 					label += ' <' + accel_label.replace('++', '><+') + '>'
 				else:
 					label += ' <' + accel_label.replace('+', '><') + '>'
+
+
 			if level:
 				label = '**' + label + '**'
 			else:

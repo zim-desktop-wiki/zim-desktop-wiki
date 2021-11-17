@@ -567,16 +567,17 @@ class Folder(FSObjectBase):
 
 xdgmime = None
 mimetypes = None
-if os.name == 'nt':
-	# On windows even if xdg is installed, the database is not (always)
-	# well initialized, so always fallback to mimetypes
-	import mimetypes
-else:
-	try:
-		import xdg.Mime as xdgmime
-	except ImportError:
-		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+try:
+	import xdg.Mime as xdgmime
+	mytype = xdgmime.get_type('image.png', name_pri=80)
+	if str(mytype) != 'image/png':
+		# Even if xdg is installed, the database is not (always) initialized
+		logger.debug("Found 'xdg.Mime', but no database - falling back to 'mimetypes'")
+		xdgmime = None
 		import mimetypes
+except ImportError:
+	logger.debug("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+	import mimetypes
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (

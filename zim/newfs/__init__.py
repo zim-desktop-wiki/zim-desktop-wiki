@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger('zim.newfs')
 
 
-FS_CASE_SENSITIVE = (os.name != 'nt') #: file system case-sensitive yes or no
+FS_CASE_SENSITIVE = (os.name == 'nt' or sys.platform == 'darwin') #: file system case-sensitive yes or no
 
 FS_SUPPORT_NON_LOCAL_FILE_SHARES = (os.name == 'nt') #: Support \\host\share paths yes or no
 
