@@ -120,6 +120,7 @@ Also adds a calendar widget to access these pages.
 	plugin_notebook_properties = (
 		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
+		('show_all_files', 'bool', _('Show all files from notebook'), False), # T: preferences option, show or hide all other files not related to the Journal
 	)
 
 	def path_from_date(self, notebook, date):
@@ -233,6 +234,8 @@ class JournalNotebookViewExtension(NotebookViewExtension):
 		self.notebook = pageview.notebook
 		self.calendar_widget = CalendarWidget(plugin, self.notebook, self.navigation)
 		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
+		if pageview.page is not None:
+			self.calendar_widget.set_page(pageview.page)
 
 		properties = self.plugin.notebook_properties(self.notebook)
 		self.connectto(properties, 'changed', self.on_properties_changed)
@@ -243,7 +246,7 @@ class JournalNotebookViewExtension(NotebookViewExtension):
 		self.disconnect_from(old_model)
 
 		index = self.notebook.index
-		namespace = properties['namespace']
+		namespace = None if properties['show_all_files'] else properties['namespace']
 		new_model = PageTreeStore(index, root=namespace, reverse=True)
 		self.calendar_widget.treeview.set_model(new_model)
 
