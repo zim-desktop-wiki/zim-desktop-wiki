@@ -18,12 +18,12 @@ from zim.newfs import LocalFile, FilePath
 from zim.gui.applications import *
 from zim.gui.applications import _create_application
 from zim.notebook import Path
-
+from zim.newfs.base import xdgmime
 
 THUMB_SIZE_NORMAL = 128
 
 
-@tests.skipIf(os.name == 'nt', 'Skip for windows')
+@tests.skipIf(xdgmime is None, 'No XDG mime info found')
 class TestXDGMimeInfo(tests.TestCase):
 
 	def setUp(self):
