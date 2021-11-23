@@ -284,6 +284,8 @@ class TestMenuDocs(tests.TestCase):
 					accel_label = accel_label.replace('→', 'Right')
 					accel_label = accel_label.replace('↑', 'Up')
 					accel_label = accel_label.replace('↓', 'Down')
+					accel_label = accel_label.replace('⇞', 'Page Up')
+					accel_label = accel_label.replace('⇟', 'Page Down')
 
 				if '++' in accel_label:
 					label += ' <' + accel_label.replace('++', '><+') + '>'
