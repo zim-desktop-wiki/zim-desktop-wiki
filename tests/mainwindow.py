@@ -279,6 +279,7 @@ class TestMenuDocs(tests.TestCase):
 				if sys.platform == 'darwin':
 					accel_label = accel_label.replace('⌘', 'Ctrl+')
 					accel_label = accel_label.replace('⇧', 'Shift+')
+					accel_label = accel_label.replace('⌥', 'Alt+')
 
 				if '++' in accel_label:
 					label += ' <' + accel_label.replace('++', '><+') + '>'
