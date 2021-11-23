@@ -280,6 +280,10 @@ class TestMenuDocs(tests.TestCase):
 					accel_label = accel_label.replace('⌘', 'Ctrl+')
 					accel_label = accel_label.replace('⇧', 'Shift+')
 					accel_label = accel_label.replace('⌥', 'Alt+')
+					accel_label = accel_label.replace('←', 'Left')
+					accel_label = accel_label.replace('→', 'Right')
+					accel_label = accel_label.replace('↑', 'Up')
+					accel_label = accel_label.replace('↓', 'Down')
 
 				if '++' in accel_label:
 					label += ' <' + accel_label.replace('++', '><+') + '>'
