@@ -469,6 +469,8 @@ class OpenProjectsTasks(AllTasks):
 			return AllTasks.list_tasks(self, _sql_filter='and status=0 and haschildren=1', _include_not_started=False)
 
 
+
+
 class WaitingTasks(AllTasks):
 	# All tasks that have status open and labelled as waiting
 
@@ -508,16 +510,10 @@ class TaskParser(object):
 
 	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE, daterange=None):
 
-		defaults = [0, 0, False, default_start_date, default_due_date]
-					# [0:status, 1:prio, 2:waiting, 3:start, 4:due]
+		defaults = [0, 0, False, default_start_date, default_due_date, []]
+					# [0:status, 1:prio, 2:waiting, 3:start, 4:due, 5:tags]
 		default_defaults = defaults[:]
 		heading_level_set_date = None
-
-		def _is_list_heading(task):
-			words = task[0][_t_desc].strip().split()
-			if self.task_label_re.match(words[0]) \
-			and all(w.startswith('@') or w == ':' for w in words[1:]):
-				return True
 
 		tasks = []
 		token_iter = iter(tokens)
@@ -549,15 +545,15 @@ class TaskParser(object):
 				check_list_heading = (len(paratasks) == 1) # Para should be single line -- ### TODO that is not strictly tested here!
 				tasks.extend(paratasks)
 			elif t[0] in (BULLETLIST, NUMBEREDLIST):
-				tags = []
-				check_labels = not self.all_checkboxes
-				if check_list_heading:
-					if _is_list_heading(tasks[-1]):
-						heading = tasks.pop()
-						status, prio, waiting, start, due, tags, text = heading[0]
-						check_labels = check_labels and not self.task_label_re.match(''.join(text))
+				if check_list_heading and self._is_list_heading(tasks[-1]):
+					heading = tasks.pop()
+					mydefaults = heading[0]
+					check_labels = False
+				else:
+					mydefaults = defaults
+					check_labels = not self.all_checkboxes
 
-				listtasks = self._parse_list(token_iter, tags=tags, parent=defaults, check_labels=check_labels)
+				listtasks = self._parse_list(token_iter, defaults=mydefaults, check_labels=check_labels)
 				tasks.extend(listtasks)
 				check_list_heading = False
 			else:
@@ -565,6 +561,17 @@ class TaskParser(object):
 				continue # Skip other toplevel content
 
 		return tasks
+
+	def _is_list_heading(self, task):
+		text = task[0][_t_desc]
+		if self.task_label_re.match(''.join(text)):
+			# strip tags, dates & prio marks
+			text = _date_re.sub('', text)
+			text = text.replace('!', '')
+			words = text.strip().split()
+			return all(w.startswith('@') for w in words[1:])
+		else:
+			return False
 
 	def _parse_heading(self, token_iter, daterange):
 		head = collect_untill_end_token(token_iter, HEADING)
@@ -632,12 +639,12 @@ class TaskParser(object):
 			if not line:
 				break # end of PARAGRAPH
 			elif self._starts_with_label(line):
-				fields = self._task_from_tokens(line, parent=defaults)
+				fields = self._task_from_tokens(line, defaults=defaults)
 				tasks.append((fields, []))
 
 		return tasks
 
-	def _parse_list(self, token_iter, parent=None, tags=[], check_labels=False):
+	def _parse_list(self, token_iter, defaults=None, check_labels=False):
 		tasks = []
 
 		for t in token_iter:
@@ -657,8 +664,7 @@ class TaskParser(object):
 					fields = self._task_from_tokens(
 						line,
 						status=TASK_STATUS_BY_BULLET.get(bullet, TASK_STATUS_OPEN),
-						parent=parent,
-						tags=tags
+						defaults=defaults
 					)
 					tasks.append((fields, []))
 					parent_item = tasks[-1]
@@ -669,12 +675,12 @@ class TaskParser(object):
 				if next_token[0] in (BULLETLIST, NUMBEREDLIST):
 					# Sub-list
 					if parent_item:
-						mytasks = self._parse_list(token_iter, parent=parent_item[0], tags=parent_item[0][_t_tags], check_labels=check_labels) # recurs
+						mytasks = self._parse_list(token_iter, defaults=parent_item[0], check_labels=check_labels) # recurs
 						parent_item[-1].extend(mytasks)
 						if any(t[0][_t_status] == TASK_STATUS_OPEN for t in mytasks):
 							parent_item[0][_t_status] = TASK_STATUS_OPEN # Force parent open if any child is
 					else:
-						mytasks = self._parse_list(token_iter, parent=parent, check_labels=check_labels) # recurs
+						mytasks = self._parse_list(token_iter, defaults=defaults, check_labels=check_labels) # recurs
 						tasks.extend(mytasks)
 
 					next_token = next(token_iter)
@@ -688,11 +694,11 @@ class TaskParser(object):
 
 		return tasks
 
-	def _task_from_tokens(self, tokens, status=0, tags=[], parent=None):
+	def _task_from_tokens(self, tokens, status=0, defaults=None):
 		# Collect text and returns task
 
 		text = []
-		tags = set(tags) # copy
+		tags = set(defaults[_t_tags]) if defaults else set() # copy
 
 		token_iter = iter(tokens)
 		for t in token_iter:
@@ -705,19 +711,21 @@ class TaskParser(object):
 			else:
 				pass # ignore all other markup
 
-		return self._task_from_text(''.join(text), status, tags, parent)
+		return self._task_from_text(''.join(text), status, tags, defaults)
 
-	def _task_from_text(self, text, status=0, tags=None, parent=None):
+	def _task_from_text(self, text, status, tags, defaults=None):
 		# Return task record for single line of text
 
 		prio = text.count('!')
-		if prio == 0 and parent:
-			prio = parent[_t_prio] # inherit prio
-
+		start, due = 0, _MAX_DUE_DATE
 		waiting = bool(self.waiting_label_re.match(text.lstrip()))
 
-		start = parent[_t_start] if parent else 0 # inherit start date
-		due = parent[_t_due] if parent else _MAX_DUE_DATE # inherit due date
+		if defaults:
+			if prio == 0:
+				prio = defaults[_t_prio] # inherit prio
+			start = defaults[_t_start] # inherit start date
+			due = defaults[_t_due] # inherit due date
+
 		for string in _date_re.findall(text):
 			try:
 				if string.startswith('[d:'): # backward compat

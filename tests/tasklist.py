@@ -424,6 +424,66 @@ TODO Task 2
 		self.assertEqual(_parse_task_labels('TODO,FIXME'), ['TODO', 'FIXME'])
 		self.assertEqual(_parse_task_labels('TODO FIXME'), ['TODO', 'FIXME'])
 
+	def testLabelHeadedList(self):
+		# with / without colon, with / without empty line
+		text = '''
+TODO:
+[ ] Task 1
+[ ] Task 2
+
+TODO
+[ ] Task 3
+[ ] Task 4
+
+
+TODO:
+
+[ ] No task 1
+[ ] No task 2
+
+TODO: my task
+[ ] No task 3
+[ ] No task 4
+'''
+
+		wanted = [
+			(t('Task 1'), []),
+			(t('Task 2'), []),
+			(t('Task 3'), []),
+			(t('Task 4'), []),
+			(t('TODO:'), []),
+			(t('TODO: my task'), []),
+		]
+
+		self.assertWikiTextToTasks(text, wanted, parser_args={'all_checkboxes': False})
+
+	def testLabelHeadedListInheritAll(self):
+		# tags, start / due date, priority all same as a parent task, vary colon placement
+		text = '''
+TODO @home:
+[ ] Task 1
+[ ] Task 2
+
+TODO !!!
+[ ] Task 3
+[ ] Task 4
+
+TODO: <2021-11-01 >2021-10-01
+[ ] Task 5
+[ ] Task 6
+'''
+
+		wanted = [
+			(t('Task 1', tags='home'), []),
+			(t('Task 2', tags='home'), []),
+			(t('Task 3', prio=3), []),
+			(t('Task 4', prio=3), []),
+			(t('Task 5', start='2021-10-01', due='2021-11-01'), []),
+			(t('Task 6', start='2021-10-01', due='2021-11-01'), []),
+		]
+
+		self.assertWikiTextToTasks(text, wanted, parser_args={'all_checkboxes': False})
+
 
 class TestTaskList(tests.TestCase):
 
