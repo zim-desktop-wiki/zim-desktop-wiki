@@ -2407,6 +2407,11 @@ class Window(Gtk.Window):
 	def __init__(self):
 		GObject.GObject.__init__(self)
 		self._uistate_initialized = False
+		if hasattr(self, 'uistate'):
+			assert isinstance(self.uistate, zim.config.ConfigDict) # just to be sure
+		else:
+			self.uistate = zim.config.ConfigDict()
+
 		self._last_sidepane_focus = None
 
 		# Construct all the components
