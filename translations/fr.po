@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-11-24 06:50+0000\n"
+"PO-Revision-Date: 2021-11-27 19:03+0000\n"
 "Last-Translator: Maxime Leroy <lisacintosh@gmail.com>\n"
 "Language-Team: French <https://hosted.weblate.org/projects/zim/master/fr/>\n"
 "Language: fr\n"
@@ -798,7 +798,7 @@ msgid ""
 "(If disabled you can still use <Shift><Tab>)"
 msgstr ""
 "Désindenter avec la touche <Retour Arrière>\n"
-"(si désactiver, vous pouvez toujours utiliser <Shift><Tab>)"
+"(si désactiver, vous pouvez toujours utiliser <Maj><Tab>)"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
@@ -1565,6 +1565,10 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
+"L'encodage des caractères est actuellement %s, si vous voulez supporter les "
+"caractères spéciaux,\n"
+"ou voyez des erreurs dues à l'encodage, veuillez vous assurer que votre "
+"système utilise \"UTF-8\""
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1623,6 +1627,10 @@ msgid ""
 "Please see the dependencies section below for details.\n"
 "\n"
 msgstr ""
+"Cet greffon n'a pas être activé à cause des dépendances manquantes.\n"
+"Veuillez voir la section des dépendances ci-dessous pour plus d'informations."
+"\n"
+"\n"
 
 #. help text when plugin cannot be loaded due to bug / issue
 #: zim/gui/preferencesdialog.py:325
@@ -1630,6 +1638,8 @@ msgid ""
 "There was a problem loading this plugin\n"
 "\n"
 msgstr ""
+"Une erreur est survenue en changeant ce plugin\n"
+"\n"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:337
@@ -1710,6 +1720,11 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"Les raccourcis clavier peuvent être changé en cliquant dans un champ avec\n"
+"une combinaison de touches de la liste puis en pressant le nouveau "
+"raccourcis.\n"
+"Pour désactiver un raccourci clavier, sélectionnez le dans la liste puis "
+"pressez <tt>&lt;Retour&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:565
@@ -1739,7 +1754,7 @@ msgstr "Racine du document"
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:21
 msgid "Prefer short names for page links"
-msgstr ""
+msgstr "Préférer les noms courts pour les liens vers les pages"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:22
@@ -1819,7 +1834,7 @@ msgstr "Autoriser l'accès public"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr ""
+msgstr "Authentification obligatoire"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1834,7 +1849,7 @@ msgstr "Nom d'utilisateur"
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "Mot de passe"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -1916,6 +1931,8 @@ msgstr "_Supprimer la page"
 #: zim/gui/uiactions.py:224
 msgid "Trash failed, do you want to permanently delete instead ?"
 msgstr ""
+"Une erreur est survenue avec la corbeille, souhaitez-vous supprimer "
+"définitivement ?"
 
 #. Menu item
 #: zim/gui/uiactions.py:230
@@ -2116,12 +2133,12 @@ msgstr "Mise à jour des liens"
 #: zim/gui/uiactions.py:681
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "Supprimer les liens de %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
 msgid "Trash Page"
-msgstr ""
+msgstr "Mettre à la Corbeille"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
@@ -2402,6 +2419,9 @@ msgid ""
 "of the file name, please try using a name with less\n"
 "than 255 characters"
 msgstr ""
+"Impossible d'inscrire ce fichier. Cela peut être dû\n"
+"à la longueur de son nom, veuillez essayer avec\n"
+"un nom de moins de 255 caractères"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
@@ -2416,12 +2436,15 @@ msgid ""
 "of the file path, please try using a folder structure resulting in less\n"
 "than 4096 characters"
 msgstr ""
+"Impossible d'inscrire ce fichier. Cela peut être dû à la longueur\n"
+"de son chemin, veuillez utiliser une arborescence pour obtenir\n"
+"un chemin de moins de 4096 caractères"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
 #, python-format
 msgid "File path too long: %s"
-msgstr ""
+msgstr "Chemin du fichier trop long : %s"
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:435
@@ -2509,7 +2532,7 @@ msgstr "_Arithmétique"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "Voulez-vous vraiment supprimer le fichier '%s' ?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -2559,22 +2582,22 @@ msgstr "Annuler"
 #. dialog title
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
 msgid "Rename file"
-msgstr ""
+msgstr "Renommer le fichier"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
 msgid "File name should not be blank."
-msgstr ""
+msgstr "Le nom de fichier ne doit pas être vide."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:72
 msgid "A file with that name already exists."
-msgstr ""
+msgstr "Un fichier avec ce nom existe déjà."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:75
 msgid "File name should not contain path declaration."
-msgstr ""
+msgstr "Le nom du fichier ne doit pas contenir la déclaration du chemin."
 
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
@@ -2602,12 +2625,12 @@ msgstr "Position dans la fenêtre"
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
 msgid "Use thumbnails"
-msgstr ""
+msgstr "Utiliser des miniatures"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:86
 msgid "Support thumbnails for SVG"
-msgstr ""
+msgstr "Afficher les miniatures pour les fichiers SVG"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
@@ -2643,7 +2666,7 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:37
 msgid "Show BackLink count in title"
-msgstr ""
+msgstr "Afficher le nombre de rétro-liens dans le titre"
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:39
@@ -2794,6 +2817,10 @@ msgid ""
 "The search dialog can be opened by pressing the keyboard shortcut Ctrl+Shift"
 "+P which can be customized via Zim's key bindings preferences."
 msgstr ""
+"Ce greffon ouvre un dialogue de recherche pour lancer rapidement des entrées "
+"de menu. Ce dialogue peut être ouvert en pressant Ctrl+Maj+P mais ce "
+"raccourci peut être changé dans les préférences des raccourcis clavier de "
+"Zim."
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
@@ -2896,7 +2923,7 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
 msgid "Use font color for dark theme"
-msgstr ""
+msgstr "Utiliser cette couleur de police pour le thème sombre"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
@@ -3127,7 +3154,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/linkmap.py:45
 msgid "Show linkmap button in headerbar"
-msgstr ""
+msgstr "Afficher le bouton pour la carte du lien dans la barre du haut"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3161,7 +3188,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
-msgstr ""
+msgstr "Utiliser déposé-glissé pour déplacer les pages du notebook"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3171,17 +3198,17 @@ msgstr "Étendre automatiquement les sections à l'ouverture des pages"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:51
 msgid "Automatically collapse sections on close page"
-msgstr ""
+msgstr "Réduire automatiquement les sections à la fermeture d'une page"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
-msgstr ""
+msgstr "Utiliser un ascenseur horizontal (redémarrage requis)"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "Utiliser des infobulles"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -3442,17 +3469,17 @@ msgstr "Ne pas retourner à la ligne"
 #. option value
 #: zim/plugins/sourceview.py:81
 msgid "Try wrap at word boundaries or character"
-msgstr ""
+msgstr "Essayer de revenir à la ligne à entre les mots ou les caractères"
 
 #. option value
 #: zim/plugins/sourceview.py:82
 msgid "Always wrap at character"
-msgstr ""
+msgstr "Toujours retourner à la ligne pour les caractères"
 
 #. option value
 #: zim/plugins/sourceview.py:83
 msgid "Always wrap at word boundaries"
-msgstr ""
+msgstr "Toujours retourner à la ligne entre les mots"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:87
@@ -3487,12 +3514,12 @@ msgstr "Largeur des tabulations"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:101
 msgid "Text wrap mode"
-msgstr ""
+msgstr "Mode de retour à la ligne"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:103
 msgid "Theme"
-msgstr ""
+msgstr "Thème"
 
 #. menu item
 #: zim/plugins/sourceview.py:118
@@ -3517,7 +3544,7 @@ msgstr "Insérer un bloc de code"
 #. input checkbox
 #: zim/plugins/sourceview.py:384
 msgid "Display line numbers"
-msgstr ""
+msgstr "Afficher les numéros de ligne"
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3778,7 +3805,7 @@ msgstr "Inclure des lignes horizontales dans la TdM"
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
 msgid "Set ToC fontsize"
-msgstr ""
+msgstr "Ajuster la taille de police de la TdM"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:387
@@ -3989,17 +4016,17 @@ msgstr "Icônes et texte"
 #. toolbar style
 #: zim/plugins/toolbar.py:44
 msgid "Icons & Text horizontal"
-msgstr ""
+msgstr "Icônes et texte horizontaux"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:52
 msgid "Small"
-msgstr ""
+msgstr "Petit"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:53
 msgid "Large"
-msgstr ""
+msgstr "Grand"
 
 #. plugin name
 #: zim/plugins/toolbar.py:63
@@ -4014,16 +4041,20 @@ msgid ""
 "or running along the side of the window. It also allows\n"
 "configuring the window decoration.\n"
 msgstr ""
+"Ce greffon ajoute une \"barre d'outils\" dans la fenêtre principale.\n"
+"Cela peut être une barre \"classique\" en haut de la fenêtre,\n"
+"ou être placé dans la partie latérale de la fenêtre. Cela peut aussi\n"
+"permettre la configuration de la décoration de la fenêtre.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "Afficher les contrôles dans la décoration de la fenêtre"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "Cette option nécessite de redémarrer l'application"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
