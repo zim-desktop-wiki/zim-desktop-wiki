@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-11-27 19:03+0000\n"
+"PO-Revision-Date: 2021-11-28 13:32+0000\n"
 "Last-Translator: Maxime Leroy <lisacintosh@gmail.com>\n"
 "Language-Team: French <https://hosted.weblate.org/projects/zim/master/fr/>\n"
 "Language: fr\n"
@@ -1163,7 +1163,7 @@ msgstr "_Image..."
 #. Menu item
 #: zim/gui/pageview/__init__.py:7008
 msgid "_Attachment..."
-msgstr "_Fichiers joins..."
+msgstr "_Pièces jointes..."
 
 #. Menu item | 
 #. Menu item,
@@ -2186,18 +2186,17 @@ msgstr "Supprimer la page « %s » ?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:770
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be deleted.\n"
 "\n"
 "This deletion is permanent and cannot be un-done."
 msgstr ""
-"La page \"%s\" et \n"
-"toutes ses sous-pages et leurs pièces attachées seront supprimées."
+"La page \"%s\" et toutes ses sous-pages ainsi\n"
+"que leurs pièces attachées seront supprimées.\n"
+"\n"
+"Cette suppression sera permanente et ne pourra être annulée."
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:774
@@ -3158,21 +3157,13 @@ msgstr "Afficher le bouton pour la carte du lien dans la barre du haut"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
-#, fuzzy
-#| msgid "Menubar"
 msgid "macOS Menubar"
-msgstr "Barre de menus"
+msgstr "Barre de menus macOS"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:75
-#, fuzzy
-#| msgid ""
-#| "\t\tThis plugin provides bar for bookmarks.\n"
-#| "\t\t"
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
-"\t\tCe greffon fournit une barre de marque-pages.\n"
-"\t\t"
+msgstr "Ce greffon fournit une barre de menus pour macOS dans zim."
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
@@ -3193,7 +3184,7 @@ msgstr "Utiliser déposé-glissé pour déplacer les pages du notebook"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
 msgid "Automatically expand sections on open page"
-msgstr "Étendre automatiquement les sections à l'ouverture des pages"
+msgstr "Étendre automatiquement les sections de la page ouverte"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:51
