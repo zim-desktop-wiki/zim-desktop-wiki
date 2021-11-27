@@ -6558,6 +6558,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			if not fail_silent:
 				ErrorDialog(self, _('Id "%s" not found on the current page') % name).run() # T: error when anchor location in page not found
 			return
+		elif not iter.starts_line():
+			iter.forward_char() # Place iter after inline object
+
 		buffer.place_cursor(iter)
 		if select_line:
 			buffer.select_line()
