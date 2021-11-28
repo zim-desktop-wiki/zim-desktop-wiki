@@ -626,7 +626,7 @@ class TaskParser(object):
 
 	def _parse_paragraph(self, token_iter, defaults):
 		# Look for lines that define tasks
-		paragraph = collect_untill_end_token(token_iter, PARAGRAPH)
+		paragraph = collect_until_end_token(token_iter, PARAGRAPH)
 		tasks = []
 
 		for line in tokens_by_line(paragraph):

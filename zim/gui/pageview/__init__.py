@@ -6526,7 +6526,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def _do_activate_link(self, link, hints):
 		type = link_type(link)
-
 		if type == 'page':
 			href = HRef.new_from_wiki_link(link)
 			path = self.notebook.pages.resolve_link(self.page, href)
@@ -6536,17 +6535,20 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			open_file(self, path)
 		elif type == 'notebook':
 			from zim.main import ZIM_APPLICATION
-
 			if link.startswith('zim+'):
-				uri, pagename = link[4:], None
+				uri, pagename, anchor = link[4:], None, None
 				if '?' in uri:
 					uri, pagename = uri.split('?', 1)
-
-				ZIM_APPLICATION.run('--gui', uri, pagename)
-
+				args = [uri]
+				if pagename and '#' in pagename:
+					pagename, anchor = pagename.split('#', 1)
+				if pagename:
+					args.append(pagename)
+				if anchor:
+					args.append(anchor)
 			else:
-				ZIM_APPLICATION.run('--gui', FilePath(link).uri)
-
+				args = [FilePath(link).uri]
+			ZIM_APPLICATION.run('--gui', *args)
 		else:
 			if type == 'mailto' and not link.startswith('mailto:'):
 				link = 'mailto:' + link  # Enforce proper URI form

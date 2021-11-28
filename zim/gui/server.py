@@ -132,7 +132,7 @@ class ServerWindow(Gtk.Window):
 		try:
 			uri = self.notebookcombobox.get_notebook()
 			if uri:
-				notebook, x = build_notebook(NotebookInfo(uri))
+				notebook, _ = build_notebook(NotebookInfo(uri))
 				if not notebook:
 					return
 			else:

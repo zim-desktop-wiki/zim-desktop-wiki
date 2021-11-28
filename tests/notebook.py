@@ -272,7 +272,6 @@ mount=%s %s
 		self.assertRaises(FileNotFoundError, build_notebook, info)
 
 
-
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
@@ -432,7 +431,6 @@ class TestNotebook(tests.TestCase):
 			':AnotherNewPage:Foo:bar\n'
 			'**bold** :AnotherNewPage\n')
 
-
 		#~ print('\n==== DB ====')
 		#~ self.notebook.index.update()
 		#~ cursor = self.notebook.index.db.cursor()
@@ -551,7 +549,7 @@ class TestEndOfLine(tests.TestCase):
 		config['Notebook']['endofline'] = eol
 		config.write()
 
-		notebook, x = build_notebook(dir)
+		notebook, _ = build_notebook(dir)
 		page = notebook.get_page(Path('Test'))
 		page.parse('wiki', 'test 123\n456\n')
 		notebook.store_page(page)

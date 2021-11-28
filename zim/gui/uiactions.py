@@ -125,7 +125,7 @@ class UIActions(object):
 		from zim.gui.notebookdialog import NotebookDialog
 		NotebookDialog.unique(self, self.widget, callback=self.open_notebook).present()
 
-	def open_notebook(self, location, pagename=None):
+	def open_notebook(self, location, pagename=None, anchor=None):
 		'''Open another notebook.
 		@param location: notebook location as uri or object with "uri" attribute
 		@param pagename: optional page name
@@ -134,10 +134,12 @@ class UIActions(object):
 		assert pagename is None or isinstance(pagename, str)
 
 		uri = location.uri if hasattr(location, 'uri') else location
+		args = [uri]
 		if pagename:
-			ZIM_APPLICATION.run('--gui', uri, pagename)
-		else:
-			ZIM_APPLICATION.run('--gui', uri)
+			args.append(pagename)
+		if anchor:
+			args.append(anchor)
+		ZIM_APPLICATION.run('--gui', *args)
 
 	@action(_('_Import Page...'), menuhints='notebook:edit') # T: Menu item
 	def import_page(self):

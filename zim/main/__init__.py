@@ -28,8 +28,7 @@ from zim import __version__
 
 from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
-from zim.notebook import Notebook, Path, \
-	get_notebook_list, resolve_notebook, build_notebook
+from zim.notebook import Notebook, Path, get_notebook_list, resolve_notebook, build_notebook
 from zim.formats import get_format
 
 from zim.config import ConfigManager
@@ -39,12 +38,14 @@ from .command import Command, GtkCommand, UsageError, GetoptError
 from .ipc import dispatch as _ipc_dispatch
 from .ipc import start_listening as _ipc_start_listening
 
+from typing import Optional, Tuple
+
 
 class HelpCommand(Command):
 	'''Class implementing the C{--help} command'''
 
 	usagehelp = '''\
-usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
+usage: zim [OPTIONS] [NOTEBOOK [PAGE [ANCHOR]]]
    or: zim --server [OPTIONS] [NOTEBOOK]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
    or: zim --search NOTEBOOK QUERY
@@ -137,9 +138,9 @@ class NotebookCommand(Command):
 
 	def get_notebook_argument(self):
 		'''Get the notebook and page arguments for this command
-		@returns: a 2-tuple of an L{NotebookInfo} object and an
-		optional L{Path} or C{(None, None)} if the notebook
-		argument is optional and not given
+		@returns: a 3-tuple of an L{NotebookInfo} object, an
+		optional L{Path} and an optional anchor or C{(None, None, None)}
+		if the notebook argument is optional and not given
 		@raises NotebookLookupError: if the notebook is mandatory and
 		not given, or if it is given but could not be resolved
 		'''
@@ -147,25 +148,32 @@ class NotebookCommand(Command):
 		args = self.get_arguments()
 		notebook = args[0]
 
+		notebookinfo = None
+		path = None
+		anchor = None
+
 		if notebook is None:
 			if self.arguments[0] == 'NOTEBOOK': # not optional
 				raise NotebookLookupError(_('Please specify a notebook'))
 					# T: Error when looking up a notebook
-			else:
-				return None, None
-
-		notebookinfo = resolve_notebook(notebook, pwd=self.pwd)
-		if not notebookinfo:
-			raise NotebookLookupError(_('Could not find notebook: %s') % notebook)
-				# T: error message
-
-		if len(self.arguments) > 1 \
-		and self.arguments[1] in ('PAGE', '[PAGE]') \
-		and args[1] is not None:
-			pagename = Path.makeValidPageName(args[1])
-			return notebookinfo, Path(pagename)
 		else:
-			return notebookinfo, None
+			notebookinfo = resolve_notebook(notebook, pwd=self.pwd)
+			if not notebookinfo:
+				raise NotebookLookupError(_('Could not find notebook: %s') % notebook)
+					# T: error message
+
+			if len(self.arguments) > 1 \
+			and self.arguments[1] in ('PAGE', '[PAGE]') \
+			and args[1] is not None:
+				pagename = Path.makeValidPageName(args[1])
+				path = Path(pagename)
+
+			if len(self.arguments) > 2 \
+			and self.arguments[2] in ('ANCHOR', '[ANCHOR]') \
+			and args[2] is not None:
+				anchor = args[2]
+
+		return notebookinfo, path, anchor
 
 	def build_notebook(self, ensure_uptodate=True):
 		'''Get the L{Notebook} object for this command
@@ -173,7 +181,7 @@ class NotebookCommand(Command):
 		@param ensure_uptodate: if C{True} index is updated when needed.
 		Only set to C{False} when index update is handled explicitly
 		(e.g. in the main gui).
-		@returns: a L{Notebook} object and a L{Path} object or C{None}
+		@returns: a L{Notebook} object, a L{Path} object and an anchor or C{None}
 		@raises NotebookLookupError: if the notebook could not be
 		resolved or is not given
 		@raises FileNotFoundError: if the notebook location does not
@@ -181,9 +189,10 @@ class NotebookCommand(Command):
 		'''
 		# Explicit page argument has priority over implicit from uri
 		# mounting is attempted by zim.notebook.build_notebook()
-		notebookinfo, page = self.get_notebook_argument() 	# can raise NotebookLookupError
+		notebookinfo, page, anchor = self.get_notebook_argument() 	# can raise NotebookLookupError
 		if not notebookinfo:
 			raise NotebookLookupError(_('Please specify a notebook'))
+
 		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFoundError
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
@@ -191,13 +200,12 @@ class NotebookCommand(Command):
 				#logger.info('Indexing %s', info)
 				pass # TODO meaningful info for above message
 
-		return notebook, page or uripage
-
+		return notebook, page or uripage, anchor
 
 class GuiCommand(NotebookCommand, GtkCommand):
 	'''Class implementing the C{--gui} command and run the gtk interface'''
 
-	arguments = ('[NOTEBOOK]', '[PAGE]')
+	arguments = ('[NOTEBOOK]', '[PAGE]', '[ANCHOR]')
 	options = (
 		('list', '', 'show the list with notebooks instead of\nopening the default notebook'),
 		('geometry=', '', 'window size and position as WxH+X+Y'),
@@ -205,7 +213,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		('standalone', '', 'start a single instance, no background process'),
 	)
 
-	def build_notebook(self, ensure_uptodate=False):
+	def build_notebook(self, ensure_uptodate=False) -> Tuple[Optional[Notebook],Optional[Path],Optional[str]]:
 		# Bit more complicated here due to options to use default and
 		# allow using notebookdialog to prompt
 
@@ -221,10 +229,12 @@ class GuiCommand(NotebookCommand, GtkCommand):
 
 		used_default = False
 		page = None
+		anchor = None
+
 		if self.opts.get('list'):
 			notebookinfo = prompt_notebook_list()
 		else:
-			notebookinfo, page = self.get_notebook_argument()
+			notebookinfo, page, anchor = self.get_notebook_argument()
 
 			if notebookinfo is None:
 				notebookinfo = self.get_default_or_only_notebook()
@@ -234,7 +244,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 					notebookinfo = prompt_notebook_list()
 
 		if notebookinfo is None:
-			return None, None # Cancelled prompt
+			return None, None, None # Cancelled prompt
 
 		try:
 			notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
@@ -243,7 +253,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				# Default notebook went missing? Fallback to dialog to allow changing it
 				notebookinfo = prompt_notebook_list()
 				if notebookinfo is None:
-					return None, None # Cancelled prompt
+					return None, None, None # Cancelled prompt
 				notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
 			else:
 				raise
@@ -253,7 +263,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				#logger.info('Indexing %s', info)
 				pass # TODO meaningful info for above message
 
-		return notebook, page or uripage
+		return notebook, page or uripage, anchor
 
 	def run(self):
 		from gi.repository import Gtk
@@ -265,23 +275,23 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				if isinstance(w, MainWindow)
 		]
 
-		notebook, page = self.build_notebook()
+		notebook, page, anchor = self.build_notebook()
 		if notebook is None:
 			logger.debug('NotebookDialog cancelled - exit')
 			return
 
 		for window in windows:
 			if window.notebook.uri == notebook.uri:
-				self._present_window(window, page)
+				self._present_window(window, page, anchor)
 				return window
 		else:
-			return self._run_new_window(notebook, page)
+			return self._run_new_window(notebook, page, anchor)
 
-	def _present_window(self, window, page):
+	def _present_window(self, window, page, anchor=None):
 		window.present()
 
 		if page:
-			window.open_page(page)
+			window.open_page(page, anchor)
 
 		geometry = self.opts.get('geometry', None)
 		if geometry is not None:
@@ -290,7 +300,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		if self.opts.get('fullscreen', False):
 			window.toggle_fullscreen(True)
 
-	def _run_new_window(self, notebook, page):
+	def _run_new_window(self, notebook, page, anchor=None):
 		from gi.repository import GObject
 
 		from zim.gui.mainwindow import MainWindow
@@ -322,6 +332,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		window = MainWindow(
 			notebook,
 			page=page,
+			anchor=anchor,
 			**self.get_options('geometry', 'fullscreen')
 		)
 		window.present()
@@ -372,7 +383,7 @@ class ServerCommand(NotebookCommand):
 
 		port = int(self.opts.get('port', 8080))
 		template = get_template('html', self.opts.get('template', 'Default'), pwd=self.pwd)
-		notebook, page = self.build_notebook()
+		notebook, page, _ = self.build_notebook()
 		is_public = not self.opts.get('private', False)
 
 		self.server = httpd = zim.www.make_server(notebook, public=is_public, template=template, port=port)
@@ -399,7 +410,7 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 
 		port = int(self.opts.get('port', 8080))
 		template = get_template('html', self.opts.get('template', 'Default'), pwd=self.pwd)
-		notebookinfo, page = self.get_notebook_argument()
+		notebookinfo, _, _ = self.get_notebook_argument()
 		if notebookinfo is None:
 			# Prefer default to be selected in drop down, user can still change
 			notebookinfo = self.get_default_or_only_notebook()
@@ -512,7 +523,7 @@ class ExportCommand(NotebookCommand):
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
 
-		notebook, page = self.build_notebook()
+		notebook, page, _ = self.build_notebook()
 		notebook.index.check_and_update()
 
 		if page and self.opts.get('recursive'):
@@ -535,7 +546,7 @@ class SearchCommand(NotebookCommand):
 	def run(self):
 		from zim.search import SearchSelection, Query
 
-		notebook, p = self.build_notebook()
+		notebook, _, _ = self.build_notebook()
 		n, query = self.get_arguments()
 
 		if query and not query.isspace():
@@ -571,7 +582,7 @@ class IndexCommand(NotebookCommand):
 		mylogger.setLevel(logging.DEBUG)
 		mylogger.addFilter(elevate_index_logging)
 
-		notebook, p = self.build_notebook(ensure_uptodate=False)
+		notebook, _, _ = self.build_notebook(ensure_uptodate=False)
 		if self.opts.get('flush'):
 			notebook.index.flush()
 			notebook.index.update()
@@ -658,6 +669,7 @@ class ZimApplication(object):
 		self._log_started = False
 		self._standalone = False
 		self._windows = set()
+		self._arguments = None
 
 	@property
 	def toplevels(self):
@@ -680,13 +692,13 @@ class ZimApplication(object):
 		else:
 			return None
 
-	def present(self, notebook, page=None):
+	def present(self, notebook, page=None, anchor=None):
 		'''Present notebook and page in a mainwindow, may not return for
 		standalone processes.
 		'''
 		uri = notebook if isinstance(notebook, str) else notebook.uri
 		pagename = page if isinstance(page, str) else page.name
-		self.run('--gui', uri, pagename)
+		self.run('--gui', uri, pagename, anchor)
 
 	def add_window(self, window):
 		if not window in self._windows:
@@ -752,6 +764,7 @@ class ZimApplication(object):
 				if not self._standalone and self._try_dispatch(args, cmd.pwd):
 					pass # We are done
 				else:
+					self._arguments = args
 					self._running = True
 					self._run_main_loop(cmd)
 			else:

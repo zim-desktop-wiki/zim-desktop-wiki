@@ -266,7 +266,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		_NOTEBOOK_CACHE[dir.uri] = nb
 		return nb
 
-	def __init__(self, cache_dir, config, folder, layout, index):
+	def __init__(self, cache_dir, config: NotebookConfig, folder, layout, index):
 		'''Constructor
 		@param cache_dir: a L{Folder} object used for caching the notebook state
 		@param config: a L{NotebookConfig} object

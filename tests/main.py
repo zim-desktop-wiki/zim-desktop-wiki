@@ -90,7 +90,7 @@ class TestNotebookCommand(tests.TestCase):
 
 		myinfo = NotebookInfo(pwd + '/Notes')
 		os.chdir('/')
-		notebookinfo, page = cmd.get_notebook_argument()
+		notebookinfo, page, _ = cmd.get_notebook_argument()
 
 		self.assertEqual(notebookinfo, myinfo)
 		os.chdir(pwd)

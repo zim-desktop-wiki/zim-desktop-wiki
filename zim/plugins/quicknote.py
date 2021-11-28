@@ -332,7 +332,7 @@ class QuickNoteDialog(Dialog):
 			try:
 				if isinstance(notebook, str):
 					notebook = NotebookInfo(notebook)
-				obj, x = build_notebook(notebook)
+				obj, _ = build_notebook(notebook)
 				self.form.widgets['namespace'].notebook = obj
 				self.form.widgets['page'].notebook = obj
 				logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)
@@ -445,7 +445,7 @@ class QuickNoteDialog(Dialog):
 
 	def _get_notebook(self):
 		uri = self.notebookcombobox.get_notebook()
-		notebook, p = build_notebook(LocalFolder(uri))
+		notebook, _ = build_notebook(LocalFolder(uri))
 		return notebook
 
 	def create_new_page(self, notebook, path, text):

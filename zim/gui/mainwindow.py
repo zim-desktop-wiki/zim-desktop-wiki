@@ -312,7 +312,7 @@ class MainWindow(WindowBaseMixin, Window):
 		'close': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, notebook, page=None, fullscreen=False, geometry=None):
+	def __init__(self, notebook, page=None, anchor=None, fullscreen=False, geometry=None):
 		'''Constructor
 		@param notebook: the L{Notebook} to show in this window
 		@param page: a C{Path} object to open
@@ -464,7 +464,7 @@ class MainWindow(WindowBaseMixin, Window):
 		page = page or self.history.get_current()
 		if page:
 			page = notebook.get_page(page)
-			self.open_page(page)
+			self.open_page(page, anchor)
 		else:
 			self.open_page_home()
 
