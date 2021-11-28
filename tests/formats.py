@@ -708,6 +708,17 @@ hmmm
 		tree = self.format.Parser().parse(text)
 		self.assertEqual(tree.tostring(), xml)
 
+	def testUnicodeSpecial(self):
+		text = '''
+		1. Some list item\u2029 with stray PARAGRAPH SEPARATOR
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ol indent="2" start="1"><li>Some list item  with stray PARAGRAPH SEPARATOR</li></ol></p></zim-tree>'''
+		tree = self.format.Parser().parse(text)
+		self.assertEqual(tree.tostring(), xml)
+
 
 class TestGFMAutolinks(tests.TestCase):
 	# See https://github.github.com/gfm/#autolinks-extension-
