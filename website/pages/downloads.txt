@@ -33,15 +33,12 @@ There is also a PPA with updates for zim [[https://launchpad.net/~jaap.karssenbe
 
 A windows installer can also be found [[/downloads/|here]]. This installer is built ^& tested on Windows 10 in a 64-bit environment. It might work on Windows 7 as well, but this is not tested. Older versions and 32-bit systems are not supported by this installer.
 
-{{/images/os-apple.png?width=24}}  ** Mac OS X**
+{{/images/os-apple.png?width=24}}  ** macOS **
 
-On Mac OS X, zim can be installed from Homebrew using,
+{{/images/zim_macos.png}}
 
-'''
-brew install zim
-'''
-
-Optionally, you can [[https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OSX-App-%28wrapper%29|create a .app wrapper]] for convenience.
+A macOS app can be found [[https://gitlab.com/dehesselle/zim_macos/-/releases|here]]. It supports OS X El Capitan up to macOS Monterey. Rosetta 2 is required on M1 Macs.
+See the configuration section in the [[https://gitlab.com/dehesselle/zim_macos/-/blob/master/README.md|readme]] on where to find configuration files and how to get plugins to recognize external dependencies.
 
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**
 
