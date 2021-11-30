@@ -355,4 +355,17 @@
 \female	9792
 \male	9794
 
+# Box drawing characters
+\bddl	9488	# ┐ (box-drawing down and left)
+\bdul	9496	# ┘ (box-drawing up and left)
+\bddr	9484	# ┌ (box-drawing down and right)
+\bdur	9492	# └ (box-drawing up and right)
+\bdv	9474	# │ (box-drawing vertical)
+\bdh	9472	# ─ (box-drawing horizontal)
+\bdvh	9532	# ┼ (box-drawing vertical and horizontal)
+\bdvr	9500	# ├ (box-drawing vertical and right)
+\bdvl	9508	# ┤ (box-drawing vertical and left)
+\bddh	9516	# ┬ (box-drawing down and horizontal)
+\bduh	9524	# ┴ (box-drawing up and horizontal)
+
 ## Suggestions for more shortcuts are welcome - please file in bug tracker ##
