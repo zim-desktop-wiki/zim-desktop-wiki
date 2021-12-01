@@ -461,7 +461,7 @@ class Parser(object):
 		# Add parser state, line count etc. to error, then re-raise
 		# rule=None means error while processing unmatched text
 		if isinstance(error, AssertionError):
-			error = ParserError(error.message)
+			error = ParserError(str(error))
 			# Assume any assertion is a parser check
 
 		if hasattr(error, 'parser_offset'):
