@@ -12,8 +12,8 @@ from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
 # TODO put these commands in preferences
-latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
-dvipngcmd={'cmd':'dvipng','o_quiet':'-q','o_bg':'-bg','o_bg_arg':'Transparent','o_imgsize':'-T','o_imgsize_arg':'tight','o_dpi':'-D','o_dpi_arg':'96','o_output':'-o'}
+latexcmd = 'latex'
+dvipngcmd = 'dvipng'
 
 class InsertEquationPlugin(PluginClass):
 
@@ -37,7 +37,7 @@ This is a core plugin shipping with zim.
 	@classmethod
 	def check_dependencies(klass):
 		has_latex = Application(latexcmd).tryexec()
-		has_dvipng = Application(dvipngcmd['cmd']).tryexec()
+		has_dvipng = Application(dvipngcmd).tryexec()
 		return (has_latex and has_dvipng), \
 				[('latex', has_latex, True), ('dvipng', has_dvipng, True)]
 
@@ -68,7 +68,6 @@ class EquationGenerator(ImageGeneratorClass):
 		self.preferences = plugin.preferences
 		self.template = get_template('plugins', 'equationeditor.tex')
 		self.texfile = TmpFile('equation.tex')
-		dvipngcmd['o_dpi_arg']=self.preferences['output_dpi']
 
 	def generate_image(self, text):
 
@@ -92,7 +91,7 @@ class EquationGenerator(ImageGeneratorClass):
 		logfile = File(self.texfile.path[:-4] + '.log') # len('.tex') == 4
 		#~ print(">>>", self.texfile, logfile)
 		try:
-			latex = Application(latexcmd)
+			latex = Application('%s -no-shell-escape -halt-on-error' % (latexcmd))
 			latex.run((self.texfile.basename,), cwd=self.texfile.dir)
 		except ApplicationError:
 			# log should have details of failure
@@ -101,7 +100,7 @@ class EquationGenerator(ImageGeneratorClass):
 		# Call dvipng
 		dvifile = File(self.texfile.path[:-4] + '.dvi') # len('.tex') == 4
 		pngfile = File(self.texfile.path[:-4] + '.png') # len('.tex') == 4
-		dvipng = Application([v for v in dvipngcmd.values()])
+		dvipng = Application('%s -q -bg Transparent -T tight -D %s -o' % (dvipngcmd,self.preferences['output_dpi']))
 		dvipng.run((pngfile, dvifile)) # output, input
 		# No try .. except here - should never fail
 		# TODO dvipng can start processing before latex finished - can we win speed there ?
