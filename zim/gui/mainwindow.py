@@ -216,18 +216,16 @@ class WindowBaseMixin(object):
 		@param editable_uistate: default state if control is sensitive
 		'''
 		if self.notebook.readonly or self.page.readonly:
-			if not self.toggle_editable.get_sensitive():
-				return
-
-			self.toggle_editable.set_sensitive(False)
-			self._set_tooltip_hack(_('Page is read-only and cannot be edited')) # T: message in toggle editable tooltip
-		else:
 			if self.toggle_editable.get_sensitive():
-				return
+				self.toggle_editable.set_sensitive(False)
+				self._set_tooltip_hack(_('Page is read-only and cannot be edited')) # T: message in toggle editable tooltip
 
-			self.toggle_editable.set_sensitive(True)
+		else:
+			if not self.toggle_editable.get_sensitive():
+				self.toggle_editable.set_sensitive(True)
+				self._set_tooltip_hack(self.toggle_editable.tooltip) # reset to default
+
 			self.toggle_editable(editable_uistate)
-			self._set_tooltip_hack(self.toggle_editable.tooltip) # reset to default
 
 	def _set_tooltip_hack(self, text):
 		for proxy in self.toggle_editable._proxies: # XXX
