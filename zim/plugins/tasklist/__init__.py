@@ -177,6 +177,7 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 			window.connect_after('destroy', self._drop_task_list_window_ref)
 			if selection_state:
 				window._set_selection_state(selection_state)
+			self._connect_tasklist_changed(window)
 			window.show_all()
 			return window
 
