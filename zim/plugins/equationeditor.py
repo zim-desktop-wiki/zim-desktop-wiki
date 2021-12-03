@@ -31,6 +31,7 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('dark_mode', 'bool', _('Use font color for dark theme'), False), # T: plugin preference
+		('font_size', 'int', _('Font size'), 12, (6, 24)), # T: plugin preference
 		('output_dpi', 'choice', _('Equation image DPI'), "96", ("96","120","150","200","300","400","600")), # T: plugin preference
     )
 
@@ -49,6 +50,7 @@ class BackwardEquationImageObjectType(BackwardImageGeneratorObjectType):
 	syntax = 'latex'
 	scriptname = 'equation.tex'
 	imagefile_extension = '.png'
+	widget_style = 'inline'
 
 	def format_latex(self, dumper, attrib, data):
 		if attrib['src'] and not attrib['src'] == '_new_':
@@ -82,6 +84,7 @@ class EquationGenerator(ImageGeneratorClass):
 		lines = []
 		self.template.process(lines, {
 			'equation': text,
+			'font_size': self.preferences['font_size'],
 			'dark_mode': self.preferences['dark_mode']
 		})
 		self.texfile.writelines(lines)
