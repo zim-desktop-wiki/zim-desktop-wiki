@@ -13,6 +13,7 @@ import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 
 from zim.notebook import Path
+from zim.actions import get_actions, RadioActionMethod
 from zim.gui.widgets import \
 	Dialog, WindowSidePaneWidget, InputEntry, \
 	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, \
@@ -241,7 +242,7 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 		self._close_button = button
 		return True
 
-from zim.actions import get_actions, RadioActionMethod
+
 class TaskListWindowExtension(ExtensionBase):
 	'''Base class for window extensions
 	Actions can be defined using e.g. C{@action} decorator, see
@@ -423,7 +424,10 @@ class ListSelectionView(Gtk.ListBox):
 		for row in self.get_children():
 			if row.get_child()._zim_key == key:
 				self.select_row(row)
+				self.emit('row-activated', row)
 				return
+		else:
+			raise AssertionError("Could not find key: %s" % key)
 
 class LabelAndTagView(Gtk.ListBox):
 
