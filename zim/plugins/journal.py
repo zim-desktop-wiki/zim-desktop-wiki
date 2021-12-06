@@ -118,8 +118,9 @@ Also adds a calendar widget to access these pages.
 	)
 
 	plugin_notebook_properties = (
-		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
+		('namespace', 'namespace', _('Journal section'), Path(':Journal')), # T: input label
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
+		('show_pages_from', 'namespace', _('Show pages from section'), Path(':Journal')), # T: input label
 	)
 
 	def path_from_date(self, notebook, date):
@@ -232,19 +233,28 @@ class JournalNotebookViewExtension(NotebookViewExtension):
 
 		self.notebook = pageview.notebook
 		self.calendar_widget = CalendarWidget(plugin, self.notebook, self.navigation)
-		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
 
 		properties = self.plugin.notebook_properties(self.notebook)
 		self.connectto(properties, 'changed', self.on_properties_changed)
 		self.on_properties_changed(properties)
+
+		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
+		if pageview.page is not None:
+			self.calendar_widget.set_page(pageview.page)
 
 	def on_properties_changed(self, properties):
 		old_model = self.calendar_widget.treeview.get_model()
 		self.disconnect_from(old_model)
 
 		index = self.notebook.index
+
 		namespace = properties['namespace']
-		new_model = PageTreeStore(index, root=namespace, reverse=True)
+		doReverse = True
+		if properties['show_pages_from'] is not None and properties['show_pages_from'].name != properties['namespace'].name:
+			namespace = properties['show_pages_from']
+			doReverse = False
+
+		new_model = PageTreeStore(index, root=namespace, reverse=doReverse)
 		self.calendar_widget.treeview.set_model(new_model)
 
 		self.connectto_all(new_model, ('row-inserted', 'row-deleted'), handler=self.on_pane_changed)
