@@ -279,7 +279,7 @@ class TestApplicationManager(tests.TestCase):
 		self.addCleanup(restore_desktop)
 
 		os.environ['XDG_CURRENT_DESKTOP'] = 'Test'
-		desktopfile = XDG_CONFIG_HOME.file('Test-mimeapps.list')
+		desktopfile = XDG_CONFIG_HOME.file('test-mimeapps.list')
 		defaultfile = XDG_CONFIG_HOME.file('mimeapps.list')
 
 		dir = XDG_DATA_HOME.subdir('applications')
