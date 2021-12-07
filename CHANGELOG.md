@@ -5,6 +5,22 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.74.3 - Tue 07 Dec 2021
+* Fix issue with broken links on move page
+* Fix bug in copy-paste
+* Fix bug on move page for existing textbuffer
+* Fix bug with saving of notebook editable state
+* Fix for error while loading plugins
+* Fix issue with stray unicode character
+* Fix issue to allow relative document root
+* Fix hack for rendering sourceview blocks
+* Add mnemonic keys to open sidepane tabs
+* Add links and screenshot to macOS app & update README information
+* Improve inline rendering of equations & make image DPI confingurable
+* Add box drawing characters to symbols list
+* Scroll on moving lines with linesorter plugin
+* Move floating table of contents to overlay layer
+
 ##  0.74.2 - Mon 11 Oct 2021
 * Let Toolbar plugin also remove window decoration
 * Fix execution of custom tools from Toolbar
