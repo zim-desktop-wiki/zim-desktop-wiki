@@ -127,20 +127,36 @@ class LinksIndexer(IndexerBase):
 	def on_page_row_changed(self, o, newrow, oldrow):
 		if oldrow['is_link_placeholder'] and not newrow['is_link_placeholder']:
 			self.on_page_row_inserted(o, newrow)
+		elif not oldrow['is_link_placeholder'] and newrow['is_link_placeholder'] and newrow['n_children'] > 0:
+			# Re-calc links to children, might result in this this page being deleted fully
+			# if children no longer resolve here due to new placeholder status
+			self._recursive_flag_links_for_update(newrow)
+		else:
+			pass
+
+	def _recursive_flag_links_for_update(self, row):
+		self.db.execute(
+			'UPDATE links SET needscheck=1, target=? WHERE target=?',
+			(ROOT_ID, row['id'],)
+		) # Need to link somewhere, if target is gone, use ROOT instead
+		for child in self.db.execute(
+			'SELECT * FROM pages WHERE parent=?',
+			(row['id'],)
+		).fetchall():
+			self._recursive_flag_links_for_update(child) # recurs
 
 	def on_page_row_deleted(self, o, row):
 		# Drop all outgoing links, flag incoming links to be checked.
 		# Check could result in page being re-created as placeholder
 		# at end of db update.
-		if not row['is_link_placeholder']:
-			self.db.execute(
-				'DELETE FROM links WHERE source=?',
-				(row['id'],)
-			)
-			self.db.execute(
-				'UPDATE links SET needscheck=1, target=? WHERE target=?',
-				(ROOT_ID, row['id'],)
-			) # Need to link somewhere, if target is gone, use ROOT instead
+		self.db.execute(
+			'DELETE FROM links WHERE source=?',
+			(row['id'],)
+		)
+		self.db.execute(
+			'UPDATE links SET needscheck=1, target=? WHERE target=?',
+			(ROOT_ID, row['id'],)
+		) # Need to link somewhere, if target is gone, use ROOT instead
 
 	def is_uptodate(self):
 		row = self.db.execute(

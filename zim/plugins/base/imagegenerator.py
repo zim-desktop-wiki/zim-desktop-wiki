@@ -36,6 +36,7 @@ class ImageGeneratorObjectType(InsertedObjectTypeExtension):
 	'''
 
 	syntax = None
+	widget_style = None
 
 	def __init__(self, plugin, objmap):
 		generators = list(plugin.discover_classes(ImageGeneratorClass))
@@ -60,7 +61,7 @@ class ImageGeneratorObjectType(InsertedObjectTypeExtension):
 		return model.attrib, model.data
 
 	def create_widget(self, model):
-		return ImageGeneratorWidget(model, self.label, self.syntax)
+		return ImageGeneratorWidget(model, self.label, self.syntax, self.widget_style)
 
 
 class BackwardImageGeneratorObjectType(ImageGeneratorObjectType):
@@ -287,8 +288,8 @@ class ImageGeneratorClass(object):
 
 class ImageGeneratorWidget(ImageFileWidget):
 
-	def __init__(self, model, label, syntax=None):
-		ImageFileWidget.__init__(self, model.image_file)
+	def __init__(self, model, label, syntax=None, widget_style=None):
+		ImageFileWidget.__init__(self, model.image_file, widget_style=widget_style)
 		self.model = model
 		self.label = label
 		self.syntax = syntax

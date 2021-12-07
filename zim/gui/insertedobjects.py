@@ -49,16 +49,19 @@ class InsertedObjectWidget(Gtk.EventBox):
 
 	expand = True
 
-	def __init__(self):
+	def __init__(self, widget_style=None):
 		GObject.GObject.__init__(self)
-		self.set_border_width(3)
 		self._has_cursor = False
 		self._vbox = Gtk.VBox()
 		Gtk.EventBox.add(self, self._vbox)
-		widget_set_css(self._vbox, 'zim-inserted-object', 'border: 1px solid #ccc')
-			# Choosen #ccc because it should give contract with both light and
-			# dark theme, but less than the text color itself
-			# Can be overruled in user css is really conflicts with theme
+		if widget_style == 'inline':
+			self._vbox.set_name('zim-inserted-object-inline')
+		else:
+			self.set_border_width(3)
+			widget_set_css(self._vbox, 'zim-inserted-object', 'border: 1px solid #ccc')
+				# Choosen #ccc because it should give contract with both light and
+				# dark theme, but less than the text color itself
+				# Can be overruled in user css is really conflicts with theme
 
 	def add(self, widget):
 		'''Add a widget to the object'''
@@ -211,8 +214,8 @@ class ImageFileWidget(InsertedObjectWidget):
 
 	expand = False
 
-	def __init__(self, file):
-		InsertedObjectWidget.__init__(self)
+	def __init__(self, file, widget_style=None):
+		InsertedObjectWidget.__init__(self, widget_style=widget_style)
 		self.file = file
 		if file.exists():
 			self.image = Gtk.Image.new_from_file(file.path)

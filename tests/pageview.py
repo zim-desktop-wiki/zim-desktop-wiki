@@ -3762,6 +3762,8 @@ class TestWebPImageSupport(tests.TestCase):
 		notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL)
 		page = notebook.get_page(Path('Test'))
 		file = page.attachments_folder.file('image_webp_test.webp')
+		self.assertTrue(file.mimetype().startswith('image/'))
+		self.assertTrue(file.isimage())
 		src = tests.TEST_DATA_FOLDER.file('image_webp_test/image_webp_test.webp')
 		src.copyto(file)
 
