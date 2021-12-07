@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-10-04 11:12+0000\n"
+"PO-Revision-Date: 2021-10-18 20:30+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
-"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/"
-">\n"
+"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
+"\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3134,6 +3134,7 @@ msgstr "Ez a bővítmény hozzáadja az oldalindex panelt a főablakhoz.\n"
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
 msgstr ""
+"Az oldalak áthelyezése a jegyzetfüzetben a fogd és vidd módszer használatával"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3153,7 +3154,7 @@ msgstr "Vízszintes görgetősáv használata (újraindítást igényel)"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "Eszköztippek használata"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -3978,11 +3979,6 @@ msgstr "Eszköztár"
 
 #. plugin description
 #: zim/plugins/toolbar.py:64
-#, fuzzy
-#| msgid ""
-#| "This plugin adds a \"tool bar\" to the main window.\n"
-#| "It can be a \"classic\" toolbar at the top of the window\n"
-#| "or running along the side of the window.\n"
 msgid ""
 "This plugin adds a \"tool bar\" to the main window.\n"
 "It can be a \"classic\" toolbar at the top of the window\n"
@@ -3991,31 +3987,28 @@ msgid ""
 msgstr ""
 "Ez a bővítmény egy \"eszköztárat\" ad a főablakhoz.\n"
 "Ez lehet egy \"klasszikus\" eszköztár az ablak tetején.\n"
-"vagy az ablak oldalán végigfutó.\n"
+"vagy az ablak oldalán végigfutó. Lehetővé teszi továbbá,\n"
+"az ablak dekorációjának konfigurálását.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "Vezérlőelemek megjelenítése az ablak dekorációjában"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "Ez az opció az alkalmazás újraindítását igényli"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
-#, fuzzy
-#| msgid "Show in the toolbar"
 msgid "Show toolbar"
-msgstr "Megjelenítés az eszköztáron"
+msgstr "Eszköztár megjelenítése"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:80
-#, fuzzy
-#| msgid "Include editing tools (classic toolbar)"
 msgid "Include formatting tools in toolbar"
-msgstr "Szerkesztési eszközök beépítése (klasszikus eszköztár)"
+msgstr "Szerkesztési eszközök felvétele az eszköztárba"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:84

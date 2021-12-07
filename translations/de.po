@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-09-28 18:16+0000\n"
+"PO-Revision-Date: 2021-10-11 11:18+0000\n"
 "Last-Translator: Andreas Klostermaier <andreas.klostermaier@appendx.de>\n"
 "Language-Team: German <https://hosted.weblate.org/projects/zim/master/de/>\n"
 "Language: de\n"
@@ -755,7 +755,7 @@ msgstr "Neuer _Anhang"
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:170
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "Bearbeiten-Leiste unterhalb des Textbereichs einblenden"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
@@ -800,8 +800,8 @@ msgstr ""
 #: zim/gui/pageview/__init__.py:191
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
-"Wiederholtes Klicken einer Checkbox schaltet durch die verschiedenen "
-"Zustände der Checkbox"
+"Wiederholtes Anklicken eines Ankreuzfeldes wechselt durch die verschiedenen "
+"Zustände"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:194
@@ -2129,7 +2129,7 @@ msgstr "Anpassen der Verknüpfungen"
 #: zim/gui/uiactions.py:681
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "Entferne Verknüpfungen auf %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
@@ -2517,7 +2517,7 @@ msgstr "_Arithmetik"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "Datei '%s' wirklich löschen?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -3172,7 +3172,7 @@ msgstr "Diese Erweiterung fügt dem Hauptfenster ein Seitenverzeichnis hinzu.\n"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
-msgstr ""
+msgstr "Seiten mittels \"Ziehen und Loslassen\" im Notizbuch bewegen"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3192,7 +3192,7 @@ msgstr "Horizontalen Rollbalken verwenden (erfordert evtl. Neustart)"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "Einblend-Hilfe verwenden"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -4017,11 +4017,6 @@ msgstr "Werkzeugleiste"
 
 #. plugin description
 #: zim/plugins/toolbar.py:64
-#, fuzzy
-#| msgid ""
-#| "This plugin adds a \"tool bar\" to the main window.\n"
-#| "It can be a \"classic\" toolbar at the top of the window\n"
-#| "or running along the side of the window.\n"
 msgid ""
 "This plugin adds a \"tool bar\" to the main window.\n"
 "It can be a \"classic\" toolbar at the top of the window\n"
@@ -4029,32 +4024,30 @@ msgid ""
 "configuring the window decoration.\n"
 msgstr ""
 "Diese Erweiterung fügt dem Hauptbereich eine Werkzeugleiste hinzu.\n"
-"Diese kann klassisch über dem Hauptbereich\n"
-"oder aber seitlich angeordnet sein.\n"
+"Diese kann klassisch über dem Hauptbereich oder aber seitlich angeordnet "
+"sein.\n"
+"Ausserdem kann mit dieser Erweiterung die Titelleiste des Fenster "
+"konfiguriert werden.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "Kontroll-Elemente in der Fenster-Titelleiste anzeigen"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "(Neustart des Programms erforderlich)"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
-#, fuzzy
-#| msgid "Show in the toolbar"
 msgid "Show toolbar"
-msgstr "Erscheint in Werkzeugleiste"
+msgstr "Werkzeugleiste anzeigen"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:80
-#, fuzzy
-#| msgid "Include editing tools (classic toolbar)"
 msgid "Include formatting tools in toolbar"
-msgstr "Bearbeitungs-Werkzeuge einschliessen (klassische Werkzeugleiste)"
+msgstr "Formatierungs-Befehle in der Werkzeugleiste anzeigen"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:84

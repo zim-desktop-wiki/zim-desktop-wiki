@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-07 21:09+0200\n"
-"PO-Revision-Date: 2021-09-28 18:34+0000\n"
+"PO-Revision-Date: 2021-10-14 14:35+0000\n"
 "Last-Translator: SC <lalocas@protonmail.com>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/zim/master/pt/"
 ">\n"
@@ -3148,7 +3148,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
-msgstr ""
+msgstr "Use o arrastar e largar para mover páginas no bloco de notas"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3169,7 +3169,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "Usar dica de contexto"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132 data/templates/html/Default.html:52
@@ -3997,11 +3997,6 @@ msgstr "Barra de ferramentas"
 
 #. plugin description
 #: zim/plugins/toolbar.py:64
-#, fuzzy
-#| msgid ""
-#| "This plugin adds a \"tool bar\" to the main window.\n"
-#| "It can be a \"classic\" toolbar at the top of the window\n"
-#| "or running along the side of the window.\n"
 msgid ""
 "This plugin adds a \"tool bar\" to the main window.\n"
 "It can be a \"classic\" toolbar at the top of the window\n"
@@ -4010,31 +4005,28 @@ msgid ""
 msgstr ""
 "Este plugin adiciona uma \"barra de ferramentas\" à janela principal.\n"
 "Pode ser uma barra de ferramentas \"clássica\" na parte superior da janela\n"
-"ou correr ao longo da lateral da janela.\n"
+"ou correr ao longo da lateral da janela. Também permite configurar\n"
+"as decorações da janela.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "Mostrar controlos nas decorações da janela"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "Esta opção requer reiniciar a aplicação"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
-#, fuzzy
-#| msgid "Show in the toolbar"
 msgid "Show toolbar"
-msgstr "Mostrar na barra de ferramentas"
+msgstr "Mostrar barra de ferramentas"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:80
-#, fuzzy
-#| msgid "Include editing tools (classic toolbar)"
 msgid "Include formatting tools in toolbar"
-msgstr "Incluir ferramentas de edição (barra de ferramentas clássica)"
+msgstr "Incluir ferramentas de edição na barra de ferramentas"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:84
