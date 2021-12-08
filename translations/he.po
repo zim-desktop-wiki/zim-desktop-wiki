@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2021-12-07 21:52+0000\n"
+"PO-Revision-Date: 2021-12-08 09:17+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -464,22 +464,22 @@ msgstr "אין תוסף זמין להצגת פריטים מסוג: %s"
 #: zim/gui/insertedobjects.py:276
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "התוסף „%s” נחוץ כדי להציג את הפריט הזה"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:280
 msgid "Enable plugin"
-msgstr ""
+msgstr "הפעלת תוסף"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:313
 msgid "Unkown Object"
-msgstr ""
+msgstr "פריט לא ידוע"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:352
 msgid "Unkown Image type"
-msgstr ""
+msgstr "סוג התמונה אינו מוכר"
 
 #. Menu title
 #: zim/gui/mainwindow.py:47
