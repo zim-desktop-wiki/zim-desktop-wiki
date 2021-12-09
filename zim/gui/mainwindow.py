@@ -628,6 +628,10 @@ class MainWindow(WindowBaseMixin, Window):
 			# Not allowed to save before plugins are loaded, could overwrite
 			# pane state based on empty panes
 
+		cursor = self.pageview.get_cursor_pos()
+		scroll = self.pageview.get_scroll_pos()
+		self.history.set_state(self.page, cursor, scroll)
+
 		if self.is_visible() and not self.isfullscreen:
 			self.uistate['windowpos'] = tuple(self.get_position())
 			self.uistate['windowsize'] = tuple(self.get_size())
@@ -694,10 +698,6 @@ class MainWindow(WindowBaseMixin, Window):
 			self.notebook.wait_for_store_page_async() # XXX - should not be needed - hide in notebook/page class - how?
 			if self.page.modified:
 				return False # Assume SavePageErrorDialog was shown and cancelled
-
-			old_cursor = self.pageview.get_cursor_pos()
-			old_scroll = self.pageview.get_scroll_pos()
-			self.history.set_state(self.page, old_cursor, old_scroll)
 
 			self.save_uistate()
 

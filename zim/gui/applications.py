@@ -315,7 +315,7 @@ class ApplicationManager(object):
 
 		for folder in folders:
 			for desktop in desktops:
-				file = folder.file('%s-mimeapps.list' % desktop)
+				file = folder.file('%s-mimeapps.list' % desktop.lower())
 				if file.exists():
 					yield file
 
