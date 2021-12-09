@@ -3,6 +3,7 @@
 
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 from gi.repository import GObject
 from gi.repository import Pango
 
@@ -26,7 +27,7 @@ logger = logging.getLogger('zim.plugins.tasklist')
 
 from .indexer import AllTasks, ActiveTasks, InboxTasks, NextActionTasks, OpenProjectsTasks, WaitingTasks, \
 	_MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re, \
-	TASK_STATUS_OPEN, TASK_STATUS_CLOSED, TASK_STATUS_CANCELLED, TASK_STATUS_MIGRATED
+	TASK_STATUS_OPEN, TASK_STATUS_CLOSED, TASK_STATUS_CANCELLED, TASK_STATUS_MIGRATED, TASK_STATUS_TRANSMIGRATED
 
 
 SELECTION_ALL = 'all'
@@ -178,8 +179,8 @@ class TaskListWidgetMixin(object):
 		self.taskselection_type = key
 		label, cls = self.SELECTION_MAP[key]
 		self._set_mbutton_label(label)
-		taskselection = cls.new_from_index(self.index)
-		taskselection.set_status_included(*self.status)
+		self.taskselection = cls.new_from_index(self.index)
+		self.taskselection.set_status_included(*self.status)
 
 		if key == SELECTION_INBOX:
 			style = TaskListTreeView.STYLE_INBOX
@@ -188,8 +189,8 @@ class TaskListWidgetMixin(object):
 		else:
 			style = TaskListTreeView.STYLE_DEFAULT
 
-		self.tasklisttreeview.set_taskselection(taskselection, style)
-		self.tag_list.set_taskselection(taskselection)
+		self.tasklisttreeview.set_taskselection(self.taskselection, style)
+		self.tag_list.set_taskselection(self.taskselection)
 
 	def _set_mbutton_label(self, text):
 		if self._mbutton is None:
@@ -282,8 +283,6 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 	def __init__(self, notebook, index, navigation, properties, show_inbox_next):
 		Gtk.Window.__init__(self)
 		self.uistate = notebook.state[self.__class__.__name__]
-		#Dialog.__init__(self, parent, _('Task List'), # T: dialog title
-		#	buttons=Gtk.ButtonsType.CLOSE, help=':Plugins:Task List',
 		defaultwindowsize=(550, 400)
 		from zim.config import value_is_coord
 
@@ -335,10 +334,11 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 
 		vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 		for key, label in (
-			(TASK_STATUS_OPEN, _('Show open tasks')),
-			(TASK_STATUS_CLOSED, _('Show closed tasks')),
-			(TASK_STATUS_CANCELLED, _('Show cancelled tasks')),
-			(TASK_STATUS_MIGRATED, _('Show migrated tasks'))
+			(TASK_STATUS_OPEN, _('Show open tasks')), # T: selection menu option
+			(TASK_STATUS_CLOSED, _('Show closed tasks')), # T: selection menu option
+			(TASK_STATUS_CANCELLED, _('Show cancelled tasks')), # T: selection menu option
+			(TASK_STATUS_MIGRATED, _('Show migrated tasks')), # T: selection menu option
+			(TASK_STATUS_TRANSMIGRATED, _('Show trans-migrated tasks')) # T: selection menu option
 		):
 			checkbutton = Gtk.CheckButton.new_with_label(label)
 			checkbutton.set_active(key in self.status)
@@ -349,16 +349,16 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		button.show_all()
 		vbox.show_all()
 
-		#headerbar = self.get_titlebar()
-		#headerbar.pack_end(button)
+		headerbar = self.get_titlebar()
+		headerbar.pack_end(button)
 
 	def on_status_checkbox_toggled(self, checkbox, key):
+		self.status = [s for s in self.status if s != key]
 		if checkbox.get_active():
 			self.status.append(key)
-		else:
-			self.status = [s for s in self.status if s != key]
 		self.taskselection.set_status_included(*self.status)
 		self.tasklisttreeview.refresh()
+		self.tag_list.refresh()
 
 	def save_uistate(self, *a):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -428,6 +428,7 @@ class ListSelectionView(Gtk.ListBox):
 				return
 		else:
 			raise AssertionError("Could not find key: %s" % key)
+
 
 class LabelAndTagView(Gtk.ListBox):
 
@@ -625,8 +626,7 @@ def days_to_str(days, use_workweek, weekday):
 
 class TaskListTreeView(BrowserTreeView):
 
-	# idem for flat list vs tree
-
+	# Columns
 	VIS_COL = 0 # visible
 	ACT_COL = 1 # actionable
 	PRIO_COL = 2
@@ -638,11 +638,15 @@ class TaskListTreeView(BrowserTreeView):
 	TASKID_COL = 8
 	PRIO_SORT_COL = 9
 	PRIO_SORT_LABEL_COL = 10
+	STATUS_COL = 11
+	STATUS_ICON_NAME_COL = 12
 
-	RICH_COLUMN_LAYOUT = 11
-	COMPACT_COLUMN_LAYOUT = 12
-	COMPACT_COLUMN_LAYOUT_WITH_DUE = 13
+	# Layout
+	RICH_COLUMN_LAYOUT = 0
+	COMPACT_COLUMN_LAYOUT = 1
+	COMPACT_COLUMN_LAYOUT_WITH_DUE = 2
 
+	# Style
 	STYLE_DEFAULT = 0
 	STYLE_INBOX = 1
 	STYLE_WAITING = 2
@@ -655,8 +659,8 @@ class TaskListTreeView(BrowserTreeView):
 		column_layout=RICH_COLUMN_LAYOUT,
 		sort_column=PRIO_COL, sort_order=Gtk.SortType.DESCENDING
 	):
-		self.real_model = Gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str)
-			# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL
+		self.real_model = Gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str, int, str)
+			# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL, STATUS_COL, STATUS_ICON_NAME_COL
 		model = self.real_model.filter_new()
 		model.set_visible_column(self.VIS_COL)
 		model = Gtk.TreeModelSort(model)
@@ -674,6 +678,22 @@ class TaskListTreeView(BrowserTreeView):
 		self.task_labels = task_labels
 		self.use_workweek = use_workweek
 		self._render_waiting_actionable = False
+
+		self._icon_names = {
+			TASK_STATUS_OPEN: 'task-list-open-symbolic',
+			TASK_STATUS_CLOSED: 'task-list-closed-symbolic',
+			TASK_STATUS_CANCELLED: 'task-list-cancelled-symbolic',
+			TASK_STATUS_MIGRATED: 'task-list-migrated-symbolic',
+			TASK_STATUS_TRANSMIGRATED: 'task-list-transmigrated-symbolic',
+		}
+
+		# Status column
+		if column_layout == self.RICH_COLUMN_LAYOUT:
+			cell_renderer = Gtk.CellRendererPixbuf()
+			column = Gtk.TreeViewColumn(' ', cell_renderer)
+			column.add_attribute(cell_renderer, 'icon-name', self.STATUS_ICON_NAME_COL)
+			column.set_sort_column_id(self.STATUS_COL)
+			self.append_column(column)
 
 		# Add some rendering for the Prio column
 		def render_prio(col, cell, model, i, data):
@@ -846,8 +866,14 @@ class TaskListTreeView(BrowserTreeView):
 					any(t in lowertags for t in self.nonactionable_tags)
 				)
 
+			# Checkbox
+			status = row['status']
+			status_icon_name = self._icon_names[status]
+
 			# Format label for "prio" column
-			if row['start'] > today_str:
+			if status != TASK_STATUS_OPEN:
+				prio_sort_label = '!' * min(row['prio'], 3)
+			elif row['start'] > today_str:
 				actionable = False
 				y, m, d = row['start'].split('-')
 				td = datetime.date(int(y), int(m), int(d)) - today
@@ -879,8 +905,8 @@ class TaskListTreeView(BrowserTreeView):
 				desc = r'<span color="darkgrey">%s</span>' % desc
 
 			# Insert all columns
-			modelrow = [False, actionable, row['prio'], row['start'], row['due'], tags, desc, path.name, row['id'], prio_sort_int, prio_sort_label]
-				# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL
+			modelrow = [False, actionable, row['prio'], row['start'], row['due'], tags, desc, path.name, row['id'], prio_sort_int, prio_sort_label, status, status_icon_name]
+				# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL, STATUS_COL, STATUS_ICON_NAME_COL
 			modelrow[0] = self._filter_item(modelrow)
 			myiter = self.real_model.append(parent_tree_iter, modelrow)
 
@@ -921,15 +947,18 @@ class TaskListTreeView(BrowserTreeView):
 
 	def _eval_filter(self):
 		#logger.debug('Filtering with labels: %s tags: %s, filter: %s', self.label_filter, self.tag_filter, self.filter)
-
-		def filter(model, path, iter):
-			visible = self._filter_item(model[iter])
-			model[iter][self.VIS_COL] = visible
-			if visible:
-				parent = model.iter_parent(iter)
-				while parent:
-					model[parent][self.VIS_COL] = visible
-					parent = model.iter_parent(parent)
+		if any((self.filter, self.tag_filter, self.label_filter, self.page_filter)):
+			def filter(model, path, iter):
+				visible = self._filter_item(model[iter])
+				model[iter][self.VIS_COL] = visible
+				if visible:
+					parent = model.iter_parent(iter)
+					while parent:
+						model[parent][self.VIS_COL] = visible
+						parent = model.iter_parent(parent)
+		else:
+			def filter(model, path, iter):
+				model[iter][self.VIS_COL] = True
 
 		self.real_model.foreach(filter)
 		self.expand_all()

@@ -13,7 +13,7 @@ from zim.notebook import Path
 from zim.notebook.index.base import IndexerBase, IndexView
 from zim.notebook.index.pages import PagesViewInternal
 from zim.formats import get_format, \
-	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, BULLET, TAG, ANCHOR, \
+	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANSMIGRATED_BOX, BULLET, TAG, ANCHOR, \
 	HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
 	Visitor, VisitorSkip
 from zim.tokenparser import TEXT, END, \
@@ -44,13 +44,15 @@ TASK_STATUS_OPEN = 0		# open checkbox
 TASK_STATUS_CLOSED = 1		# closed checkbox OK "v"
 TASK_STATUS_CANCELLED = 2	# closed checkbox NOK "x"
 TASK_STATUS_MIGRATED = 3	# closed checkbox ">"
+TASK_STATUS_TRANSMIGRATED = 4	# closed checkbox "<"
 
-_CHECKBOXES = (CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
+_CHECKBOXES = (CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANSMIGRATED_BOX)
 TASK_STATUS_BY_BULLET = {
 	UNCHECKED_BOX: TASK_STATUS_OPEN,
 	CHECKED_BOX: TASK_STATUS_CLOSED,
 	XCHECKED_BOX: TASK_STATUS_CANCELLED,
-	MIGRATED_BOX: TASK_STATUS_MIGRATED
+	MIGRATED_BOX: TASK_STATUS_MIGRATED,
+	TRANSMIGRATED_BOX: TASK_STATUS_TRANSMIGRATED
 }
 
 # position of fiels in tag record as used by parser
@@ -228,6 +230,7 @@ class AllTasks(IndexView):
 
 	def __init__(self, db):
 		IndexView.__init__(self, db)
+		self._status_sql = '(0)' # TASK_STATUS_OPEN
 		self._pages = PagesViewInternal(db)
 		self.set_status_included(TASK_STATUS_OPEN)
 
