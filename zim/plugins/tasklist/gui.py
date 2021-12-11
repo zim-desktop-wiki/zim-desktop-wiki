@@ -26,7 +26,7 @@ from zim.plugins import ExtensionBase, extendable
 logger = logging.getLogger('zim.plugins.tasklist')
 
 from .indexer import AllTasks, ActiveTasks, InboxTasks, NextActionTasks, OpenProjectsTasks, WaitingTasks, \
-	_MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re, \
+	_MAX_DUE_DATE, _MIN_START_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re, \
 	TASK_STATUS_OPEN, TASK_STATUS_CLOSED, TASK_STATUS_CANCELLED, TASK_STATUS_MIGRATED, TASK_STATUS_TRANSMIGRATED
 
 
@@ -747,9 +747,9 @@ class TaskListTreeView(BrowserTreeView):
 		today = str(datetime.date.today())
 		tomorrow = str(datetime.date.today() + datetime.timedelta(days=delta1))
 		dayafter = str(datetime.date.today() + datetime.timedelta(days=delta2))
-		def render_date(col, cell, model, i, data):
-			date = model.get_value(i, self.DUE_COL)
-			if date == _MAX_DUE_DATE:
+		def render_date(col, cell, model, i, model_col):
+			date = model.get_value(i, model_col)
+			if date in (_MAX_DUE_DATE, _MIN_START_DATE):
 				cell.set_property('text', '')
 			else:
 				if not model.get_value(i, self.ACT_COL):
@@ -757,25 +757,30 @@ class TaskListTreeView(BrowserTreeView):
 				cell.set_property('markup', date)
 				# TODO allow strftime here
 
-			if date <= today:
-				color = HIGH_COLOR
-			elif date <= tomorrow:
-				color = MEDIUM_COLOR
-			elif date <= dayafter:
-				# "<=" because tomorrow and/or dayafter can be after the weekend
-				color = ALERT_COLOR
-			else:
-				color = None
-			cell.set_property('cell-background', color)
+			if model_col == self.DUE_COL:
+				if date <= today:
+					color = HIGH_COLOR
+				elif date <= tomorrow:
+					color = MEDIUM_COLOR
+				elif date <= dayafter:
+					# "<=" because tomorrow and/or dayafter can be after the weekend
+					color = ALERT_COLOR
+				else:
+					color = None
+				cell.set_property('cell-background', color)
 
 		if column_layout != self.COMPACT_COLUMN_LAYOUT:
-			cell_renderer = Gtk.CellRendererText()
-			column = Gtk.TreeViewColumn(_('Due'), cell_renderer)
-				# T: Column header Task List dialog
-			column.set_cell_data_func(cell_renderer, render_date)
-			column.set_sort_column_id(self.DUE_COL)
-			self.append_column(column)
-			self._due_column = column
+			for col, label in (
+				(self.DUE_COL, _('Due')), # T: Column header Task List dialog
+				(self.START_COL, _('Start')), # T: Column header Task List dialog
+			):
+				cell_renderer = Gtk.CellRendererText()
+				column = Gtk.TreeViewColumn(label, cell_renderer)
+				column.set_cell_data_func(cell_renderer, render_date, col)
+				column.set_sort_column_id(col)
+				self.append_column(column)
+				if col == self.DUE_COL:
+					self._due_column = column
 		else:
 			self._due_column = None
 
@@ -1069,11 +1074,11 @@ class TaskListTreeView(BrowserTreeView):
 
 	def get_visible_data_as_csv(self):
 		text = ""
-		for indent, prio, desc, date, page in self.get_visible_data():
+		for indent, prio, desc, due_date, start_date, page in self.get_visible_data():
 			prio = str(prio)
 			desc = decode_markup_text(desc)
 			desc = '"' + desc.replace('"', '""') + '"'
-			text += ",".join((prio, desc, date, page)) + "\n"
+			text += ",".join((prio, desc, due_date, start_date, page)) + "\n"
 		return text
 
 	def get_visible_data_as_html(self):
@@ -1114,13 +1119,13 @@ class TaskListTreeView(BrowserTreeView):
 <h1>Tasks</h1>
 
 <table class="tasklist">
-<tr><th>Prio</th><th>Task</th><th>Date</th><th>Page</th></tr>
+<tr><th>Prio</th><th>Task</th><th>Due</th><th>Start</th><th>Page</th></tr>
 ''' % (HIGH_COLOR, MEDIUM_COLOR, ALERT_COLOR)
 
 		today = str(datetime.date.today())
 		tomorrow = str(datetime.date.today() + datetime.timedelta(days=1))
 		dayafter = str(datetime.date.today() + datetime.timedelta(days=2))
-		for indent, prio, desc, date, page in self.get_visible_data():
+		for indent, prio, desc, due_date, start_date, page in self.get_visible_data():
 			if prio >= 3:
 					prio = '<td class="high">%s</td>' % prio
 			elif prio == 2:
@@ -1130,19 +1135,21 @@ class TaskListTreeView(BrowserTreeView):
 			else:
 					prio = '<td>%s</td>' % prio
 
-			if date and date <= today:
-					date = '<td class="high">%s</td>' % date
-			elif date == tomorrow:
-					date = '<td class="medium">%s</td>' % date
-			elif date == dayafter:
-					date = '<td class="alert">%s</td>' % date
+			if due_date and due_date <= today:
+					due_date = '<td class="high">%s</td>' % due_date
+			elif due_date == tomorrow:
+					due_date = '<td class="medium">%s</td>' % due_date
+			elif due_date == dayafter:
+					due_date = '<td class="alert">%s</td>' % due_date
 			else:
-					date = '<td>%s</td>' % date
+					due_date = '<td>%s</td>' % due_date
+
+			start_date = '<td>%s</td>' % start_date
 
 			desc = '<td>%s%s</td>' % ('&nbsp;' * (4 * indent), desc)
 			page = '<td>%s</td>' % page
 
-			html += '<tr>' + prio + desc + date + page + '</tr>\n'
+			html += '<tr>' + prio + desc + due_date + start_date + page + '</tr>\n'
 
 		html += '''\
 </table>
@@ -1162,13 +1169,17 @@ class TaskListTreeView(BrowserTreeView):
 			row = model[iter]
 			prio = row[self.PRIO_COL]
 			desc = row[self.DESC_COL]
-			date = row[self.DUE_COL]
+			due_date = row[self.DUE_COL]
+			start_date = row[self.START_COL]
 			page = row[self.PAGE_COL]
 
-			if date == _MAX_DUE_DATE:
-				date = ''
+			if due_date == _MAX_DUE_DATE:
+				due_date = ''
 
-			rows.append((indent, prio, desc, date, page))
+			if start_date == _MIN_START_DATE:
+				start_date = ''
+
+			rows.append((indent, prio, desc, due_date, start_date, page))
 
 		model = self.get_model()
 		model.foreach(collect)

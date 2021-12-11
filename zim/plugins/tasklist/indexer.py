@@ -36,6 +36,7 @@ _day_re = re.compile('(\d{1,2})')
 _date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
+_MIN_START_DATE = '0'
 _MAX_DUE_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
 _NO_TAGS = '__no_tags__' # Constant that serves as the "no tags" tag - _must_ be lower case
 
@@ -511,7 +512,7 @@ class TaskParser(object):
 		self.waiting_label_re = waiting_label_re
 		self.all_checkboxes = all_checkboxes
 
-	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE, daterange=None):
+	def parse(self, tokens, default_start_date=_MIN_START_DATE, default_due_date=_MAX_DUE_DATE, daterange=None):
 
 		defaults = [0, 0, False, default_start_date, default_due_date, []]
 					# [0:status, 1:prio, 2:waiting, 3:start, 4:due, 5:tags]
@@ -532,7 +533,7 @@ class TaskParser(object):
 
 				if day:
 					# Respect start or due date properties.
-					if defaults[3] != 0:
+					if defaults[3] != _MIN_START_DATE:
 						defaults[3] = day
 					elif defaults[4] != _MAX_DUE_DATE:
 						defaults[4] = day
@@ -720,7 +721,7 @@ class TaskParser(object):
 		# Return task record for single line of text
 
 		prio = text.count('!')
-		start, due = 0, _MAX_DUE_DATE
+		start, due = _MIN_START_DATE, _MAX_DUE_DATE
 		waiting = bool(self.waiting_label_re.match(text.lstrip()))
 
 		if defaults:

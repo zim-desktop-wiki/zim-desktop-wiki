@@ -126,12 +126,10 @@ Edge case with wrongly nested list
 
 '''
 
-from zim.plugins.tasklist.indexer import TaskParser
+from zim.plugins.tasklist.indexer import TaskParser, _MAX_DUE_DATE, _MIN_START_DATE
 from zim.parsing import parse_date
 
-NO_DATE = '9999'
-
-def t(desc, status=TASK_STATUS_OPEN, waiting=False, start=0, due=NO_DATE, prio=0, tags=''):
+def t(desc, status=TASK_STATUS_OPEN, waiting=False, start=_MIN_START_DATE, due=_MAX_DUE_DATE, prio=0, tags=''):
 	# Generate a task tuple
 	# 0:status, 1:prio, 2:waiting, 3:start, 4:due, 5:tags, 6:desc
 	if tags:
@@ -557,8 +555,7 @@ class TestIndexViewMixin(object):
 		def walk(parent):
 			tasks = []
 			for row in self.selection.list_tasks(parent=parent):
-				start = 0 if row['start'] == '0' else row['start'] # HACK for int/str confusion
-				task = t(row['description'], row['status'], bool(row['waiting']), start, row['due'], row['prio'], row['tags'])
+				task = t(row['description'], row['status'], bool(row['waiting']), row['start'], row['due'], row['prio'], row['tags'])
 				if row['haschildren']:
 					children = walk(row)
 					tasks.append((task, children))
