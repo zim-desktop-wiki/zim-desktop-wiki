@@ -17,7 +17,7 @@ from zim.notebook import Path
 from zim.actions import get_actions, RadioActionMethod
 from zim.gui.widgets import \
 	Dialog, WindowSidePaneWidget, InputEntry, \
-	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, \
+	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, StatusPage, \
 	encode_markup_text, decode_markup_text, widget_set_css
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
@@ -86,7 +86,24 @@ class TaskListWidgetMixin(object):
 			sort_order=self.uistate['sort_order'],
 			column_layout=column_layout,
 		)
-		return ScrolledWindow(self.tasklisttreeview)
+		stack = Gtk.Stack()
+		for name, widget in (
+			('treeview', ScrolledWindow(self.tasklisttreeview, shadow=Gtk.ShadowType.NONE)),
+			('placeholder', StatusPage('task-list-closed-symbolic', _('No tasks'))), # T: placeholder label for sidepane
+		):
+			widget.show_all()
+			stack.add_named(widget, name)
+
+		def switch_placeholder(treeview, not_empty):
+			if not_empty:
+				stack.set_visible_child_name('treeview')
+			else:
+				stack.set_visible_child_name('placeholder')
+
+		self.tasklisttreeview.connect('view-changed', switch_placeholder)
+		stack.set_visible_child_name('treeview')
+
+		return stack
 
 	def _create_selection_menubutton(self, opener, properties, show_inbox_next):
 		self._mbutton = Gtk.MenuButton()
@@ -651,6 +668,11 @@ class TaskListTreeView(BrowserTreeView):
 	STYLE_INBOX = 1
 	STYLE_WAITING = 2
 
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'view-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+	}
+
 	def __init__(self,
 		taskselection, opener,
 		task_labels,
@@ -966,6 +988,8 @@ class TaskListTreeView(BrowserTreeView):
 				model[iter][self.VIS_COL] = True
 
 		self.real_model.foreach(filter)
+		model = self.get_model()
+		self.emit('view-changed', len(model) > 0)
 		self.expand_all()
 
 	def _filter_item(self, modelrow):
