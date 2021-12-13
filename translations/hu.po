@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2021-10-18 20:30+0000\n"
+"PO-Revision-Date: 2021-12-14 20:51+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
-"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/"
-">\n"
+"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
+"\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.9-dev\n"
+"X-Generator: Weblate 4.10-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
@@ -2587,16 +2587,12 @@ msgstr "SVG indexképek támogatása"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
-#, fuzzy
-#| msgid "Attachments"
 msgid "Atta_chments"
 msgstr "Mellékletek"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:182
-#, fuzzy, python-format
-#| msgid "%i Attachment"
-#| msgid_plural "%i Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
 msgstr[0] "%i melléklet"
@@ -2637,9 +2633,7 @@ msgstr "Visszacsatolások"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:116
-#, fuzzy, python-format
-#| msgid "%i BackLink"
-#| msgid_plural "%i BackLinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
 msgstr[0] "%i visszacsatolás"
@@ -2647,8 +2641,6 @@ msgstr[1] "%i visszacsatolás"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:119
-#, fuzzy
-#| msgid "BackLinks"
 msgid "_BackLinks"
 msgstr "Visszacsatolások"
 
@@ -2894,14 +2886,12 @@ msgstr "Betűszín használata sötét téma esetén"
 #. plugin preference
 #: zim/plugins/equationeditor.py:34
 msgid "Font size"
-msgstr ""
+msgstr "Betűméret"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
-#, fuzzy
-#| msgid "Equation"
 msgid "Equation image DPI"
-msgstr "Egyenlet"
+msgstr "Egyenlet képének DPI-je"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
@@ -3057,8 +3047,6 @@ msgstr "_Mai dátumra"
 
 #. side pane title
 #: zim/plugins/journal.py:334
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
 msgstr "Naptár"
 
@@ -3074,20 +3062,16 @@ msgstr "Sorrendező"
 
 #. plugin description
 #: zim/plugins/linesorter.py:27
-#, fuzzy
-#| msgid ""
-#| "This plugin sorts selected lines in alphabetical order.\n"
-#| "If the list is already sorted the order will be reversed\n"
-#| "(A-Z to Z-A).\n"
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
 "(A-Z to Z-A). Additional features: move text lines up or down,\n"
 "duplicate or remove lines of text.\n"
 msgstr ""
-"Ez a bővítmény sorba rendezi a kijelölt sorokat.\n"
-"Már rendezett sorokon fordított sorrendben teszi ugyanezt\n"
-"(A-Z, majd Z-A).\n"
+"Ez a bővítmény a kiválasztott sorokat ábécé sorrendben rendezi.\n"
+"Ha a lista már rendezett, a sorrend megfordul\n"
+"(A-Z-től Z-A-ig). További funkciók: a szövegsorok felfelé vagy\n"
+"lefelé mozgatása, szövegsorok duplikálása vagy eltávolítása\n"
 
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
@@ -3195,8 +3179,6 @@ msgstr "Eszköztippek használata"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132
-#, fuzzy
-#| msgid "Index"
 msgid "Inde_x"
 msgstr "Index"
 
@@ -3802,7 +3784,7 @@ msgstr "Feljebb sorol"
 #. widget label
 #: zim/plugins/tableofcontents.py:483
 msgid "T_oC"
-msgstr ""
+msgstr "Tartalom"
 
 #: zim/plugins/tableofcontents.py:513
 msgid "ToC"
@@ -3826,7 +3808,7 @@ msgstr ""
 #. title for sidepane tab
 #: zim/plugins/tags.py:98
 msgid "T_ags"
-msgstr ""
+msgstr "Címkék"
 
 #. menu option
 #: zim/plugins/tags.py:148
@@ -3856,7 +3838,7 @@ msgstr "Csak az aktív feladatokat mutatja"
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tas_ks"
-msgstr ""
+msgstr "Feladatok"
 
 #. label for filtering/searching tasks | 
 #. Input label
