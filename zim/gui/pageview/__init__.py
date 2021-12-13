@@ -3005,8 +3005,10 @@ class TextBuffer(Gtk.TextBuffer):
 		self.select_range(start, end)
 		return True
 
-	def select_word(self):
+	def select_word(self, selectstarting=True):
 		'''Selects the current word, if any
+
+		@param selectstarting: whether to select word that starts from cursor
 
 		@returns: C{True} when succcessful
 		'''
@@ -3015,7 +3017,11 @@ class TextBuffer(Gtk.TextBuffer):
 			return False
 
 		bound = insert.copy()
-		if not insert.starts_word():
+		if insert.starts_word():
+			if not selectstarting:
+				# do not select word starting from cursor
+				return False
+		else:
 			insert.backward_word_start()
 		if not bound.ends_word():
 			bound.forward_word_end()
@@ -7349,7 +7355,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		elif selectline:
 			return buffer.select_line()
 		else:
-			return buffer.select_word()
+			return buffer.select_word(selectstarting=False)
 
 	def find(self, string, flags=0):
 		'''Find some string in the text, scroll there and select it
