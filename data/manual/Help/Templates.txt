@@ -308,8 +308,8 @@ Functions:
 		Creates a page index of the set of pages being exported.
 
 		''section'': the starting page of the index - defaults to the top level (":")
-		''collapse'': if ''TRUE'' only branches related to the current page are visible, if ''FALSE'' all branches are visible - defaults to ''TRUE''
-		''ignore_empty'': if ''TRUE'' empty pages are ignored — defaults to ''TRUE''.
+		''collapse'': if ''True'' only branches related to the current page are visible, if ''False'' all branches are visible - defaults to ''True''
+		''ignore_empty'': if ''True'' empty pages are ignored — defaults to ''True''.
 
 
 ===== Template Options =====
