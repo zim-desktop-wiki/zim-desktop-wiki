@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2021-10-16 21:20+0000\n"
-"Last-Translator: Nick222 <nick222@yandex.ru>\n"
+"PO-Revision-Date: 2021-12-21 07:09+0000\n"
+"Last-Translator: Olesya_Gerasimenko <gammaray@basealt.ru>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/zim/master/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.9-dev\n"
+"X-Generator: Weblate 4.10\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -107,7 +107,7 @@ msgid ""
 "The folder \"%s\" does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"Каталог \"%s\" ещё не существует.\n"
+"Каталог «%s» ещё не существует.\n"
 "Хотите его создать?"
 
 #. error when external application fails
@@ -151,7 +151,7 @@ msgstr "Открыть с помощью «%s»"
 #: zim/gui/applications.py:1075
 #, python-format
 msgid "Configure an application to open \"%s\" links"
-msgstr "Настройка приложения для открывания ссылок \"%s\""
+msgstr "Настройка приложения для открытия ссылок «%s»"
 
 #. Text in the 'custom command' dialog, "%s" will be mimetype like "text/plain"
 #: zim/gui/applications.py:1078
@@ -160,8 +160,8 @@ msgid ""
 "Configure an application to open files\n"
 "of type \"%s\""
 msgstr ""
-"Настройка приложения для открывания файлов\n"
-"типа \"%s\""
+"Настройка приложения для открытия файлов\n"
+"типа «%s»"
 
 #. Dialog title
 #: zim/gui/applications.py:1090
@@ -211,7 +211,7 @@ msgstr "Сделать приложением по умолчанию"
 #: zim/gui/applications.py:1235
 #, python-format
 msgid "Could not find executable \"%s\""
-msgstr "Не удалось найти исполняемый файл \"%s\""
+msgstr "Не удалось найти исполняемый файл «%s»"
 
 #. Dialog title
 #: zim/gui/customtools.py:526
@@ -359,7 +359,7 @@ msgstr "Страница"
 #. Input field in export dialog
 #: zim/gui/exportdialog.py:182
 msgid "Include subpages"
-msgstr "Включить вложенные страницы"
+msgstr "Включить подстраницы"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:209
@@ -469,7 +469,7 @@ msgstr "Отсутствует модуль для отображения объ
 #: zim/gui/insertedobjects.py:276
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr "Требуется модуль \"%s\" для отображения этого объекта"
+msgstr "Для отображения этого объекта требуется модуль «%s»"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:280
@@ -566,8 +566,6 @@ msgstr "Полноэкранный _режим"
 
 #. menu item
 #: zim/gui/mainwindow.py:192
-#, fuzzy
-#| msgid "Notebook _Editable"
 msgid "Toggle _Editable"
 msgstr "Включить/отключить _редактирование"
 
@@ -656,17 +654,13 @@ msgstr "Уровнем _ниже"
 
 #. Menu item
 #: zim/gui/mainwindow.py:823
-#, fuzzy
-#| msgid "_Previous in index"
 msgid "_Previous in Index"
-msgstr "Назад по содержанию"
+msgstr "_Назад по содержанию"
 
 #. Menu item
 #: zim/gui/mainwindow.py:832
-#, fuzzy
-#| msgid "_Next in index"
 msgid "_Next in Index"
-msgstr "Вперед по содержанию"
+msgstr "_Вперёд по содержанию"
 
 #. Menu item
 #: zim/gui/mainwindow.py:841
@@ -751,8 +745,8 @@ msgid ""
 "To create a new notebook you need to select an empty folder.\n"
 "Of course you can also select an existing zim notebook folder.\n"
 msgstr ""
-"Для создания нового блокнота Вам необходимо выбрать пустой каталог.\n"
-"Конечно, Вы можете также выбрать существующий каталог блокнота zim.\n"
+"Для создания нового блокнота необходимо выбрать пустой каталог.\n"
+"Конечно, также можно выбрать существующий каталог блокнота Zim.\n"
 
 #. Menu title
 #: zim/gui/pageview/__init__.py:162
@@ -809,15 +803,11 @@ msgstr "Повторение нажатий вызывает цикличную 
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:194
-#, fuzzy
-#| msgid "(Un-)Indenting a list item also change any sub-items"
 msgid "(Un-)indenting a list item also changes any sub-items"
 msgstr "Изменение отступа элемента списка изменяет отступы подэлементов"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:197
-#, fuzzy
-#| msgid "Checking a checkbox also change any sub-items"
 msgid "Checking a checkbox also changes any sub-items"
 msgstr "Отметка флажка влияет на подэлементы"
 
@@ -843,10 +833,8 @@ msgstr "Копировать ссылку в буфер обмена"
 
 #. tooltip label for image with href
 #: zim/gui/pageview/__init__.py:4970
-#, fuzzy
-#| msgid "_Link"
 msgid "Link"
-msgstr "_Связать"
+msgstr "Ссылка"
 
 #. tooltip label for image with anchor id | 
 #. input label for object ID
@@ -955,17 +943,13 @@ msgstr "Стенограмма"
 
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5796
-#, fuzzy
-#| msgid "_Superscript"
 msgid "Su_perscript"
-msgstr "Верхний индекс"
+msgstr "_Верхний индекс"
 
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5797
-#, fuzzy
-#| msgid "_Subscript"
 msgid "Su_bscript"
-msgstr "Нижний индекс"
+msgstr "_Нижний индекс"
 
 #. error when unknown interwiki link is clicked
 #: zim/gui/pageview/__init__.py:6509
@@ -986,10 +970,8 @@ msgstr "_Копировать как..."
 
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6625
-#, fuzzy
-#| msgid "_Verbatim"
 msgid "Paste As _Verbatim"
-msgstr "Стенограмма"
+msgstr "_Стенограмма"
 
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview/__init__.py:6633
@@ -998,8 +980,6 @@ msgstr "Переместить выделенный текст…"
 
 #. menu item to copy link to achor location in page
 #: zim/gui/pageview/__init__.py:6657
-#, fuzzy
-#| msgid "Copy _Location"
 msgid "Copy _link to this location"
 msgstr "Копировать _адрес"
 
@@ -1058,10 +1038,8 @@ msgstr "_Открыть"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6798
-#, fuzzy
-#| msgid "Check Checkbox '>'"
 msgid "Check Checkbox '<'"
-msgstr "Отметить '>'"
+msgstr "Отметить '<'"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6799
@@ -1147,10 +1125,8 @@ msgstr "Пометить как >-флажок"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6898
-#, fuzzy
-#| msgid "Toggle Checkbox 'V'"
 msgid "Toggle Checkbox '<'"
-msgstr "Пометить как V-флажок"
+msgstr "Пометить как <-флажок"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6907
@@ -1159,17 +1135,13 @@ msgstr "_Редактировать ссылку или объект…"
 
 #. menu item to copy current line to clipboard
 #: zim/gui/pageview/__init__.py:6963
-#, fuzzy
-#| msgid "Copy _Link"
 msgid "Copy Line"
-msgstr "Копировать _ссылку"
+msgstr "Копировать строку"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6979
-#, fuzzy
-#| msgid "_Date and Time..."
 msgid "Date and Time..."
-msgstr "_Дата и время…"
+msgstr "Дата и время..."
 
 #. Menu item for Insert menu
 #: zim/gui/pageview/__init__.py:6994
@@ -1206,10 +1178,8 @@ msgstr "Список переключателей"
 
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7069
-#, fuzzy
-#| msgid "_Remove Link"
 msgid "_Remove List"
-msgstr "Убрать _ссылку"
+msgstr "Убрать _список"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7097
@@ -1252,10 +1222,8 @@ msgstr "_Очистить форматирование"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7262
-#, fuzzy
-#| msgid "_Remove Link"
 msgid "_Remove Heading"
-msgstr "Убрать _ссылку"
+msgstr "Убрать _заголовок"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7368
@@ -1590,7 +1558,7 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
-"Ваша системная кодировка установлена в %s, если вам нужна поддержка "
+"Ваша системная кодировка установлена в %s. Если вам нужна поддержка "
 "специальных символов\n"
 "или вы видите возникшие из-за кодировки ошибки, пожалуйста, настройте "
 "систему на использование «UTF-8»."
@@ -1632,10 +1600,8 @@ msgstr "Настроить"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:256
-#, fuzzy
-#| msgid "Properties"
 msgid "_Properties"
-msgstr "Свойства"
+msgstr "_Свойства"
 
 #. button label
 #: zim/gui/preferencesdialog.py:271
@@ -1645,7 +1611,7 @@ msgstr "Открыть папку с модулями"
 #. label for button with URL
 #: zim/gui/preferencesdialog.py:280
 msgid "Get more plugins online"
-msgstr "Получить больше плагинов на сайте"
+msgstr "Получить больше модулей на сайте"
 
 #. help text when plugin cannot be activated
 #: zim/gui/preferencesdialog.py:315
@@ -1726,8 +1692,8 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
-"Этот плагин имеет дополнительные свойства,\n"
-"смотри диалог свойств блокнота"
+"Этот модуль имеет дополнительные свойства,\n"
+"смотрите диалог свойств блокнота"
 
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:507
@@ -1736,10 +1702,8 @@ msgstr "Установить текстовой редактор по умолч
 
 #. button in preferences dialog to change default browser
 #: zim/gui/preferencesdialog.py:512
-#, fuzzy
-#| msgid "Set default text editor"
 msgid "Set default browser"
-msgstr "Установить текстовой редактор по умолчанию"
+msgstr "Установить браузер по умолчанию"
 
 #. help text in preferences dialog for modifying keybindings
 #: zim/gui/preferencesdialog.py:546
@@ -1749,6 +1713,10 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"Комбинации клавиш можно изменить: щёлкните по полю с комбинацией клавиш\n"
+"в списке и затем нажмите новую комбинацию клавиш.\n"
+"Чтобы отключить комбинацию клавиш, выберите её в списке и нажмите "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:565
@@ -1782,10 +1750,8 @@ msgstr "Использовать для ссылок на страницы кр�
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:22
-#, fuzzy
-#| msgid "Could not find the file or folder for this notebook"
 msgid "Do not use system trash for this notebook"
-msgstr "Не удалось найти файл или папку для этого блокнота"
+msgstr "Не использовать системную корзину для этого блокнота"
 
 #. Dialog title
 #: zim/gui/propertiesdialog.py:30
@@ -1833,10 +1799,8 @@ msgstr ""
 
 #. checkbox option in search dialog
 #: zim/gui/searchdialog.py:55
-#, fuzzy
-#| msgid "Limit search to the current page and sub-pages"
 msgid "_Limit search to the current page and sub-pages"
-msgstr "Ограничить поиск на текущей странице и во вложенных страницах"
+msgstr "_Ограничить поиск текущей страницей и подстраницами"
 
 #. Column header search dialog | 
 #. menu item
@@ -1947,10 +1911,8 @@ msgstr "_Отправить…"
 
 #. Menu item
 #: zim/gui/uiactions.py:186
-#, fuzzy
-#| msgid "_Rename or move Page..."
 msgid "_Rename or Move Page..."
-msgstr "Пере_именовать или переместить страницу…"
+msgstr "Пере_именовать или переместить страницу..."
 
 #. Menu item
 #: zim/gui/uiactions.py:195
@@ -2045,17 +2007,13 @@ msgstr "Запустить _веб-сервер"
 
 #. menu item
 #: zim/gui/uiactions.py:364
-#, fuzzy
-#| msgid "View _Log"
 msgid "View debug log"
-msgstr "Просмотреть _журнал"
+msgstr "Просмотреть журнал отладки"
 
 #. Menu item
 #: zim/gui/uiactions.py:378
-#, fuzzy
-#| msgid "Update Index"
 msgid "Check and Update Index"
-msgstr "Обновить индекс"
+msgstr "Проверить и обновить индекс"
 
 #. Menu item
 #: zim/gui/uiactions.py:411
@@ -2134,10 +2092,8 @@ msgstr "Сохранить копию страницы"
 
 #. Dialog title
 #: zim/gui/uiactions.py:585
-#, fuzzy
-#| msgid "Rename Page"
 msgid "Rename or Move Page"
-msgstr "Переименование страницы"
+msgstr "Переименование или перемещение страницы"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/uiactions.py:590
@@ -2177,17 +2133,13 @@ msgstr "Удаление страницы в корзину"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
-#, fuzzy, python-format
-#| msgid "Move page \"%s\""
+#, python-format
 msgid "Move page \"%s\" to trash?"
-msgstr "Переместить страницу «%s»"
+msgstr "Переместить страницу «%s» в корзину?"
 
 #. Text in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:728
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be moved to your system's trash.\n"
@@ -2195,18 +2147,18 @@ msgid ""
 "To undo later, go to your system's trashcan."
 msgstr ""
 "Страница «%s» и все её подстраницы\n"
-"и вложения будут удалены"
+"и вложения будут перемещены в системную корзину.\n"
+"\n"
+"Чтобы затем отменить это перемещение, перейдите в системную корзину."
 
 #. label in the TrashPage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:732
-#, fuzzy, python-format
-#| msgid "%i file will be deleted"
-#| msgid_plural "%i files will be deleted"
+#, python-format
 msgid "%i file will be trashed"
 msgid_plural "%i files will be trashed"
-msgstr[0] "%i файлов будет удалено"
-msgstr[1] "%i файл будет удалён"
-msgstr[2] "%i файла будет удалено"
+msgstr[0] "%i файл будет удалён"
+msgstr[1] "%i файла будет удалено"
+msgstr[2] "%i файлов будет удалено"
 
 #. Title of progressbar dialog
 #: zim/gui/uiactions.py:742 zim/gui/uiactions.py:782
@@ -2226,10 +2178,7 @@ msgstr "Удалить страницу «%s»?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/uiactions.py:770
-#, fuzzy, python-format
-#| msgid ""
-#| "Page \"%s\" and all of it's\n"
-#| "sub-pages and attachments will be deleted"
+#, python-format
 msgid ""
 "Page \"%s\" and all of it's sub-pages and\n"
 "attachments will be deleted.\n"
@@ -2237,7 +2186,9 @@ msgid ""
 "This deletion is permanent and cannot be un-done."
 msgstr ""
 "Страница «%s» и все её подстраницы\n"
-"и вложения будут удалены"
+"и вложения будут удалены.\n"
+"\n"
+"Это удаление является окончательным и не может быть отменено."
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:774
@@ -2342,17 +2293,13 @@ msgstr "Верхняя панель"
 
 #. position of widget in window
 #: zim/gui/widgets.py:2065
-#, fuzzy
-#| msgid "<Top>"
 msgid "Top"
-msgstr "<Верх>"
+msgstr "Сверху"
 
 #. position of widget in window
 #: zim/gui/widgets.py:2066
-#, fuzzy
-#| msgid "Bottom Pane"
 msgid "Bottom"
-msgstr "Нижняя панель"
+msgstr "Снизу"
 
 #. position of widget in window | 
 #. alignment option
@@ -2428,14 +2375,14 @@ msgstr "Выходное расположение, требующееся для
 msgid ""
 "Output folder exists and not empty, specify \"--overwrite\" to force export"
 msgstr ""
-"Выходная директория существует и не пуста, укажите \"--overwrite\", чтобы "
+"Выходная директория существует и не пуста, укажите «--overwrite», чтобы "
 "выполнить экспорт принудительно"
 
 #. error message for export
 #: zim/main/__init__.py:449
 msgid "Output file exists, specify \"--overwrite\" to force export"
 msgstr ""
-"Выходной файл существует, укажите \"--overwrite\", чтобы выполнить экспорт "
+"Выходной файл существует, укажите «--overwrite», чтобы выполнить экспорт "
 "принудительно"
 
 #. error message for export
@@ -2507,18 +2454,14 @@ msgstr "Данное имя страницы недопустимо из-за о
 
 #. message for PageNotAvailableError
 #: zim/notebook/notebook.py:135
-#, fuzzy, python-format
-#| msgid "Page not allowed: %s"
+#, python-format
 msgid "Page not available: %s"
-msgstr "Страница %s не разрешена"
+msgstr "Страница недоступна: %s"
 
 #. description for PageNotAvailableError
 #: zim/notebook/notebook.py:136
-#, fuzzy
-#| msgid ""
-#| "This page name cannot be used due to technical limitations of the storage"
 msgid "This page name cannot be used due to a conflicting file in the storage"
-msgstr "Данное имя страницы недопустимо из-за ограничений хранилища"
+msgstr "Данное имя страницы недопустимо из-за конфликтующего файла в хранилище"
 
 #. message for PageExistsError
 #: zim/notebook/notebook.py:145
@@ -2572,17 +2515,13 @@ msgstr "Вы уверены, что хотите удалить файл «%s»?
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
-#, fuzzy
-#| msgid "_Delete"
 msgid "_Delete..."
-msgstr "_Удалить"
+msgstr "_Удалить..."
 
 #. menu item to rename file
 #: zim/plugins/attachmentbrowser/filebrowser.py:396
-#, fuzzy
-#| msgid "_Replace..."
 msgid "_Rename..."
-msgstr "_Заменить…"
+msgstr "_Переименовать..."
 
 #. unspecified value for file modification time
 #: zim/plugins/attachmentbrowser/filebrowser.py:429
@@ -2650,7 +2589,7 @@ msgid ""
 "This plugin shows the attachments folder of the current page as an\n"
 "icon view at bottom pane.\n"
 msgstr ""
-"Этот плагин показывает папку вложений текущей страницы\n"
+"Этот модуль показывает папку вложений текущей страницы\n"
 "значком на нижней панели.\n"
 
 #. option for plugin preferences | 
@@ -2674,21 +2613,17 @@ msgstr "Включить эскизы для SVG-файлов"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
-#, fuzzy
-#| msgid "Attachments"
 msgid "Atta_chments"
-msgstr "Вложения"
+msgstr "Вло_жения"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:182
-#, fuzzy, python-format
-#| msgid "%i Attachment"
-#| msgid_plural "%i Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
 msgstr[0] "%i вложение"
 msgstr[1] "%i вложения"
-msgstr[2] "%i вложения"
+msgstr[2] "%i вложений"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2707,19 +2642,17 @@ msgstr ""
 "страниц,\n"
 "ссылающихся на текущую страницу.\n"
 "\n"
-"Это -- базовый модуль; поставляется с zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:37
 msgid "Show BackLink count in title"
-msgstr ""
+msgstr "Показывать количество обратных ссылок в заголовке"
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:39
-#, fuzzy
-#| msgid "Show full Page Name"
 msgid "Show full Page Names"
-msgstr "Показать полное имя страницы"
+msgstr "Показывать полные имена страниц"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:71
@@ -2728,21 +2661,17 @@ msgstr "Обратные ссылки"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:116
-#, fuzzy, python-format
-#| msgid "%i _Backlink"
-#| msgid_plural "%i _Backlinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
-msgstr[0] "%i _Обратная ссылка"
-msgstr[1] "%i _Обратные ссылки"
-msgstr[2] "%i _Обратных ссылок"
+msgstr[0] "%i _обратная ссылка"
+msgstr[1] "%i _обратные ссылки"
+msgstr[2] "%i _обратных ссылок"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:119
-#, fuzzy
-#| msgid "BackLinks"
 msgid "_BackLinks"
-msgstr "Обратные ссылки"
+msgstr "_Обратные ссылки"
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:295
@@ -2780,7 +2709,7 @@ msgid ""
 "\t\tThis plugin provides bar for bookmarks.\n"
 "\t\t"
 msgstr ""
-"\t\tЭтот плагин предоставляет панель для закладок.\n"
+"\t\tЭтот модуль предоставляет панель для закладок.\n"
 "\t\t"
 
 #. plugin preference
@@ -2865,10 +2794,8 @@ msgstr "Использовать текущую страницу"
 
 #. plugin name
 #: zim/plugins/commandpalette.py:43 zim/plugins/commandpalette.py:115
-#, fuzzy
-#| msgid "Command"
 msgid "Command Palette"
-msgstr "Команда"
+msgstr "Палитра команд"
 
 #. plugin description
 #: zim/plugins/commandpalette.py:44
@@ -2877,6 +2804,9 @@ msgid ""
 "The search dialog can be opened by pressing the keyboard shortcut Ctrl+Shift"
 "+P which can be customized via Zim's key bindings preferences."
 msgstr ""
+"Этот модуль открывает диалог поиска для быстрого выполнения пунктов меню. "
+"Диалог поиска можно открыть нажатием комбинации клавиш Ctrl+Shift+P ("
+"комбинацию можно настроить с помощью параметров комбинаций клавиш Zim)."
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
@@ -2890,7 +2820,7 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет редактор диаграмм для Zim на основе GraphViz.\n"
+"Этот модуль добавляет редактор диаграмм на основе GraphViz.\n"
 "\n"
 "Это базовый модуль, поставляющийся с Zim.\n"
 
@@ -2910,8 +2840,8 @@ msgid ""
 "This plugin adds settings that help using zim\n"
 "as a distraction free editor.\n"
 msgstr ""
-"Этот модуль добавляет установки, которые позволяют \n"
-"редактировать в zim, не отвлекаясь.\n"
+"Этот модуль добавляет установки, которые позволяют\n"
+"редактировать в Zim, не отвлекаясь.\n"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:36
@@ -2951,9 +2881,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот плагин добавляет редактор диаграмм, основанный на Ditaa. \n"
+"Этот модуль добавляет редактор диаграмм, основанный на Ditaa.\n"
 "\n"
-"Это - базовый плагин, поставляется вместе с zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
@@ -2972,26 +2902,24 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот плагин добавляет редактор формул для Zim на основе LaTeX.\n"
+"Этот модуль добавляет редактор формул на основе LaTeX.\n"
 "\n"
-"Это - базовый плагин, поставляется вместе с zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:33
 msgid "Use font color for dark theme"
-msgstr ""
+msgstr "Использовать цвет шрифта для тёмной темы"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:34
 msgid "Font size"
-msgstr ""
+msgstr "Размер шрифта"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
-#, fuzzy
-#| msgid "Equation"
 msgid "Equation image DPI"
-msgstr "Формула"
+msgstr "Разрешение изображения формулы"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
@@ -3006,8 +2934,7 @@ msgstr "Вставка Gnuplot"
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:33
 msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
-msgstr ""
-"Этот модуль предоставляет редактор графиков для Zim, основанный на Gnuplot.\n"
+msgstr "Этот модуль предоставляет редактор графиков, основанный на Gnuplot.\n"
 
 #. menu item
 #: zim/plugins/gnuplot_ploteditor.py:49
@@ -3055,7 +2982,7 @@ msgstr ""
 "Этот модуль позволяет быстро рассчитать\n"
 "простые математические выражения в Zim.\n"
 "\n"
-"Это базовый модуль, поставляющийся вместе с Zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:271
@@ -3084,7 +3011,7 @@ msgstr ""
 "Этот модуль добавляет диалог «Вставка символа» и\n"
 "позволяет автоформатирование типографских знаков.\n"
 "\n"
-"Это базовый модуль, поставляющийся вместе с Zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. menu item
 #: zim/plugins/insertsymbol.py:77
@@ -3103,7 +3030,7 @@ msgid ""
 "with a page per day, week or month.\n"
 "Also adds a calendar widget to access these pages.\n"
 msgstr ""
-"Этот плагин перенаправляет один раздел записной книжки в журнал\n"
+"Этот модуль перенаправляет один раздел блокнота в журнал\n"
 "со страницей в день, неделю или месяц.\n"
 "Также добавляет виджет календаря для доступа к этим страницам.\n"
 
@@ -3130,7 +3057,7 @@ msgstr "Год"
 #. preferences option
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
-msgstr "Скрывать панель журнала если он пустой"
+msgstr "Скрывать панель журнала, если он пустой"
 
 #. input label
 #: zim/plugins/journal.py:121
@@ -3149,10 +3076,8 @@ msgstr "_Сегодня"
 
 #. side pane title
 #: zim/plugins/journal.py:334
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
-msgstr "Дневник"
+msgstr "_Журнал"
 
 #. strftime format for current date label
 #: zim/plugins/journal.py:395
@@ -3166,11 +3091,6 @@ msgstr "Сортировщик строк"
 
 #. plugin description
 #: zim/plugins/linesorter.py:27
-#, fuzzy
-#| msgid ""
-#| "This plugin sorts selected lines in alphabetical order.\n"
-#| "If the list is already sorted the order will be reversed\n"
-#| "(A-Z to Z-A).\n"
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3180,6 +3100,8 @@ msgstr ""
 "Этот модуль сортирует выделенные строки в алфавитном\n"
 "порядке. Если строки уже отсортированы, порядок\n"
 "сортировки будет изменен на обратный (А-Я на Я-А).\n"
+"Дополнительные возможности: перемещение строк текста\n"
+"выше или ниже, дублирование или удаление строк.\n"
 
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
@@ -3237,19 +3159,17 @@ msgstr ""
 #. preferences option
 #: zim/plugins/linkmap.py:45
 msgid "Show linkmap button in headerbar"
-msgstr ""
+msgstr "Показывать кнопку карты связей в строке заголовка"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
-#, fuzzy
-#| msgid "Menubar"
 msgid "macOS Menubar"
-msgstr "Меню"
+msgstr "Меню macOS"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:75
 msgid "This plugin provides a macOS menubar for zim."
-msgstr "Этот плагин предоставляет панель меню macOS для zim."
+msgstr "Этот модуль предоставляет панель меню macOS."
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
@@ -3259,41 +3179,38 @@ msgstr "Содержание страницы"
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:52
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr "Этот плагин добавляет панель содержания страницы в основное окно\n"
+msgstr "Этот модуль добавляет панель содержания страницы в основное окно.\n"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
-msgstr ""
+msgstr "Использовать перетаскивание для перемещения страниц в блокноте"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
-#, fuzzy
-#| msgid "Automatically saved version from zim"
 msgid "Automatically expand sections on open page"
-msgstr "Автоматически сохраненная версия"
+msgstr "Автоматически разворачивать разделы на открытой странице"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:51
 msgid "Automatically collapse sections on close page"
-msgstr ""
+msgstr "Автоматически сворачивать разделы на закрытой странице"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
 msgstr ""
+"Использовать горизонтальную полосу прокрутки (может потребоваться перезапуск)"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "Использовать всплывающие подсказки"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132
-#, fuzzy
-#| msgid "Index"
 msgid "Inde_x"
-msgstr "Содержание"
+msgstr "Со_держание"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
@@ -3307,8 +3224,8 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
-"Плагин добавляет \"панель пути\" над окном текущей страницы.\n"
-"Эта \"панель пути\" может показывать путь к текущей странице, список недавно "
+"Модуль добавляет «панель пути» над окном текущей страницы.\n"
+"Эта «панель пути» может показывать путь к текущей странице, список недавно "
 "посещённых страниц или список недавно редактированных страниц.\n"
 
 #. Menu title
@@ -3434,8 +3351,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Этот модуль добавляет нотный редактор, основанный на GNU Lilypond. \n"
-"Это - базовый модуль; поставляется с zim.\n"
+"Этот модуль добавляет нотный редактор, основанный на GNU Lilypond.\n"
+"\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:55
@@ -3445,7 +3363,7 @@ msgstr "Общий включаемый заголовок"
 #. plugin preference
 #: zim/plugins/scoreeditor.py:56
 msgid "Common include footer"
-msgstr "Общий включаемый \"подвал\""
+msgstr "Общий включаемый «подвал»"
 
 #. plugin name | 
 #. dialog title
@@ -3513,8 +3431,8 @@ msgid ""
 "This plugin provides a sequence diagram editor for zim based on seqdiag.\n"
 "It allows easy editing of sequence diagrams.\n"
 msgstr ""
-"Этот плагин предоставляет редактор диаграммы последовательностей для zim на "
-"основе seqdiag.\n"
+"Этот модуль предоставляет редактор диаграммы последовательностей на основе "
+"seqdiag.\n"
 "Это позволяет легко редактировать диаграммы последовательностей.\n"
 
 #. menu item
@@ -3533,9 +3451,9 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
-"Этот плагин позволяет вставить \"блок кода\" в текущее место на странице.\n"
+"Этот модуль позволяет вставить «блок кода» в текущее место на странице.\n"
 "При этом он предлагает выбрать язык программирования для выделения "
-"синтаксиса , а также нумерует линии текста в \"блоке кода\".\n"
+"синтаксиса , а также нумерует линии текста в «блоке кода».\n"
 
 #. option value
 #: zim/plugins/sourceview.py:80
@@ -3545,17 +3463,17 @@ msgstr "Никогда не переносить строки"
 #. option value
 #: zim/plugins/sourceview.py:81
 msgid "Try wrap at word boundaries or character"
-msgstr ""
+msgstr "Пытаться переносить по границам слова или символу"
 
 #. option value
 #: zim/plugins/sourceview.py:82
 msgid "Always wrap at character"
-msgstr ""
+msgstr "Всегда переносить по символу"
 
 #. option value
 #: zim/plugins/sourceview.py:83
 msgid "Always wrap at word boundaries"
-msgstr ""
+msgstr "Всегда переносить по границам слова"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:87
@@ -3590,7 +3508,7 @@ msgstr "Ширина табуляции"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:101
 msgid "Text wrap mode"
-msgstr ""
+msgstr "Режим переноса текста"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:103
@@ -3620,7 +3538,7 @@ msgstr "Вставить блок кода"
 #. input checkbox
 #: zim/plugins/sourceview.py:384
 msgid "Display line numbers"
-msgstr ""
+msgstr "Отображать номера строк"
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3680,9 +3598,10 @@ msgid ""
 "Exporting them to various formats (i.e. HTML/LaTeX) completes the feature "
 "set.\n"
 msgstr ""
-"С помощью этого плагина вы можете вставлять таблицу в вики-страницу.\n"
+"С помощью этого модуля можно вставлять таблицы в вики-страницы.\n"
 "Таблицы будут показаны как виджеты GTK TreeView.\n"
-"Экспорт их в различные форматы (т. е. HTML/LaTeX) дополняет набор функций.\n"
+"Набор функций дополняет экспорт этих таблиц в различные форматы (т. е. HTML/"
+"LaTeX).\n"
 
 #. option value
 #: zim/plugins/tableeditor.py:93
@@ -3858,7 +3777,7 @@ msgstr ""
 "Этот модуль добавляет дополнительный виджет, показывающий\n"
 "оглавление текущей страницы.\n"
 "\n"
-"Это - базовый модуль; поставляется с zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:118
@@ -3872,15 +3791,13 @@ msgstr "Показать заголовок страницы как заголо
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:122
-#, fuzzy
-#| msgid "horizontal lines"
 msgid "Include horizontal lines in the ToC"
-msgstr "горизонтальные линии"
+msgstr "Включать горизонтальные линии в оглавление"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
 msgid "Set ToC fontsize"
-msgstr ""
+msgstr "Установить размер шрифта оглавления"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:387
@@ -3895,7 +3812,7 @@ msgstr "Повысить"
 #. widget label
 #: zim/plugins/tableofcontents.py:483
 msgid "T_oC"
-msgstr ""
+msgstr "О_главление"
 
 #: zim/plugins/tableofcontents.py:513
 msgid "ToC"
@@ -3918,7 +3835,7 @@ msgstr ""
 #. title for sidepane tab
 #: zim/plugins/tags.py:98
 msgid "T_ags"
-msgstr ""
+msgstr "_Метки"
 
 #. menu option
 #: zim/plugins/tags.py:148
@@ -3948,7 +3865,7 @@ msgstr "Показывать только активные задачи"
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tas_ks"
-msgstr ""
+msgstr "За_дачи"
 
 #. label for filtering/searching tasks | 
 #. Input label
@@ -4008,17 +3925,15 @@ msgid ""
 "This is a core plugin shipping with zim.\n"
 msgstr ""
 "Этот модуль добавляет диалог, показывающий список открытых задач в "
-"определенном блокноте.\n"
+"определённом блокноте.\n"
 "Открытые задачи помечаются флажками или метками, например TODO или FIXME.\n"
 "\n"
-"Это - базовый плагин, поставляется вместе с zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist button in headerbar"
-msgstr "Показывать список задач на боковой панели"
+msgstr "Показывать кнопку списка задач на панели заголовка"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:54
@@ -4027,10 +3942,8 @@ msgstr "Показывать список задач на боковой пан�
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:58
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show due date in sidepane"
-msgstr "Показывать список задач на боковой панели"
+msgstr "Показывать дату завершения на боковой панели"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:64
@@ -4089,39 +4002,33 @@ msgstr "Пометить задачи на понедельни или втор�
 
 #. toolbar style
 #: zim/plugins/toolbar.py:41
-#, fuzzy
-#| msgid "Icon"
 msgid "Icons"
-msgstr "Значок"
+msgstr "Значки"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:43
-#, fuzzy
-#| msgid "Icons _And Text"
 msgid "Icons & Text"
-msgstr "Значки _и текст"
+msgstr "Значки и текст"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:44
 msgid "Icons & Text horizontal"
-msgstr ""
+msgstr "Значки и текст по горизонтали"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:52
 msgid "Small"
-msgstr ""
+msgstr "Маленькая"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:53
 msgid "Large"
-msgstr ""
+msgstr "Большая"
 
 #. plugin name
 #: zim/plugins/toolbar.py:63
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Tool Bar"
-msgstr "Панель _инструментов"
+msgstr "Панель инструментов"
 
 #. plugin description
 #: zim/plugins/toolbar.py:64
@@ -4131,44 +4038,40 @@ msgid ""
 "or running along the side of the window. It also allows\n"
 "configuring the window decoration.\n"
 msgstr ""
+"Этот модуль добавляет в главное окно «панель инструментов».\n"
+"Она может быть «классической» и располагаться в верхней части окна,\n"
+"а также может находиться вдоль края окна. Модуль также\n"
+"позволяет настроить оформление окна.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "Показывать элементы управления в оформлении окна"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "Этот параметр требует перезапуска приложения"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
-#, fuzzy
-#| msgid "Show in the toolbar"
 msgid "Show toolbar"
-msgstr "Показывать на панели инструментов"
+msgstr "Показывать панель инструментов"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:80
-#, fuzzy
-#| msgid "horizontal lines"
 msgid "Include formatting tools in toolbar"
-msgstr "горизонтальные линии"
+msgstr "Добавить инструменты форматирования на панель инструментов"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:84
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Toolbar style"
-msgstr "Панель _инструментов"
+msgstr "Стиль панели инструментов"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:86
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Toolbar size"
-msgstr "Панель _инструментов"
+msgstr "Размер панели инструментов"
 
 #. plugin name
 #: zim/plugins/trayicon.py:71
@@ -4244,7 +4147,7 @@ msgstr ""
 "Этот модуль поддерживает следующие системы контроля версий: Bazaar, Git и "
 "Mercurial.\n"
 "\n"
-"Это - базовый модуль; поставляется с zim.\n"
+"Это базовый модуль, поставляющийся с Zim.\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:68
@@ -4441,7 +4344,7 @@ msgstr "Вики-страница: %s"
 #: zim/templates/__init__.py:120
 #, python-format
 msgid "Could not find template \"%s\""
-msgstr "Не удалось найти шаблон \"%s\""
+msgstr "Не удалось найти шаблон «%s»"
 
 #: data/templates/wiki/Default.txt:2 data/templates/wiki/Journal.txt:22
 msgid "Created"
