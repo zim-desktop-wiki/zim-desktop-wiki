@@ -580,46 +580,51 @@ except ImportError:
 	import mimetypes
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
-IMAGE_EXTENSIONS = (
+IMAGE_EXTENSIONS = {
 	# Gleaned from Gdk.get_formats()
-	'bmp', # image/bmp
-	'gif', # image/gif
-	'icns', # image/x-icns
-	'ico', # image/x-icon
-	'cur', # image/x-icon
-	'jp2', # image/jp2
-	'jpc', # image/jp2
-	'jpx', # image/jp2
-	'j2k', # image/jp2
-	'jpf', # image/jp2
-	'jpeg', # image/jpeg
-	'jpe', # image/jpeg
-	'jpg', # image/jpeg
-	'pcx', # image/x-pcx
-	'png', # image/png
-	'pnm', # image/x-portable-anymap
-	'pbm', # image/x-portable-anymap
-	'pgm', # image/x-portable-anymap
-	'ppm', # image/x-portable-anymap
-	'ras', # image/x-cmu-raster
-	'tga', # image/x-tga
-	'targa', # image/x-tga
-	'tiff', # image/tiff
-	'tif', # image/tiff
-	'wbmp', # image/vnd.wap.wbmp
-	'xbm', # image/x-xbitmap
-	'xpm', # image/x-xpixmap
-	'wmf', # image/x-wmf
-	'apm', # image/x-wmf
-	'svg', # image/svg+xml
-	'svgz', # image/svg+xml
-	'svg.gz', # image/svg+xml
+	'bmp': 'image/bmp',
+	'gif': 'image/gif',
+	'icns': 'image/x-icns',
+	'ico': 'image/x-icon',
+	'cur': 'image/x-icon',
+	'jp2': 'image/jp2',
+	'jpc': 'image/jp2',
+	'jpx': 'image/jp2',
+	'j2k': 'image/jp2',
+	'jpf': 'image/jp2',
+	'jpeg': 'image/jpeg',
+	'jpe': 'image/jpeg',
+	'jpg': 'image/jpeg',
+	'pcx': 'image/x-pcx',
+	'png': 'image/png',
+	'pnm': 'image/x-portable-anymap',
+	'pbm': 'image/x-portable-anymap',
+	'pgm': 'image/x-portable-anymap',
+	'ppm': 'image/x-portable-anymap',
+	'ras': 'image/x-cmu-raster',
+	'tga': 'image/x-tga',
+	'targa': 'image/x-tga',
+	'tiff': 'image/tiff',
+	'tif': 'image/tiff',
+	'wbmp': 'image/vnd.wap.wbmp',
+	'xbm': 'image/x-xbitmap',
+	'xpm': 'image/x-xpixmap',
+	'wmf': 'image/x-wmf',
+	'apm': 'image/x-wmf',
+	'svg': 'image/svg+xml',
+	'svgz': 'image/svg+xml',
+	'svg.gz': 'image/svg+xml',
 	# Custom additions
-	'webp', # image/webp
-)
+	'webp': 'image/webp',
+}
 
 
 def get_mimetype_from_path(path):
+	if '.' in path:
+		_, ext = path.rsplit('.', 1)
+		if ext.lower() in IMAGE_EXTENSIONS:
+			return IMAGE_EXTENSIONS[ext.lower()]
+
 	if xdgmime:
 		mimetype = xdgmime.get_type(path, name_pri=80)
 		return str(mimetype)
