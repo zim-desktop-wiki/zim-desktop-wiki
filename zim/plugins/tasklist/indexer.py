@@ -229,6 +229,8 @@ class AllTasks(IndexView):
 	_sql_filter = ''
 	_include_not_started = True
 
+	STYLE = 'default'
+
 	def __init__(self, db):
 		IndexView.__init__(self, db)
 		self._status_sql = '(0)' # TASK_STATUS_OPEN
@@ -451,6 +453,8 @@ class InboxTasks(ActiveTasks):
 	# TODO use _sql_filter attribute more effectively
 	_include_not_started = False
 
+	STYLE = 'inbox'
+
 	def list_tasks(self, parent=None):
 		today = str(datetime.date.today())
 		for row in ActiveTasks.list_tasks(self):
@@ -480,6 +484,8 @@ class WaitingTasks(AllTasks):
 
 	_status_sql = '(0)' # TASK_STATUS_OPEN
 	_sql_filter = 'and waiting'
+
+	STYLE = 'waiting'
 
 	def set_status_included(self, *status):
 		pass # ignore - keep default on TASK_STATUS_OPEN

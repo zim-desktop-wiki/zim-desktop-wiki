@@ -52,6 +52,10 @@ This is a core plugin shipping with zim.
 			# T: preferences option
 		('show_due_date_in_pane', 'bool', _('Show due date in sidepane'), False),
 			# T: preferences option
+		('show_start_date_in_pane', 'bool', _('Show start date in sidepane'), False),
+			# T: preferences option
+		('show_page_col_in_pane', 'bool', _('Show page column in the sidepane'), False),
+			# T: preferences option
 	)
 
 	parser_properties = (
@@ -150,7 +154,6 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 		self._widget = None
 		self._widget_state = (
 			plugin.preferences['show_inbox_next'],
-			plugin.preferences['show_due_date_in_pane']
 		)
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -192,7 +195,6 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 		else:
 			if self._widget and self._widget_state != (
 				preferences['show_inbox_next'],
-				preferences['show_due_date_in_pane']
 			):
 				self.remove_sidepane_widget(self._widget)
 				self._widget = None
@@ -203,17 +205,20 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 			else:
 				self._widget.reload_view()
 
+			self._widget.tasklisttreeview.set_view_column_visible('due', preferences['show_due_date_in_pane'])
+			self._widget.tasklisttreeview.set_view_column_visible('start', preferences['show_start_date_in_pane'])
+			self._widget.tasklisttreeview.set_view_column_visible('page', preferences['show_page_col_in_pane'])
+
 		self.set_action_in_headerbar(self.show_task_list, preferences['button_in_headerbar'])
 
 	def _init_widget(self):
 		index = self.pageview.notebook.index
 		properties = self.plugin.notebook_properties(self.pageview.notebook)
 		self._widget = TaskListWidget(index, self.navigation,
-			properties, self.plugin.preferences['show_due_date_in_pane'], self.plugin.preferences['show_inbox_next'], self.uistate,
+			properties, self.plugin.preferences['show_inbox_next'], self.uistate,
 			self._show_task_window)
 		self._widget_state = (
 			self.plugin.preferences['show_inbox_next'],
-			self.plugin.preferences['show_due_date_in_pane']
 		)
 		self._connect_tasklist_changed(self._widget)
 

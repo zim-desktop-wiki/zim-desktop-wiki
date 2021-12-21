@@ -30,12 +30,28 @@ from .indexer import AllTasks, ActiveTasks, InboxTasks, NextActionTasks, OpenPro
 	TASK_STATUS_OPEN, TASK_STATUS_CLOSED, TASK_STATUS_CANCELLED, TASK_STATUS_MIGRATED, TASK_STATUS_TRANSMIGRATED
 
 
+# Selection lists
 SELECTION_ALL = 'all'
 SELECTION_ACTIVE = 'active'
 SELECTION_INBOX = 'inbox'
 SELECTION_NEXT = 'next'
 SELECTION_PROJECTS = 'projects'
 SELECTION_WAITING = 'waiting'
+
+# Model Columns
+VIS_COL = 0 # visible
+ACT_COL = 1 # actionable
+PRIO_COL = 2
+START_COL = 3
+DUE_COL = 4
+TAGS_COL = 5
+DESC_COL = 6
+PAGE_COL = 7
+TASKID_COL = 8
+PRIO_SORT_COL = 9
+PRIO_SORT_LABEL_COL = 10
+STATUS_COL = 11
+STATUS_ICON_NAME_COL = 12
 
 
 class TaskListWidgetMixin(object):
@@ -76,7 +92,7 @@ class TaskListWidgetMixin(object):
 		self.selection_list._select(state[0])
 		self.tag_list._set_selected_labels_tags_pages(*state[2])
 
-	def _create_tasklisttreeview(self, opener, properties, column_layout):
+	def _create_tasklisttreeview(self, opener, properties):
 		self.tasklisttreeview = TaskListTreeView(
 			self.taskselection, opener,
 			_parse_task_labels(properties['labels']),
@@ -84,7 +100,6 @@ class TaskListWidgetMixin(object):
 			use_workweek=properties['use_workweek'],
 			sort_column=self.uistate['sort_column'],
 			sort_order=self.uistate['sort_order'],
-			column_layout=column_layout,
 		)
 		stack = Gtk.Stack()
 		for name, widget in (
@@ -198,15 +213,7 @@ class TaskListWidgetMixin(object):
 		self._set_mbutton_label(label)
 		self.taskselection = cls.new_from_index(self.index)
 		self.taskselection.set_status_included(*self.status)
-
-		if key == SELECTION_INBOX:
-			style = TaskListTreeView.STYLE_INBOX
-		elif key == SELECTION_WAITING:
-			style = TaskListTreeView.STYLE_WAITING
-		else:
-			style = TaskListTreeView.STYLE_DEFAULT
-
-		self.tasklisttreeview.set_taskselection(self.taskselection, style)
+		self.tasklisttreeview.set_taskselection(self.taskselection)
 		self.tag_list.set_taskselection(self.taskselection)
 
 	def _set_mbutton_label(self, text):
@@ -233,19 +240,19 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 	title = _('Tas_ks') # T: tab label for side pane
 
-	def __init__(self, index, opener, properties, show_due_date, show_inbox_next, uistate, show_dialog_action):
+	def __init__(self, index, opener, properties, show_inbox_next, uistate, show_dialog_action):
 		GObject.GObject.__init__(self)
 		TaskListWidgetMixin.__init__(self, index, uistate, properties)
 		self._close_button = None
 		self._show_dialog_action = show_dialog_action
 
-		column_layout=TaskListTreeView.COMPACT_COLUMN_LAYOUT_WITH_DUE \
-			if show_due_date else TaskListTreeView.COMPACT_COLUMN_LAYOUT
-
-		swindow = self._create_tasklisttreeview(opener, properties, column_layout)
+		swindow = self._create_tasklisttreeview(opener, properties)
 		self._header_hbox = self._create_selection_menubutton(opener, properties, show_inbox_next)
 		self.pack_start(self._header_hbox, False, True, 0)
 		self.pack_start(swindow, True, True, 0)
+
+		self.tasklisttreeview.set_view_column_visible('status_icon', False) # no status toggle in this view
+		self.tasklisttreeview.view_columns['task'].set_min_width(200) # don't let this column get too small
 
 		filter_entry = self._create_filter_entry()
 		self.pack_end(filter_entry, False, True, 0)
@@ -331,10 +338,11 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		pane2_vbox = Gtk.VBox()
 		self.hpane.add2(pane2_vbox)
 
-		column_layout = TaskListTreeView.RICH_COLUMN_LAYOUT
-		swindow = self._create_tasklisttreeview(navigation, properties, column_layout)
+		swindow = self._create_tasklisttreeview(navigation, properties)
 		self.add(self.hpane)
 		pane2_vbox.pack_start(swindow, True, True, 0)
+
+		self.tasklisttreeview.view_columns['task'].set_min_width(400) # don't let this column get too small
 
 		filter_entry = self._create_filter_entry()
 		pane2_vbox.pack_start(filter_entry, False, True, 0)
@@ -387,7 +395,7 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 				break
 		else:
 			# if it is unsorted, just use the defaults
-			self.uistate['sort_column'] = TaskListTreeView.PRIO_COL
+			self.uistate['sort_column'] = PRIO_COL
 			self.uistate['sort_order'] = Gtk.SortType.ASCENDING
 
 		try:
@@ -643,31 +651,6 @@ def days_to_str(days, use_workweek, weekday):
 
 class TaskListTreeView(BrowserTreeView):
 
-	# Columns
-	VIS_COL = 0 # visible
-	ACT_COL = 1 # actionable
-	PRIO_COL = 2
-	START_COL = 3
-	DUE_COL = 4
-	TAGS_COL = 5
-	DESC_COL = 6
-	PAGE_COL = 7
-	TASKID_COL = 8
-	PRIO_SORT_COL = 9
-	PRIO_SORT_LABEL_COL = 10
-	STATUS_COL = 11
-	STATUS_ICON_NAME_COL = 12
-
-	# Layout
-	RICH_COLUMN_LAYOUT = 0
-	COMPACT_COLUMN_LAYOUT = 1
-	COMPACT_COLUMN_LAYOUT_WITH_DUE = 2
-
-	# Style
-	STYLE_DEFAULT = 0
-	STYLE_INBOX = 1
-	STYLE_WAITING = 2
-
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'view-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -678,13 +661,12 @@ class TaskListTreeView(BrowserTreeView):
 		task_labels,
 		nonactionable_tags=(),
 		use_workweek=False,
-		column_layout=RICH_COLUMN_LAYOUT,
 		sort_column=PRIO_COL, sort_order=Gtk.SortType.DESCENDING
 	):
 		self.real_model = Gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str, int, str)
 			# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL, STATUS_COL, STATUS_ICON_NAME_COL
 		model = self.real_model.filter_new()
-		model.set_visible_column(self.VIS_COL)
+		model.set_visible_column(VIS_COL)
 		model = Gtk.TreeModelSort(model)
 		model.set_sort_column_id(sort_column, sort_order)
 		BrowserTreeView.__init__(self, model)
@@ -700,6 +682,7 @@ class TaskListTreeView(BrowserTreeView):
 		self.task_labels = task_labels
 		self.use_workweek = use_workweek
 		self._render_waiting_actionable = False
+		self.view_columns = {}
 
 		self._icon_names = {
 			TASK_STATUS_OPEN: 'task-list-open-symbolic',
@@ -710,21 +693,21 @@ class TaskListTreeView(BrowserTreeView):
 		}
 
 		# Status column
-		if column_layout == self.RICH_COLUMN_LAYOUT:
-			cell_renderer = Gtk.CellRendererPixbuf()
-			column = Gtk.TreeViewColumn(' ', cell_renderer)
-			column.add_attribute(cell_renderer, 'icon-name', self.STATUS_ICON_NAME_COL)
-			column.set_sort_column_id(self.STATUS_COL)
-			self.append_column(column)
+		cell_renderer = Gtk.CellRendererPixbuf()
+		column = Gtk.TreeViewColumn(' ', cell_renderer)
+		column.add_attribute(cell_renderer, 'icon-name', STATUS_ICON_NAME_COL)
+		column.set_sort_column_id(STATUS_COL)
+		self.append_column(column)
+		self.view_columns['status_icon'] = column
 
 		# Add some rendering for the Prio column
 		def render_prio(col, cell, model, i, data):
-			text = model.get_value(i, self.PRIO_SORT_LABEL_COL)
-			if not model.get_value(i, self.ACT_COL):
+			text = model.get_value(i, PRIO_SORT_LABEL_COL)
+			if not model.get_value(i, ACT_COL):
 				text = '<span color="darkgrey">%s</span>' % text
 				bg = None
 			else:
-				prio = model.get_value(i, self.PRIO_COL)
+				prio = model.get_value(i, PRIO_COL)
 				bg = COLORS[min(prio, 3)]
 			cell.set_property('markup', text)
 			cell.set_property('cell-background', bg)
@@ -732,24 +715,21 @@ class TaskListTreeView(BrowserTreeView):
 		cell_renderer = Gtk.CellRendererText()
 		column = Gtk.TreeViewColumn('!', cell_renderer)
 		column.set_cell_data_func(cell_renderer, render_prio)
-		column.set_sort_column_id(self.PRIO_SORT_COL)
+		column.set_sort_column_id(PRIO_SORT_COL)
 		self.append_column(column)
-		self._prio_column = column
+		self.view_columns['prio'] = column
 
 		# Rendering for task description column
 		cell_renderer = Gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
-		column = Gtk.TreeViewColumn(_('Task'), cell_renderer, markup=self.DESC_COL)
+		column = Gtk.TreeViewColumn(_('Task'), cell_renderer, markup=DESC_COL)
 				# T: Column header Task List dialog
 		column.set_resizable(True)
-		column.set_sort_column_id(self.DESC_COL)
+		column.set_sort_column_id(DESC_COL)
 		column.set_expand(True)
-		if column_layout != self.RICH_COLUMN_LAYOUT:
-			column.set_min_width(100)
-		else:
-			column.set_min_width(300) # don't let this column get too small
 		self.append_column(column)
 		self.set_expander_column(column)
+		self.view_columns['task'] = column
 
 		# custom tooltip
 		self.props.has_tooltip = True
@@ -774,12 +754,12 @@ class TaskListTreeView(BrowserTreeView):
 			if date in (_MAX_DUE_DATE, _MIN_START_DATE):
 				cell.set_property('text', '')
 			else:
-				if not model.get_value(i, self.ACT_COL):
+				if not model.get_value(i, ACT_COL):
 					date = '<span color="darkgrey">%s</span>' % date
 				cell.set_property('markup', date)
 				# TODO allow strftime here
 
-			if model_col == self.DUE_COL:
+			if model_col == DUE_COL:
 				if date <= today:
 					color = HIGH_COLOR
 				elif date <= tomorrow:
@@ -791,36 +771,33 @@ class TaskListTreeView(BrowserTreeView):
 					color = None
 				cell.set_property('cell-background', color)
 
-		if column_layout != self.COMPACT_COLUMN_LAYOUT:
-			for col, label in (
-				(self.DUE_COL, _('Due')), # T: Column header Task List dialog
-				(self.START_COL, _('Start')), # T: Column header Task List dialog
-			):
-				cell_renderer = Gtk.CellRendererText()
-				column = Gtk.TreeViewColumn(label, cell_renderer)
-				column.set_cell_data_func(cell_renderer, render_date, col)
-				column.set_sort_column_id(col)
-				self.append_column(column)
-				if col == self.DUE_COL:
-					self._due_column = column
-		else:
-			self._due_column = None
+
+		for key, col, label in (
+			('due', DUE_COL, _('Due')), # T: Column header Task List dialog
+			('start', START_COL, _('Start')), # T: Column header Task List dialog
+		):
+			cell_renderer = Gtk.CellRendererText()
+			column = Gtk.TreeViewColumn(label, cell_renderer)
+			column.set_cell_data_func(cell_renderer, render_date, col)
+			column.set_sort_column_id(col)
+			self.append_column(column)
+			self.view_columns[key] = column
 
 		# Rendering for page name column
 		def render_page(col, cell, model, i, data):
-			text = model.get_value(i, self.PAGE_COL)
+			text = model.get_value(i, PAGE_COL)
 			text = encode_markup_text(text)
-			if not model.get_value(i, self.ACT_COL):
+			if not model.get_value(i, ACT_COL):
 				text = '<span color="darkgrey">%s</span>' % text
 			cell.set_property('markup', text)
 
-		if column_layout == self.RICH_COLUMN_LAYOUT:
-			cell_renderer = Gtk.CellRendererText()
-			column = Gtk.TreeViewColumn(_('Page'), cell_renderer)
-					# T: Column header Task List dialog
-			column.set_cell_data_func(cell_renderer, render_page)
-			column.set_sort_column_id(self.PAGE_COL)
-			self.append_column(column)
+		cell_renderer = Gtk.CellRendererText()
+		column = Gtk.TreeViewColumn(_('Page'), cell_renderer)
+				# T: Column header Task List dialog
+		column.set_cell_data_func(cell_renderer, render_page)
+		column.set_sort_column_id(PAGE_COL)
+		self.append_column(column)
+		self.view_columns['page'] = column
 
 		# Finalize
 		self.refresh()
@@ -829,19 +806,28 @@ class TaskListTreeView(BrowserTreeView):
 		self.connect('row_activated', self.__class__.do_row_activated)
 		self.connect('focus-in-event', self.__class__.do_focus_in_event)
 
-	def set_taskselection(self, taskselection, style=None):
+	def get_view_column_visible(self, key):
+		assert key in self.view_columns
+		return self.view_columns[key].get_visible()
+
+	def set_view_column_visible(self, key, visible):
+		assert key in self.view_columns
+		if self.taskselection.STYLE == 'inbox' and key in ('prio', 'due'):
+			pass
+		else:
+			self.view_columns[key].set_visible(visible)
+
+	def set_taskselection(self, taskselection):
 		self.taskselection = taskselection
 
-		if style == self.STYLE_INBOX:
-			self._prio_column.set_visible(False)
-			if self._due_column:
-				self._due_column.set_visible(False)
+		if self.taskselection.STYLE == 'inbox':
+			self.view_columns['prio'].set_visible(False)
+			self.view_columns['due'].set_visible(False)
 		else:
-			self._prio_column.set_visible(True)
-			if self._due_column:
-				self._due_column.set_visible(True)
+			self.view_columns['prio'].set_visible(True)
+			self.view_columns['due'].set_visible(True)
 
-		if style == self.STYLE_WAITING:
+		if self.taskselection.STYLE == 'waiting':
 			self._render_waiting_actionable = True
 		else:
 			self._render_waiting_actionable = False
@@ -977,19 +963,20 @@ class TaskListTreeView(BrowserTreeView):
 		if any((self.filter, self.tag_filter, self.label_filter, self.page_filter)):
 			def filter(model, path, iter):
 				visible = self._filter_item(model[iter])
-				model[iter][self.VIS_COL] = visible
+				model[iter][VIS_COL] = visible
 				if visible:
 					parent = model.iter_parent(iter)
 					while parent:
-						model[parent][self.VIS_COL] = visible
+						model[parent][VIS_COL] = visible
 						parent = model.iter_parent(parent)
 		else:
 			def filter(model, path, iter):
-				model[iter][self.VIS_COL] = True
+				model[iter][VIS_COL] = True
 
 		self.real_model.foreach(filter)
 		model = self.get_model()
-		self.emit('view-changed', len(model) > 0)
+		count = len(model) if model else 0
+		self.emit('view-changed', count)
 		self.expand_all()
 
 	def _filter_item(self, modelrow):
@@ -997,13 +984,13 @@ class TaskListTreeView(BrowserTreeView):
 		# text are first converted to lower case text.
 		visible = True
 
-		pagename = modelrow[self.PAGE_COL].lower()
-		description = modelrow[self.DESC_COL].lower()
-		tags = [t.lower() for t in modelrow[self.TAGS_COL]]
+		pagename = modelrow[PAGE_COL].lower()
+		description = modelrow[DESC_COL].lower()
+		tags = [t.lower() for t in modelrow[TAGS_COL]]
 
 
 		if visible and self.page_filter:
-			pageparts = modelrow[self.PAGE_COL].split(':')
+			pageparts = modelrow[PAGE_COL].split(':')
 			visible = any(p in pageparts for p in self.page_filter)
 
 		if visible and self.label_filter:
@@ -1043,14 +1030,14 @@ class TaskListTreeView(BrowserTreeView):
 
 	def do_row_activated(self, path, column):
 		model = self.get_model()
-		page = Path(model[path][self.PAGE_COL])
+		page = Path(model[path][PAGE_COL])
 		text = self._get_raw_text(model[path])
 
 		pageview = self.opener.open_page(page)
 		pageview.find(text)
 
 	def _get_raw_text(self, task):
-		id = task[self.TASKID_COL]
+		id = task[TASKID_COL]
 		row = self.taskselection.get_task(id)
 		return row['description']
 
@@ -1070,10 +1057,10 @@ class TaskListTreeView(BrowserTreeView):
 		if not (model and iter):
 			return
 
-		task = model[iter][self.DESC_COL]
-		start = model[iter][self.START_COL]
-		due = model[iter][self.DUE_COL]
-		page = model[iter][self.PAGE_COL]
+		task = model[iter][DESC_COL]
+		start = model[iter][START_COL]
+		due = model[iter][DUE_COL]
+		page = model[iter][PAGE_COL]
 
 		today = str(datetime.date.today())
 
@@ -1191,11 +1178,11 @@ class TaskListTreeView(BrowserTreeView):
 			indent = len(path) - 1 # path is tuple with indexes
 
 			row = model[iter]
-			prio = row[self.PRIO_COL]
-			desc = row[self.DESC_COL]
-			due_date = row[self.DUE_COL]
-			start_date = row[self.START_COL]
-			page = row[self.PAGE_COL]
+			prio = row[PRIO_COL]
+			desc = row[DESC_COL]
+			due_date = row[DUE_COL]
+			start_date = row[START_COL]
+			page = row[PAGE_COL]
 
 			if due_date == _MAX_DUE_DATE:
 				due_date = ''

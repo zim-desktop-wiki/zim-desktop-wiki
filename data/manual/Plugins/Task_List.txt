@@ -15,7 +15,7 @@ The option **Show tasklist button in headerbar** determines whether a button is 
 
 The option **Show "GTD-style" inbox & next actions lists** determines what lists are shown in the selection pane. See details below.
 
-The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window; **Show due date in sidepane** selects whether a tasklist in a side pane displays the due date of a task.
+The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window. **Show due date in sidepane**, **Show start date in sidepane** & **Show page column in the sidepane** determine which columns are shown in the side pane.
 
 
 ===== Notebook properties =====
