@@ -11,7 +11,7 @@
 
 
 from zim.parser import Builder
-from zim.formats import NUMBEREDLIST, BULLETLIST, LISTITEM, PARAGRAPH
+from zim.formats import NUMBEREDLIST, BULLETLIST, LISTITEM, PARAGRAPH, ANCHOR
 
 TEXT = 'T'
 END = '/'
@@ -39,10 +39,13 @@ def collect_untill_end_token(token_iter, end_token):
 	return tokens
 
 
-def tokens_to_text(token_iter):
+def tokens_to_text(tokens):
 	text = []
+	token_iter = iter(tokens)
 	for t in token_iter:
-		if t[0] == TEXT:
+		if t[0] == ANCHOR:
+			skip_to_end_token(token_iter, ANCHOR)
+		elif t[0] == TEXT:
 			text.append(t[1])
 	return ''.join(text)
 
