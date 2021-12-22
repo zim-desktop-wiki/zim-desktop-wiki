@@ -17,7 +17,7 @@ from zim.formats import get_format, \
 	HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
 	Visitor, VisitorSkip
 from zim.tokenparser import TEXT, END, \
-	skip_to_end_token, tokens_to_text, collect_untill_end_token
+	skip_to_end_token, tokens_to_text, tokens_by_line, collect_untill_end_token
 
 from zim.plugins.journal import daterange_from_path
 	# TODO instead of just importing this function we should define
@@ -628,29 +628,16 @@ class TaskParser(object):
 		return self.task_label_re.match(''.join(text))
 
 	def _parse_paragraph(self, token_iter, defaults):
-
-		def _next_line():
-			# Return line as list of tokens
-			line = []
-			for t in token_iter:
-				if t == (END, PARAGRAPH):
-					assert not line or len(line) == 1 and line[0] == (END, BLOCK)
-					return None
-				else:
-					line.append(t)
-					if t[0] == TEXT and t[1].endswith('\n'):
-						return line
-
 		# Look for lines that define tasks
+		paragraph = collect_untill_end_token(token_iter, PARAGRAPH)
 		tasks = []
 
-		while True:
-			line = _next_line()
-			if not line:
-				break # end of PARAGRAPH
-			elif self._starts_with_label(line):
+		for line in tokens_by_line(paragraph):
+			if self._starts_with_label(line):
 				fields = self._task_from_tokens(line, defaults=defaults)
 				tasks.append((fields, []))
+			else:
+				pass
 
 		return tasks
 

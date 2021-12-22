@@ -18,7 +18,7 @@ class TestTokenParser(tests.TestCase):
 
 		testTokenStream(tokens)
 
-		builder = ParseTreeBuilder(_parsetree_roundtrip=True)
+		builder = ParseTreeBuilder()
 		TokenParser(builder).parse(tokens)
 		newtree = builder.get_parsetree()
 

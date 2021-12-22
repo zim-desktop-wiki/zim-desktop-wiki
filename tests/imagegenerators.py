@@ -47,7 +47,7 @@ class TestBackwardImageGeneratorNoPlugins(tests.TestCase):
 		pageview.textview.get_buffer().set_modified(True)
 		tree = pageview.page.get_parsetree()
 		text = WikiDumper().dump(tree)
-		self.assertEquals(text, ['{{./test.png?type=equation}}\n'])
+		self.assertEquals(text, ['{{./test.png?type=equation}}'])
 
 
 @tests.skipUnless(InsertEquationPlugin.check_dependencies_ok(), 'Missing dependencies')

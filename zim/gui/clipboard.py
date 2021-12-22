@@ -240,7 +240,7 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 					tag_name = 'pre' if '\n' in text else 'code'
 				else:
 					tag_name = text_format[9:]
-				builder = ParseTreeBuilder(partial=True)
+				builder = ParseTreeBuilder()
 				builder.start('zim-tree', {})
 				builder.start(tag_name, {})
 				builder.text(text)
@@ -248,7 +248,7 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 				builder.end('zim-tree')
 				return builder.get_parsetree()
 			else:
-				return get_format(text_format).Parser().parse(text, partial=True)
+				return get_format(text_format).Parser().parse(text)
 		else:
 			return None
 	elif targetname in IMAGE_TARGET_NAMES:

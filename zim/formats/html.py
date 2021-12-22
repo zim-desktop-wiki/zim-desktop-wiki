@@ -88,6 +88,12 @@ class Dumper(DumperClass):
 
 		return text
 
+	def _strip_newline(self, strings):
+		if strings and strings[-1].endswith('<br>\n'):
+			strings[-1] = strings[-1][:-5]
+		elif strings and strings[-1].endswith('\n'):
+			strings[-1] = strings[-1][:-1]
+
 	def text(self, text):
 		if self.context[-1].tag == FORMATTEDTEXT \
 		and text.isspace():
@@ -104,6 +110,8 @@ class Dumper(DumperClass):
 			DumperClass.text(self, text)
 
 	def dump_h(self, tag, attrib, strings):
+		self._strip_newline(strings)
+
 		h = 'h' + str(attrib['level'])
 		id = heading_to_anchor(html_to_text(''.join(strings)))
 		if self._isrtl:
@@ -117,10 +125,7 @@ class Dumper(DumperClass):
 		return strings
 
 	def dump_block(self, tag, attrib, strings, _extra=None):
-		if strings and strings[-1].endswith('<br>\n'):
-			strings[-1] = strings[-1][:-5]
-		elif strings and strings[-1].endswith('\n'):
-			strings[-1] = strings[-1][:-1]
+		self._strip_newline(strings)
 
 		start = '<' + tag
 		if self._isrtl:
@@ -175,6 +180,8 @@ class Dumper(DumperClass):
 			return self.dump_block(tag, attrib, strings)
 
 	def dump_li(self, tag, attrib, strings):
+		self._strip_newline(strings)
+
 		bullet = attrib.get('bullet', BULLET)
 		if self.context[-1].tag == BULLETLIST and bullet != BULLET:
 			start = '<li class="%s"' % bullet

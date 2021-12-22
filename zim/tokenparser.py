@@ -51,6 +51,17 @@ def tokens_to_text(tokens):
 	return ''.join(text)
 
 
+def tokens_by_line(tokens):
+	line = []
+	for t in tokens:
+		line.append(t)
+		if t[0] == TEXT and t[1].endswith('\n'):
+			yield line
+			line = []
+	if line:
+		yield line
+		
+
 class TokenBuilder(Builder):
 
 	def __init__(self):

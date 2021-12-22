@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">Head 1</h>
-<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+<zim-tree><h level="1">Head 1
+</h><p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
 ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
 aliquip ex ea commodo consequat. Duis aute irure dolor in
@@ -16,8 +16,8 @@ reprehenderit in voluptate velit esse cillum dolore eu fugiat
 nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.
 </div></p>
-<h level="2">head 2</h>
-
+<h level="2">head 2
+</h>
 <p><strong>bold</strong>, <emphasis>italic</emphasis> and <mark>underline</mark> and <code>verbatim</code>
 and also <strike>strike through</strike>
 </p>
@@ -29,8 +29,8 @@ and also <strike>strike through</strike>
 </p>
 
 
-<h level="3">head 3</h>
-<p><link href="foo">foo</link>  links to page in the current namespace or parents
+<h level="3">head 3
+</h><p><link href="foo">foo</link>  links to page in the current namespace or parents
 <link href=":foo">:foo</link> links to page in the root namespace
 <link href="+foo">+foo</link> links to page in a subnamespace
 <link href="foo">bar</link> links to "foo" but display "bar"
@@ -61,24 +61,53 @@ and also <strike>strike through</strike>
 <p>Anchors: <anchor name="foo">foo</anchor>  <link href="#foo">#foo</link>  <link href="page#foo">page#foo</link>
 </p>
 
-<h level="4">head 4 <anchor name="head-4-anchor">head-4-anchor</anchor></h>
-
-<p><ul><li bullet="*">item 1</li><li bullet="*">item 2</li><li bullet="*">item 3</li><ul><li bullet="*">item a</li><li bullet="*">item b</li></ul><li bullet="*">item 4</li></ul></p>
+<h level="4">head 4 <anchor name="head-4-anchor">head-4-anchor</anchor>
+</h>
+<p><ul><li bullet="*">item 1
+</li><li bullet="*">item 2
+</li><li bullet="*">item 3
+</li><ul><li bullet="*">item a
+</li><li bullet="*">item b
+</li></ul><li bullet="*">item 4
+</li></ul></p>
 
 <p>Indented list:
-<ul indent="1"><li bullet="*">item 1</li><li bullet="*">item 2</li><li bullet="*">item 3</li><ul><li bullet="*">item a</li><li bullet="*">item b</li></ul><li bullet="*">item 4</li></ul></p>
+<ul indent="1"><li bullet="*">item 1
+</li><li bullet="*">item 2
+</li><li bullet="*">item 3
+</li><ul><li bullet="*">item a
+</li><li bullet="*">item b
+</li></ul><li bullet="*">item 4
+</li></ul></p>
 
 <p>TODO list:
-<ul><li bullet="unchecked-box">foo</li><li bullet="checked-box">bar</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="checked-box">sub item 2</li></ul><li bullet="xchecked-box">baz</li></ul></p>
-<p><ul><li bullet="migrated-box">Migrated checkbox</li><li bullet="transmigrated-box">Transmigrated checkbox</li></ul></p>
+<ul><li bullet="unchecked-box">foo
+</li><li bullet="checked-box">bar
+</li><ul><li bullet="checked-box">sub item 1
+</li><ul><li bullet="*">Some normal bullet
+</li></ul><li bullet="checked-box">sub item 2
+</li></ul><li bullet="xchecked-box">baz
+</li></ul></p>
+<p><ul><li bullet="migrated-box">Migrated checkbox
+</li><li bullet="transmigrated-box">Transmigrated checkbox
+</li></ul></p>
 <p>A numbered list:
-<ol start="1"><li>foo</li><li>bar</li><ol start="a"><li>sub list</li><li>here</li></ol><li>hmmm</li></ol></p>
+<ol start="1"><li>foo
+</li><li>bar
+</li><ol start="a"><li>sub list
+</li><li>here
+</li></ol><li>hmmm
+</li></ol></p>
 
 <p>Start with number other that 1/a/A
 </p>
-<p><ol start="C"><li>foo</li><li>bar</li><ol start="3"><li>sub item start with 3</li></ol><li>baz</li></ol></p>
-<h level="5">head 5</h>
-<p><emphasis>some verbatim blocks</emphasis>:
+<p><ol start="C"><li>foo
+</li><li>bar
+</li><ol start="3"><li>sub item start with 3
+</li></ol><li>baz
+</li></ol></p>
+<h level="5">head 5
+</h><p><emphasis>some verbatim blocks</emphasis>:
 </p>
 <pre>Sing, O goddess, the rage of
 Achilles son of Peleus, that
@@ -98,10 +127,10 @@ the Achaeans.
 	'''
 	returen "foo" + bar % baz
 </pre>
-<h level="2">Internationalization</h>
-
-<h level="3">中文</h>
-<p>This section has a chinese heading
+<h level="2">Internationalization
+</h>
+<h level="3">中文
+</h><p>This section has a chinese heading
 </p>
 <p>Lines below are in right to left script:
 </p>
@@ -114,8 +143,13 @@ A line in English, should be left aligned.
 <p>aaa
 </p>
 
-<h level="2">Some Objects</h>
+<p>A horizontal line
+</p><line />
+<p>And more text
+</p>
 
+<h level="2">Some Objects
+</h>
 <object lang="python" linenumbers="true" type="code">def dump():
 	for i in range(1, 5):
 		print i
@@ -126,11 +160,11 @@ Achilles son of Peleus, that
 brought countless ills upon
 the Achaeans.
 </object>
-<h level="2">A table</h>
-
+<h level="2">A table
+</h>
 <table aligns="center,right,left" wraps="1,0,1"><thead><th>H1</th><th>H2 h2</th><th>H3</th></thead><trow><td>Column A1</td><td>Column A2</td><td>a</td></trow><trow><td>a very long cell</td><td><strong>bold text</strong></td><td>b</td></trow><trow><td>hyperlinks</td><td><link href="wp?wiki">wp?wiki</link></td><td><link href="http://x.org">Xorg</link></td></trow></table>
-<h level="2">Multiformatting <strong>bold</strong></h>
-
+<h level="2">Multiformatting <strong>bold</strong>
+</h>
 <p>normal <strong>bold</strong> normal2
 normal <strike>strike <strong>nested bold</strong> strike2</strike> normal2
 normal <strike>strike <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2

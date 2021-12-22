@@ -71,6 +71,8 @@ class BackwardImageGeneratorObjectType(ImageGeneratorObjectType):
 		'src': String('_new_'),
 	}
 
+	is_inline = True # Behave like an image
+
 	scriptname = None
 	imagefile_extension = None
 

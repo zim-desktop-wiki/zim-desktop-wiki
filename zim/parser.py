@@ -50,20 +50,15 @@ from zim.errors import Error
 logger = logging.getLogger('zim.parser')
 
 
-def fix_line_end(text):
+def fix_unicode_chars(text):
 	'''Fixes missing line end
 	@param text: the input text
 	@returns: the fixed text
 	'''
-	# HACK this char is recognized as line end by splitlines()
-	# but not matched by \n in a regex. Hope there are no other
-	# exceptions like it (crosses fingers)
-	text = text.replace('\u2028', '\n')
-
-	# Fix line end
-	if not text.endswith('\n'):
-		text = text + '\n'
-
+	# These characters are recognized by "splitlines()" but not as end-of-line
+	# in regexes. See also issue #1760
+	text = text.replace('\u2028', '\n') # LINE SEPARATOR
+	text = text.replace('\u2029', ' ') # PARAGRAPH SEPARATOR
 	return text
 
 

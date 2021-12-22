@@ -60,8 +60,8 @@ class Dumper(TextDumper):
 			level = 4
 		char = self.HEADING_UNDERLINE[level - 1]
 		heading = ''.join(strings)
-		underline = char * len(heading)
-		return [heading + '\n', underline]
+		underline = char * len(heading.strip('\n'))
+		return [heading, underline + '\n']
 
 	def dump_pre(self, tag, attrib, strings):
 		# prefix last line with "::\n\n"

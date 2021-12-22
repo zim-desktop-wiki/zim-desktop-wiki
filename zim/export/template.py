@@ -312,6 +312,7 @@ class ExportTemplateContext(dict):
 				builder.append(LINK,
 					{'type': 'page', 'href': ':' + path.name},
 					path.basename)
+			builder.text('\n')
 			builder.end(LISTITEM)
 
 		for p in stack:

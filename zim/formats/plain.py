@@ -6,7 +6,7 @@
 import re
 
 import zim.parser
-from zim.parser import fix_line_end, Rule
+from zim.parser import fix_unicode_chars, Rule
 
 from zim.formats import *
 from zim.parsing import url_re
@@ -34,20 +34,20 @@ class Parser(ParserClass):
 
 	# TODO parse markdown style headers
 
-	def parse(self, input, partial=False):
+	def parse(self, input):
 		if not isinstance(input, str):
 			input = ''.join(input)
 
-		if not partial:
-			input = fix_line_end(input)
+		input = fix_unicode_chars(input)
 
 		parser = zim.parser.Parser(
 			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r attribute because url_re is a Re object
 		)
 
-		builder = ParseTreeBuilder(partial=partial)
+		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
-		parser(builder, input)
+		if input:
+			parser(builder, input)
 		builder.end(FORMATTEDTEXT)
 		return builder.get_parsetree()
 
@@ -113,8 +113,8 @@ class Dumper(DumperClass):
 			else:
 				char = '-'
 			heading = ''.join(strings)
-			underline = char * len(heading)
-			return [heading + '\n', underline]
+			underline = char * len(heading.strip('\n'))
+			return [heading, underline + '\n']
 		else:
 			# atx-style headers for deeper levels
 			tag = '#' * level
@@ -170,7 +170,7 @@ class Dumper(DumperClass):
 				prefix = int(attrib['indent']) * '\t'
 				bullet = prefix + bullet
 
-		return (bullet, ' ') + tuple(strings) + ('\n',)
+		return (bullet, ' ') + tuple(strings)
 
 	def dump_anchor(self, tag, attrib, strings=None):
 		# TODO: what should be returned here?
@@ -228,4 +228,4 @@ class Dumper(DumperClass):
 	dump_th = dump_td
 
 	def dump_line(self, tag, attrib, strings=None):
-		return '-' * 20
+		return ('-' * 20) + '\n'

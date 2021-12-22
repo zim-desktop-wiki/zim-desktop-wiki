@@ -269,7 +269,7 @@ else:
 
 class AtomicWriteContext(object):
 	# Functions for atomic write as a context manager
-	# used by LocalFile.read and .readlines
+	# used by LocalFile.write and .writelines
 	# Exposed as separate object to make it testable.
 	# Should not be needed outside this module
 

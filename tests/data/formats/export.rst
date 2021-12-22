@@ -178,6 +178,13 @@ A line in English, should be left aligned.
 aaa
 
 
+A horizontal line
+
+*****
+
+And more text
+
+
 Some Objects
 ------------
 

@@ -54,6 +54,16 @@ Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
 get the same effect.
 
+Text blocks (paragraphs, listitems, headings, vertabim blocks) must end with a
+newline. Only the last block of the sequence can omit the newline. This case
+will be interpreted as a text snippet and affect copy-paste behavior.
+
+Tables and other objects that are not inline are implicitly handled as ending in
+a newline.
+
+As a result the newlines outsides blocks represent the number of empty lines
+between the blocks and newline ending the block is contained in the block.
+
 If a page starts with a h1 this heading is considered the page title,
 else we can fall back to the page name as title.
 
@@ -145,8 +155,7 @@ TABLEDATA = 'td'
 
 LINE = 'line'
 
-BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
-
+BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, LISTITEM) # Top levels with nested text
 
 
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -297,13 +306,6 @@ class ParseTree(object):
 		)
 
 	@property
-	def ispartial(self):
-		'''Returns True when this tree is a segment of a page
-		(like a copy-paste buffer).
-		'''
-		return self._etree.getroot().attrib.get('partial', False)
-
-	@property
 	def israw(self):
 		'''Returns True when this is a raw tree (which is representation
 		of TextBuffer, but not really valid).
@@ -364,7 +366,7 @@ class ParseTree(object):
 		return xml.getvalue()
 
 	def copy(self):
-		builder = ParseTreeBuilder(_parsetree_roundtrip=True)
+		builder = ParseTreeBuilder()
 		self.visit(builder)
 		return builder.get_parsetree()
 
@@ -449,7 +451,7 @@ class ParseTree(object):
 	def get_heading_text(self, level=1):
 		heading_elem = self._get_heading_element(level)
 		if heading_elem is not None:
-			return self._elt_to_text(heading_elem)
+			return self._elt_to_text(heading_elem).strip()
 		else:
 			return ""
 
@@ -458,6 +460,7 @@ class ParseTree(object):
 		already has a heading of the specified level or higher it will be
 		replaced. Otherwise the new heading will be prepended.
 		'''
+		text = text.rstrip() + '\n'
 		heading = self._get_heading_element(level)
 		if heading is not None:
 			heading.text = text
@@ -800,12 +803,10 @@ class Visitor(object):
 class ParseTreeBuilder(Builder):
 	'''Builder object that builds a L{ParseTree}'''
 
-	def __init__(self, partial=False, _parsetree_roundtrip=False):
-		self.partial = partial
+	def __init__(self):
 		self._b = ElementTreeModule.TreeBuilder()
 		self.stack = [] #: keeps track of current open elements
 		self._last_char = None
-		self._parsetree_roundtrip = _parsetree_roundtrip
 
 	def get_parsetree(self):
 		'''Returns the constructed L{ParseTree} object.
@@ -813,8 +814,6 @@ class ParseTreeBuilder(Builder):
 		can not be re-used.
 		'''
 		root = self._b.close()
-		if self.partial:
-			root.attrib['partial'] = True
 		return zim.formats.ParseTree(root)
 
 	def start(self, tag, attrib=None):
@@ -822,60 +821,36 @@ class ParseTreeBuilder(Builder):
 		self._b.start(tag, attrib)
 		self.stack.append(tag)
 		if tag in BLOCK_LEVEL:
+			if self._last_char and self._last_char != '\n':
+				logger.warn('Missing "\\n" before new block (%s)' % tag)
 			self._last_char = None
 
 	def text(self, text):
 		self._last_char = text[-1]
-
-		# FIXME hack for backward compat
-		if self.stack and self.stack[-1] in (HEADING, LISTITEM):
-			text = text.strip('\n')
-
 		self._b.data(text)
 
 	def end(self, tag):
-		if tag != self.stack[-1]:
-			raise AssertionError('Unmatched tag closed: %s' % tag)
-
-		if tag in BLOCK_LEVEL and not self._parsetree_roundtrip:
-			if self._last_char is not None and not self.partial:
-				#~ assert self._last_char == '\n', 'Block level text needs to end with newline'
-				if self._last_char != '\n' and tag not in (HEADING, LISTITEM):
-					self._b.data('\n')
-					# FIXME check for HEADING LISTITME for backward compat
-
-			# TODO if partial only allow missing \n at end of tree,
-			# delay message and trigger if not followed by get_parsetree ?
-
+		assert tag == self.stack[-1], 'Unmatched tag closed: %s' % tag
 		self._b.end(tag)
 		self.stack.pop()
-
-		# FIXME hack for backward compat
-		if tag == HEADING and not self._parsetree_roundtrip:
-			self._b.data('\n')
-
-		self._last_char = None
+		if tag in (TABLE, OBJECT):
+			self._last_char = '\n' # Special case - implicit newline in object
 
 	def append(self, tag, attrib=None, text=None):
 		attrib = attrib.copy() if attrib is not None else {}
-		if tag in BLOCK_LEVEL:
-			if text and not text.endswith('\n'):
-				text += '\n'
-
-		# FIXME hack for backward compat
-		if text and tag in (HEADING, LISTITEM):
-			text = text.strip('\n')
 
 		self._b.start(tag, attrib)
 		if text:
+			self._last_char = text[-1]
 			self._b.data(text)
+		if tag in (TABLE, OBJECT):
+			self._last_char = '\n' # Special case - implicit newline in object
 		self._b.end(tag)
 
-		# FIXME hack for backward compat
-		if tag == HEADING and not self._parsetree_roundtrip:
-			self._b.data('\n')
-
-		self._last_char = None
+		if tag in (TABLE, OBJECT):
+			self._last_char = '\n' # Special case - implicit newline in object
+		else:
+			self._last_char = text[-1] if text else None
 
 
 count_eol_re = re.compile(r'\n+\Z')
@@ -893,13 +868,14 @@ class OldParseTreeBuilder(object):
 		  (refactored out to `TextBuffer.get_parsetree()`)
 		- Tags can not contain only whitespace
 		- Tags can not be empty (with the exception of the 'img' tag)
-		- There should be an empty line before each 'h', 'p' or 'pre'
-		  (with the exception of the first tag in the tree)
+		- ~~There should be an empty line before each 'h', 'p' or 'pre'
+		  (with the exception of the first tag in the tree)~~
 		- The 'p' and 'pre' elements should always end with a newline ('\\n')
-		- Each 'p', 'pre' and 'h' should be postfixed with a newline ('\\n')
+		  --> all block elements must end in newline
+		- ~~Each 'p', 'pre' and 'h' should be postfixed with a newline ('\\n')
 		  (as a results 'p' and 'pre' are followed by an empty line, the
-		  'h' does not end in a newline itself, so it is different)
-		- Newlines ('\\n') after a <li> alement are removed (optional)
+		  'h' does not end in a newline itself, so it is different)~~
+		- ~~Newlines ('\\n') after a <li> alement are removed (optional)~~
 		- The element '_ignore_' is silently ignored
 	'''
 
@@ -911,19 +887,17 @@ class OldParseTreeBuilder(object):
 		self._last = None # last element opened or closed
 		self._data = [] # buffer with data
 		self._tail = False # True if we are after an end tag
-		self._seen_eol = 2 # track line ends on flushed data
-			# starts with "2" so check is ok for first top level element
+		self._last_char = None
 
 	def start(self, tag, attrib=None):
+		#print('START', tag)
 		if tag == '_ignore_':
 			return self._last
-		elif tag == 'h':
-			self._flush(need_eol=2)
-		elif tag in ('p', 'pre'):
-			self._flush(need_eol=1)
 		else:
 			self._flush()
-		#~ print('START', tag)
+
+		if tag in BLOCK_LEVEL:
+			self._last_char = None
 
 		if tag == 'h':
 			if not (attrib and 'level' in attrib):
@@ -952,27 +926,22 @@ class OldParseTreeBuilder(object):
 		return self._last
 
 	def end(self, tag):
+		#print('END', tag)
 		if tag == '_ignore_':
 			return None
-		elif tag in ('p', 'pre'):
-			self._flush(need_eol=1)
 		else:
+			assert self._stack[-1].tag == tag, \
+				"end tag mismatch (expected %s, got %s)" % (self._stack[-1].tag, tag)
 			self._flush()
-		#~ print('END', tag)
-
-		self._last = self._stack[-1]
-		assert self._last.tag == tag, \
-			"end tag mismatch (expected %s, got %s)" % (self._last.tag, tag)
-		self._tail = True
 
 		if len(self._stack) > 1 and not (
 			tag in (IMAGE, OBJECT, HEADDATA, TABLEDATA)
-			or (self._last.text and not self._last.text.isspace())
-			or bool(list(self._last))
+			or (self._stack[-1].text and not self._stack[-1].text.isspace())
+			or bool(list(self._stack[-1]))
 		):
 			# purge empty tags
-			if self._last.text and self._last.text.isspace():
-				self._append_to_previous(self._last.text)
+			if self._stack[-1].text and self._stack[-1].text.isspace():
+				self._append_to_previous(self._stack[-1].text)
 
 			empty = self._stack.pop()
 			self._stack[-1].remove(empty)
@@ -992,9 +961,23 @@ class OldParseTreeBuilder(object):
 			return empty
 
 		else:
+			if tag in BLOCK_LEVEL and self._last_char != '\n':
+				# Fix trailing newlines
+				if self._tail:
+					text = self._last.tail or ''
+					self._last.tail = text + '\n'
+				else:
+					text = self._last.text or ''
+					self._last.text = text + '\n'
+				self._last_char = '\n'
+
+			self._last = self._stack[-1]
+			self._tail = True
+
 			return self._stack.pop()
 
 	def data(self, text):
+		#print("DATA %r" % text)
 		assert isinstance(text, str)
 		self._data.append(text)
 
@@ -1003,51 +986,24 @@ class OldParseTreeBuilder(object):
 		self.data(text)
 		self.end(tag)
 
-	def _flush(self, need_eol=0):
-		# need_eol makes sure previous data ends with \n
-
+	def _flush(self):
 		#~ print('DATA:', self._data)
-		text = ''.join(self._data)
+		text = ''.join(self._data) or ''
 		self._data = []
 
-		# Fix trailing newlines
-		if text:
-			m = count_eol_re.search(text)
-			if m:
-				seen = len(m.group(0))
-				if seen == len(text):
-					self._seen_eol += seen
-				else:
-					self._seen_eol = seen
-			else:
-				self._seen_eol = 0
+		if not text:
+			return
 
-		if need_eol > self._seen_eol:
-			text += '\n' * (need_eol - self._seen_eol)
-			self._seen_eol = need_eol
+		assert not self._last is None, 'data seen before root element'
 
-		# Fix prefix newlines
-		if self._tail and self._last.tag in ('h', 'p') \
-		and not text.startswith('\n'):
-			if text:
-				text = '\n' + text
-			else:
-				text = '\n'
-				self._seen_eol = 1
-		elif self._tail and self._last.tag == 'li' \
-		and text.startswith('\n'):
-			text = text[1:]
-			if not text.strip('\n'):
-				self._seen_eol -= 1
+		self._last_char = text[-1]
 
-		if text:
-			assert not self._last is None, 'data seen before root element'
-			if self._tail:
-				assert self._last.tail is None, "internal error (tail)"
-				self._last.tail = text
-			else:
-				assert self._last.text is None, "internal error (text)"
-				self._last.text = text
+		if self._tail:
+			tail = self._last.tail or ''
+			self._last.tail = tail + text
+		else:
+			mytext = self._last.text or ''
+			self._last.text = mytext + text
 
 	def close(self):
 		assert len(self._stack) == 0, 'missing end tags'

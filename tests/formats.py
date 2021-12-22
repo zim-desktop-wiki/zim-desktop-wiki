@@ -83,7 +83,7 @@ class TestFormatMixin(object):
 		self.assertMultiLineEqual(reftree.tostring(), self.reference_xml)
 
 		# partial dumper
-		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
+		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
 		result = ''.join(dumper.dump(parttree))
 		#~ print(">>>%s<<<" % result)
 		self.assertFalse(result.endswith('\n')) # partial should not end with "\n"
@@ -172,15 +172,15 @@ class TestParseTree(tests.TestCase):
 		self.xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<h level="1">Head 1</h>
-<h level="2">Head 2</h>
-<h level="3">Head 3</h>
-<h level="2">Head 4</h>
-<h level="5">Head 5</h>
-<h level="4">Head 6</h>
-<h level="5">Head 7</h>
-<h level="6">Head 8</h>
-</zim-tree>'''
+<h level="1">Head 1
+</h><h level="2">Head 2
+</h><h level="3">Head 3
+</h><h level="2">Head 4
+</h><h level="5">Head 5
+</h><h level="4">Head 6
+</h><h level="5">Head 7
+</h><h level="6">Head 8
+</h></zim-tree>'''
 
 	def teststring(self):
 		'''Test ParseTree.fromstring() and .tostring()'''
@@ -196,15 +196,15 @@ class TestParseTree(tests.TestCase):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<h level="2">Head 1</h>
-<h level="3">Head 2</h>
-<h level="4">Head 3</h>
-<h level="3">Head 4</h>
-<h level="4">Head 5</h>
-<h level="4">Head 6</h>
-<h level="4">Head 7</h>
-<h level="4">Head 8</h>
-</zim-tree>'''
+<h level="2">Head 1
+</h><h level="3">Head 2
+</h><h level="4">Head 3
+</h><h level="3">Head 4
+</h><h level="4">Head 5
+</h><h level="4">Head 6
+</h><h level="4">Head 7
+</h><h level="4">Head 8
+</h></zim-tree>'''
 		tree.cleanup_headings(offset=1, max=4)
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
@@ -216,9 +216,9 @@ class TestParseTree(tests.TestCase):
 	def testGetHeadingTextNestedFormat(self):
 		xml = '''<?xml version='1.0' encoding='utf-8'?>
 		<zim-tree>
-		<h level="1">Head 1 <strong>BOLD</strong> <link>URL</link></h>
-		<h level="2">Head 2</h>
-		</zim-tree>
+		<h level="1">Head 1 <strong>BOLD</strong> <link>URL</link>
+		</h><h level="2">Head 2
+		</h></zim-tree>
 		'''
 		tree = ParseTree().fromstring(xml)
 		self.assertEqual(tree.get_heading_text(), "Head 1 BOLD URL")
@@ -229,15 +229,15 @@ class TestParseTree(tests.TestCase):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<h level="1">Foo</h>
-<h level="2">Head 2</h>
-<h level="3">Head 3</h>
-<h level="2">Head 4</h>
-<h level="5">Head 5</h>
-<h level="4">Head 6</h>
-<h level="5">Head 7</h>
-<h level="6">Head 8</h>
-</zim-tree>'''
+<h level="1">Foo
+</h><h level="2">Head 2
+</h><h level="3">Head 3
+</h><h level="2">Head 4
+</h><h level="5">Head 5
+</h><h level="4">Head 6
+</h><h level="5">Head 7
+</h><h level="6">Head 8
+</h></zim-tree>'''
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
@@ -248,37 +248,37 @@ class TestParseTree(tests.TestCase):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<h level="1">Head 1</h>
-<h level="2">Head 2</h>
-<h level="3">Head 3</h>
-<h level="2">Head 4</h>
-<h level="5">Head 5</h>
-<h level="4">Head 6</h>
-<h level="5">Head 7</h>
-<h level="6">Head 8</h>
-
-<h level="1">Head 1</h>
-<h level="2">Head 2</h>
-<h level="3">Head 3</h>
-<h level="2">Head 4</h>
-<h level="5">Head 5</h>
-<h level="4">Head 6</h>
-<h level="5">Head 7</h>
-<h level="6">Head 8</h>
-</zim-tree>'''
+<h level="1">Head 1
+</h><h level="2">Head 2
+</h><h level="3">Head 3
+</h><h level="2">Head 4
+</h><h level="5">Head 5
+</h><h level="4">Head 6
+</h><h level="5">Head 7
+</h><h level="6">Head 8
+</h>
+<h level="1">Head 1
+</h><h level="2">Head 2
+</h><h level="3">Head 3
+</h><h level="2">Head 4
+</h><h level="5">Head 5
+</h><h level="4">Head 6
+</h><h level="5">Head 7
+</h><h level="6">Head 8
+</h></zim-tree>'''
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
 	def testGetEndsWithNewline(self):
 		for xml, newline in (
-			('<zim-tree partial="True">foo</zim-tree>', False),
-			('<zim-tree partial="True"><strong>foo</strong></zim-tree>', False),
-			('<zim-tree partial="True"><strong>foo</strong>\n</zim-tree>', True),
-			('<zim-tree partial="True"><strong>foo\n</strong></zim-tree>', True),
-			('<zim-tree partial="True"><strong>foo</strong>\n<img src="foo"></img></zim-tree>', False),
-			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0">foo</li></zim-tree>', True),
-			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
-			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
+			('<zim-tree>foo</zim-tree>', False),
+			('<zim-tree><strong>foo</strong></zim-tree>', False),
+			('<zim-tree><strong>foo</strong>\n</zim-tree>', True),
+			('<zim-tree><strong>foo\n</strong></zim-tree>', True),
+			('<zim-tree><strong>foo</strong>\n<img src="foo"></img></zim-tree>', False),
+			('<zim-tree><li bullet="unchecked-box" indent="0">foo</li></zim-tree>', True),
+			('<zim-tree><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
+			('<zim-tree><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
 		):
 			tree = ParseTree().fromstring(xml)
 			self.assertEqual(tree.get_ends_with_newline(), newline)
@@ -286,14 +286,14 @@ class TestParseTree(tests.TestCase):
 	def testFindall(self):
 		tree = ParseTree().fromstring(self.xml)
 		wanted = [
-			(1, 'Head 1'),
-			(2, 'Head 2'),
-			(3, 'Head 3'),
-			(2, 'Head 4'),
-			(5, 'Head 5'),
-			(4, 'Head 6'),
-			(5, 'Head 7'),
-			(6, 'Head 8'),
+			(1, 'Head 1\n'),
+			(2, 'Head 2\n'),
+			(3, 'Head 3\n'),
+			(2, 'Head 4\n'),
+			(5, 'Head 5\n'),
+			(4, 'Head 6\n'),
+			(5, 'Head 7\n'),
+			(6, 'Head 8\n'),
 		]
 		found = []
 		for elt in tree.findall(HEADING):
@@ -323,15 +323,14 @@ class TestParseTree(tests.TestCase):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<h level="1">Head 1</h>
-<h level="3">Head 2</h>
-Head 3
-<h level="3">Head 4</h>
-<h level="5">Head 5</h>
-
-<h level="5">Head 7</h>
-<h level="6">Head 8</h>
-</zim-tree>'''
+<h level="1">Head 1
+</h><h level="3">Head 2
+</h>Head 3
+<h level="3">Head 4
+</h><h level="5">Head 5
+</h><h level="5">Head 7
+</h><h level="6">Head 8
+</h></zim-tree>'''
 		tree.replace(HEADING, replace)
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
@@ -350,17 +349,17 @@ class TestWikiFormat(TestTextFormat):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
 
-	def testFormattingBelowHeading(self):
+	def testFormattingInsideHeading(self):
 		input = "====== heading @foo **bold** ======\n"
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">heading <tag name="foo">@foo</tag> <strong>bold</strong></h>\n</zim-tree>'''
+<zim-tree><h level="1">heading <tag name="foo">@foo</tag> <strong>bold</strong>\n</h></zim-tree>'''
 		t = self.format.Parser().parse(input)
 		self.assertEqual(t.tostring(), xml)
 		output = self.format.Dumper().dump(t)
 		self.assertEqual(output, input.splitlines(True))
 
-	def testNoNestingBelowVerbatim(self):
+	def testNoFormattingInsideVerbatim(self):
 		input = "test 1 2 3 ''code here **not bold!**''\n"
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -405,8 +404,7 @@ A list
 		text = '[[http://link.com/23060.html|//http://link.com/23060.html//]]'
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><link href="http://link.com/23060.html"><emphasis>http://link.com/23060.html</emphasis></link>
-</p></zim-tree>'''
+<zim-tree><p><link href="http://link.com/23060.html"><emphasis>http://link.com/23060.html</emphasis></link></p></zim-tree>'''
 		tree = self.format.Parser().parse(text)
 		self.assertEqual(tree.tostring(), xml)
 
@@ -482,7 +480,12 @@ test 4 5 6
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ul><li bullet="*">sub list</li><li bullet="*">here</li></ul><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ul><li bullet="*">sub list
+</li><li bullet="*">here
+</li></ul><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
 		check(text, xml)
 
 		# Numbered list (ordered list)
@@ -495,7 +498,12 @@ test 4 5 6
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="1"><li>foo</li><li>bar</li><ol start="a"><li>sub list</li><li>here</li></ol><li>hmmm</li></ol></p></zim-tree>'''
+<zim-tree><p><ol start="1"><li>foo
+</li><li>bar
+</li><ol start="a"><li>sub list
+</li><li>here
+</li></ol><li>hmmm
+</li></ol></p></zim-tree>'''
 		check(text, xml)
 
 		text = '''\
@@ -505,7 +513,10 @@ C. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="A"><li>foo</li><li>bar</li><li>hmmm</li></ol></p></zim-tree>'''
+<zim-tree><p><ol start="A"><li>foo
+</li><li>bar
+</li><li>hmmm
+</li></ol></p></zim-tree>'''
 		check(text, xml)
 
 		text = '''\
@@ -515,7 +526,10 @@ C. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="10"><li>foo</li><li>bar</li><li>hmmm</li></ol></p></zim-tree>'''
+<zim-tree><p><ol start="10"><li>foo
+</li><li>bar
+</li><li>hmmm
+</li></ol></p></zim-tree>'''
 		check(text, xml)
 
 
@@ -527,7 +541,10 @@ C. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo</li><li bullet="unchecked-box">bar</li><li bullet="*">dus</li></ul></p></zim-tree>'''
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="unchecked-box">bar
+</li><li bullet="*">dus
+</li></ul></p></zim-tree>'''
 		wanted = '''\
 * foo
 [ ] bar
@@ -544,7 +561,11 @@ a. dus
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="1"><li>foo</li><li>bar</li></ol><ul><li bullet="*">hmmm</li></ul><ol start="a"><li>dus</li></ol></p></zim-tree>'''
+<zim-tree><p><ol start="1"><li>foo
+</li><li>bar
+</li></ol><ul><li bullet="*">hmmm
+</li></ul><ol start="a"><li>dus
+</li></ol></p></zim-tree>'''
 		wanted = '''\
 1. foo
 2. bar
@@ -561,7 +582,11 @@ a. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo</li></ul><ol start="4"><li>bar</li><li>hmmm</li></ol><ul><li bullet="*">dus</li></ul></p></zim-tree>'''
+<zim-tree><p><ul><li bullet="*">foo
+</li></ul><ol start="4"><li>bar
+</li><li>hmmm
+</li></ol><ul><li bullet="*">dus
+</li></ul></p></zim-tree>'''
 		wanted = '''\
 * foo
 4. bar
@@ -581,7 +606,12 @@ a. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><li>sub list</li><li>here</li></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ol start="1"><li>sub list
+</li><li>here
+</li></ol><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
 		check(text, xml)
 
 		# Indented list
@@ -594,7 +624,12 @@ a. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul indent="1"><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><li>sub list</li><li>here</li></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+<zim-tree><p><ul indent="1"><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ol start="1"><li>sub list
+</li><li>here
+</li></ol><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
 		check(text, xml)
 
 		# Double indent sub-list ?
@@ -607,7 +642,12 @@ a. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><ol start="1"><li>sub list</li><li>here</li></ol></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ol start="1"><ol start="1"><li>sub list
+</li><li>here
+</li></ol></ol><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
 		check(text, xml)
 
 		# This is not a list
@@ -658,8 +698,7 @@ hmmm
 		text = 'Test 123 www.google.com/search?q=Markup+(business))) 456'
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>Test 123 <link href="www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</link>)) 456
-</p></zim-tree>'''
+<zim-tree><p>Test 123 <link href="www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</link>)) 456</p></zim-tree>'''
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
@@ -667,8 +706,7 @@ hmmm
 		text = '[[[foo]]] [[[bar[baz]]]'
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>[<link href="foo">foo</link>] [<link href="bar[baz]">bar[baz]</link>
-</p></zim-tree>'''
+<zim-tree><p>[<link href="foo">foo</link>] [<link href="bar[baz]">bar[baz]</link></p></zim-tree>'''
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
@@ -676,8 +714,7 @@ hmmm
 		text = '[[http://example.com|example@example.com]]'
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><link href="http://example.com">example@example.com</link>
-</p></zim-tree>'''
+<zim-tree><p><link href="http://example.com">example@example.com</link></p></zim-tree>'''
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
@@ -685,8 +722,7 @@ hmmm
 		text = '[[http://example.com|[[example@example.com]]]]'
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><link href="http://example.com">[[example@example.com]]</link>
-</p></zim-tree>'''
+<zim-tree><p><link href="http://example.com">[[example@example.com]]</link></p></zim-tree>'''
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
@@ -694,8 +730,7 @@ hmmm
 		text = '[[http://example.com| //Example// ]]' # spaces are crucial in this example - see issue #1306
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><link href="http://example.com"> <emphasis>Example</emphasis> </link>
-</p></zim-tree>'''
+<zim-tree><p><link href="http://example.com"> <emphasis>Example</emphasis> </link></p></zim-tree>'''
 		t = self.format.Parser().parse([text])
 		self.assertEqual(t.tostring(), xml)
 
@@ -703,8 +738,7 @@ hmmm
 		text = '{{id: test}}'
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><anchor name="test">test</anchor>
-</p></zim-tree>'''
+<zim-tree><p><anchor name="test">test</anchor></p></zim-tree>'''
 		tree = self.format.Parser().parse(text)
 		self.assertEqual(tree.tostring(), xml)
 
@@ -715,7 +749,8 @@ hmmm
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p><ol indent="2" start="1"><li>Some list item  with stray PARAGRAPH SEPARATOR</li></ol></p></zim-tree>'''
+<p><ol indent="2" start="1"><li>Some list item  with stray PARAGRAPH SEPARATOR
+</li></ol></p></zim-tree>'''
 		tree = self.format.Parser().parse(text)
 		self.assertEqual(tree.tostring(), xml)
 
@@ -822,9 +857,10 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 	def testEmptyLines(self):
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
-		builder.append(HEADING, {'level': 1}, 'head1')
+		builder.append(HEADING, {'level': 1}, 'head1\n')
+		builder.text('\n\n')
+		builder.append(HEADING, {'level': 2}, 'head2\n')
 		builder.text('\n')
-		builder.append(HEADING, {'level': 2}, 'head2')
 		builder.end(FORMATTEDTEXT)
 		tree = builder.get_parsetree()
 
@@ -919,9 +955,9 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 	def testDocumentType(self):
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
-		builder.append(HEADING, {'level': 1}, 'head1')
+		builder.append(HEADING, {'level': 1}, 'head1\n')
 		builder.text('\n')
-		builder.append(HEADING, {'level': 2}, 'head2')
+		builder.append(HEADING, {'level': 2}, 'head2\n')
 		builder.end(FORMATTEDTEXT)
 		tree = builder.get_parsetree()
 

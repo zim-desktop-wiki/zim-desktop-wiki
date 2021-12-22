@@ -157,7 +157,10 @@ class TextBufferTestCaseMixin(object):
 class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testFormatRoundTrip(self):
-		tree = tests.new_parsetree()
+		tree = tests.new_parsetree() # uses tests/data/formats/wiki.txt
+		dumper = get_format('wiki').Dumper()
+		wikitext = ''.join(dumper.dump(tree))
+
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
@@ -165,12 +168,46 @@ class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
 			buffer.set_parsetree(tree)
 
 		newtree = buffer.get_parsetree()
-		dumper = get_format('wiki').Dumper()
-
-		wikitext = ''.join(dumper.dump(tree))
 		newwikitext = ''.join(dumper.dump(newtree))
 
 		self.assertEqual(newwikitext, wikitext)
+
+	def testFormatRoundTripSimple(self):
+		# Added this one specifically to check newline handling around list
+		# items and headings
+		dumper = get_format('wiki').Dumper()
+		parser = get_format('wiki').Parser()
+		wikitext = '''\
+=== A list ===
+
+* item 1
+* item 2
+* item 3
+	* item a
+	* item b
+* item 4
+
+Text before heading
+== Head ==
+Some para with //italic// and **bold**
+
+== Head with **bold** ==
+More text
+
+'''
+		tree = parser.parse(wikitext)
+
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		with FilterNoSuchImageWarning():
+			buffer.set_parsetree(tree)
+
+		newtree = buffer.get_parsetree()
+		newwikitext = ''.join(dumper.dump(newtree))
+
+		self.assertEqual(newwikitext, wikitext)
+
 
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
@@ -210,7 +247,7 @@ class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">
-foo<h level="1">bar</h>baz
+foo <h level="1">bar</h> baz
 
 dus <pre>ja</pre> hmm
 
@@ -221,8 +258,9 @@ dus <div indent="5">ja</div> <emphasis>hmm
 dus ja
 </emphasis>grrr
 
-<li bullet="*" indent="0"> Foo</li>
-<li bullet="*" indent="0"> Bar</li>
+<li bullet="*" indent="0"> Foo
+</li><li bullet="*" indent="0"> Bar
+</li>
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -234,21 +272,21 @@ dus ja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p>foo
-</p>
-<h level="1">bar</h>
-<p>baz
+<p>foo bar baz
 </p>
 <p>dus <code>ja</code> hmm
 </p>
-<h level="2">foo</h>
-<p>bar
+<h level="2">foo
+</h><p>bar
 </p>
 <p>dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
 </p>
-<p><ul><li bullet="*">Foo</li><li bullet="*">Bar</li></ul></p></zim-tree>'''
+<p><ul><li bullet="*">Foo
+</li><li bullet="*">Bar
+</li></ul></p>
+</zim-tree>'''
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), wanted)
 
@@ -260,26 +298,26 @@ grrr
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p>foo
-</p>
-<h level="1">bar</h>
-<p>baz
+<p>foo bar baz
 </p>
 <p>dus <code>ja</code> hmm
 </p>
-<h level="2">foo</h>
-<p>bar
+<h level="2">foo
+</h><p>bar
 </p>
 <p>dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
 </p>
-<p><ul><li bullet="*">Foo<strong>Bold</strong></li><li bullet="*"><strong>Bold</strong>Bar</li></ul></p></zim-tree>'''
+<p><ul><li bullet="*">Foo<strong>Bold</strong>
+</li><li bullet="*"><strong>Bold</strong>Bar
+</li></ul></p>
+</zim-tree>'''
 		pastetree = tests.new_parsetree_from_xml(input)
-		iter = buffer.get_iter_at_line(15)
+		iter = buffer.get_iter_at_line(12)
 		iter.forward_chars(5) # position after "* Foo"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
-		iter = buffer.get_iter_at_line(16) # position before bullet "* Bar"
+		iter = buffer.get_iter_at_line(13) # position before bullet "* Bar"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
 		tree = buffer.get_parsetree()
 		self.assertTrue(buffer.get_modified())
@@ -290,31 +328,35 @@ grrr
 		# automatically
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><li>Foo</li><li>Bar</li>
+<zim-tree><li>Foo
+</li><li>Bar
+</li>
 </zim-tree>'''
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p>foo
-</p>
-<h level="1">bar</h>
-<p>baz
-<ul><li bullet="*">Foo</li><li bullet="*">Bar</li></ul></p>
+<p>foo bar baz
+<ul><li bullet="*">Foo
+</li><li bullet="*">Bar
+</li></ul></p>
 
 
 <p>dus <code>ja</code> hmm
 </p>
-<h level="2">foo</h>
-<p>bar
+<h level="2">foo
+</h><p>bar
 </p>
 <p>dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
 </p>
-<p><ul><li bullet="*">Foo<strong>Bold</strong></li><li bullet="*"><strong>Bold</strong>Bar</li></ul></p></zim-tree>'''
+<p><ul><li bullet="*">Foo<strong>Bold</strong>
+</li><li bullet="*"><strong>Bold</strong>Bar
+</li></ul></p>
+</zim-tree>'''
 		pastetree = tests.new_parsetree_from_xml(input)
-		iter = buffer.get_iter_at_line(4)
-		iter.forward_chars(3) # position after "baz"
+		iter = buffer.get_iter_at_line(1)
+		iter.forward_chars(11) # position after "baz"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
 		tree = buffer.get_parsetree()
 		self.assertTrue(buffer.get_modified())
@@ -324,13 +366,19 @@ grrr
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<li bullet="unchecked-box" indent="0">Box 1</li><li bullet="unchecked-box" indent="0">Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
+<li bullet="unchecked-box" indent="0">Box 1
+</li><li bullet="unchecked-box" indent="0">Box 2
+</li><li bullet="unchecked-box" indent="0">Box 3
+</li>
 </zim-tree>
 '''
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p><ul><li bullet="unchecked-box">Box 1</li><li bullet="unchecked-box">foo Box 2</li><li bullet="unchecked-box">Box 3</li></ul></p>
+<p><ul><li bullet="unchecked-box">Box 1
+</li><li bullet="unchecked-box">foo Box 2
+</li><li bullet="unchecked-box">Box 3
+</li></ul></p>
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -345,7 +393,10 @@ grrr
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p><ul indent="1"><li bullet="*">Box 1</li><li bullet="*">Box 2</li><li bullet="*">Box 3</li></ul></p>
+<p><ul indent="1"><li bullet="*">Box 1
+</li><li bullet="*">Box 2
+</li><li bullet="*">Box 3
+</li></ul></p>
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -366,24 +417,25 @@ grrr
 		buffer.insert_at_cursor('foo \uFFFC bar')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>foo  bar
-</p></zim-tree>'''
+<zim-tree><p>foo  bar</p></zim-tree>'''
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), wanted)
 
 		# Test merge lines logic on delete
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">Foo</h>
-
-<h level="2">Bar</h>
-
-<p><ul><li bullet="*">List item 0</li></ul></p>
-<p><ul indent="1"><li bullet="*">List item 1</li></ul></p></zim-tree>'''
+<zim-tree><h level="1">Foo
+</h>
+<h level="2">Bar
+</h>
+<p><ul><li bullet="*">List item 0
+</li></ul></p>
+<p><ul indent="1"><li bullet="*">List item 1
+</li></ul></p></zim-tree>'''
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">FooBar</h>
-
+<zim-tree><h level="1">FooBar
+</h>
 <p>List item 0
 </p>
 <p><div indent="1">List item 1
@@ -420,14 +472,14 @@ grrr
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo</li>
-<li bullet="unchecked-box" indent="0"> Bar</li>
-<li bullet="unchecked-box" indent="1"> Bar 1</li>
-<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
-<li bullet="unchecked-box" indent="1"> Bar 2</li>
-<li bullet="unchecked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="0"> Foo
+</li><li bullet="unchecked-box" indent="0"> Bar
+</li><li bullet="unchecked-box" indent="1"> Bar 1
+</li><li bullet="unchecked-box" indent="2"> Bar 1.1
+</li><li bullet="unchecked-box" indent="1"> Bar 2
+</li><li bullet="unchecked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -437,14 +489,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="xchecked-box" indent="0"> Foo</li>
-<li bullet="checked-box" indent="0"> Bar</li>
-<li bullet="xchecked-box" indent="1"> Bar 1</li>
-<li bullet="checked-box" indent="2"> Bar 1.1</li>
-<li bullet="checked-box" indent="1"> Bar 2</li>
-<li bullet="checked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="xchecked-box" indent="0"> Foo
+</li><li bullet="checked-box" indent="0"> Bar
+</li><li bullet="xchecked-box" indent="1"> Bar 1
+</li><li bullet="checked-box" indent="2"> Bar 1.1
+</li><li bullet="checked-box" indent="1"> Bar 2
+</li><li bullet="checked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		buffer.toggle_checkbox(2, recursive=True) # Bar
 		buffer.toggle_checkbox(3, recursive=True) # Bar 1
@@ -459,14 +511,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="xchecked-box" indent="0"> Foo</li>
-<li bullet="unchecked-box" indent="0"> Bar</li>
-<li bullet="unchecked-box" indent="1"> Bar 1</li>
-<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
-<li bullet="unchecked-box" indent="1"> Bar 2</li>
-<li bullet="unchecked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="xchecked-box" indent="0"> Foo
+</li><li bullet="unchecked-box" indent="0"> Bar
+</li><li bullet="unchecked-box" indent="1"> Bar 1
+</li><li bullet="unchecked-box" indent="2"> Bar 1.1
+</li><li bullet="unchecked-box" indent="1"> Bar 2
+</li><li bullet="unchecked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		start = buffer.get_iter_at_line(2) # Bar
 		end = buffer.get_iter_at_line(6) # Bar 3
@@ -484,10 +536,10 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="xchecked-box" indent="0"> Foo</li>
-<li bullet="unchecked-box" indent="0"> Bar</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="xchecked-box" indent="0"> Foo
+</li><li bullet="unchecked-box" indent="0"> Bar
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		start = buffer.get_iter_at_line(3) # Bar
 		end = buffer.get_iter_at_line(7) # Baz (before checkbox !)
@@ -623,7 +675,7 @@ C
 		self.assertEqual(tree.tostring(), '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p><ul><li bullet="*">item 1item 2</li></ul></p>
+<p><ul><li bullet="*">item 1item 2\n</li></ul></p>
 </zim-tree>''')
 
 	def testMergeLinesWithNotABulletWithoutNewline(self):
@@ -652,7 +704,7 @@ C
 		self.assertEqual(tree.tostring(), '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p><ul><li bullet="*">item 1123. test</li></ul></p>
+<p><ul><li bullet="*">item 1123. test\n</li></ul></p>
 </zim-tree>''')
 
 	def testMergeLinesWithNotABulletAfterNewline(self):
@@ -661,7 +713,7 @@ C
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<ul><li>item 1</li></ul>123. test
+<ul><li>item 1\n</li></ul>123. test
 </zim-tree>
 '''
 		tree = tests.new_parsetree_from_xml(input)
@@ -681,32 +733,32 @@ C
 		self.assertEqual(tree.tostring(), '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<p><ul><li bullet="*">item 1123. test</li></ul></p></zim-tree>''')
+<p><ul><li bullet="*">item 1123. test\n</li></ul></p></zim-tree>''')
 
 	def testFormatHeading(self):
 		buffer = self.get_buffer('foo bar\n')
 		for lvl in range(1, 7):
 			buffer.select_line(0)
 			buffer.toggle_textstyle('h%i' % lvl)
-			self.assertBufferEquals(buffer, '<h level="%i">foo bar</h>\n' % lvl)
+			self.assertBufferEquals(buffer, '<h level="%i">foo bar\n</h>' % lvl)
 
 	def testFormatHeadingWithFormatting(self):
 		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n')
 		buffer.select_line(0)
 		buffer.toggle_textstyle('h2')
-		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="">Foo</link></h>\n')
+		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n</h>')
 
 	def testFormatHeadingOnIndent(self):
-		buffer = self.get_buffer('<div indent="2">foo bar</div>\n')
+		buffer = self.get_buffer('<div indent="2">foo bar\n</div>')
 		buffer.select_line(0)
 		buffer.toggle_textstyle('h2')
-		self.assertBufferEquals(buffer, '<h level="2">foo bar</h>\n')
+		self.assertBufferEquals(buffer, '<h level="2">foo bar\n</h>')
 
 	def testFormatHeadingOnList(self):
-		buffer = self.get_buffer('<li bullet="1."> foo bar</li>\n')
+		buffer = self.get_buffer('<li bullet="1."> foo bar\n</li>')
 		buffer.select_line(0)
 		buffer.toggle_textstyle('h2')
-		self.assertBufferEquals(buffer, '<h level="2" /><h level="2">1. foo bar</h>\n')
+		self.assertBufferEquals(buffer, '<h level="2" /><h level="2">1. foo bar\n</h>')
 				# FIXME: first <h level="2" /> should not be there, but does not seem to affect user behavior
 				#        maybe removed by refactoring serialization
 
@@ -751,13 +803,13 @@ C
 
 	def testFindImplicitAnchor(self):
 		# basic case
-		buffer = self.get_buffer('<h level="1">Title</h>\n')
+		buffer = self.get_buffer('<h level="1">Title\n</h>')
 		self.assertIsNotNone(buffer.find_anchor('title'))
 		# with blanks
-		buffer = self.get_buffer('<h level="2">foo bar</h>\n')
+		buffer = self.get_buffer('<h level="2">foo bar\n</h>')
 		self.assertIsNotNone(buffer.find_anchor('foo-bar'))
 		# with styled text
-		buffer = self.get_buffer('<h level="2"><code>foo</code> bar</h>\n')
+		buffer = self.get_buffer('<h level="2"><code>foo</code> bar\n</h>')
 		self.assertIsNotNone(buffer.find_anchor('foo-bar'))
 
 	def testGetAnchorAtSameIter(self):
@@ -787,293 +839,293 @@ C
 			self.assertEqual(anchor, 'anchor1') # pick closest one
 
 	def testGetAnchorForHeadingExplicit(self):
-		buffer = self.get_buffer('<h level="2">Some heading <anchor name="test">test</anchor></h>\n')
+		buffer = self.get_buffer('<h level="2">Some heading <anchor name="test">test</anchor>\n</h>')
 		iter = buffer.get_iter_at_offset(2)
 		anchor = buffer.get_anchor_for_location(iter)
 		self.assertEqual(anchor, 'test') # prefer explicit over implicit
 
 	def testGetAnchorForHeadingImplicit(self):
-		buffer = self.get_buffer('<h level="2">Some heading</h>\n')
+		buffer = self.get_buffer('<h level="2">Some heading\n</h>')
 		iter = buffer.get_iter_at_offset(2)
 		anchor = buffer.get_anchor_for_location(iter)
 		self.assertEqual(anchor, 'some-heading') # implicit heading anchor
 
 	def testReNumberList(self):
 		buffer = self.get_buffer(
-			'<li bullet="2." indent="0"> foo bar</li>\n'
-			'<li bullet="5." indent="0"> foo bar</li>\n'
-			'<li bullet="7." indent="0"> foo bar</li>\n'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li bullet="5." indent="0"> foo bar\n</li>'
+			'<li bullet="7." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list(1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="2." indent="0"> foo bar</li>\n'
-			'<li bullet="3." indent="0"> foo bar</li>\n'
-			'<li bullet="4." indent="0"> foo bar</li>\n'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li bullet="4." indent="0"> foo bar\n</li>'
 		)
 
 	def testReNumberListWithBullet(self):
 		# Must break at bullet
 		buffer = self.get_buffer(
-			'<li bullet="2." indent="0"> foo bar</li>\n'
-			'<li bullet="*" indent="0"> foo bar</li>\n'
-			'<li bullet="7." indent="0"> foo bar</li>\n'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li bullet="7." indent="0"> foo bar\n</li>'
 		)
 		for line in (0, 1, 2):
 			buffer.renumber_list(line)
 			self.assertBufferEquals(	# Raw content
 				buffer,
-				'<li bullet="2." indent="0"> foo bar</li>\n'
-				'<li bullet="*" indent="0"> foo bar</li>\n'
-				'<li bullet="7." indent="0"> foo bar</li>\n'
+				'<li bullet="2." indent="0"> foo bar\n</li>'
+				'<li bullet="*" indent="0"> foo bar\n</li>'
+				'<li bullet="7." indent="0"> foo bar\n</li>'
 			)
 			self.assertBufferEquals(	# Serialize towards formatter
 				buffer,
 				'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 				'<zim-tree><p>'
-				'<ol start="2"><li>foo bar</li></ol>'
-				'<ul><li bullet="*">foo bar</li></ul>'
-				'<ol start="7"><li>foo bar</li></ol>'
+				'<ol start="2"><li>foo bar\n</li></ol>'
+				'<ul><li bullet="*">foo bar\n</li></ul>'
+				'<ol start="7"><li>foo bar\n</li></ol>'
 				'</p></zim-tree>'
 			)
 
 	def testReNumberListWithCheckbox(self):
 		# Must break at checkbox
 		buffer = self.get_buffer(
-			'<li bullet="2." indent="0"> foo bar</li>\n'
-			'<li bullet="unchecked-box" indent="0"> foo bar</li>\n'
-			'<li bullet="7." indent="0"> foo bar</li>\n'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>'
+			'<li bullet="7." indent="0"> foo bar\n</li>'
 		)
 		for line in (0, 1, 2):
 			buffer.renumber_list(line)
 			self.assertBufferEquals(	# Raw content
 				buffer,
-				'<li bullet="2." indent="0"> foo bar</li>\n'
-				'<li bullet="unchecked-box" indent="0"> foo bar</li>\n'
-				'<li bullet="7." indent="0"> foo bar</li>\n'
+				'<li bullet="2." indent="0"> foo bar\n</li>'
+				'<li bullet="unchecked-box" indent="0"> foo bar\n</li>'
+				'<li bullet="7." indent="0"> foo bar\n</li>'
 			)
 			self.assertBufferEquals(	# Serialize towards formatter
 				buffer,
 				'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 				'<zim-tree><p>'
-				'<ol start="2"><li>foo bar</li></ol>'
-				'<ul><li bullet="unchecked-box">foo bar</li></ul>'
-				'<ol start="7"><li>foo bar</li></ol>'
+				'<ol start="2"><li>foo bar\n</li></ol>'
+				'<ul><li bullet="unchecked-box">foo bar\n</li></ul>'
+				'<ol start="7"><li>foo bar\n</li></ol>'
 				'</p></zim-tree>'
 			)
 
 	def testReNumberListAfterIndentTop(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="2." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 0)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="c." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="c." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentTop(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="c." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="c." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 
 	def testReNumberListAfterIndentMiddle(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(2, 0)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="c." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="c." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentMiddle(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="c." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="c." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(2, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 
 	def testReNumberListAfterIndentBottom(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(3, 0)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="c." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="c." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentBottom(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="c." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="c." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(3, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterIndentForNewNumberSublist1(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="2." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="a." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="a." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterIndentForNewNumberSublist2(self):
 		buffer = self.get_buffer(
-			'<li bullet="a." indent="0"> foo bar</li>\n'
-			'<li bullet="b." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="c." indent="0"> foo bar</li>\n'
+			'<li bullet="a." indent="0"> foo bar\n</li>'
+			'<li bullet="b." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="c." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="a." indent="0"> foo bar</li>\n'
-			'<li bullet="1." indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="b." indent="0"> foo bar</li>\n'
+			'<li bullet="a." indent="0"> foo bar\n</li>'
+			'<li bullet="1." indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="b." indent="0"> foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterIndentForNewBulletSublist(self):
 		buffer = self.get_buffer(
-			'<li bullet="*" indent="0"> foo bar</li>\n'
-			'<li bullet="*" indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="*" indent="0"> foo bar</li>\n'
+			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li bullet="*" indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="*" indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="*" indent="0"> foo bar</li>\n'
-			'<li bullet="*" indent="1"> foo bar</li>\n' # was indented
-			'<li bullet="*" indent="0"> foo bar</li>\n'
+			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li bullet="*" indent="1"> foo bar\n</li>' # was indented
+			'<li bullet="*" indent="0"> foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterUnindentCovertsBulletToNumber(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="*" indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="*" indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="*" indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="*" indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="*" indent="1"> foo bar</li>\n'
-			'<li bullet="3." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="*" indent="1"> foo bar\n</li>'
+			'<li bullet="3." indent="0"> foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentDoesNotTouchCheckbox(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="unchecked-box" indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="unchecked-box" indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="unchecked-box" indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar</li>\n'
-			'<li bullet="unchecked-box" indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="unchecked-box" indent="1"> foo bar</li>\n'
-			'<li bullet="2." indent="0"> foo bar</li>\n'
+			'<li bullet="1." indent="0"> foo bar\n</li>'
+			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="unchecked-box" indent="1"> foo bar\n</li>'
+			'<li bullet="2." indent="0"> foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterUnindentCovertsNumberToBullet(self):
 		buffer = self.get_buffer(
-			'<li bullet="*" indent="0"> foo bar</li>\n'
-			'<li bullet="1." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="2." indent="1"> foo bar</li>\n'
-			'<li bullet="*" indent="0"> foo bar</li>\n'
+			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li bullet="1." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="2." indent="1"> foo bar\n</li>'
+			'<li bullet="*" indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="*" indent="0"> foo bar</li>\n'
-			'<li bullet="*" indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="1." indent="1"> foo bar</li>\n'
-			'<li bullet="*" indent="0"> foo bar</li>\n'
+			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li bullet="*" indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="1." indent="1"> foo bar\n</li>'
+			'<li bullet="*" indent="0"> foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterUnindentCovertsNumberToCheckbox(self):
 		buffer = self.get_buffer(
-			'<li bullet="checked-box" indent="0"> foo bar</li>\n'
-			'<li bullet="1." indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="2." indent="1"> foo bar</li>\n'
-			'<li bullet="checked-box" indent="0"> foo bar</li>\n'
+			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
+			'<li bullet="1." indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="2." indent="1"> foo bar\n</li>'
+			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
 		self.assertBufferEquals(
 			buffer,
-			'<li bullet="checked-box" indent="0"> foo bar</li>\n'
-			'<li bullet="unchecked-box" indent="0"> foo bar</li>\n' # was unindented
-			'<li bullet="1." indent="1"> foo bar</li>\n'
-			'<li bullet="checked-box" indent="0"> foo bar</li>\n'
+			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
+			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>' # was unindented
+			'<li bullet="1." indent="1"> foo bar\n</li>'
+			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
 		)
 
 	def testNestedFormattingRoundtrip(self):
@@ -1148,11 +1200,11 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		# Bullet item should get precedence - this is what the user sees
 		# prio in reverse order of tag creation
 		# bullet should get prio, even if created earlier
-		buffer = self.get_buffer('<li>test 123</li>\n')
+		buffer = self.get_buffer('<li>test 123\n</li>')
 		indent = buffer._get_indent_tag(2)
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(indent, *bounds)
-		self.assertBufferEquals(buffer, '<p><ul><li bullet="*">test 123</li></ul></p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><ul><li bullet="*">test 123\n</li></ul></p>', raw=False)
 
 	def testIllegalIndentedHeading(self):
 		# Heading should get prio - this is what the users sees
@@ -1162,7 +1214,7 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(head1, *bounds)
 		buffer.apply_tag(indent, *bounds)
-		self.assertBufferEquals(buffer, '<h level="1">test 123</h>\n', raw=False)
+		self.assertBufferEquals(buffer, '<h level="1">test 123\n</h>', raw=False)
 
 	def testIllegalDoubleHeading(self):
 		# Highest prio tag should get precedence - this is what the user sees
@@ -1172,15 +1224,15 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(head1, *bounds)
 		buffer.apply_tag(head2, *bounds)
-		self.assertBufferEquals(buffer, '<h level="2">test 123</h>\n', raw=False)
+		self.assertBufferEquals(buffer, '<h level="2">test 123\n</h>', raw=False)
 
 	def testIllegalHeadingWithListItem(self):
 		# Heading should get prio - this is what the users sees
-		buffer = self.get_buffer('<li> test 123</li>\n')
+		buffer = self.get_buffer('<li> test 123\n</li>')
 		head1 = buffer.get_tag_table().lookup('style-h1')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(head1, *bounds)
-		self.assertBufferEquals(buffer, '<h level="1">\u2022 test 123</h>\n', raw=False)
+		self.assertBufferEquals(buffer, '<h level="1">\u2022 test 123\n</h>', raw=False)
 
 	def testIllegalDoubleLink(self):
 		# Serialization should be consistent with get_link_data() to make
@@ -1191,29 +1243,29 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		buffer.apply_tag(link, *bounds)
 		linkdata = buffer.get_link_data(buffer.get_iter_at_offset(4))
 		self.assertEqual(linkdata['href'], 'target')
-		self.assertBufferEquals(buffer, '<p><link href="target">Test 123</link>\n</p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><link href="target">Test 123</link></p>', raw=False)
 
 	def testIllegalDoubleTag(self):
 		buffer = self.get_buffer('<tag name="test">@test</tag>')
 		tag = buffer._create_tag_tag('@test')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(tag, *bounds)
-		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag>\n</p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag></p>', raw=False)
 
 	def testInlineTagsBreakAtNewline(self):
 		buffer = self.get_buffer('<emphasis>line1\nline2</emphasis>', raw=True)
 		self.assertBufferEquals(buffer, '<emphasis>line1\nline2</emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis>line2</emphasis>\n</p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis>line2</emphasis></p>', raw=False)
 
 	def testInlineTagsBreakAtNewline_MultipleTags(self):
 		buffer = self.get_buffer('<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
 		self.assertBufferEquals(buffer, '<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<p><emphasis>line1 <strong>foo</strong></emphasis>\n<emphasis><strong>line2</strong></emphasis>\n</p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1 <strong>foo</strong></emphasis>\n<emphasis><strong>line2</strong></emphasis></p>', raw=False)
 
 	def testInlineTagsBreakAtNewline_LeaveNoEmptyTag(self):
 		buffer = self.get_buffer('<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
 		self.assertBufferEquals(buffer, '<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis><strong>line2</strong></emphasis>\n</p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis><strong>line2</strong></emphasis></p>', raw=False)
 
 	def testInlineTagsBreakAtNewline_ExampleIssue1245(self):
 		buffer = self.get_buffer(
@@ -1228,7 +1280,7 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		)
 		self.assertBufferEquals(buffer,
 			'<p><strike>Ut enim ad minim veniam,</strike>\n'
-			'<strike><link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>\n</p>',
+			'<strike><link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike></p>',
 			raw=False
 		)
 
@@ -1236,13 +1288,13 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		# This could as well be a formatting test - and extend to other markup as well
 		buffer = self.get_buffer('<mark><link href="">mike@example.com</link></mark>', raw=True)
 		self.assertBufferEquals(buffer, '<mark><link href="">mike@example.com</link></mark>', raw=True)
-		self.assertBufferEquals(buffer, '<p><mark><link href="mike@example.com">mike@example.com</link></mark>\n</p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><mark><link href="mike@example.com">mike@example.com</link></mark></p>', raw=False)
 
 	def testHighLightedURL(self):
 		# This could as well be a formatting test - and extend to other markup as well
 		buffer = self.get_buffer('<mark><link href="">http://example.com</link></mark>', raw=True)
 		self.assertBufferEquals(buffer, '<mark><link href="">http://example.com</link></mark>', raw=True)
-		self.assertBufferEquals(buffer, '<p><mark><link href="http://example.com">http://example.com</link></mark>\n</p>', raw=False)
+		self.assertBufferEquals(buffer, '<p><mark><link href="http://example.com">http://example.com</link></mark></p>', raw=False)
 
 	def testAppendTree(self):
 		input = '''\
@@ -1554,14 +1606,14 @@ class TestLists(tests.TestCase, TextBufferTestCaseMixin):
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="*" indent="0"> Foo</li>
-<li bullet="*" indent="0"> Bar</li>
-<li bullet="*" indent="1"> Bar 1</li>
-<li bullet="*" indent="2"> Bar 1.1</li>
-<li bullet="*" indent="1"> Bar 2</li>
-<li bullet="*" indent="1"> Bar 3</li>
-<li bullet="*" indent="0"> Baz</li>
-Tja
+<li bullet="*" indent="0"> Foo
+</li><li bullet="*" indent="0"> Bar
+</li><li bullet="*" indent="1"> Bar 1
+</li><li bullet="*" indent="2"> Bar 1.1
+</li><li bullet="*" indent="1"> Bar 2
+</li><li bullet="*" indent="1"> Bar 3
+</li><li bullet="*" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -1598,14 +1650,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="*" indent="0"> Foo</li>
-<li bullet="*" indent="1"> Bar</li>
-<li bullet="*" indent="2"> Bar 1</li>
-<li bullet="*" indent="3"> Bar 1.1</li>
-<li bullet="*" indent="2"> Bar 2</li>
-<li bullet="*" indent="2"> Bar 3</li>
-<li bullet="*" indent="0"> Baz</li>
-Tja
+<li bullet="*" indent="0"> Foo
+</li><li bullet="*" indent="1"> Bar
+</li><li bullet="*" indent="2"> Bar 1
+</li><li bullet="*" indent="3"> Bar 1.1
+</li><li bullet="*" indent="2"> Bar 2
+</li><li bullet="*" indent="2"> Bar 3
+</li><li bullet="*" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1621,14 +1673,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="*" indent="0"> Foo</li>
-<li bullet="*" indent="1"> Bar</li>
-<li bullet="*" indent="1"> Bar 1</li>
-<li bullet="*" indent="2"> Bar 1.1</li>
-<li bullet="*" indent="2"> Bar 2</li>
-<li bullet="*" indent="2"> Bar 3</li>
-<li bullet="*" indent="0"> Baz</li>
-Tja
+<li bullet="*" indent="0"> Foo
+</li><li bullet="*" indent="1"> Bar
+</li><li bullet="*" indent="1"> Bar 1
+</li><li bullet="*" indent="2"> Bar 1.1
+</li><li bullet="*" indent="2"> Bar 2
+</li><li bullet="*" indent="2"> Bar 3
+</li><li bullet="*" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1667,14 +1719,14 @@ Tja
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo</li>
-<li bullet="unchecked-box" indent="0"> Bar</li>
-<li bullet="unchecked-box" indent="1"> Bar 1</li>
-<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
-<li bullet="unchecked-box" indent="1"> Bar 2</li>
-<li bullet="unchecked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="0"> Foo
+</li><li bullet="unchecked-box" indent="0"> Bar
+</li><li bullet="unchecked-box" indent="1"> Bar 1
+</li><li bullet="unchecked-box" indent="2"> Bar 1.1
+</li><li bullet="unchecked-box" indent="1"> Bar 2
+</li><li bullet="unchecked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -1689,14 +1741,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo</li>
-<li bullet="checked-box" indent="0"> Bar</li>
-<li bullet="checked-box" indent="1"> Bar 1</li>
-<li bullet="checked-box" indent="2"> Bar 1.1</li>
-<li bullet="checked-box" indent="1"> Bar 2</li>
-<li bullet="checked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="0"> Foo
+</li><li bullet="checked-box" indent="0"> Bar
+</li><li bullet="checked-box" indent="1"> Bar 1
+</li><li bullet="checked-box" indent="2"> Bar 1.1
+</li><li bullet="checked-box" indent="1"> Bar 2
+</li><li bullet="checked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1709,14 +1761,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo</li>
-<li bullet="unchecked-box" indent="0"> Bar</li>
-<li bullet="xchecked-box" indent="1"> Bar 1</li>
-<li bullet="checked-box" indent="2"> Bar 1.1</li>
-<li bullet="unchecked-box" indent="1"> Bar 2</li>
-<li bullet="checked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="0"> Foo
+</li><li bullet="unchecked-box" indent="0"> Bar
+</li><li bullet="xchecked-box" indent="1"> Bar 1
+</li><li bullet="checked-box" indent="2"> Bar 1.1
+</li><li bullet="unchecked-box" indent="1"> Bar 2
+</li><li bullet="checked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1726,14 +1778,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo</li>
-<li bullet="unchecked-box" indent="0"> Bar</li>
-<li bullet="xchecked-box" indent="1"> Bar 1</li>
-<li bullet="checked-box" indent="2"> Bar 1.1</li>
-<li bullet="checked-box" indent="1"> Bar 2</li>
-<li bullet="checked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="0"> Foo
+</li><li bullet="unchecked-box" indent="0"> Bar
+</li><li bullet="xchecked-box" indent="1"> Bar 1
+</li><li bullet="checked-box" indent="2"> Bar 1.1
+</li><li bullet="checked-box" indent="1"> Bar 2
+</li><li bullet="checked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1743,14 +1795,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo</li>
-<li bullet="unchecked-box" indent="0"> Bar</li>
-<li bullet="unchecked-box" indent="1"> Bar 1</li>
-<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
-<li bullet="checked-box" indent="1"> Bar 2</li>
-<li bullet="checked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="0"> Foo
+</li><li bullet="unchecked-box" indent="0"> Bar
+</li><li bullet="unchecked-box" indent="1"> Bar 1
+</li><li bullet="unchecked-box" indent="2"> Bar 1.1
+</li><li bullet="checked-box" indent="1"> Bar 2
+</li><li bullet="checked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1761,14 +1813,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo</li>
-<li bullet="checked-box" indent="0"> Bar</li>
-<li bullet="checked-box" indent="1"> Bar 1</li>
-<li bullet="checked-box" indent="2"> Bar 1.1</li>
-<li bullet="checked-box" indent="1"> Bar 2</li>
-<li bullet="checked-box" indent="1"> Bar 3</li>
-<li bullet="unchecked-box" indent="0"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="0"> Foo
+</li><li bullet="checked-box" indent="0"> Bar
+</li><li bullet="checked-box" indent="1"> Bar 1
+</li><li bullet="checked-box" indent="2"> Bar 1.1
+</li><li bullet="checked-box" indent="1"> Bar 2
+</li><li bullet="checked-box" indent="1"> Bar 3
+</li><li bullet="unchecked-box" indent="0"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1780,14 +1832,14 @@ Tja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="1"> Foo</li>
-<li bullet="checked-box" indent="1"> Bar</li>
-<li bullet="checked-box" indent="2"> Bar 1</li>
-<li bullet="checked-box" indent="3"> Bar 1.1</li>
-<li bullet="checked-box" indent="2"> Bar 2</li>
-<li bullet="checked-box" indent="2"> Bar 3</li>
-<li bullet="unchecked-box" indent="1"> Baz</li>
-Tja
+<li bullet="unchecked-box" indent="1"> Foo
+</li><li bullet="checked-box" indent="1"> Bar
+</li><li bullet="checked-box" indent="2"> Bar 1
+</li><li bullet="checked-box" indent="3"> Bar 1.1
+</li><li bullet="checked-box" indent="2"> Bar 2
+</li><li bullet="checked-box" indent="2"> Bar 3
+</li><li bullet="unchecked-box" indent="1"> Baz
+</li>Tja
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1876,8 +1928,8 @@ class TestTextView(tests.TestCase, TextBufferTestCaseMixin):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="0"> </li></zim-tree>'''
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="0"> </li></zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		start, end = buffer.get_bounds()
 		self.assertEqual(tree.tostring(), wanted)
@@ -1886,8 +1938,8 @@ class TestTextView(tests.TestCase, TextBufferTestCaseMixin):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="1"> duss</li></zim-tree>'''
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="1"> duss</li></zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
@@ -1895,9 +1947,9 @@ class TestTextView(tests.TestCase, TextBufferTestCaseMixin):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> </li></zim-tree>'''
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="1"> duss
+</li><li bullet="*" indent="1"> </li></zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
@@ -1905,10 +1957,10 @@ class TestTextView(tests.TestCase, TextBufferTestCaseMixin):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
-<li bullet="*" indent="1"> </li></zim-tree>'''
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="1"> duss
+</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
+</li><li bullet="*" indent="1"> </li></zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
@@ -1916,10 +1968,10 @@ class TestTextView(tests.TestCase, TextBufferTestCaseMixin):
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
-
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="1"> duss
+</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
+</li>
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1947,10 +1999,10 @@ foo
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
-
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="1"> duss
+</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
+</li>
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1962,11 +2014,10 @@ foo
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="1"> </li>
-<li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
-
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="1"> \n</li><li bullet="*" indent="1"> duss
+</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
+</li>
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1978,11 +2029,10 @@ foo
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-<li bullet="*" indent="0"> </li>
-<li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
-
+<li bullet="*" indent="0"> foo
+</li><li bullet="*" indent="0"> \n</li><li bullet="*" indent="1"> duss
+</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
+</li>
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1995,11 +2045,11 @@ foo
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li>
-
-<li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
-
+<li bullet="*" indent="0"> foo
+</li>
+<li bullet="*" indent="1"> duss
+</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
+</li>
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -2079,7 +2129,7 @@ foo
 
 		# copy partial
 		# line 33, offset 6 to 28 "try these **bold**, //italic//" in roundtrip page
-		wanted_tree = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\"><p>try these <strong>bold</strong>, <emphasis>italic</emphasis></p></zim-tree>"
+		wanted_tree = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree><p>try these <strong>bold</strong>, <emphasis>italic</emphasis></p></zim-tree>"
 		wanted_text = "try these bold, italic" # no newline !
 		Clipboard.clear()
 		self.assertIsNone(Clipboard.get_parsetree())
@@ -2128,7 +2178,7 @@ foo
 		self.assertEqual(Clipboard.get_text(), 'Foo **Bar** Baz\n')
 		tree = Clipboard.get_parsetree(pageview.notebook, page)
 		self.assertEqual(tree.tostring(),
-			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True"><p>Foo <strong>Bar</strong> Baz\n</p></zim-tree>')
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><p>Foo <strong>Bar</strong> Baz\n</p></zim-tree>')
 
 		page = tests.new_page_from_text('[[Bar]]')
 		pageview.set_page(page)
@@ -2169,8 +2219,7 @@ foo
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n"
-			'<zim-tree><p>foo <link href="link">link</link> \n'
-			"</p></zim-tree>"
+			'<zim-tree><p>foo <link href="link">link</link> </p></zim-tree>'
 		)
 		Clipboard.set_text('foo [[no link]]')
 		buffer.toggle_textstyle('code')
@@ -2179,8 +2228,7 @@ foo
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n"
-			'<zim-tree><p>foo <link href="link">link</link> <code>foo [[no link]]</code>\n'
-			"</p></zim-tree>"
+			'<zim-tree><p>foo <link href="link">link</link> <code>foo [[no link]]</code></p></zim-tree>'
 		)
 
 	def testUnkownObjectType(self):
@@ -2249,11 +2297,12 @@ class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 			self.buffer.place_cursor(iter)
 		press(self.view, '\n')
 
-	def assertInsertNewLine(self, input, wanted, line=-1):
+	def assertInsertNewLine(self, input, wanted, wanted_alt=None, line=-1):
 		self._assertInsertNewLine(input, wanted, line)
 		if line == -1:
 			# Ensure that end of buffer is not special
-			self._assertInsertNewLine(input + '\n', wanted + '\n', line=-2)
+			mywanted = wanted_alt or wanted + '\n'
+			self._assertInsertNewLine(input + '\n', mywanted, line=-2)
 
 	def _assertInsertNewLine(self, input, wanted, line=-1):
 		input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
@@ -2272,9 +2321,9 @@ class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertInsertNewLine('aaa\nbbb', 'aaa\n\nbbb', line=0)
 
 	def testFormatHeading(self):
-		self.assertInsertNewLine('== Foo', '<h level="1">Foo</h>\n')
-		self.assertInsertNewLine('=== Foo', '<h level="2">Foo</h>\n')
-		self.assertInsertNewLine('=== Foo ===', '<h level="2">Foo</h>\n')
+		self.assertInsertNewLine('== Foo', '<h level="1">Foo\n</h>')
+		self.assertInsertNewLine('=== Foo', '<h level="2">Foo\n</h>')
+		self.assertInsertNewLine('=== Foo ===', '<h level="2">Foo\n</h>')
 
 	def testNoFormattingInsideCode(self):
 		# Make sure text inside code is not being formatted
@@ -2287,113 +2336,121 @@ class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 	def testAddBullet(self):
 		self.assertInsertNewLine(
 			'<li bullet="*" indent="0"> foo</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="0"> </li>'
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="0"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="0"> \n</li>'
 		)
 
 	def testRemoveEmptyBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="0"> </li>',
-			'<li bullet="*" indent="0"> foo</li>\n\n'
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="0"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li>\n'
 		)
 
 	def testAddSubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> \n</li>'
 		)
 
 	def testRemoveEmptySubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="1"> </li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n\n'
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li>\n'
 		)
 
 	def testAddSubBulletAtTopOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> </li>\n<li bullet="*" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> \n</li><li bullet="*" indent="1"> bar</li>',
 			line=0
 		)
 
 	def testAddSubBulletAtBottomOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="0"> next</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="1"> </li>\n<li bullet="*" indent="0"> next</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="0"> next</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> \n</li><li bullet="*" indent="0"> next</li>',
 			line=1
 		)
 
 	def testAddNumberedBullet(self):
 		self.assertInsertNewLine(
 			'<li bullet="1." indent="0"> foo</li>',
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="2." indent="0"> </li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="2." indent="0"> </li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="2." indent="0"> \n</li>'
 		)
 
 	def testRemoveEmptyNumberedBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="2." indent="0"> </li>',
-			'<li bullet="1." indent="0"> foo</li>\n\n',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="2." indent="0"> </li>',
+			'<li bullet="1." indent="0"> foo\n</li>\n',
 		)
 
 	def testAddNumberedSubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>',
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>\n<li bullet="b." indent="1"> </li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar</li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li><li bullet="b." indent="1"> </li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li><li bullet="b." indent="1"> \n</li>'
 		)
 
 	def testRemoveEmptyNumberedSubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>\n<li bullet="b." indent="1"> </li>',
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>\n\n',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li><li bullet="b." indent="1"> </li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li>\n',
 		)
 
 	def testAddNumberedSubBulletAtTopOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>',
-			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> </li>\n<li bullet="b." indent="1"> bar</li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar</li>',
+			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> \n</li><li bullet="b." indent="1"> bar</li>',
 			line=0
 		)
 
 	def testAddCheckbox(self):
 		self.assertInsertNewLine(
 			'<li bullet="unchecked-box" indent="0"> foo</li>',
-			'<li bullet="unchecked-box" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="0"> </li>',
+			'<li bullet="unchecked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> </li>',
+			'<li bullet="unchecked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> \n</li>'
 		)
 		self.assertInsertNewLine(
 			'<li bullet="checked-box" indent="0"> foo</li>',
-			'<li bullet="checked-box" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="0"> </li>',
+			'<li bullet="checked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> </li>',
+			'<li bullet="checked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> \n</li>'
 		)
 
 	def testRemoveEmptyCheckbox(self):
 		self.assertInsertNewLine(
-			'<li bullet="unchecked-box" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="0"> </li>',
-			'<li bullet="unchecked-box" indent="0"> foo</li>\n\n',
+			'<li bullet="unchecked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> </li>',
+			'<li bullet="unchecked-box" indent="0"> foo\n</li>\n',
 		)
 
 	def testAddSubCheckbox(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>\n<li bullet="unchecked-box" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> \n</li>'
 		)
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="checked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="checked-box" indent="1"> bar</li>\n<li bullet="unchecked-box" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> \n</li>'
 		)
 
 	def testRemoveEmptySubCheckbox(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>\n<li bullet="unchecked-box" indent="1"> </li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>\n\n',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li>\n',
 		)
 
 	def testAddSubCheckboxAtTopOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> </li>\n<li bullet="unchecked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> \n</li><li bullet="unchecked-box" indent="1"> bar</li>',
 			line=0
 		)
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="checked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> </li>\n<li bullet="checked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> \n</li><li bullet="checked-box" indent="1"> bar</li>',
 			line=0
 		)
 
@@ -2580,9 +2637,9 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping('1. ', '<li bullet="unchecked-box" indent="0"> 1. Test</li>')
 
 	def testNoAutoFormatBulletInHeading(self):
-		self.set_buffer(self.buffer, '<h level="1">test</h>\n')
+		self.set_buffer(self.buffer, '<h level="1">test\n</h>')
 		self.buffer.place_cursor(self.buffer.get_iter_at_offset(0))
-		self.assertTyping('* Test ', '<h level="1">* Test test</h>\n')
+		self.assertTyping('* Test ', '<h level="1">* Test test\n</h>')
 
 
 class TestPageView(tests.TestCase, TextBufferTestCaseMixin):
@@ -2625,15 +2682,15 @@ Baz
 		pageview.autoselect()
 		self.assertSelection(buffer, 0, 5, '123')
 		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # extended
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n') # extended
 
 		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # no change
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n') # no change
 
 		buffer.place_cursor(buffer.get_iter_at_offset(6))
 		self.assertFalse(buffer.get_has_selection())
 		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo')
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n')
 
 		# empty line
 		buffer.place_cursor(buffer.get_iter_at_line(3))
@@ -2664,7 +2721,7 @@ Baz
 		buffer.place_cursor(buffer.get_iter_at_line(2))
 		buffer.select_line()
 		pageview.insert_links(('http://cpan.org',))
-		wantedtext = 'Test 123\nfoo\n%s\n%s\n' % ('http://cpan.org ', os_native_path('~/bar.txt'))
+		wantedtext = 'Test 123\nfoo\n%s%s\n' % ('http://cpan.org ', os_native_path('~/bar.txt'))
 		text = get_text(buffer)
 		self.assertEqual(text, wantedtext)
 
@@ -2780,12 +2837,12 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 	def testApplyFormatHeadingWithSelection(self):
 		self.buffer.select_line(0)
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123\n</h>')
 
 	def testApplyFormatHeadingNoSelection(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123\n</h>')
 		self.assertFalse(self.buffer.get_has_selection())
 		cursor = self.buffer.get_insert_iter().get_offset()
 		self.assertEqual(cursor, 0)
@@ -2795,12 +2852,12 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.activate('apply_format_h3')
 		self.buffer.select_line(0)
 		self.activate('apply_format_h4')
-		self.assertBufferEquals(self.buffer, '<h level="4">Test 123</h>\n')
+		self.assertBufferEquals(self.buffer, '<h level="4">Test 123\n</h>')
 
 	def testApplyFormatHeadingNoSelection(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123\n</h>')
 
 	def testApplyFormatHeadingWithFormatting(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
@@ -2808,7 +2865,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.activate('apply_format_strong')
 		self.buffer.select_line(0)
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123</h>\n')
+		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123\n</h>')
 
 	def testApplyFormattingOnHeading(self):
 		self.buffer.select_line(0)
@@ -2816,7 +2873,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123</h>\n')
+		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123\n</h>')
 
 	def testApplyFormatStrong(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
@@ -2987,13 +3044,13 @@ class TestPageViewActions(tests.TestCase):
 			with buffer.user_action:
 				buffer.insert_at_cursor(text)
 
-		self.assertEqual(get_text(buffer), 'test 123\n')
+		self.assertEqual(get_text(buffer), 'test 123')
 
-		for text in ('test \n', 'test\n', '\n'):
+		for text in ('test ', 'test', ''):
 			pageview.undo()
 			self.assertEqual(get_text(buffer), text)
 
-		for text in ('test\n', 'test \n', 'test 123\n'):
+		for text in ('test', 'test ', 'test 123'):
 			pageview.redo()
 			self.assertEqual(get_text(buffer), text)
 
@@ -3038,11 +3095,11 @@ class TestPageViewActions(tests.TestCase):
 		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
 		buffer.place_cursor(buffer.get_iter_at_offset(1))
-		self.assertEqual(get_text(buffer), 'test 123\n')
+		self.assertEqual(get_text(buffer), 'test 123')
 		pageview.delete()
-		self.assertEqual(get_text(buffer), 'tst 123\n')
+		self.assertEqual(get_text(buffer), 'tst 123')
 		pageview.delete()
-		self.assertEqual(get_text(buffer), 'tt 123\n')
+		self.assertEqual(get_text(buffer), 'tt 123')
 
 	def testUnCheckCheckBox(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')
@@ -3253,21 +3310,21 @@ class TestPageViewActions(tests.TestCase):
 		pageview.insert_bullet_list()
 		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
-		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n', '\n'])
+		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n'])
 
 	def testInsertNumberedList(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		pageview.insert_numbered_list()
 		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
-		self.assertEqual(pageview.page.dump('wiki'), ['1. test 123\n', '\n'])
+		self.assertEqual(pageview.page.dump('wiki'), ['1. test 123\n'])
 
 	def testInsertCheckBoxList(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		pageview.insert_checkbox_list()
 		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
-		self.assertEqual(pageview.page.dump('wiki'), ['[ ] test 123\n', '\n'])
+		self.assertEqual(pageview.page.dump('wiki'), ['[ ] test 123\n'])
 
 	def testApplyBulletList(self):
 		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
@@ -3323,7 +3380,7 @@ class TestPageViewActions(tests.TestCase):
 		with tests.DialogContext(select_file):
 			pageview.insert_text_from_file()
 
-		self.assertEqual(pageview.page.dump('wiki'), ['my text\n', '\n'])
+		self.assertEqual(pageview.page.dump('wiki'), ['my text\n'])
 
 	def testInsertLink(self):
 		pageview = setUpPageView(self.setUpNotebook())
@@ -3335,7 +3392,7 @@ class TestPageViewActions(tests.TestCase):
 		with tests.DialogContext(select_link):
 			pageview.insert_link()
 
-		self.assertEqual(pageview.page.dump('wiki'), ['[[mylink]]\n'])
+		self.assertEqual(pageview.page.dump('wiki'), ['[[mylink]]'])
 
 		def update_link(dialog):
 			dialog.set_input(href='mylink', text="foo")
@@ -3346,7 +3403,7 @@ class TestPageViewActions(tests.TestCase):
 		with tests.DialogContext(update_link):
 			pageview.insert_link()
 
-		self.assertEqual(pageview.page.dump('wiki'), ['[[mylink|foo]]\n'])
+		self.assertEqual(pageview.page.dump('wiki'), ['[[mylink|foo]]'])
 
 	def testOpenFileTemplatesFolder(self):
 		pageview = setUpPageView(self.setUpNotebook())
@@ -3431,6 +3488,7 @@ class TestPageViewActions(tests.TestCase):
 
 		buffer1 = pageview1.textview.get_buffer()
 		buffer2 = pageview2.textview.get_buffer()
+		self.assertEqual(get_text(buffer2), '')
 
 		buffer1.place_cursor(buffer1.get_iter_at_offset(12))
 		pageview1.copy_current_line()
@@ -3442,10 +3500,8 @@ class TestPageViewActions(tests.TestCase):
 		# Ensure copying a line with no text does not add anything
 		# to the clipboard.
 		Clipboard.clear()
-		pageview3 = setUpPageView(self.setUpNotebook())
-		buffer3 = pageview3.textview.get_buffer()
-		buffer3.place_cursor(buffer3.get_iter_at_offset(0))
-		pageview3.copy_current_line()
+		buffer1.place_cursor(buffer1.get_bounds()[-1]) # after final "\n"
+		pageview1.copy_current_line()
 		with tests.LoggingFilter('zim.gui.clipboard'):
 			self.assertIsNone(Clipboard.get_parsetree())
 
@@ -3559,8 +3615,7 @@ dus bar bazzz baz
 		self.assertEqual(
 			buffer.get_parsetree().tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
-			'<zim-tree><p><link href="Foo:Bar">Foo:Bar</link>\n'
-			'</p></zim-tree>'
+			'<zim-tree><p><link href="Foo:Bar">Foo:Bar</link></p></zim-tree>'
 		)
 
 	def testInsertLinkDialogShortLinkName(self):
@@ -3573,8 +3628,7 @@ dus bar bazzz baz
 		self.assertEqual(
 			buffer.get_parsetree().tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
-			'<zim-tree><p><link href="Foo:Bar">Bar</link>\n'
-			'</p></zim-tree>'
+			'<zim-tree><p><link href="Foo:Bar">Bar</link></p></zim-tree>'
 		)
 
 	def testInsertLinkDialogUpdateText(self):
@@ -3800,7 +3854,8 @@ All in one page
 ''')
 
 		buffer = pageview.textview.get_buffer()
-		buffer.select_lines(2, 4)
+		buffer.select_lines(2, 3)
+		self.assertEqual(pageview.get_selection(), 'An image \nAnd a link +Foo\n')
 
 		newpath = Path('Bar')
 		def move_text_dialog(dialog):
