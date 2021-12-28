@@ -176,6 +176,7 @@ class WindowBaseMixin(object):
 				c.connect('toggled', self._update_fullscreen_revealer)
 
 	def set_title(self, text):
+		Gtk.Window.set_title(self, text)
 		self._headerbar.set_title(text)
 		self._fullscreen_headerbar.set_title(text)
 
