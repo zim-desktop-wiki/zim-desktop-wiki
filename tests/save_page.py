@@ -230,10 +230,10 @@ class TestNavigation(tests.TestCase):
 		def discard(dialog):
 			self.assertIsInstance(dialog, SavePageErrorDialog)
 			self.assertTrue(mainwindow.page.modified)
-			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!'])
 			dialog.discard()
 			self.assertFalse(mainwindow.page.modified)
-			self.assertNotEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+			self.assertNotEqual(mainwindow.page.dump('wiki'), ['Changed!'])
 
 		self.assertEqual(mainwindow.page.name, 'Test')
 
@@ -258,10 +258,10 @@ class TestNavigation(tests.TestCase):
 		def cancel(dialog):
 			self.assertIsInstance(dialog, SavePageErrorDialog)
 			self.assertTrue(mainwindow.page.modified)
-			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!'])
 			dialog.response(Gtk.ResponseType.CANCEL)
 			self.assertTrue(mainwindow.page.modified)
-			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!'])
 
 		self.assertEqual(mainwindow.page.name, 'Test')
 

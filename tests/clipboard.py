@@ -143,26 +143,26 @@ some <b>bold</b> text
 		self.assertTrue(Clipboard.get_parsetree() is None)
 
 	def testCopyTextPasteAsParseTree(self):
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True">some **string**</zim-tree>'''
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>some **string**</zim-tree>'''
 		Clipboard.set_text('some **string**')
 		newtree = Clipboard.get_parsetree(self.notebook)
 		self.assertEqual(newtree.tostring(), wanted)
 
 	def testCopyTextPasteAsParseTreeWiki(self):
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True"><p>some <strong>string</strong></p></zim-tree>'''
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree><p>some <strong>string</strong></p></zim-tree>'''
 		Clipboard.set_text('some **string**')
 		newtree = Clipboard.get_parsetree(self.notebook, text_format='wiki')
 		self.assertEqual(newtree.tostring(), wanted)
 
 	def testCopyTextPasteAsParseTreeVerbatim(self):
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True"><pre>some **string**</pre></zim-tree>'''
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree><pre>some **string**</pre></zim-tree>'''
 		Clipboard.set_text('some **string**')
 		newtree = Clipboard.get_parsetree(self.notebook, text_format='verbatim-pre')
 		self.assertEqual(newtree.tostring(), wanted)
 
 	def testCopyURLasTextPasteAsParseTree(self):
 		# Special case, e.g. copy URL from browser address bar as text
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True"><link href="https://localhost">https://localhost</link></zim-tree>'''
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree><link href="https://localhost">https://localhost</link></zim-tree>'''
 		Clipboard.set_text('https://localhost')
 		newtree = Clipboard.get_parsetree(self.notebook)
 		self.assertEqual(newtree.tostring(), wanted)
@@ -297,7 +297,7 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<link href="+Foo">+Foo</link>\n'
 			'<link href="+Foo">my foo link</link>\n'
-			'<link href="+Foo#anchor">+Foo#anchor</link>\n'
+			'<link href="+Foo#anchor">+Foo#anchor</link>'
 			'</p></zim-tree>'
 		) # No need to update the link
 
@@ -314,7 +314,7 @@ some <b>bold</b> text
 			'<link href="Test:Foo">Test:Foo</link>\n'
 			'<link href="Test:Foo">Foo</link>\n'
 			'<link href="Test:Foo">my foo link</link>\n'
-			'<link href="Test:Foo#anchor">Test:Foo#anchor</link>\n'
+			'<link href="Test:Foo#anchor">Test:Foo#anchor</link>'
 			'</p></zim-tree>'
 		) # Link updated to point to same target from new location
 
@@ -331,7 +331,7 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<link href="first_notebook?Test:Foo">first_notebook?Test:Foo</link>\n'
 			'<link href="first_notebook?Test:Foo">my foo link</link>\n'
-			'<link href="first_notebook?Test:Foo#anchor">first_notebook?Test:Foo#anchor</link>\n'
+			'<link href="first_notebook?Test:Foo#anchor">first_notebook?Test:Foo#anchor</link>'
 			'</p></zim-tree>'
 		) # Link updated to point to same target from new location
 
@@ -347,7 +347,7 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<link href="./attachment.pdf">./attachment.pdf</link>\n'
 			'<link href="./attachment.pdf">my attachment</link>\n'
-			'<link href="file://host/file">file://host/file</link>\n'
+			'<link href="file://host/file">file://host/file</link>'
 			'</p></zim-tree>'
 		) # No need to update the link - file uri to external host untouched
 
@@ -363,7 +363,7 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<link href="%s">%s</link>\n'
 			'<link href="%s">my attachment</link>\n'
-			'<link href="file://host/file">file://host/file</link>\n'
+			'<link href="file://host/file">file://host/file</link>'
 			'</p></zim-tree>' % (
 				os_native_path('../Test/attachment.pdf'),
 				os_native_path('../Test/attachment.pdf'),
@@ -387,7 +387,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<link href="%(file_uri)s">%(file_uri)s</link>\n'
-			'<link href="%(file_uri)s">my attachment</link>\n'
+			'<link href="%(file_uri)s">my attachment</link>'
 			'</p></zim-tree>' % {'file_uri': file_uri}
 		) # Link updated to point to same target from new location
 
@@ -402,7 +402,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<img src="./attachment.png" />\n'
-			'<img src="../OtherPage/otherimage.png" />\n'
+			'<img src="../OtherPage/otherimage.png" />'
 			'</p></zim-tree>'
 		) # No need to update the images
 
@@ -429,7 +429,7 @@ some <b>bold</b> text
 			'<img src="%s" />\n'
 			'<img src="%s" />\n'
 			'<img src="%s" />\n'
-			'<img src="%s" />\n'
+			'<img src="%s" />'
 			'</p></zim-tree>' % (
 				os_native_path('./attachment1.png'),
 				os_native_path('./attachment2.png'),
@@ -466,7 +466,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<img src="%s" />\n'
-			'<img src="%s" />\n'
+			'<img src="%s" />'
 			'</p></zim-tree>' % (
 				os_native_path('./attachment.png'),
 				os_native_path('./otherimage.png')
@@ -485,7 +485,7 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<object src="./foo.png" type="image+equation" />\n'
+			'<object src="./foo.png" type="image+equation" />'
 			'</p></zim-tree>'
 		) # No need to update the images
 
@@ -512,7 +512,7 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<object src="%s" type="image+equation" />\n'
+			'<object src="%s" type="image+equation" />'
 			'</p></zim-tree>' % os_native_path('./foo002.png')
 		) # Sources are copied and number is added due to existing files
 		self.assertTrue(newfile_1.exists())
@@ -540,7 +540,7 @@ some <b>bold</b> text
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
-			'<object src="%s" type="image+equation" />\n'
+			'<object src="%s" type="image+equation" />'
 			'</p></zim-tree>' % os_native_path('./foo.png')
 		) # Sources are copied and number is added due to existing files
 		self.assertTrue(newfile_1.exists())
@@ -558,7 +558,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<link href="wp?Foo">wp?Foo</link>\n'
-			'<link href="wp?Foo">wikipedia Foo</link>\n'
+			'<link href="wp?Foo">wikipedia Foo</link>'
 			'</p></zim-tree>'
 		) # Does not need update - check it is left alone
 
@@ -576,7 +576,7 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<link href="wp?Foo">wp?Foo</link>\n'
-			'<link href="wp?Foo">wikipedia Foo</link>\n'
+			'<link href="wp?Foo">wikipedia Foo</link>'
 			'</p></zim-tree>'
 		) # Does not need update - check it is left alone
 

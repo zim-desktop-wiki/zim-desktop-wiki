@@ -59,7 +59,7 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		from zim.formats import ParseTree
 		template = '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><p><ul>%s</ul></p></zim-tree>'
 		tree = ParseTree().fromstring(
-			template % '<li>B list item</li><li>C list item</li><li>A list item</li>'
+			template % '<li>B list item\n</li><li>C list item\n</li><li>A list item\n</li>'
 		)
 		self.buffer.set_parsetree(tree)
 		self.select_range(0, 42)
@@ -67,7 +67,7 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		tree = self.buffer.get_parsetree()
 		self.assertEqual(
 			tree.tostring(),
-			template % '<li bullet="*">A list item</li><li bullet="*">B list item</li><li bullet="*">C list item</li>'
+			template % '<li bullet="*">A list item\n</li><li bullet="*">B list item\n</li><li bullet="*">C list item\n</li>'
 		)
 
 	def testErrorForSortLinesIfNoSelection(self):
@@ -159,17 +159,17 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		# in the test suite.
 		# Doubles as test for content other than pure text
 		self.set_buffer(self.buffer, '''\
-<li bullet="*" indent="0"> line A</li>
-<li bullet="*" indent="0"> line B</li>
-<h level="2">Heading</h>
+<li bullet="*" indent="0"> line A
+</li><li bullet="*" indent="0"> line B
+</li><h level="2">Heading</h>
 ''')
 		self.place_cursor(10)
 		self.extension.duplicate_line()
 		self.assertBufferEquals(self.buffer, '''\
-<li bullet="*" indent="0"> line A</li>
-<li bullet="*" indent="0"> line B</li>
-<li bullet="*" indent="0"> line B</li>
-<h level="2">Heading</h>
+<li bullet="*" indent="0"> line A
+</li><li bullet="*" indent="0"> line B
+</li><li bullet="*" indent="0"> line B
+</li><h level="2">Heading</h>
 '''
 )
 

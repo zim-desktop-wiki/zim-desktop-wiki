@@ -22,14 +22,12 @@ class InsertedObjectType(object):
 	for widgets can be found in L{zim.gui.insertedobjects}.
 	'''
 
-	# TODO: API to communicate whether this is an inline object or a block
-	#       level object. This could change while editing so must be a model
-	#       property somehow.
-
 	name = None
 
 	label = None
 	verb_icon = None
+
+	is_inline = False
 
 	object_attr = {}
 

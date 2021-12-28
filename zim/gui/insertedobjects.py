@@ -349,6 +349,8 @@ class UnknownInsertedImageObject(InsertedObjectType):
 
 	name = "unknown-image"
 
+	is_inline = True # Behave like an image
+
 	label = _('Unkown Image type')  # T: label for inserted object
 
 	def parse_attrib(self, attrib):

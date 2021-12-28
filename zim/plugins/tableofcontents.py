@@ -76,7 +76,7 @@ def get_headings(parsetree, include_hr):
 		if t[0] == HEADING:
 			level = int(t[1]['level'])
 			text = tokens_to_text(
-						collect_untill_end_token(tokens, HEADING) )
+						collect_untill_end_token(tokens, HEADING) ).strip()
 			assert level > 0 # just to be sure
 			while stack[-1][0] >= level:
 				stack.pop()

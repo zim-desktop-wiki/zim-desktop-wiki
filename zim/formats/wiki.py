@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger('zim.formats.wiki')
 
-from zim.parser import Rule, fix_line_end, convert_space_to_tab
+from zim.parser import Rule, fix_unicode_chars, convert_space_to_tab
 from zim.parser import Parser as RuleParser
 from zim.parsing import url_encode, URL_ENCODE_DATA, \
 	escape_string, unescape_string, split_escaped_string
@@ -198,7 +198,8 @@ class WikiParser(object):
 
 	def __call__(self, builder, text):
 		builder.start(FORMATTEDTEXT)
-		self.block_parser(builder, text)
+		if text:
+			self.block_parser(builder, text)
 		builder.end(FORMATTEDTEXT)
 
 	def _init_inline_parse(self):
@@ -302,7 +303,7 @@ class WikiParser(object):
 				process=self.parse_table
 			),
 			# line format
-			Rule(LINE, r'(?<=\n)-{5,}(?=\n)', process=self.parse_line) # \n----\n
+			Rule(LINE, r'(?<=\n)-{5,}\n', process=self.parse_line) # \n----\n
 
 		)
 		p.process_unmatched = self.parse_para
@@ -629,14 +630,12 @@ class Parser(ParserClass):
 	def __init__(self, version=WIKI_FORMAT_VERSION):
 		self.version = version
 
-	def parse(self, input, partial=False, file_input=False):
+	def parse(self, input, file_input=False):
 		if not isinstance(input, str):
 			input = ''.join(input)
 
 		input = input.replace('\u2029', ' ') # Unicode PARAGRAPH SEPARATOR, causes conflict between "splitlines()" and regex "\n" matching - see issues #1760
-
-		if not partial:
-			input = fix_line_end(input)
+		input = fix_unicode_chars(input)
 
 		meta, version = None, False
 		if file_input:
@@ -652,7 +651,7 @@ class Parser(ParserClass):
 		else:
 			mywikiparser = WikiParser(backward_indented_blocks=True, backward_url_parsing=True)
 
-		builder = ParseTreeBuilder(partial=partial)
+		builder = ParseTreeBuilder()
 		mywikiparser(builder, input)
 
 		parsetree = builder.get_parsetree()
@@ -698,8 +697,10 @@ class Dumper(TextDumper):
 				('Content-Type', 'text/x-zim-wiki'),
 				('Wiki-Format', WIKI_FORMAT_VERSION),
 			)
-			return [dump_header_lines(header, getattr(tree, 'meta', {})), '\n'] \
-						+ TextDumper.dump(self, tree)
+			body = TextDumper.dump(self, tree)
+			if not body[-1].endswith('\n'):
+				body[-1] = body[-1] + '\n'
+			return [dump_header_lines(header, getattr(tree, 'meta', {})), '\n'] + body
 		else:
 			return TextDumper.dump(self, tree)
 
@@ -719,7 +720,8 @@ class Dumper(TextDumper):
 			level = 5
 		tag = '=' * (7 - level)
 		strings.insert(0, tag + ' ')
-		strings.append(' ' + tag)
+		text = strings.pop()
+		strings.append(text.rstrip() + ' ' + tag + '\n') # includes stripping "\n"
 		return strings
 
 	def dump_anchor(self, tag, attrib, strings=None):

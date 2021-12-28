@@ -978,10 +978,10 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 	def testMultipleLinksOnePage(self):
 		self.movePage(
 			pre=({
-					'A': 'test 123',
-					'A:A1': 'test 123',
-					'B': '[[A]]\n[[:A]]\n[[D]]\n[[A:A1]]',
-					'D': 'test 123',
+					'A': 'test 123\n',
+					'A:A1': 'test 123\n',
+					'B': '[[A]]\n[[:A]]\n[[D]]\n[[A:A1]]\n',
+					'D': 'test 123\n',
 				},
 				[('B', 'A'), ('B', 'A:A1'), ('B', 'D')]
 			),
@@ -1390,7 +1390,7 @@ class TestPage(TestPath):
 		page.set_parsetree(tree)
 		self.assertEqual(page.dump('wiki'), ['ABC\n'])
 		self.assertFalse(page.check_source_changed())
-		file.write('DEF')
+		file.write('DEF\n')
 		self.assertEqual(page.dump('wiki'), ['ABC\n'])
 		self.assertTrue(page.check_source_changed())
 		self.assertEqual(page.dump('wiki'), ['DEF\n'])

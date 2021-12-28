@@ -273,14 +273,13 @@ class TestBuilderTextBuffer(tests.TestCase):
 
 class TestParser(tests.TestCase):
 
-	def testFunctions(self):
-		# Helper functions
+	def testFixUnicode(self):
+		self.assertEqual(fix_unicode_chars('foo\u2028bar\u2029check\n'), 'foo\nbar check\n')
 
-		self.assertEqual(fix_line_end('foo'), 'foo\n')
-		self.assertEqual(fix_line_end('foo\nbar'), 'foo\nbar\n')
-
+	def testConvertSpaceToTab(self):
 		self.assertEqual(convert_space_to_tab('    foo\n\t     bar\n'), '\tfoo\n\t\t bar\n')
 
+	def testGetLineCount(self):
 		text = 'foo\nbar\nbaz\n'
 		for offset, wanted in (
 			(0, (1, 0)),

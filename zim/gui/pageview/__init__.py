@@ -41,7 +41,7 @@ from zim.parsing import link_type, Re
 from zim.formats import heading_to_anchor, get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, TRANSMIGRATED_BOX, MIGRATED_BOX, LINE, OBJECT, \
-	HEADING, LISTITEM, BLOCK_LEVEL
+	HEADING, LISTITEM, BLOCK_LEVEL, FORMATTEDTEXT
 from zim.formats.wiki import url_re, match_url
 from zim.actions import get_gtk_actiongroup, action, toggle_action, get_actions, \
 	ActionClassMethod, ToggleActionClassMethod, initialize_actiongroup
@@ -1009,9 +1009,6 @@ class TextBuffer(Gtk.TextBuffer):
 				self._insert_element_children(element, list_level=list_level, raw=raw, textstyles=textstyles)  # recurs
 				set_indent(None)
 
-				if not raw:
-					self.insert_at_cursor('\n')
-
 			elif element.tag == 'link':
 				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
 				tag = self._create_link_tag('', **element.attrib)
@@ -1046,48 +1043,49 @@ class TextBuffer(Gtk.TextBuffer):
 				self.set_textstyles(None)
 				set_indent(None)
 			elif element.tag == 'table':
+				force_line_start()
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-				self.insert_table_element_at_cursor(element)
+				self._insert_table_element_at_cursor(element, raw=raw)
 				set_indent(None)
 			elif element.tag == 'line':
 				anchor = LineSeparatorAnchor()
 				self.insert_objectanchor_at_cursor(anchor)
-
+				if not raw:
+					self.insert_at_cursor('\n')
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
+					force_line_start()
 					set_indent(int(element.attrib['indent']))
-				self.insert_object_at_cursor(element.attrib, element.text)
-				set_indent(None)
+					self.insert_object_at_cursor(element.attrib, element.text, raw=raw)
+					set_indent(None)
+				else:
+					self.insert_object_at_cursor(element.attrib, element.text, raw=raw)
 			else:
 				# Text styles
-				flushed = False
 				if element.tag == 'h':
 					force_line_start()
 					tag = 'h' + str(element.attrib['level'])
 					self.set_textstyles([tag])
 					if element.text:
 						self.insert_at_cursor(element.text)
-					flushed = True
 					self._insert_element_children(element, list_level=list_level, raw=raw,
 												  textstyles=[tag])  # recurs
 				elif element.tag in self._static_style_tags:
 					self.set_textstyles(textstyles + [element.tag])
 					if element.text:
 						self.insert_at_cursor(element.text)
-					flushed = True
 					self._insert_element_children(element, list_level=list_level, raw=raw,
 												  textstyles=textstyles + [element.tag])  # recurs
 				elif element.tag == '_ignore_':
 					# raw tree from undo can contain these
+					if element.text:
+						self.insert_at_cursor(element.text)
 					self._insert_element_children(element, list_level=list_level, raw=raw, textstyles=textstyles)  # recurs
 				else:
 					logger.debug("Unknown tag : %s, %s, %s", element.tag,
 								 element.attrib, element.text)
 					assert False, 'Unknown tag: %s' % element.tag
-
-				if element.text and not flushed:
-					self.insert_at_cursor(element.text)
 
 				self.set_textstyles(textstyles)
 
@@ -1468,10 +1466,11 @@ class TextBuffer(Gtk.TextBuffer):
 
 	#region Objects
 
-	def insert_object_at_cursor(self, attrib, data):
+	def insert_object_at_cursor(self, attrib, data, raw=False):
 		'''Inserts a custom object in the page
 		@param attrib: dict with object attributes
 		@param data: string data of object
+		@param raw: boolean for "raw" parsetree insert
 		'''
 		try:
 			objecttype = PluginManager.insertedobjects[attrib['type']]
@@ -1483,9 +1482,9 @@ class TextBuffer(Gtk.TextBuffer):
 				objecttype = UnknownInsertedObject()
 
 		model = objecttype.model_from_data(self.notebook, self.page, attrib, data)
-		self.insert_object_model_at_cursor(objecttype, model)
+		self.insert_object_model_at_cursor(objecttype, model, raw=raw)
 
-	def insert_object_model_at_cursor(self, objecttype, model):
+	def insert_object_model_at_cursor(self, objecttype, model, raw=False):
 		from zim.plugins.tableeditor import TableViewObjectType # XXX
 
 		model.connect('changed', lambda o: self.set_modified(True))
@@ -1495,9 +1494,15 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			anchor = PluginInsertedObjectAnchor(objecttype, model)
 
-		self.insert_objectanchor_at_cursor(anchor)
+		if not objecttype.is_inline and not raw:
+			if not self.get_insert_iter().starts_line():
+				self.insert_at_cursor('\n')
+			self.insert_objectanchor_at_cursor(anchor)
+			self.insert_at_cursor('\n')
+		else:
+			self.insert_objectanchor_at_cursor(anchor)
 
-	def insert_table_element_at_cursor(self, element):
+	def _insert_table_element_at_cursor(self, element, raw):
 		try:
 			obj = PluginManager.insertedobjects['table']
 		except KeyError:
@@ -1511,6 +1516,8 @@ class TextBuffer(Gtk.TextBuffer):
 
 			anchor = TableAnchor(obj, model)
 			self.insert_objectanchor_at_cursor(anchor)
+			if not raw:
+				self.insert_at_cursor('\n')
 
 	def insert_objectanchor_at_cursor(self, anchor):
 		iter = self.get_insert_iter()
@@ -1599,7 +1606,7 @@ class TextBuffer(Gtk.TextBuffer):
 				# Turning into list item removes heading
 				if not insert.ends_line():
 					end = insert.copy()
-					end.forward_to_line_end()
+					end.forward_line()
 					self.smart_remove_tags(_is_heading_tag, insert, end)
 
 				# TODO: convert 'pre' to 'code' ?
@@ -2399,7 +2406,7 @@ class TextBuffer(Gtk.TextBuffer):
 				self.place_cursor(iter)
 
 		# Check current formatting
-		if string == '\n': # CHARS_END_OF_LINE
+		if not self._insert_tree_in_progress and string == '\n': # CHARS_END_OF_LINE
 			# Break tags that are not allowed to span over multiple lines
 			self._editmode_tags = [tag for tag in self._editmode_tags if _is_pre_tag(tag) or _is_not_style_tag(tag)]
 			self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags))
@@ -2550,7 +2557,7 @@ class TextBuffer(Gtk.TextBuffer):
 			return # TODO Why is this ???
 
 		end = iter.copy()
-		end.forward_to_line_end()
+		end.forward_line()
 
 		self.smart_remove_tags(_is_line_based_tag, iter, end)
 
@@ -2680,12 +2687,8 @@ class TextBuffer(Gtk.TextBuffer):
 		if self.showing_template and not raw:
 			return None
 
-		if bounds is None:
-			start, end = self.get_bounds()
-			attrib = {}
-		else:
-			start, end = bounds
-			attrib = {'partial': True}
+		attrib = {}
+		start, end = bounds or self.get_bounds()
 
 		if raw:
 			builder = ElementTreeModule.TreeBuilder()
@@ -2761,6 +2764,9 @@ class TextBuffer(Gtk.TextBuffer):
 						# Without indenting 'pre' looks the same as 'code'
 						# Prevent turning into a separate paragraph here
 						t = 'code'
+					elif t in BLOCK_LEVEL and not raw and not iter.starts_line():
+						# Not perfect, but prevent illegal sequence towards dumper
+						t = '_ignore_'
 					elif t == 'pre':
 						if attrib:
 							attrib.update(continue_attrib)
@@ -2840,8 +2846,16 @@ class TextBuffer(Gtk.TextBuffer):
 				set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
 				anchor = iter.get_child_anchor() # iter may have moved
 				if isinstance(anchor, InsertedObjectAnchor):
-					anchor.dump(builder)
-					iter.forward_char()
+					if anchor.is_inline or raw:
+						anchor.dump(builder)
+						iter.forward_char()
+					else:
+						if not iter.starts_line():
+							builder.data('\n')
+						anchor.dump(builder)
+						iter.forward_char()
+						if iter.ends_line():
+							iter.forward_char() # skip over line-end
 				else:
 					continue
 			else:
@@ -2890,15 +2904,14 @@ class TextBuffer(Gtk.TextBuffer):
 					text = iter.get_slice(end)
 
 				break_at = None
-				MULTI_LINE_BLOCK = [t for t in BLOCK_LEVEL if t != HEADING]
 				if bound.get_line() != iter.get_line():
-					if any(t[1] == LISTITEM for t in open_tags):
-						# And limit bullets to a single line
-						break_at = LISTITEM
-					elif not raw and any(t[1] not in MULTI_LINE_BLOCK for t in open_tags):
+					if any(t[1] in (HEADING, LISTITEM) for t in open_tags):
+						# And limit bullets and headings to a single line
+						break_at = LISTITEM if LISTITEM in [t[1] for t in open_tags] else HEADING
+					elif not raw and any(t[1] not in BLOCK_LEVEL for t in open_tags):
 						# Prevent formatting tags to run multiple lines
 						for t in open_tags:
-							if t[1] not in MULTI_LINE_BLOCK:
+							if t[1] not in BLOCK_LEVEL:
 								break_at = t[1]
 								break
 
@@ -2907,10 +2920,15 @@ class TextBuffer(Gtk.TextBuffer):
 					bound = iter.copy()
 					bound.forward_line()
 					assert bound.compare(orig) < 1
-					text = iter.get_slice(bound).rstrip('\n')
-					builder.data(text)
-					break_tags(break_at)
-					builder.data('\n') # add to tail
+					text = iter.get_slice(bound)
+					if break_at in (HEADING, LISTITEM): # XXX - exception because it is blocklevel and include "\n"
+						builder.data(text)
+						break_tags(break_at)
+					else:
+						text = text.rstrip('\n')
+						builder.data(text)
+						break_tags(break_at)
+						builder.data('\n') # add to tail
 				else:
 					# Else just insert text we got
 					builder.data(text)
@@ -2933,8 +2951,8 @@ class TextBuffer(Gtk.TextBuffer):
 			dumper = format.Dumper()
 			parser = format.Parser()
 			text = dumper.dump(tree)
-			#print(">>> Wiki text:\n", text)
-			tree = parser.parse(text, partial=tree.ispartial)
+			#print(">>> Wiki text:\n", ''.join(text))
+			tree = parser.parse(text)
 			#print(">>> Parsetree recreated:\n", tree.tostring())
 
 		return tree
@@ -2980,8 +2998,6 @@ class TextBuffer(Gtk.TextBuffer):
 		@param line: line number; if C{None} current line will be selected
 		@returns: C{True} when successful
 		'''
-		# Differs from get_line_bounds because we exclude the trailing
-		# line break while get_line_bounds selects these
 		if line is None:
 			iter = self.get_iter_at_mark(self.get_insert())
 			line = iter.get_line()
@@ -2995,13 +3011,9 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		start = self.get_iter_at_line(first)
 		end = self.get_iter_at_line(last)
-		if end.ends_line():
-			if end.equal(start):
-				return False
-			else:
-				pass
-		else:
-			end.forward_to_line_end()
+		end.forward_line()
+		if end.equal(start):
+			return False
 		self.select_range(start, end)
 		return True
 
@@ -4899,7 +4911,8 @@ class TextView(Gtk.TextView):
 
 		if heading_re.match(line):
 			level = len(heading_re[1]) - 1
-			heading = heading_re[2]
+			heading = heading_re[2] + '\n'
+			end.forward_line()
 			mark = buffer.create_mark(None, end)
 			buffer.delete(start, end)
 			buffer.insert_with_tags_by_name(
@@ -7343,7 +7356,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if buffer.get_has_selection():
 			if selectline:
 				start, end = buffer.get_selection_bounds()
-				return buffer.select_lines(start.get_line(), end.get_line())
+				start_line, end_line = start.get_line(), end.get_line()
+				if end.starts_line():
+					end_line -= 1
+				return buffer.select_lines(start_line, end_line)
 			else:
 				return buffer.strip_selection()
 		elif selectline:
@@ -7465,6 +7481,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 class InsertedObjectAnchor(Gtk.TextChildAnchor):
 
+	is_inline = False # T: whether or not this object can be inline in a paragraph
+
 	def create_widget(self):
 		raise NotImplementedError
 
@@ -7505,6 +7523,7 @@ class PluginInsertedObjectAnchor(InsertedObjectAnchor):
 		GObject.GObject.__init__(self)
 		self.objecttype = objecttype
 		self.objectmodel = objectmodel
+		self.is_inline = objecttype.is_inline
 
 	def create_widget(self):
 		return self.objecttype.create_widget(self.objectmodel)

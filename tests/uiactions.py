@@ -50,8 +50,8 @@ class TestUIActions(tests.TestCase):
 		window = EmptyWindowObject()
 		self.notebook = self.setUpNotebook(
 			content={
-				'Test': 'Test 123',
-				'ExistingPage': 'Exists !'
+				'Test': 'Test 123\n',
+				'ExistingPage': 'Exists !\n'
 			}
 		)
 		self.page = self.notebook.get_page(Path('Test'))
@@ -155,7 +155,7 @@ class TestUIActions(tests.TestCase):
 	def testImportPageFromFile(self):
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		file = folder.file('TestImport.txt')
-		file.write('import test 123')
+		file.write('import test 123\n')
 
 		def import_file(dialog):
 			dialog.set_file(file)

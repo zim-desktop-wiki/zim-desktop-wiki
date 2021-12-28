@@ -127,8 +127,8 @@ class Dumper(TextDumper):
 		elif level > 5:
 			level = 5
 
-		text = ''.join(strings)
-		return [self.SECTIONING[self.document_type][level] % text]
+		text = ''.join(strings).strip('\n')
+		return [self.SECTIONING[self.document_type][level] % text, '\n']
 
 	def dump_ul(self, tag, attrib, strings):
 		strings.insert(0, '\\begin{itemize}\n')
@@ -169,7 +169,10 @@ class Dumper(TextDumper):
 		else:
 			assert False, 'Unnested li element'
 
-		return (bullet, ' ') + tuple(strings) + ('\n',)
+		if strings[-1].endswith('\n\n'):
+			strings[-1] = strings[-1][:-1] # strip '\n' introduced by encode_text()
+
+		return (bullet, ' ') + tuple(strings)
 
 	def is_supported_image(self, path):
 		# Latex only supports limited image formats by default
