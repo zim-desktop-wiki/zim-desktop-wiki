@@ -497,7 +497,9 @@ class PathBar(ScrolledHBox):
 			self.remove(button)
 
 		paths = list(self.get_paths())
-		for path, label in zip(paths, shortest_unique_names(paths)):
+		labels = self._get_labels(paths)
+
+		for path, label in zip(paths, labels):
 			button = Gtk.ToggleButton(label=label, use_underline=False)
 			button.set_tooltip_text(path.name)
 			button.get_child().set_ellipsize(Pango.EllipsizeMode.MIDDLE)
@@ -520,8 +522,15 @@ class PathBar(ScrolledHBox):
 	def get_paths(self):
 		'''To be implemented by the sub class, should return a list
 		(or iterable) of notebook paths to show in the pathbar.
+		The visible part of these paths is determined by _get_labels.
 		'''
 		raise NotImplemented
+
+	def _get_labels(self, paths):
+		'''Returns list (or iterable) of path labels to show in the pathbar.
+		Usually this means the shortest unique names, but may also be just
+		the basenames as is the case with C{PATHBAR_PATH}.'''
+		return shortest_unique_names(paths)
 
 	def _select(self, path):
 		for button in self.get_scrolled_children():
@@ -635,6 +644,11 @@ class NamespacePathBar(PathBar):
 		paths.pop(0) # remove root
 		paths.append(path) # add leaf
 		return paths
+
+	def _get_labels(self, paths):
+		# labels don't need to be unique -
+		# the nth month has a nth day, and that's okay
+		return [path.basename for path in paths]
 
 PathBarMainWindowExtension._klasses[PATHBAR_PATH] = NamespacePathBar
 
