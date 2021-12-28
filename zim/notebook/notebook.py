@@ -352,7 +352,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			uri = self.uri
 		except AssertionError:
 			uri = None
-
+		from . import NotebookInfo
 		return NotebookInfo(uri, **self.config['Notebook'])
 
 	def on_properties_changed(self, properties):
