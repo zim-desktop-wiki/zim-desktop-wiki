@@ -47,7 +47,7 @@ class TestBackwardImageGeneratorNoPlugins(tests.TestCase):
 		pageview.textview.get_buffer().set_modified(True)
 		tree = pageview.page.get_parsetree()
 		text = WikiDumper().dump(tree)
-		self.assertEquals(text, ['{{./test.png?type=equation}}'])
+		self.assertEqual(text, ['{{./test.png?type=equation}}'])
 
 
 @tests.skipUnless(InsertEquationPlugin.check_dependencies_ok(), 'Missing dependencies')
@@ -75,7 +75,7 @@ class TestBackwardImageGeneratorWithPlugin(TestBackwardImageGeneratorNoPlugins):
 			attrib, data = otype.data_from_model(model)
 			self.assertTrue(attrib['src'])
 
-		self.assertEquals(attachment_dir.file('equation.tex').read(), r'c = \sqrt{ a^2 + b^2 }')
+		self.assertEqual(attachment_dir.file('equation.tex').read(), r'c = \sqrt{ a^2 + b^2 }')
 		assertIsPNG(attachment_dir.file('equation.png'))
 
 	def testEditObjectDialog(self):
@@ -96,7 +96,7 @@ class TestBackwardImageGeneratorWithPlugin(TestBackwardImageGeneratorNoPlugins):
 		with tests.DialogContext(edit_dialog):
 			pageview.edit_object()
 
-		self.assertEquals(attachment_dir.file('test.tex').read(), r'c = \sqrt{ a^2 + b^2 }')
+		self.assertEqual(attachment_dir.file('test.tex').read(), r'c = \sqrt{ a^2 + b^2 }')
 		assertIsPNG(attachment_dir.file('test.png'))
 
 	def testNewFile(self):
@@ -232,7 +232,7 @@ x_{1,2}=\frac{-b\pm\sqrt{\color{Red}b^2-4ac}}{2a}
 		tree = WikiParser().parse(wiki)
 		latex = LatexDumper(linker).dump(tree)
 
-		self.assertEquals(latex, wanted.splitlines(True))
+		self.assertEqual(latex, wanted.splitlines(True))
 
 
 @tests.skipUnless(InsertDiagramPlugin.check_dependencies_ok(), 'Missing dependencies')
