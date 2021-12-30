@@ -1773,7 +1773,7 @@ class PageEntry(InputEntry):
 		elif path.isroot:
 			self.set_text('')
 		else:
-			self.set_text(':' + path.name)
+			self.set_text(path.absname)
 
 	def get_path(self):
 		'''Get the path shown in the widget.

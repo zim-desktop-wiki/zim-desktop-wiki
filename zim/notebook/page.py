@@ -227,6 +227,12 @@ class Path(object):
 		return self.name[i:]
 
 	@property
+	def absname(self):
+		'''Get the full, absolute path.
+		Returns ':' for the top level namespace.'''
+		return ':' + self.name
+
+	@property
 	def namespace(self):
 		'''Gives the name for the parent page.
 		Returns an empty string for the top level namespace.
@@ -342,8 +348,8 @@ class HRef(object):
 		@raises ValueError: when the string could not be parsed
 		(see L{Path.makeValidPageName()})
 
-		@note: This method HRef class assumes the logic of our wiki links
-		for other formats, a separate constructor may be needed
+		@note: This method HRef class assumes the logic of our wiki links.
+		For other formats, a separate constructor may be needed.
 		'''
 		if href.startswith(':'):
 			rel = HREF_REL_ABSOLUTE

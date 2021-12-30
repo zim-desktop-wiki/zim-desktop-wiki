@@ -310,7 +310,7 @@ class ExportTemplateContext(dict):
 			else:
 				# links to other pages
 				builder.append(LINK,
-					{'type': 'page', 'href': ':' + path.name},
+					{'type': 'page', 'href': path.absname},
 					path.basename)
 			builder.end(LISTITEM)
 
