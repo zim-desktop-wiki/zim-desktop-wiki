@@ -35,12 +35,7 @@ These restrictions hsould help to minimize risk of arbitrary code
 execution in expressions.
 '''
 
-try:
-	import collections.abc as abc
-except ImportError:
-	# python < version 3.3
-	import collections as abc
-
+import collections.abc as abc
 
 import inspect
 import logging

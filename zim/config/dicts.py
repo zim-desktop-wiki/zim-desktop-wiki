@@ -30,11 +30,7 @@ import types
 import ast
 import json
 
-try:
-	import collections.abc as abc
-except ImportError:
-	# python < version 3.3
-	import collections as abc
+import collections.abc as abc
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL, init_signals_for_new_object
 from zim.utils import DefinitionOrderedDict

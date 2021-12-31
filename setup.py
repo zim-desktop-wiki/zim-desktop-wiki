@@ -25,9 +25,9 @@ import msgfmt # also distributed with zim
 import makeman # helper script
 
 try:
-	assert sys.version_info >= (3, 2)
+	assert sys.version_info >= (3, 6)
 except:
-	print('zim needs python >= 3.2', file=sys.stderr)
+	print('zim needs python >= 3.6', file=sys.stderr)
 	sys.exit(1)
 
 
