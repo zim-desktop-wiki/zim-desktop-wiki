@@ -3,13 +3,13 @@ Section: utils
 Priority: optional
 Maintainer: Jaap Karssenberg <jaap.karssenberg@gmail.com>
 Standards-Version: 4.4.0
-Build-Depends: debhelper (>= 7.4.12), dh-python, xdg-utils, python3 (>= 3.2), python3-setuptools, gir1.2-gtk-3.0, python3-gi, python3-xdg
-X-Python3-Version: >=3.2
+Build-Depends: debhelper (>= 7.4.12), dh-python, xdg-utils, python3 (>= 3.6), python3-setuptools, gir1.2-gtk-3.0, python3-gi, python3-xdg
+X-Python3-Version: >=3.6
 
 Package: zim
 Architecture: all
 Homepage: https://zim-wiki.org/
-Depends: ${python3:Depends}, ${misc:Depends}, python3 (>= 3.2), libgtk-3-0 (>= 3.18), gir1.2-gtk-3.0, python3-gi, python3-xdg
+Depends: ${python3:Depends}, ${misc:Depends}, python3 (>= 3.6), libgtk-3-0 (>= 3.18), gir1.2-gtk-3.0, python3-gi, python3-xdg
 # python-gtkspell required for the spell checker plugin
 # Recommends: python-gtkspellcheck
 # graphviz required for the link map/diagram plugins

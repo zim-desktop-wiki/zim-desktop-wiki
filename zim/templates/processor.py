@@ -10,11 +10,7 @@ expressions in the template.
 '''
 
 
-try:
-	import collections.abc as abc
-except ImportError:
-	# python < version 3.3
-	import collections as abc
+import collections.abc as abc
 
 from zim.newfs import FileNotFoundError
 from zim.utils import MovingWindowIter

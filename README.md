@@ -39,7 +39,7 @@ First, you should verify you have the dependencies zim needs. To list all depend
 You will at least need the following:
 
 * Gtk+ >= 3.18
-* python3 >= 3.2
+* python3 >= 3.6
 * python3-gi (also known as pygobject, but make sure to have the "gi" based version)
 * python3-xdg (optional, but recommended)
 * xdg-utils (optional, but recommended on linux)
