@@ -211,6 +211,7 @@ _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
+_is_not_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag != 'h'
 _is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
 _is_pre_or_code_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code')
 _is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag)
@@ -2408,7 +2409,8 @@ class TextBuffer(Gtk.TextBuffer):
 		# Check current formatting
 		if not self._insert_tree_in_progress and string == '\n': # CHARS_END_OF_LINE
 			# Break tags that are not allowed to span over multiple lines
-			self._editmode_tags = [tag for tag in self._editmode_tags if _is_pre_tag(tag) or _is_not_style_tag(tag)]
+			self._editmode_tags = [tag for tag in self._editmode_tags if _is_pre_tag(tag) or _is_heading_tag(tag) or _is_not_style_tag(tag)]
+				# Do not break heading tags here, they are handled seperately after the insert
 			self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags))
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
@@ -2440,6 +2442,17 @@ class TextBuffer(Gtk.TextBuffer):
 		self.remove_all_tags(start, iter)
 		for tag in self._editmode_tags:
 			self.apply_tag(tag, start, iter)
+
+		# Special handling for ending headings on insert newline - CHARS_END_OF_LINE
+		if not self._insert_tree_in_progress and string == '\n' \
+			and any(_is_heading_tag(t) for t in self._editmode_tags) and iter.ends_line():
+				# Implies we inserted a newline at the end of a heading
+				# Remove the format tag over the previous line end of the heading
+				end = iter.copy()
+				end.forward_char() # skip over line end
+				if not end.equal(iter):
+					self.smart_remove_tags(_is_heading_tag, iter, end)
+				self._editmode_tags = list(filter(_is_not_heading_tag, self._editmode_tags))
 
 	def insert_child_anchor(self, iter, anchor):
 		# Make sure we always apply the correct tags when inserting an object

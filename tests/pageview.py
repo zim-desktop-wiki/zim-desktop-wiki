@@ -768,6 +768,31 @@ C
 		buffer.toggle_textstyle('h2')
 		self.assertBufferEquals(buffer, '<h level="2">Foo bar <anchor name="bar">bar</anchor></h>')
 
+	def testBreakHeadingOnNewline(self):
+		buffer = self.get_buffer('<h level="1">Heading\n</h>')
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+
+		buffer.place_cursor(buffer.get_iter_at_offset(7))
+		with buffer.user_action:
+			buffer.insert_at_cursor('\n')
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>\n')
+		with buffer.user_action:
+			buffer.insert_at_cursor('test 123')
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>test 123\n')
+
+		# Check undo stack since this is special case in do_insert_text()
+		buffer.undostack.undo()
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>\n')
+		buffer.undostack.undo()
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+
+		# Check for special case at end of buffer
+		buffer = self.get_buffer('<h level="1">Heading</h>')
+		buffer.place_cursor(buffer.get_iter_at_offset(7))
+		buffer.insert_at_cursor('\n')
+		buffer.insert_at_cursor('test 123')
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>test 123')
+
 	def testFindAnchor(self):
 		buffer = self.get_buffer()
 		self.assertIsNone(buffer.find_anchor('test'))
