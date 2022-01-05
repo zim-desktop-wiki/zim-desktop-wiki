@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2021-12-08 09:17+0000\n"
-"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
+"PO-Revision-Date: 2022-01-05 21:43+0000\n"
+"Last-Translator: ישיבת הנגב -שכר שכיר <s.s0778992811@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.10-dev\n"
+"X-Generator: Weblate 4.10.1\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -1377,7 +1377,7 @@ msgstr "שכתוב"
 #. Button label
 #: zim/gui/pageview/__init__.py:7822 zim/gui/widgets.py:92
 msgid "_OK"
-msgstr ""
+msgstr "_בסדר"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:7860
@@ -1440,7 +1440,7 @@ msgstr "טקסט"
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:8055
 msgid "Prefer short link names for pages"
-msgstr ""
+msgstr "העדיפו שמות קישורים קצרים לדפים"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview/__init__.py:8171
@@ -1565,7 +1565,7 @@ msgstr "פתיחת עמוד חדש"
 #. error message in "move selected text" action
 #: zim/gui/pageview/__init__.py:8533
 msgid "No text selected"
-msgstr ""
+msgstr "לא נבחר טקסט"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:8566
@@ -1591,6 +1591,8 @@ msgid ""
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
 msgstr ""
+"קידוד המערכת שלך מוגדר ל-%s, אם אתה רוצה תמיכה בתווים מיוחדים\n"
+"או לראות שגיאות עקב קידוד, אנא הקפד להגדיר את המערכת שלך לשימוש ב-\"UTF-8\""
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1649,6 +1651,9 @@ msgid ""
 "Please see the dependencies section below for details.\n"
 "\n"
 msgstr ""
+"לא ניתן להפעיל את התוסף הזה בגלל תלות חסרות.\n"
+"אנא עיין בסעיף התלות למטה לפרטים.\n"
+"\n"
 
 #. help text when plugin cannot be loaded due to bug / issue
 #: zim/gui/preferencesdialog.py:325
@@ -1656,6 +1661,8 @@ msgid ""
 "There was a problem loading this plugin\n"
 "\n"
 msgstr ""
+"הייתה בעיה בטעינת הפלאגין הזה\n"
+"\n"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:337
@@ -1767,7 +1774,7 @@ msgstr "שורש המסמכים"
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:21
 msgid "Prefer short names for page links"
-msgstr ""
+msgstr "העדיפו שמות קצרים לקישורי דפים"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:22
@@ -1822,10 +1829,8 @@ msgstr ""
 
 #. checkbox option in search dialog
 #: zim/gui/searchdialog.py:55
-#, fuzzy
-#| msgid "Limit search to the current page and sub-pages"
 msgid "_Limit search to the current page and sub-pages"
-msgstr "הגבלת החיפוש לעמוד הנוכחי ולתת־העמודים שלו"
+msgstr "הגבלת החיפוש לעמוד הנוכחי ועמודי המשנה"
 
 #. Column header search dialog | 
 #. menu item
@@ -1851,7 +1856,7 @@ msgstr "לאפשר גישה ציבורית"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr ""
+msgstr "דרוש אימות"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1866,7 +1871,7 @@ msgstr "שם משתמש"
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "סיסמה"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -1949,7 +1954,7 @@ msgstr "מ_חיקת עמוד"
 #. question in "delete page" action
 #: zim/gui/uiactions.py:224
 msgid "Trash failed, do you want to permanently delete instead ?"
-msgstr ""
+msgstr "לא ניתן למחוק, האם אתה רוצה למחוק לצמיתות במקום זאת?"
 
 #. Menu item
 #: zim/gui/uiactions.py:230
@@ -2020,7 +2025,7 @@ msgstr "פתיחת _שורש המסמכים"
 #. Error message
 #: zim/gui/uiactions.py:335
 msgid "No document root defined for this notebook"
-msgstr ""
+msgstr "לא הוגדר שורש מסמך עבור מחברת זו"
 
 #. Menu item
 #: zim/gui/uiactions.py:341
@@ -2078,7 +2083,7 @@ msgstr "על _אודות"
 #: zim/gui/uiactions.py:459
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "עמוד חדש ב-%s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:461
@@ -2152,12 +2157,12 @@ msgstr "הקישורים מתעדכנים"
 #: zim/gui/uiactions.py:681
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "הסר קישורים אל %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
 msgid "Trash Page"
-msgstr ""
+msgstr "דף אשפה"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
@@ -2316,13 +2321,13 @@ msgstr "לוח תחתון"
 #: zim/gui/widgets.py:2067 zim/plugins/tableeditor.py:53
 #: zim/plugins/tableeditor.py:864
 msgid "Left"
-msgstr ""
+msgstr "צד שמאל"
 
 #. position of widget in window | 
 #. alignment option
 #: zim/gui/widgets.py:2068 zim/plugins/tableeditor.py:55
 msgid "Right"
-msgstr ""
+msgstr "ימין"
 
 #. Menu item
 #: zim/gui/widgets.py:2707
@@ -2352,7 +2357,7 @@ msgstr "תמונות"
 #: zim/gui/widgets.py:3749
 #, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{count} מתוך {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3771
@@ -2367,7 +2372,7 @@ msgstr "לא ניתן למצוא את הקובץ או התיקייה של מחב
 #. Error when looking up a notebook
 #: zim/main/__init__.py:152 zim/main/__init__.py:186
 msgid "Please specify a notebook"
-msgstr ""
+msgstr "נא לציין מחברת"
 
 #. error message
 #: zim/main/__init__.py:159
@@ -2378,28 +2383,28 @@ msgstr "לא ניתן למצוא את המחברת: %s"
 #. error in export command
 #: zim/main/__init__.py:436
 msgid "Output location needed for export"
-msgstr ""
+msgstr "מיקום המחברת הדרוש ליצוא"
 
 #. error message for export
 #: zim/main/__init__.py:445
 msgid ""
 "Output folder exists and not empty, specify \"--overwrite\" to force export"
-msgstr ""
+msgstr "תיקיית פלט קיימת ואינה ריקה, ציין \"--overwrite\" כדי לאלץ ייצוא"
 
 #. error message for export
 #: zim/main/__init__.py:449
 msgid "Output file exists, specify \"--overwrite\" to force export"
-msgstr ""
+msgstr "קיים קובץ פלט, ציין \"מקור\" כדי לאלץ ייצוא"
 
 #. error message for export
 #: zim/main/__init__.py:454
 msgid "Need output file to export MHTML"
-msgstr ""
+msgstr "צריך קובץ פלט כדי לייצא מטמון"
 
 #. error message for export
 #: zim/main/__init__.py:484
 msgid "Need output folder to export full notebook"
-msgstr ""
+msgstr "צריך תיקיית פלט כדי לייצא דף מלא"
 
 #. Error explanation
 #: zim/newfs/local.py:43
@@ -2408,6 +2413,9 @@ msgid ""
 "of the file name, please try using a name with less\n"
 "than 255 characters"
 msgstr ""
+"לא יכול לכתוב את הקובץ הזה. זה כנראה בגלל האורך\n"
+"של שם הקובץ, נסה להשתמש בשם עם פחות\n"
+"מ-255 תווים"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
@@ -2422,12 +2430,15 @@ msgid ""
 "of the file path, please try using a folder structure resulting in less\n"
 "than 4096 characters"
 msgstr ""
+"לא יכול לכתוב את הקובץ הזה. זה כנראה בגלל האורך\n"
+"של נתיב הקובץ, נסה להשתמש במבנה תיקיות וכתוצאה מכך פחות\n"
+"יותר מ-4096 תווים"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
 #, python-format
 msgid "File path too long: %s"
-msgstr ""
+msgstr "נתיב הקובץ ארוך מדי: %s"
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:435
@@ -2438,19 +2449,19 @@ msgstr "המפתח מתעדכן"
 #: zim/notebook/notebook.py:125
 #, python-format
 msgid "No such page: %s"
-msgstr ""
+msgstr "לא קיים עמוד כזה: %s"
 
 #. message for PageNotAllowedError
 #: zim/notebook/notebook.py:129
 #, python-format
 msgid "Page not allowed: %s"
-msgstr ""
+msgstr "ערך אסור: %s"
 
 #. description for PageNotAllowedError
 #: zim/notebook/notebook.py:130
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
-msgstr ""
+msgstr "לא ניתן להשתמש בשם הדף הזה עקב מגבלות טכניות של האחסון"
 
 #. message for PageNotAvailableError
 #: zim/notebook/notebook.py:135
