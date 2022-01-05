@@ -651,89 +651,64 @@ C
 		buffer.toggle_textstyle('code')
 		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
 
-	def testMergeLinesWithBullet(self):
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<ul><li>item 1</li><li>item 2</li></ul>
-</zim-tree>
-'''
-		tree = tests.new_parsetree_from_xml(input)
-
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		buffer.set_parsetree(tree)
-
-		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
-		start = buffer.get_insert_iter()
-		end = start.copy()
+	def assertMergeLines(self, input, output, line=0, offset=None):
+		buffer = self.get_buffer(input)
+		iter = buffer.get_iter_at_line(line)
+		if offset is not None:
+			iter.forward_chars(offset)
+		else:
+			iter.forward_to_line_end()
+		end = iter.copy()
 		end.forward_char()
-		buffer.delete_interactive(start, end, True)
+		buffer.place_cursor(iter)
+		buffer.delete_interactive(iter, end, True)
 
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p><ul><li bullet="*">item 1item 2\n</li></ul></p>
-</zim-tree>''')
+		self.assertBufferEquals(buffer, output)
+
+	def testMergeLinesWithBullet(self):
+		# Ensure that bullet of line 2 is removed, in raw tree also the space is gone
+		self.assertMergeLines(
+			'<li bullet="*" indent="0"> item 1\n</li><li> item 2\n</li>',
+			'<li bullet="*" indent="0"> item 1item 2\n</li>'
+		)
 
 	def testMergeLinesWithNotABulletWithoutNewline(self):
 		# See issue #1328, avoid accidental removal of something that looks
 		# like a bullet
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<ul><li>item 1 123. test</li></ul>
-</zim-tree>
-'''
-		tree = tests.new_parsetree_from_xml(input)
-
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		buffer.set_parsetree(tree)
-
-		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
-		start = buffer.get_insert_iter()
-		end = start.copy()
-		end.forward_char()
-		buffer.delete_interactive(start, end, True)
-
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p><ul><li bullet="*">item 1123. test\n</li></ul></p>
-</zim-tree>''')
+		self.assertMergeLines(
+			'<li bullet="*" indent="0"> item 1 123. test\n</li>',
+			'<li bullet="*" indent="0"> item 1123. test\n</li>',
+			line=0, offset=8 # Position at after "item 1"
+		)
 
 	def testMergeLinesWithNotABulletAfterNewline(self):
 		# See issue #1328, avoid accidental removal of something that looks
 		# like a bullet
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<ul><li>item 1\n</li></ul>123. test
-</zim-tree>
-'''
-		tree = tests.new_parsetree_from_xml(input)
+		self.assertMergeLines(
+			'<li bullet="*" indent="0"> item 1\n</li>123. test\n',
+			'<li bullet="*" indent="0"> item 1123. test\n</li>'
+		)
 
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		buffer.set_parsetree(tree)
+	def testMergeLinesNewlineAfterListItem(self):
+		# Ensure that trailing newline gets formatted as well
+		self.assertMergeLines(
+			'<li bullet="*" indent="0"> item 1\n</li>\ntext\n',
+			'<li bullet="*" indent="0"> item 1\n</li>text\n',
+		)
 
-		buffer.place_cursor(buffer.get_iter_at_offset(9)) # Position at after "item 1"
-		start = buffer.get_insert_iter()
-		end = start.copy()
-		end.forward_char()
-		buffer.delete_interactive(start, end, True)
+	def testMergeLinesNewlineAfterHeading(self):
+		# Ensure that trailing newline gets formatted as well
+		self.assertMergeLines(
+			'<h level="1">head\n</h>\ntext\n',
+			'<h level="1">head\n</h>text\n',
+		)
 
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p><ul><li bullet="*">item 1123. test\n</li></ul></p></zim-tree>''')
+	def testMergeLinesNewlineAfterPre(self):
+		# Ensure that trailing newline gets formatted as well
+		self.assertMergeLines(
+			'<pre>pre formatted\n</pre>\ntext\n',
+			'<pre>pre formatted\n</pre>text\n',
+		)
 
 	def testFormatHeading(self):
 		buffer = self.get_buffer('foo bar\n')

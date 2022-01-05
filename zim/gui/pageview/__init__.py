@@ -208,13 +208,13 @@ ui_preferences = (
 )
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
-_is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
+_is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent' # Indent tags include bullets of all kinds
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
 _is_not_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag != 'h'
 _is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
 _is_pre_or_code_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code')
-_is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag)
+_is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag) # Line based tags are mutually exclusive and should cover the line-end
 _is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
@@ -883,7 +883,7 @@ class TextBuffer(Gtk.TextBuffer):
 				self._do_lines_merged(startiter)
 
 			enditer = self.get_iter_at_mark(self.get_insert())
-			if not enditer.ends_line():
+			if not enditer.starts_line():
 				self._do_lines_merged(enditer)
 
 			# Fix text direction of indent tags
@@ -1605,10 +1605,9 @@ class TextBuffer(Gtk.TextBuffer):
 				assert insert.starts_line(), 'BUG: bullet not at line start'
 
 				# Turning into list item removes heading
-				if not insert.ends_line():
-					end = insert.copy()
-					end.forward_line()
-					self.smart_remove_tags(_is_heading_tag, insert, end)
+				end = insert.copy()
+				end.forward_line()
+				self.smart_remove_tags(_is_heading_tag, insert, end)
 
 				# TODO: convert 'pre' to 'code' ?
 
@@ -1909,10 +1908,7 @@ class TextBuffer(Gtk.TextBuffer):
 		# The start of the new line is in between and has continuous
 		# indent formatting.
 		start_tags = list(filter(_is_zim_tag, iter.get_toggled_tags(True)))
-		tags = list(filter(_is_zim_tag, iter.get_tags()))
-		for tag in start_tags:
-			if tag in tags:
-				tags.remove(tag)
+		tags = [t for t in filter(_is_zim_tag, iter.get_tags()) if not t in start_tags]
 		end_tags = list(filter(_is_zim_tag, iter.get_toggled_tags(False)))
 		# So now we have 3 separate sets with tags ending here,
 		# starting here and being continuous here. Result will be
@@ -1921,23 +1917,13 @@ class TextBuffer(Gtk.TextBuffer):
 		# tags ending here.
 
 		if iter.starts_line():
+			# Special case because line based tags include the newline that
+			# ends the line, but should not automatically continue
 			tags += list(filter(_is_line_based_tag, start_tags))
 			tags += list(filter(_is_not_line_based_tag, end_tags))
-		elif iter.ends_line():
-			# Force only use tags from the left in order to prevent tag
-			# from next line "spilling over" (should not happen, since
-			# \n after end of line is still formatted with same line
-			# based tag as rest of line, but handled anyway to be
-			# robust to edge cases)
-			tags += end_tags
 		else:
-			# Take any tag from left or right, with left taking precendence
-			#
-			# HACK: We assume line based tags are mutually exclusive
-			# if this assumption breaks down need to check by tag type
+			# By default only take tags from the left
 			tags += end_tags
-			if not list(filter(_is_line_based_tag, tags)):
-				tags += list(filter(_is_line_based_tag, start_tags))
 
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
@@ -2449,7 +2435,7 @@ class TextBuffer(Gtk.TextBuffer):
 				# Implies we inserted a newline at the end of a heading
 				# Remove the format tag over the previous line end of the heading
 				end = iter.copy()
-				end.forward_char() # skip over line end
+				end.forward_line()
 				if not end.equal(iter):
 					self.smart_remove_tags(_is_heading_tag, iter, end)
 				self._editmode_tags = list(filter(_is_not_heading_tag, self._editmode_tags))
@@ -2515,21 +2501,17 @@ class TextBuffer(Gtk.TextBuffer):
 		# when deleting bullets
 		# Note that 'start' and 'end' refer to the same postion here ...
 
-		was_list = (
-			not start.ends_line()
-			and any(t for t in start.get_tags() if _is_indent_tag(t) and t.zim_attrib.get('_bullet'))
-		)
+		was_list = any(
+			t for t in start.get_tags()
+				if _is_indent_tag(t) and t.zim_attrib.get('_bullet') )
+			# get_tags() uses right side gravity, so omits list item ending here
 
 		# Do merging of tags regardless of whether we deleted a line end or not
 		# worst case some clean up of run-aways tags is done
-		if (
-			(
-				not start.starts_line()
-				and list(filter(_is_line_based_tag, start.get_toggled_tags(True)))
-			) or (
-				not start.ends_line()
-				and list(filter(_is_line_based_tag, start.get_toggled_tags(False)))
-			)
+		if not start.starts_line() and (
+			any(filter(_is_line_based_tag, start.get_toggled_tags(True)))
+			or
+			any(filter(_is_line_based_tag, start.get_toggled_tags(False)))
 		):
 			self._do_lines_merged(start)
 
@@ -2565,9 +2547,10 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _do_lines_merged(self, iter):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
+		# and including the line end
 		# Merge links that have same href target
-		if iter.starts_line() or iter.ends_line():
-			return # TODO Why is this ???
+		if iter.starts_line():
+			return # special position where line based tags can be toggled
 
 		end = iter.copy()
 		end.forward_line()
