@@ -207,25 +207,47 @@ ui_preferences = (
 		# T: option in preferences dialog
 )
 
-_is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
-_is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent' # Indent tags include bullets of all kinds
-_is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
+
+# Base categories - these are not mutually exclusive
+_is_zim_tag = lambda tag: hasattr(tag, 'zim_tag')
+
+_line_based_tags = ('indent', 'h', 'pre')
+_is_line_based_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in _line_based_tags
+_is_not_line_based_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag not in _line_based_tags
+	# Line based tags are mutually exclusive and should cover the newline at the
+	# end of the last line
+	# The 'indent' tag is also used for list items
+
+_format_tags = ('h', 'pre', 'emphasis', 'strong', 'mark', 'strike', 'sub', 'sup', 'code')
+_inline_format_tags = ('emphasis', 'strong', 'mark', 'strike', 'sub', 'sup', 'code')
+_is_format_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in _format_tags
+_is_not_format_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag not in _format_tags
+	# Format tags are tags that apply a formatting (like bold & italic), and do not
+	# have additional semantics (like links and tags)
+_is_inline_format_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in _inline_format_tags
+_is_not_inline_format_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag not in _inline_format_tags
+	# Inline format tags are format tags that are not line based
+
+_is_inline_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in TextBuffer._nesting_style_tags or tag.zim_tag == 'link'
+_is_non_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code', 'tag')
+	# Nesting tags can have other formatting styles nested inside them
+	# So they are specifically not mutually exclusive
+	# Non-nesting tags are exclusive and also do not allow other tags to be combined
+
+# Tests for specific tags
+_is_indent_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'indent'
+_is_not_indent_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag != 'indent'
 _is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
 _is_not_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag != 'h'
 _is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
 _is_pre_or_code_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code')
-_is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag) # Line based tags are mutually exclusive and should cover the line-end
-_is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
-_is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
-_is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
-_is_link_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'link'
-_is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
-_is_tag_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'tag'
-_is_not_tag_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'tag')
-_is_inline_nesting_tag = lambda tag: _is_zim_tag(tag) and tag.zim_tag in TextBuffer._nesting_style_tags or tag.zim_type == 'link'
-_is_non_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code', 'tag')
+_is_link_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'link'
+_is_not_link_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag != 'link'
+_is_tag_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'tag'
+_is_not_tag_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag != 'tag'
 _is_link_tag_without_href = lambda tag: _is_link_tag(tag) and not tag.zim_attrib['href']
 
+# Special character that acts as placeholder for images and objects
 PIXBUF_CHR = '\uFFFC'
 
 # Minimal distance from mark to window border after scroll_to_mark()
@@ -536,9 +558,9 @@ class TextBuffer(Gtk.TextBuffer):
 	For links and tag anonymous TextTags are used. Be aware though that
 	not all TextTags in the model are managed by us, e.g. gtkspell
 	uses it's own tags. TextTags that are managed by us have an
-	additional attribute C{zim_type} which gives the format type
+	additional attribute C{zim_tag} which gives the format type
 	for this tag. All TextTags without this attribute are not ours.
-	All TextTags that have a C{zim_type} attribute also have an
+	All TextTags that have a C{zim_tag} attribute also have an
 	C{zim_attrib} attribute, which can be either C{None} or contain
 	some properties, like the C{href} property for a link. See the
 	parsetree documentation for what properties to expect.
@@ -559,7 +581,7 @@ class TextBuffer(Gtk.TextBuffer):
 	======
 
 	Embedded images and icons are handled by C{GdkPixbuf.Pixbuf} object.
-	Again the ones that are handled by us have the extry C{zim_type} and
+	Again the ones that are handled by us have the extra C{zim_type} and
 	C{zim_attrib} attributes.
 
 	Lists
@@ -713,7 +735,6 @@ class TextBuffer(Gtk.TextBuffer):
 
 		for name in self._static_style_tags:
 			tag = self.create_tag('style-' + name, **self.tag_styles[name])
-			tag.zim_type = 'style'
 			if name in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
 				# This is needed to get proper output in get_parse_tree
 				tag.zim_tag = 'h'
@@ -918,7 +939,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def do_end_insert_tree(self):
 		self._insert_tree_in_progress = False
-		self.emit('textstyle-changed', self.get_textstyles())
+		self.emit('textstyle-changed', self.get_format_tags_by_name())
 
 	# emitting textstyle-changed is skipped while loading the tree
 
@@ -1011,7 +1032,7 @@ class TextBuffer(Gtk.TextBuffer):
 				set_indent(None)
 
 			elif element.tag == 'link':
-				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
+				self._set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
 				tag = self._create_link_tag('', **element.attrib)
 				self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags)) + [tag]
 				linkstartpos = self.get_insert_iter().get_offset()
@@ -1028,20 +1049,20 @@ class TextBuffer(Gtk.TextBuffer):
 					tag.zim_attrib['href'] = None
 				self._editmode_tags.pop()
 			elif element.tag == 'tag':
-				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
+				self._set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
 				self.insert_tag_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'anchor':
-				self.set_textstyles(textstyles)
+				self._set_textstyles(textstyles)
 				self.insert_anchor_at_cursor(element.attrib['name'])
 			elif element.tag == 'img':
 				self.insert_image_at_cursor(None, **element.attrib)
 			elif element.tag == 'pre':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-				self.set_textstyles([element.tag])
+				self._set_textstyles([element.tag])
 				if element.text:
 					self.insert_at_cursor(element.text)
-				self.set_textstyles(None)
+				self._set_textstyles(None)
 				set_indent(None)
 			elif element.tag == 'table':
 				force_line_start()
@@ -1067,13 +1088,13 @@ class TextBuffer(Gtk.TextBuffer):
 				if element.tag == 'h':
 					force_line_start()
 					tag = 'h' + str(element.attrib['level'])
-					self.set_textstyles([tag])
+					self._set_textstyles([tag])
 					if element.text:
 						self.insert_at_cursor(element.text)
 					self._insert_element_children(element, list_level=list_level, raw=raw,
 												  textstyles=[tag])  # recurs
 				elif element.tag in self._static_style_tags:
-					self.set_textstyles(textstyles + [element.tag])
+					self._set_textstyles(textstyles + [element.tag])
 					if element.text:
 						self.insert_at_cursor(element.text)
 					self._insert_element_children(element, list_level=list_level, raw=raw,
@@ -1088,10 +1109,22 @@ class TextBuffer(Gtk.TextBuffer):
 								 element.attrib, element.text)
 					assert False, 'Unknown tag: %s' % element.tag
 
-				self.set_textstyles(textstyles)
+				self._set_textstyles(textstyles)
 
 			if element.tail:
 				self.insert_at_cursor(element.tail)
+
+	def _set_textstyles(self, names):
+		# TODO: fully factor out this method
+		self._editmode_tags = list(filter(_is_not_format_tag, self._editmode_tags))  # remove all text styles first
+
+		if names:
+			for name in names:
+				tag = self.get_tag_table().lookup('style-' + name)
+				if _is_heading_tag(tag):
+					self._editmode_tags = \
+						list(filter(_is_not_indent_tag, self._editmode_tags))
+				self._editmode_tags.append(tag)
 
 	#region Links
 
@@ -1133,7 +1166,6 @@ class TextBuffer(Gtk.TextBuffer):
 		assert isinstance(href, str) or href is None
 
 		tag = self.create_tag(None, **self.tag_styles['link'])
-		tag.zim_type = 'link'
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
 		if href == text or not href or href.isspace():
@@ -1157,7 +1189,7 @@ class TextBuffer(Gtk.TextBuffer):
 		# would also be considered part of the link. Position before the
 		# link is included here.
 		for tag in sorted(iter.get_tags(), key=lambda i: i.get_priority()):
-			if hasattr(tag, 'zim_type') and tag.zim_type == 'link':
+			if hasattr(tag, 'zim_tag') and tag.zim_tag == 'link':
 				return tag
 		else:
 			return None
@@ -1201,7 +1233,7 @@ class TextBuffer(Gtk.TextBuffer):
 		C{None} otherwise
 		'''
 		for tag in iter.get_tags():
-			if hasattr(tag, 'zim_type') and tag.zim_type == type:
+			if hasattr(tag, 'zim_tag') and tag.zim_tag == type:
 				return tag
 		else:
 			return None
@@ -1259,7 +1291,6 @@ class TextBuffer(Gtk.TextBuffer):
 		# These are created after __init__, so higher priority for Formatting
 		# properties than any of the _static_style_tags
 		tag = self.create_tag(None, **self.tag_styles['tag'])
-		tag.zim_type = 'tag'
 		tag.zim_tag = 'tag'
 		tag.zim_attrib = attrib
 		tag.zim_attrib['name'] = None
@@ -1280,7 +1311,7 @@ class TextBuffer(Gtk.TextBuffer):
 		# would also be considered part of the tag. Position before the
 		# tag is included here.
 		for tag in iter.get_tags():
-			if hasattr(tag, 'zim_type') and tag.zim_type == 'tag':
+			if hasattr(tag, 'zim_tag') and tag.zim_tag == 'tag':
 				return tag
 		else:
 			return None
@@ -1812,48 +1843,31 @@ class TextBuffer(Gtk.TextBuffer):
 
 	#endregion
 
-	#region Text Styles
+	def get_format_tags_by_name(self):
+		'''Get the names of the formatting styles that will be applied
+		to newly inserted text
 
-	def set_textstyles(self, names):
-		'''Sets the current text format style.
-
-		@param names: the name of the format style
-
-		This style will be applied to text inserted at the cursor.
-		Use C{set_textstyles(None)} to reset to normal text.
+		This may change as soon as the cursor position changes,
+		so only relevant for current cursor position.
 		'''
+		tags = list(filter(_is_format_tag, self._editmode_tags))
+		return [tag.get_property('name')[6:] for tag in tags]  # len('style-') == 6
+
+	def get_editmode(self):
+		return self._editmode_tags[:] # copy to prevent modification
+
+	def set_editmode(self, tags):
 		if self._deleted_editmode_mark is not None:
 			self.delete_mark(self._deleted_editmode_mark)
 			self._deleted_editmode_mark = None
 
-		self._editmode_tags = list(filter(_is_not_style_tag, self._editmode_tags))  # remove all text styles first
+		if not tags == self._editmode_tags:
+			#print('> %r' % [(t.zim_tag, t.get_property('name')) for t in tags])
+			self._editmode_tags = tags
+			self.emit('textstyle-changed', self.get_format_tags_by_name())
 
-		if names:
-			for name in names:
-				tag = self.get_tag_table().lookup('style-' + name)
-				if _is_heading_tag(tag):
-					self._editmode_tags = \
-						list(filter(_is_not_indent_tag, self._editmode_tags))
-				self._editmode_tags.append(tag)
-
-		if not self._insert_tree_in_progress:
-			self.emit('textstyle-changed', names)
-
-	def get_textstyles(self):
-		'''Get the name of the formatting style that will be applied
-		to newly inserted text
-
-		This style may change as soon as the cursor position changes,
-		so only relevant for current cursor position.
-		'''
-		tags = list(filter(_is_style_tag, self._editmode_tags))
-		if tags:
-			# X not anymore assert len(tags) == 1, 'BUG: can not have multiple text styles'
-			return [tag.get_property('name')[6:] for tag in tags]  # len('style-') == 6
-		else:
-			return []
-
-	#endregion
+	def filter_editmode(self, tag_filter):
+		self.set_editmode(list(filter(tag_filter, self._editmode_tags)))
 
 	def update_editmode(self):
 		'''Updates the text style and indenting applied to newly indented
@@ -1875,9 +1889,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 		tags = list(tags)
 		if not tags == self._editmode_tags:
-			#print('> %r' % [(t.zim_type, t.get_property('name')) for t in tags])
+			#print('> %r' % [(t.zim_tag, t.get_property('name')) for t in tags])
 			self._editmode_tags = tags
-			self.emit('textstyle-changed', [tag.get_property('name')[6:] for tag in tags if tag.zim_type == 'style'])
+			self.emit('textstyle-changed', self.get_format_tags_by_name())
 
 	def iter_get_zim_tags(self, iter):
 		'''Replacement for C{Gtk.TextIter.get_tags()} which returns
@@ -1928,7 +1942,7 @@ class TextBuffer(Gtk.TextBuffer):
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
 
-	def toggle_textstyle(self, name):
+	def toggle_format_tag_by_name(self, name):
 		'''Toggle the current textstyle
 
 		If there is a selection toggle the text style of the selection,
@@ -1946,15 +1960,21 @@ class TextBuffer(Gtk.TextBuffer):
 
 		@param name: the format style name
 		'''
+		try:
+			tag = self.get_tag_table().lookup('style-' + name)
+		except:
+			raise ValueError('Invalid tag name: %s' % name)
+
 		if not self.get_has_selection():
-			styles = self.get_textstyles()
-			if 'pre' in styles and name != 'pre':
+			tags = self.get_editmode()
+			if any(filter(_is_pre_tag, tags)) and name != 'pre':
 				pass # do not allow styles within verbatim block
-			elif name in styles:
-				styles.remove(name)
-				self.set_textstyles(styles)
+			elif tag in tags:
+				tags.remove(tag)
+				self.set_editmode(tags)
 			else:
-				self.set_textstyles(styles + [name])
+				tags.append(tag)
+				self.set_editmode(tags)
 		else:
 			with self.user_action:
 				start, end = self.get_selection_bounds()
@@ -1965,7 +1985,6 @@ class TextBuffer(Gtk.TextBuffer):
 						if not self.whole_range_has_tag(tag, start, end):
 							start, end = self._fix_pre_selection(start, end)
 
-				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
 				pre_tag = self.get_tag_table().lookup('style-pre')
 
@@ -1973,11 +1992,10 @@ class TextBuffer(Gtk.TextBuffer):
 					self.smart_remove_tags(_is_heading_tag, start, end)
 					for line in range(start.get_line(), end.get_line()+1):
 						self._remove_indent(line)
-				elif tag.zim_tag in ('pre', 'code'):
+				elif tag.zim_tag == 'code':
 					self.smart_remove_tags(_is_non_nesting_tag, start, end)
-					if tag.zim_tag == 'pre':
-						self.smart_remove_tags(_is_link_tag, start, end)
-						self.smart_remove_tags(_is_style_tag, start, end)
+				elif tag.zim_tag == 'pre':
+					self.smart_remove_tags(_is_zim_tag, start, end)
 				elif self.range_has_tag(pre_tag, start, end):
 					return # do not allow formatting withing verbatim block
 
@@ -2076,22 +2094,10 @@ class TextBuffer(Gtk.TextBuffer):
 
 			return False
 
-	def remove_textstyle_tags(self, start, end):
-		'''Removes all format style TexTags from a range
-
-		@param start: a C{Gtk.TextIter}
-		@param end: a C{Gtk.TextIter}
-		'''
-		# Also remove links until we support links nested in tags
-		self.smart_remove_tags(_is_style_tag, start, end)
-		self.smart_remove_tags(_is_link_tag, start, end)
-		self.smart_remove_tags(_is_tag_tag, start, end)
-		self.update_editmode()
-
 	def smart_remove_tags(self, func, start, end):
 		'''This method removes tags over a range based on a function
 
-		So L{range_has_tags()} for a details on such a test function.
+		see L{range_has_tags()} for a details on such a test function.
 
 		Please use this method instead of C{remove_tag()} when you
 		are not sure if specific tags are present in the first place.
@@ -2186,7 +2192,6 @@ class TextBuffer(Gtk.TextBuffer):
 						right_margin=margin,
 						**self.tag_styles['indent'])
 
-			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
 			tag.zim_attrib = {'indent': level, '_bullet': (bullet is not None)}
 
@@ -2395,11 +2400,10 @@ class TextBuffer(Gtk.TextBuffer):
 		# Check current formatting
 		if not self._insert_tree_in_progress and string == '\n': # CHARS_END_OF_LINE
 			# Break tags that are not allowed to span over multiple lines
-			self._editmode_tags = [tag for tag in self._editmode_tags if _is_pre_tag(tag) or _is_heading_tag(tag) or _is_not_style_tag(tag)]
-				# Do not break heading tags here, they are handled seperately after the insert
-			self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags))
+			# Do not break heading tags here, they are handled seperately after the insert
+			# TODO: make this more robust for multiline inserts
+			self._editmode_tags = list(filter(_is_line_based_tag, self._editmode_tags))
 			self.emit('textstyle-changed', None)
-			# TODO make this more robust for multiline inserts
 
 			string, length = end_or_protect_tags(string, length)
 
@@ -2714,14 +2718,14 @@ class TextBuffer(Gtk.TextBuffer):
 			# For tags that can only appear once, if somehow an overlap
 			# occured, choose the one with the highest prio
 			for i in range(len(tags)-2, -1, -1):
-				if tags[i].zim_type in ('link', 'tag', 'indent') \
-					and tags[i+1].zim_type == tags[i].zim_type:
+				if tags[i].zim_tag in ('link', 'tag', 'indent') \
+					and tags[i+1].zim_tag == tags[i].zim_tag:
 						tags.pop(i)
 				elif tags[i+1].zim_tag == 'h' \
 					and tags[i].zim_tag in ('h', 'indent'):
 						tags.pop(i)
 				elif tags[i+1].zim_tag == 'pre' \
-					and tags[i].zim_type == 'style':
+					and _is_format_tag(tags[i]):
 						tags.pop(i)
 
 			i = 0
@@ -5299,7 +5303,7 @@ class UndoStackManager:
 
 	def do_change_tag(self, buffer, tag, start, end, action):
 		assert action in (self.ACTION_APPLY_TAG, self.ACTION_REMOVE_TAG)
-		if not hasattr(tag, 'zim_type'):
+		if not hasattr(tag, 'zim_tag'):
 			return
 
 		start, end = start.get_offset(), end.get_offset()
@@ -7254,14 +7258,19 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
-			buffer.remove_textstyle_tags(start, end)
+			if start.starts_line() and end.starts_line():
+				buffer.smart_remove_tags(_is_format_tag, start, end)
+			else:
+				# Exclude line-based format tags
+				buffer.smart_remove_tags(_is_inline_format_tag, start, end)
 			if selected:
 				# If we keep the selection we can not continue typing
 				# so remove the selection and restore the cursor.
 				buffer.unset_selection()
 				buffer.place_cursor(buffer.get_iter_at_mark(mark))
+			buffer.update_editmode()
 		else:
-			buffer.set_textstyles(None)
+			buffer.filter_editmode(_is_not_inline_format_tag)
 
 		buffer.delete_mark(mark)
 
@@ -7278,7 +7287,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				buffer.unset_selection()
 				buffer.place_cursor(buffer.get_iter_at_mark(mark))
 		else:
-			buffer.set_textstyles(None)
+			buffer.filter_editmode(tag_filter=_is_not_inline_format_tag)
 
 		buffer.delete_mark(mark)
 
@@ -7326,7 +7335,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			if format_left is format_right:
 				selected = self.autoselect(selectline=False)
 
-		buffer.toggle_textstyle(format)
+		buffer.toggle_format_tag_by_name(format)
 
 		if selected:
 			# If we keep the selection we can not continue typing

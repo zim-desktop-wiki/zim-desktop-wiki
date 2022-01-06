@@ -404,7 +404,7 @@ grrr
 		bound = iter.copy()
 		bound.forward_char()
 		buffer.select_range(iter, bound)
-		buffer.toggle_textstyle('strike')
+		buffer.toggle_format_tag_by_name('strike')
 		#~ print buffer.get_parsetree(raw=True).tostring()
 		#~ print buffer.get_parsetree().tostring()
 		tree = buffer.get_parsetree()
@@ -633,7 +633,7 @@ aaa <link href="xxx">bbb</link> ccc
 '''))
 		start, end = buffer.get_bounds()
 		buffer.select_range(start, end)
-		buffer.toggle_textstyle('code')
+		buffer.toggle_format_tag_by_name('code')
 
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), '''\
@@ -648,7 +648,7 @@ C
 		buffer = TextBuffer(None, None)
 		self.set_buffer(buffer, 'foo <tag name="test">@test</tag> bar')
 		buffer.select_line(0)
-		buffer.toggle_textstyle('code')
+		buffer.toggle_format_tag_by_name('code')
 		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
 
 	def assertMergeLines(self, input, output, line=0, offset=None):
@@ -714,25 +714,25 @@ C
 		buffer = self.get_buffer('foo bar\n')
 		for lvl in range(1, 7):
 			buffer.select_line(0)
-			buffer.toggle_textstyle('h%i' % lvl)
+			buffer.toggle_format_tag_by_name('h%i' % lvl)
 			self.assertBufferEquals(buffer, '<h level="%i">foo bar\n</h>' % lvl)
 
 	def testFormatHeadingWithFormatting(self):
 		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n')
 		buffer.select_line(0)
-		buffer.toggle_textstyle('h2')
+		buffer.toggle_format_tag_by_name('h2')
 		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n</h>')
 
 	def testFormatHeadingOnIndent(self):
 		buffer = self.get_buffer('<div indent="2">foo bar\n</div>')
 		buffer.select_line(0)
-		buffer.toggle_textstyle('h2')
+		buffer.toggle_format_tag_by_name('h2')
 		self.assertBufferEquals(buffer, '<h level="2">foo bar\n</h>')
 
 	def testFormatHeadingOnList(self):
 		buffer = self.get_buffer('<li bullet="1."> foo bar\n</li>')
 		buffer.select_line(0)
-		buffer.toggle_textstyle('h2')
+		buffer.toggle_format_tag_by_name('h2')
 		self.assertBufferEquals(buffer, '<h level="2" /><h level="2">1. foo bar\n</h>')
 				# FIXME: first <h level="2" /> should not be there, but does not seem to affect user behavior
 				#        maybe removed by refactoring serialization
@@ -740,7 +740,7 @@ C
 	def testFormatHeadingOnAnchor(self):
 		buffer = self.get_buffer('Foo bar <anchor name="bar">bar</anchor>')
 		buffer.select_line(0)
-		buffer.toggle_textstyle('h2')
+		buffer.toggle_format_tag_by_name('h2')
 		self.assertBufferEquals(buffer, '<h level="2">Foo bar <anchor name="bar">bar</anchor></h>')
 
 	def testBreakHeadingOnNewline(self):
@@ -1410,7 +1410,7 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 		iter = buffer.get_iter_at_offset(7)
 		buffer.place_cursor(iter)
 		buffer.select_word()
-		buffer.toggle_textstyle('strong')
+		buffer.toggle_format_tag_by_name('strong')
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
 
@@ -2222,7 +2222,7 @@ foo
 			'<zim-tree><p>foo <link href="link">link</link> </p></zim-tree>'
 		)
 		Clipboard.set_text('foo [[no link]]')
-		buffer.toggle_textstyle('code')
+		buffer.toggle_format_tag_by_name('code')
 		view.emit('paste-clipboard')
 
 		tree = buffer.get_parsetree()
