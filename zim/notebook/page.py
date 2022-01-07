@@ -6,6 +6,8 @@ import re
 import logging
 import itertools
 
+from typing import Generator, Generic, List, Optional, Union
+
 logger = logging.getLogger('zim.notebook')
 
 
@@ -35,7 +37,7 @@ re.UNICODE)
 	# The UNICODE flag is used to make the alphanumber check international.
 
 
-def shortest_unique_names(paths):
+def shortest_unique_names(paths: List['Path']) -> List[str]:
 	'''Returns the shortest unique name for each path in paths
 	@param paths: list of L{Path} objects
 	@returns: list of strings
@@ -71,7 +73,7 @@ def shortest_unique_names(paths):
 	return result
 
 
-class Path(object):
+class Path():
 	'''Class representing a page name in the notebook
 
 	This is the parent class for the Page class. It contains the name
@@ -123,12 +125,11 @@ class Path(object):
 	__slots__ = ('name',)
 
 	@staticmethod
-	def assertValidPageName(name):
+	def assertValidPageName(name: str) -> None:
 		'''Raises an C{AssertionError} if C{name} does not represent
 		a valid page name.
 		This is a strict check, most names that fail this test can still
 		be cleaned up by the L{makeValidPageName()}.
-		@param name: a string
 		@raises AssertionError: if the name is not valid
 		'''
 		assert isinstance(name, str)
@@ -138,13 +139,11 @@ class Path(object):
 			raise AssertionError('Not a valid page name: %s' % name)
 
 	@staticmethod
-	def makeValidPageName(name):
+	def makeValidPageName(name: str) -> str:
 		'''Remove any invalid characters from the string and return
 		a valid page name. Only string that can not be turned in
 		somthing valid is a string that reduces to an empty string
 		after removing all invalid characters.
-		@param name: a string
-		@returns: a string
 		@raises ValueError: when the result would be an empty string
 		'''
 		newname = _pagename_reduce_colon_re.sub(':', name.strip(':'))
@@ -156,7 +155,7 @@ class Path(object):
 			raise ValueError('Not a valid page name: %s (was: %s)' % (newname, name))
 		return newname
 
-	def __init__(self, name):
+	def __init__(self, name: Union[str, tuple]):
 		'''Constructor.
 
 		@param name: the absolute page name in the right case as a
@@ -181,13 +180,13 @@ class Path(object):
 			raise ValueError('BUG: invalid input, page names should be in ascii, or given as unicode')
 
 	@classmethod
-	def new_from_zim_config(klass, string):
+	def new_from_zim_config(klass, string: str) -> 'Path':
 		'''Returns a new object based on the string representation for
 		that path.
 		'''
 		return klass(klass.makeValidPageName(string))
 
-	def serialize_zim_config(self):
+	def serialize_zim_config(self) -> str:
 		'''Returns the name for serializing this path'''
 		return self.name
 
@@ -216,18 +215,18 @@ class Path(object):
 		return self.child(name)
 
 	@property
-	def parts(self):
+	def parts(self) -> List[str]:
 		'''Get all the parts of the name (split on ":")'''
 		return self.name.split(':')
 
 	@property
-	def basename(self):
+	def basename(self) -> str:
 		'''Get the basename of the path (last part of the name)'''
 		i = self.name.rfind(':') + 1
 		return self.name[i:]
 
 	@property
-	def namespace(self):
+	def namespace(self) -> str:
 		'''Gives the name for the parent page.
 		Returns an empty string for the top level namespace.
 		'''
@@ -238,16 +237,16 @@ class Path(object):
 			return ''
 
 	@property
-	def isroot(self):
+	def isroot(self) -> bool:
 		'''C{True} when this Path represents the top level namespace'''
 		return self.name == ''
 
-	def relname(self, path): # TODO make this use HRef !
+	def relname(self, path: 'Path') -> str: # TODO make this use HRef !
 		'''Get a part of this path relative to a parent path
 
 		@param path: a parent L{Path}
 
-		Raises an error if C{path} is not a parent
+		@raises ValueError: if C{path} is not a parent
 
 		@returns: the part of the path that is relative to C{path}
 		'''
@@ -260,7 +259,7 @@ class Path(object):
 			raise ValueError('"%s" is not below "%s"' % (self, path))
 
 	@property
-	def parent(self):
+	def parent(self) -> 'Path':
 		'''Get the path for the parent page'''
 		namespace = self.namespace
 		if namespace:
@@ -270,7 +269,7 @@ class Path(object):
 		else:
 			return Path(':')
 
-	def parents(self):
+	def parents(self) -> Generator['Path', None, None]:
 		'''Generator function for parent Paths including root'''
 		if ':' in self.name:
 			path = self.name.split(':')
@@ -281,7 +280,7 @@ class Path(object):
 				path.pop()
 		yield Path(':')
 
-	def child(self, basename):
+	def child(self, basename: str) -> 'Path':
 		'''Get a child Path
 
 		@param basename: the relative name for the child
@@ -289,21 +288,21 @@ class Path(object):
 		'''
 		return Path(self.name + ':' + basename)
 
-	def ischild(self, parent):
+	def ischild(self, parent: 'Path') -> bool:
 		'''Check whether this path is a child of a given path
 		@param parent: a L{Path} object
 		@returns: True when this path is a (grand-)child of C{parent}
 		'''
 		return parent.isroot or self.name.startswith(parent.name + ':')
 
-	def match_namespace(self, namespace):
+	def match_namespace(self, namespace: 'Path') -> bool:
 		'''Check whether this path is in a specific section of the notebook
 		@param namespace: a L{Path} object
 		@returns: True when this path is equal to C{namespace} or is a (grand-)child of C{namespace}
 		'''
 		return namespace.isroot or self.name == namespace.name or self.name.startswith(namespace.name + ':')
 
-	def commonparent(self, other):
+	def commonparent(self, other: 'Path') -> 'Path':
 		'''Find a common parent for two Paths
 
 		@param other: another L{Path} object
@@ -325,25 +324,37 @@ class Path(object):
 				return Path(':'.join(parent))
 
 
+HRef_rel_flavor = int
 HREF_REL_ABSOLUTE = 0
 HREF_REL_FLOATING = 1
 HREF_REL_RELATIVE = 2
 
-class HRef(object):
+class HRef():
+	'''Represents a link as it appears in the wiki source.
+	Contains semantic information about the link type, but
+	does not contain an end point.
+
+	Introduced to help preserve link type when moving content.
+
+	@note: To create the shortest link between two pages,
+	use L{Notebook.pages.create_link}
+
+	@note: To resolve a link into a L{Path}, create a L{HRef}
+	and pass it to L{Notebook.pages.resolve_link}.
+	'''
 
 	__slots__ = ('rel', 'names', 'anchor')
 
 	@classmethod
-	def new_from_wiki_link(klass, href):
+	def new_from_wiki_link(klass, href: str) -> 'Href':
 		'''Constructor that constructs a L{HRef} object for a link as
 		written in zim's wiki syntax.
 		@param href: a string for the link
-		@returns: a L{HRef} object
 		@raises ValueError: when the string could not be parsed
 		(see L{Path.makeValidPageName()})
 
-		@note: This method HRef class assumes the logic of our wiki links
-		for other formats, a separate constructor may be needed
+		@note: This method HRef class assumes the logic of our wiki links.
+		For other formats, a separate constructor may be needed.
 		'''
 		if href.startswith(':'):
 			rel = HREF_REL_ABSOLUTE
@@ -360,7 +371,7 @@ class HRef(object):
 
 		return klass(rel, names, anchor)
 
-	def __init__(self, rel, names, anchor=None):
+	def __init__(self, rel: HRef_rel_flavor, names: str, anchor: Optional[str] = None):
 		self.rel = rel
 		self.names = names
 		self.anchor = anchor
@@ -369,10 +380,10 @@ class HRef(object):
 		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
 		return '<%s: %s %s %s>' % (self.__class__.__name__, rel, self.names, self.anchor)
 
-	def parts(self):
+	def parts(self) -> List[str]:
 		return self.names.split(':') if self.names else []
 
-	def to_wiki_link(self):
+	def to_wiki_link(self) -> str:
 		'''Returns href as text for wiki link'''
 		if self.rel == HREF_REL_ABSOLUTE:
 			link = ":" + self.names.strip(':')
