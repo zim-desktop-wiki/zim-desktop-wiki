@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-07 06:55+0000\n"
+"PO-Revision-Date: 2022-01-08 21:25+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -536,7 +536,7 @@ msgstr "ע_זרה"
 #. Menu title
 #: zim/gui/mainwindow.py:56
 msgid "_Checkbox"
-msgstr ""
+msgstr "תיבת _סימון"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 #: zim/gui/mainwindow.py:66
@@ -793,7 +793,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "לחיצה חוזרת על תיבת סימון עוברת דרך מצבי תיבת הסימון"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:194
@@ -937,8 +937,6 @@ msgstr "_אחיד"
 
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5796
-#, fuzzy
-#| msgid "_Superscript"
 msgid "Su_perscript"
 msgstr "כתב _עלי"
 
