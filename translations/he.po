@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-10 19:18+0000\n"
+"PO-Revision-Date: 2022-01-10 19:24+0000\n"
 "Last-Translator: ישיבת הנגב -שכר שכיר <s.s0778992811@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -3401,7 +3401,7 @@ msgid ""
 "This plugin provides a sequence diagram editor for zim based on seqdiag.\n"
 "It allows easy editing of sequence diagrams.\n"
 msgstr ""
-"תוסף זה מספק עורך דיאגרמות רצף עבור zim המבוסס על seqdiag.\n"
+"תוסף זה מספק עורך גרף רצף עבור zim המבוסס על seqdiag.\n"
 "זה מאפשר עריכה קלה של דיאגרמות רצף.\n"
 
 #. menu item
@@ -3481,17 +3481,17 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:103
 msgid "Theme"
-msgstr ""
+msgstr "נושא"
 
 #. menu item
 #: zim/plugins/sourceview.py:118
 msgid "Code Block"
-msgstr ""
+msgstr "בלוק קוד"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:320
 msgid "Show Line Numbers"
-msgstr ""
+msgstr "הצג מספרי קו"
 
 #. input label
 #: zim/plugins/sourceview.py:330 zim/plugins/sourceview.py:357
@@ -3585,7 +3585,7 @@ msgstr ""
 #. option value
 #: zim/plugins/tableeditor.py:96
 msgid "vertical lines"
-msgstr ""
+msgstr "קווים אנכיים"
 
 #. preference description
 #: zim/plugins/tableeditor.py:102
