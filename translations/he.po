@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
 "PO-Revision-Date: 2022-01-10 19:18+0000\n"
-"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
+"Last-Translator: ישיבת הנגב -שכר שכיר <s.s0778992811@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
@@ -3193,6 +3193,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"תוסף זה מוסיף \"סרגל נתיב\" לראש החלון.\n"
+"\"סרגל הנתיבים\" הזה יכול להציג את נתיב המחברת עבור הדף הנוכחי,\n"
+"דפים שביקרו בהם לאחרונה או דפים שנערכו לאחרונה.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:80
@@ -3256,7 +3259,7 @@ msgstr "ה_דפסה לדפדפן"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "הדפסה"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
@@ -3284,7 +3287,7 @@ msgstr "הערה חטופה..."
 #. text entry field
 #: zim/plugins/quicknote.py:248
 msgid "Page section"
-msgstr ""
+msgstr "קטע עמוד"
 
 #. checkbox in Quick Note dialog
 #: zim/plugins/quicknote.py:249
@@ -3304,7 +3307,7 @@ msgstr "פתח דף"
 #. confirm closing quick note dialog
 #: zim/plugins/quicknote.py:351
 msgid "Discard note?"
-msgstr ""
+msgstr "למחוק הערה?"
 
 #. plugin name
 #: zim/plugins/scoreeditor.py:43
@@ -3318,6 +3321,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"תוסף זה מספק עורך ניקוד עבור צים המבוסס על גנו ליליפונד.\n"
+"\n"
+"זהו תוסף ליבה המשלוח עם zim.\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:55
@@ -3351,7 +3357,7 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/screenshot.py:119
 msgid "Screenshot Command"
-msgstr ""
+msgstr "צילום מסך"
 
 #. menu item for insert screenshot plugin
 #: zim/plugins/screenshot.py:161
@@ -3387,7 +3393,7 @@ msgstr "התרחשה שגיאה בזמן הרצת \"%s\"‏"
 #. plugin name
 #: zim/plugins/sequencediagrameditor.py:20
 msgid "Insert Sequence Diagram"
-msgstr ""
+msgstr "הכנס גרף רצף"
 
 #. plugin description
 #: zim/plugins/sequencediagrameditor.py:21
@@ -3395,16 +3401,18 @@ msgid ""
 "This plugin provides a sequence diagram editor for zim based on seqdiag.\n"
 "It allows easy editing of sequence diagrams.\n"
 msgstr ""
+"תוסף זה מספק עורך דיאגרמות רצף עבור zim המבוסס על seqdiag.\n"
+"זה מאפשר עריכה קלה של דיאגרמות רצף.\n"
 
 #. menu item
 #: zim/plugins/sequencediagrameditor.py:38
 msgid "Sequence Diagram"
-msgstr ""
+msgstr "תרשים רצף"
 
 #. plugin name
 #: zim/plugins/sourceview.py:70
 msgid "Source View"
-msgstr ""
+msgstr "הצגת מקור"
 
 #. plugin description
 #: zim/plugins/sourceview.py:71
@@ -3412,36 +3420,38 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"תוסף זה מאפשר הכנסת 'קוד בלוקים' בדף. אלה יהיו\n"
+"מוצגים כווידג'טים משובצים עם הדגשת תחביר, מספרי שורות וכו'.\n"
 
 #. option value
 #: zim/plugins/sourceview.py:80
 msgid "Never wrap lines"
-msgstr ""
+msgstr "לעולם אל תעטוף קווים"
 
 #. option value
 #: zim/plugins/sourceview.py:81
 msgid "Try wrap at word boundaries or character"
-msgstr ""
+msgstr "נסה לעטוף בגבולות מילים או אופי"
 
 #. option value
 #: zim/plugins/sourceview.py:82
 msgid "Always wrap at character"
-msgstr ""
+msgstr "תמיד לעטוף באופי"
 
 #. option value
 #: zim/plugins/sourceview.py:83
 msgid "Always wrap at word boundaries"
-msgstr ""
+msgstr "תמיד לעטוף בגבולות המילים"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:87
 msgid "Auto indenting"
-msgstr ""
+msgstr "הסרה אוטומטית"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:89
 msgid "Smart Home key"
-msgstr ""
+msgstr "מקש בית חכם"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:91
