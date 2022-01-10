@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-08 21:25+0000\n"
-"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
+"PO-Revision-Date: 2022-01-10 19:11+0000\n"
+"Last-Translator: ישיבת הנגב -שכר שכיר <s.s0778992811@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
@@ -3134,7 +3134,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
 msgid "macOS Menubar"
-msgstr ""
+msgstr "סרגל התפריט"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:75
@@ -3144,17 +3144,17 @@ msgstr "תוסף זה מספק סרגל כלים מסוג macOS עבור zim."
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
 msgid "Page Index"
-msgstr ""
+msgstr "רשימת עמודים"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:52
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr ""
+msgstr "תוסף זה מוסיף את חלונית רשימת הדפים לחלון הראשי.\n"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
-msgstr ""
+msgstr "השתמש בגרירה כדי להעביר דפים במחברת"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3169,12 +3169,12 @@ msgstr "לצמצם סעיפים אוטומטית עם סגירת עמוד"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
-msgstr ""
+msgstr "השתמש בפס גלילה אופקי (ייתכן שיהיה צורך בהפעלה מחדש)"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr ""
+msgstr "השתמש בעזרת הכלים"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132
@@ -3186,7 +3186,7 @@ msgstr "מפתח"
 #. plugin name
 #: zim/plugins/pathbar.py:38
 msgid "Path Bar"
-msgstr ""
+msgstr "בר נתיב"
 
 #. plugin description
 #: zim/plugins/pathbar.py:39
