@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
 "PO-Revision-Date: 2022-01-10 19:24+0000\n"
-"Last-Translator: ישיבת הנגב -שכר שכיר <s.s0778992811@gmail.com>\n"
+"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
@@ -3193,9 +3193,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
-"תוסף זה מוסיף \"סרגל נתיב\" לראש החלון.\n"
-"\"סרגל הנתיבים\" הזה יכול להציג את נתיב המחברת עבור הדף הנוכחי,\n"
-"דפים שביקרו בהם לאחרונה או דפים שנערכו לאחרונה.\n"
+"תוסף זה מוסיף „סרגל נתיב” לראש החלון.\n"
+"„סרגל הנתיב” הזה יכול להציג את נתיב המחברת עבור הדף הנוכחי,\n"
+"דפים בהם ביקרת לאחרונה או דפים שנערכו לאחרונה.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:80
@@ -3321,14 +3321,14 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מספק עורך ניקוד עבור צים המבוסס על גנו ליליפונד.\n"
+"תוסף זה מספק עורך ציון עבור zim המבוסס על ליליפונד מבית גנו.\n"
 "\n"
-"זהו תוסף ליבה המשלוח עם zim.\n"
+"זהו תוסף ליבה שמצורף ל־zim.\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:55
 msgid "Common include header"
-msgstr "כותרת ראשית משותף"
+msgstr "כותרת הכללה משותפת"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:56
