@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-10 19:11+0000\n"
-"Last-Translator: ישיבת הנגב -שכר שכיר <s.s0778992811@gmail.com>\n"
+"PO-Revision-Date: 2022-01-10 19:18+0000\n"
+"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
@@ -3134,7 +3134,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
 msgid "macOS Menubar"
-msgstr "סרגל התפריט"
+msgstr "סרגל תפריט macOS"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:75
@@ -3169,24 +3169,22 @@ msgstr "לצמצם סעיפים אוטומטית עם סגירת עמוד"
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
-msgstr "השתמש בפס גלילה אופקי (ייתכן שיהיה צורך בהפעלה מחדש)"
+msgstr "להשתמש בפס גלילה אופקי (אולי דורש הפעלה מחדש)"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
 msgid "Use tooltips"
-msgstr "השתמש בעזרת הכלים"
+msgstr "להשתמש בחלוניות עצה"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132
-#, fuzzy
-#| msgid "Index"
 msgid "Inde_x"
-msgstr "מפתח"
+msgstr "מ_פתח"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
 msgid "Path Bar"
-msgstr "בר נתיב"
+msgstr "סרגל נתיב"
 
 #. plugin description
 #: zim/plugins/pathbar.py:39
