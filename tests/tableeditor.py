@@ -81,7 +81,7 @@ class TestWikiSyntaxNoPlugin(tests.TestCase):
 
 	def parseAndDump(self, text):
 		tree = WikiParser().parse(text)
-		self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS)
+		self.assertEqual(list(tree.iter_tokens()), TABLE_TOKENS)
 
 	def testWikiText(self):
 		self.parseAndDump(TABLE_WIKI_TEXT)
@@ -117,8 +117,8 @@ class TestTableObjectType(tests.TestCase):
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
 
-		#self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS) -- XXX should work but doesn;t :(
-		self.assertEquals(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
+		#self.assertEqual(list(tree.iter_tokens()), TABLE_TOKENS) -- XXX should work but doesn;t :(
+		self.assertEqual(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
 
 	def testModelFromData(self):
 		notebook = self.setUpNotebook()
@@ -131,8 +131,8 @@ class TestTableObjectType(tests.TestCase):
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
 
-		#self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS) -- XXX should work but doesn;t :(
-		self.assertEquals(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
+		#self.assertEqual(list(tree.iter_tokens()), TABLE_TOKENS) -- XXX should work but doesn;t :(
+		self.assertEqual(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
 
 
 class TestPageViewNoPlugin(tests.TestCase):
@@ -147,7 +147,7 @@ class TestPageViewNoPlugin(tests.TestCase):
 		)
 		pageview.textview.get_buffer().set_modified(True) # Force re-interpretation of the buffer
 		tree = pageview.page.get_parsetree()
-		self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS)
+		self.assertEqual(list(tree.iter_tokens()), TABLE_TOKENS)
 
 
 class TestPageViewWithPlugin(TestPageViewNoPlugin):
