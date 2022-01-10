@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-10 19:24+0000\n"
+"PO-Revision-Date: 2022-01-10 19:54+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -3154,7 +3154,7 @@ msgstr "תוסף זה מוסיף את חלונית רשימת הדפים לחל�
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
 msgid "Use drag&drop to move pages in the notebook"
-msgstr "השתמש בגרירה כדי להעביר דפים במחברת"
+msgstr "להשתמש בגרירה כדי להעביר דפים במחברת"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3259,7 +3259,7 @@ msgstr "ה_דפסה לדפדפן"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr "הדפסה"
+msgstr "ה_דפסה"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
@@ -3357,12 +3357,12 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/screenshot.py:119
 msgid "Screenshot Command"
-msgstr "צילום מסך"
+msgstr "פקודת צילום מסך"
 
 #. menu item for insert screenshot plugin
 #: zim/plugins/screenshot.py:161
 msgid "_Screenshot..."
-msgstr "_צילום מסך..."
+msgstr "_צילום המסך…"
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:179
@@ -3393,7 +3393,7 @@ msgstr "התרחשה שגיאה בזמן הרצת \"%s\"‏"
 #. plugin name
 #: zim/plugins/sequencediagrameditor.py:20
 msgid "Insert Sequence Diagram"
-msgstr "הכנס גרף רצף"
+msgstr "הוספת תרשים רצף"
 
 #. plugin description
 #: zim/plugins/sequencediagrameditor.py:21
@@ -3401,8 +3401,8 @@ msgid ""
 "This plugin provides a sequence diagram editor for zim based on seqdiag.\n"
 "It allows easy editing of sequence diagrams.\n"
 msgstr ""
-"תוסף זה מספק עורך גרף רצף עבור zim המבוסס על seqdiag.\n"
-"זה מאפשר עריכה קלה של דיאגרמות רצף.\n"
+"תוסף זה מספק עורך תרשימי רצף עבור zim המבוסס על seqdiag.\n"
+"הוא מאפשר עריכה קלה של תרשימי רצף.\n"
 
 #. menu item
 #: zim/plugins/sequencediagrameditor.py:38
@@ -3420,33 +3420,33 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
-"תוסף זה מאפשר הכנסת 'קוד בלוקים' בדף. אלה יהיו\n"
-"מוצגים כווידג'טים משובצים עם הדגשת תחביר, מספרי שורות וכו'.\n"
+"תוסף זה מאפשר הוספת ‚מקטעי קוד’ בדף. אלו\n"
+"יוצגו כווידג׳טים מוטמעים עם הדגשת תחביר, מספרי שורות וכו׳.\n"
 
 #. option value
 #: zim/plugins/sourceview.py:80
 msgid "Never wrap lines"
-msgstr "לעולם אל תעטוף קווים"
+msgstr "לא לגלוש בקווים"
 
 #. option value
 #: zim/plugins/sourceview.py:81
 msgid "Try wrap at word boundaries or character"
-msgstr "נסה לעטוף בגבולות מילים או אופי"
+msgstr "לנסות לגלוש בגבולות מילים או תווים"
 
 #. option value
 #: zim/plugins/sourceview.py:82
 msgid "Always wrap at character"
-msgstr "תמיד לעטוף באופי"
+msgstr "תמיד לגלוש בתו"
 
 #. option value
 #: zim/plugins/sourceview.py:83
 msgid "Always wrap at word boundaries"
-msgstr "תמיד לעטוף בגבולות המילים"
+msgstr "תמיד לגלוש בגבולות המילים"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:87
 msgid "Auto indenting"
-msgstr "הסרה אוטומטית"
+msgstr "הזחה אוטומטית"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:89
@@ -3481,37 +3481,37 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:103
 msgid "Theme"
-msgstr "נושא"
+msgstr "ערכת עיצוב"
 
 #. menu item
 #: zim/plugins/sourceview.py:118
 msgid "Code Block"
-msgstr "בלוק קוד"
+msgstr "מקטע קוד"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:320
 msgid "Show Line Numbers"
-msgstr "הצג מספרי קו"
+msgstr "הצגת מספרי קווים"
 
 #. input label
 #: zim/plugins/sourceview.py:330 zim/plugins/sourceview.py:357
 msgid "Syntax"
-msgstr ""
+msgstr "תחביר"
 
 #. dialog title
 #: zim/plugins/sourceview.py:347
 msgid "Insert Code Block"
-msgstr ""
+msgstr "הוספת מקטע קוד"
 
 #. input checkbox
 #: zim/plugins/sourceview.py:384
 msgid "Display line numbers"
-msgstr ""
+msgstr "הצגת מספרי שורות"
 
 #. plugin name
 #: zim/plugins/spell.py:69
 msgid "Spell Checker"
-msgstr "בדיקת האיות"
+msgstr "בדיקת איות"
 
 #. plugin description
 #: zim/plugins/spell.py:70
@@ -3522,17 +3522,17 @@ msgid ""
 msgstr ""
 "התוסף מוסיף תמיכה בבדיקת איות באמצעות gtkspell.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. menu item
 #: zim/plugins/spell.py:128
 msgid "Check _spelling"
-msgstr "בדיקת ה_איות"
+msgstr "בדיקת _איות"
 
 #. error message
 #: zim/plugins/spell.py:159
 msgid "Could not load spell checking"
-msgstr ""
+msgstr "לא ניתן לטעון את בדיקת האיות"
 
 #. error message explanation
 #: zim/plugins/spell.py:161
@@ -3540,23 +3540,23 @@ msgid ""
 "This could mean you don't have the proper\n"
 "dictionaries installed"
 msgstr ""
-"יכול להיות שלא מותקנים אצלך המילונים\n"
-"המתאימים"
+"יכול להיות שלא מותקנים אצלך\n"
+"המילונים המתאימים"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:54
 msgid "Center"
-msgstr ""
+msgstr "מרכז"
 
 #. alignment option
 #: zim/plugins/tableeditor.py:56
 msgid "Unspecified"
-msgstr ""
+msgstr "לא צוין"
 
 #. plugin name
 #: zim/plugins/tableeditor.py:83
 msgid "Table Editor"
-msgstr ""
+msgstr "עורך טבלאות"
 
 #. plugin description
 #: zim/plugins/tableeditor.py:84
