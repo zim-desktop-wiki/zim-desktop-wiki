@@ -60,7 +60,7 @@ def tokens_by_line(tokens):
 			line = []
 	if line:
 		yield line
-		
+
 
 class TokenBuilder(Builder):
 
@@ -157,11 +157,13 @@ def topLevelLists(tokens):
 	# ..<ul>...</ul>.. --> ..</p><ul>...</ul><p>..
 	# ..<ul>...</ul></p> --> ..</p><ul>...</ul>
 	#
-
+	para_end = (END, PARAGRAPH)
+	seen_para = False
 	tokeniter = iter(tokens)
 	newtokens = []
 	for t in tokeniter:
 		if t[0] in (NUMBEREDLIST, BULLETLIST):
+			assert seen_para, 'Looks like tokenlist had top level lists to start with'
 			if newtokens[-1][0] == PARAGRAPH:
 				newtokens.pop()
 			else:
@@ -186,6 +188,10 @@ def topLevelLists(tokens):
 				newtokens.append((PARAGRAPH, None))
 				newtokens.append(nexttoken)
 		else:
+			if t[0] == PARAGRAPH:
+				seen_para = True
+			elif t == para_end:
+				seen_para = False
 			newtokens.append(t)
 
 	return newtokens

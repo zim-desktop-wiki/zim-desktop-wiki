@@ -434,9 +434,8 @@ class TestExportFormat(object):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		i = 0
-		print('')
 		for template, file in list_templates(self.format):
-			#print 'Testing template: %s' % template
+			#print('Testing template: %s' % template)
 			pages = AllPages(notebook) # TODO - sub-section ?
 			exporter = build_notebook_exporter(output_folder.folder(template), self.format, template)
 			self.assertIsInstance(exporter, MultiFileExporter)

@@ -88,7 +88,7 @@ from zim.newfs import format_file_size
 from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
 from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
-	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK, HEADING
+	FORMATTEDTEXT, PARAGRAPH, BULLETLIST, LISTITEM, STRONG, LINK, HEADING
 
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
@@ -272,6 +272,7 @@ class ExportTemplateContext(dict):
 
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
+		builder.start(PARAGRAPH)
 		if self._index_page:
 			expanded = [self._index_page] + list(self._index_page.parents())
 		else:
@@ -317,6 +318,7 @@ class ExportTemplateContext(dict):
 
 		for p in stack:
 			builder.end(BULLETLIST)
+		builder.end(PARAGRAPH)
 		builder.end(FORMATTEDTEXT)
 
 		tree = builder.get_parsetree()

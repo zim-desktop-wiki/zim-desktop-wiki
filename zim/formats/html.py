@@ -76,17 +76,23 @@ class Dumper(DumperClass):
 		return DumperClass.dump(self, tree)
 
 	def encode_text(self, tag, text):
-		# if _isrtl is already set the direction was already
-		# determined for this section
-		if self._isrtl is None and not text.isspace():
-			self._isrtl = self.isrtl(text)
+		if tag == FORMATTEDTEXT and text.isspace():
+			if self.template_options['empty_lines'] == 'remove':
+				return '\n'
+			else:
+				return '<br>\n'
+		else:
+			# if _isrtl is already set the direction was already
+			# determined for this section
+			if self._isrtl is None and not text.isspace():
+				self._isrtl = self.isrtl(text)
 
-		text = html_encode(text)
-		if tag not in (VERBATIM_BLOCK, VERBATIM, OBJECT) \
-		and not self.template_options['line_breaks'] == 'remove':
-			text = text.replace('\n', '<br>\n')
+			text = html_encode(text)
+			if tag not in (VERBATIM_BLOCK, VERBATIM, OBJECT) \
+			and not self.template_options['line_breaks'] == 'remove':
+				text = text.replace('\n', '<br>\n')
 
-		return text
+			return text
 
 	def _strip_newline(self, strings):
 		if strings and strings[-1].endswith('<br>\n'):
@@ -94,20 +100,11 @@ class Dumper(DumperClass):
 		elif strings and strings[-1].endswith('\n'):
 			strings[-1] = strings[-1][:-1]
 
-	def text(self, text):
-		if self.context[-1].tag == FORMATTEDTEXT \
-		and text.isspace():
-			# Reduce top level empty lines
-			if self.template_options['empty_lines'] == 'remove':
-				self.context[-1].text.append('\n')
-			else:
-				l = text.count('\n') - 1
-				if l > 0:
-					self.context[-1].text.append('\n' + ('<br>\n' * l) + '\n')
-				elif l == 0:
-					self.context[-1].text.append('\n')
-		else:
-			DumperClass.text(self, text)
+	def _start_list(self):
+		if self.context[-1].tag == LISTITEM:
+			# strip '\n' introduced by encode_text()
+			self._strip_newline(self.context[-1].text)
+			self.context[-1].text.append('\n')
 
 	def dump_h(self, tag, attrib, strings):
 		self._strip_newline(strings)
@@ -160,9 +157,14 @@ class Dumper(DumperClass):
 	dump_p = dump_block
 	dump_div = dump_block
 	dump_pre = dump_block
-	dump_ul = dump_block
+
+	def dump_ul(self, tag, attrib, strings):
+		self._start_list()
+		return self.dump_block(tag, attrib, strings)
 
 	def dump_ol(self, tag, attrib, strings):
+		self._start_list()
+
 		myattrib = ''
 		if 'start' in attrib:
 			start = attrib['start']

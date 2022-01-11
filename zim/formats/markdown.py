@@ -72,7 +72,7 @@ class Dumper(TextDumper):
 			del attrib['indent']
 		strings = TextDumper.dump_list(self, tag, attrib, strings)
 
-		if self.context[-1].tag in (BULLETLIST, NUMBEREDLIST):
+		if self.context[-1].tag == LISTITEM:
 			# sub-list
 			return strings
 		else:

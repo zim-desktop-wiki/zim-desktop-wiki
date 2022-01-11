@@ -1,5 +1,5 @@
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping input in plain text'''
 
@@ -126,7 +126,7 @@ class Dumper(DumperClass):
 			# top level list with specified indent
 			prefix = '\t' * int(attrib['indent'])
 			return self.prefix_lines(prefix, strings)
-		elif self.context[-1].tag in (BULLETLIST, NUMBEREDLIST):
+		elif self.context[-1].tag == LISTITEM:
 			# indent sub list
 			prefix = '\t'
 			return self.prefix_lines(prefix, strings)

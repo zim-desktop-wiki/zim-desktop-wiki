@@ -632,7 +632,7 @@ a. hmmm
 </li></ul></p></zim-tree>'''
 		check(text, xml)
 
-		# Double indent sub-list ?
+		# Double indent sub-list - clean up automatically
 		text = '''\
 * foo
 * bar
@@ -648,7 +648,14 @@ a. hmmm
 </li><li>here
 </li></ol></ol><li bullet="*">hmmm
 </li></ul></p></zim-tree>'''
-		check(text, xml)
+		wanted = '''\
+* foo
+* bar
+	1. sub list
+	2. here
+* hmmm
+'''
+		check(text, xml, wanted)
 
 		# This is not a list
 		text = '''\
@@ -869,29 +876,25 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 			template_options={'empty_lines': 'default'}
 		).dump(tree)
 		self.assertEqual(''.join(html),
-			'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n\n'
-			'<br>\n\n'
-			'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n\n'
+			'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n'
+			'<br>\n'
+			'<br>\n'
+			'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n'
+			'<br>\n'
 		)
 
-		html = self.format.Dumper(
-			linker=StubLinker(),
-			template_options={'empty_lines': 'remove'}
-		).dump(tree)
-		self.assertEqual(''.join(html),
-			'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n\n'
-			'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n\n'
-		)
-
-		html = self.format.Dumper(
-			linker=StubLinker(),
-			template_options={'empty_lines': 'Remove'} # case sensitive
-		).dump(tree)
-		self.assertEqual(''.join(html),
-			'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n\n'
-			'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n\n'
-		)
-
+		for option in ('remove', 'Remove'):
+			# test also case sensitivity
+			html = self.format.Dumper(
+				linker=StubLinker(),
+				template_options={'empty_lines': option}
+			).dump(tree)
+			self.assertEqual(''.join(html),
+				'<h1>head1<a id="head1" class="h_anchor"></a></h1>\n'
+				'\n\n'
+				'<h2>head2<a id="head2" class="h_anchor"></a></h2>\n'
+				'\n'
+			)
 
 	def testLineBreaks(self):
 		builder = ParseTreeBuilder()

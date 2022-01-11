@@ -1,5 +1,5 @@
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Package with source formats for pages.
 
@@ -156,6 +156,10 @@ TABLEDATA = 'td'
 LINE = 'line'
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, LISTITEM) # Top levels with nested text
+
+# Tokens
+TEXT = 'T'
+END = '/'
 
 
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -1132,7 +1136,7 @@ class DumperClass(Visitor):
 		# FIXME - issue here is that we need to reset state - should be in __init__
 		self._text = []
 		self.context = [DumperContextElement(None, None, self._text)]
-		tree.visit(self)
+		self._dump(tree.iter_tokens())
 		if len(self.context) != 1:
 			raise AssertionError('Unclosed tags on tree: %s' % self.context[-1].tag)
 		#~ import pprint; pprint.pprint(self._text)
@@ -1144,72 +1148,39 @@ class DumperClass(Visitor):
 		'''
 		return ''.join(self._text).splitlines(1)
 
-	def start(self, tag, attrib=None):
-		if attrib:
-			attrib = attrib.copy() # Ensure dumping does not change tree
-		self.context.append(DumperContextElement(tag, attrib, []))
+	def _dump(self, token_iter):
+		for t in token_iter:
+			if t[0] == TEXT:
+				text = t[1]
+				if self.context[-1].tag != OBJECT:
+					text = self.encode_text(self.context[-1].tag, text)
+				self.context[-1].text.append(text)
+			elif t[0] == END:
+				assert t[1] == self.context[-1].tag, 'Unexpected tag closed: %s - stack: %r' % (t[1], [c.tag for c in self.context])
+				tag, attrib, strings = self.context.pop()
 
-	def text(self, text):
-		assert not text is None
-		if self.context[-1].tag != OBJECT:
-			text = self.encode_text(self.context[-1].tag, text)
-		self.context[-1].text.append(text)
+				if tag in self.TAGS:
+					if strings:
+						start, end = self.TAGS[tag]
+						strings.insert(0, start)
+						strings.append(end)
+					else:
+						pass # Skip empty tags silently
+				elif tag == FORMATTEDTEXT:
+					pass
+				else:
+					try:
+						method = getattr(self, 'dump_' + tag)
+					except AttributeError:
+						raise AssertionError('BUG: Unknown tag: %s' % tag)
 
-	def end(self, tag):
-		if not tag or tag != self.context[-1].tag:
-			raise AssertionError('Unexpected tag closed: %s' % tag)
-		_, attrib, strings = self.context.pop()
+					strings = method(tag, attrib, strings)
 
-		if tag in self.TAGS:
-			assert strings, 'Can not append empty %s element' % tag
-			start, end = self.TAGS[tag]
-			strings.insert(0, start)
-			strings.append(end)
-		elif tag == FORMATTEDTEXT:
-			pass
-		else:
-			try:
-				method = getattr(self, 'dump_' + tag)
-			except AttributeError:
-				raise AssertionError('BUG: Unknown tag: %s' % tag)
-
-			strings = method(tag, attrib, strings)
-			#~ try:
-				#~ u''.join(strings)
-			#~ except:
-				#~ print("BUG: %s returned %s" % ('dump_'+tag, strings))
-
-		if strings is not None:
-			self.context[-1].text.extend(strings)
-
-	def append(self, tag, attrib=None, text=None):
-		strings = None
-		if tag in self.TAGS:
-			assert text is not None, 'Can not append empty %s element' % tag
-			start, end = self.TAGS[tag]
-			text = self.encode_text(tag, text)
-			strings = [start, text, end]
-		elif tag == FORMATTEDTEXT:
-			if text is not None:
-				strings = [self.encode_text(tag, text)]
-		else:
-			if attrib:
-				attrib = attrib.copy() # Ensure dumping does not change tree
-
-			try:
-				method = getattr(self, 'dump_' + tag)
-			except AttributeError:
-				raise AssertionError('BUG: Unknown tag: %s' % tag)
-
-			if text is None:
-				strings = method(tag, attrib, [])
-			elif tag == OBJECT:
-				strings = method(tag, attrib, [text])
-			else:
-				strings = method(tag, attrib, [self.encode_text(tag, text)])
-
-		if strings is not None:
-			self.context[-1].text.extend(strings)
+				if strings is not None:
+					self.context[-1].text.extend(strings)
+			else: # START
+				attrib = t[1].copy() if t[1] else {} # Ensure dumping does not change tree
+				self.context.append(DumperContextElement(t[0], attrib, []))
 
 	def encode_text(self, tag, text):
 		'''Optional method to encode text elements in the output

@@ -130,13 +130,23 @@ class Dumper(TextDumper):
 		text = ''.join(strings).strip('\n')
 		return [self.SECTIONING[self.document_type][level] % text, '\n']
 
+	def _start_list(self):
+		if self.context[-1].tag == LISTITEM and \
+			self.context[-1].text and self.context[-1].text[-1].endswith('\n\n'):
+				# strip '\n' introduced by encode_text()
+				self.context[-1].text[-1] = self.context[-1].text[-1][:-1]
+
 	def dump_ul(self, tag, attrib, strings):
+		self._start_list()
+
 		strings.insert(0, '\\begin{itemize}\n')
 		strings.append('\\end{itemize}\n')
 
 		return TextDumper.dump_ul(self, tag, attrib, strings)
 
 	def dump_ol(self, tag, attrib, strings):
+		self._start_list()
+
 		start = attrib.get('start', 1)
 		if start in string.ascii_lowercase:
 			type = 'a'
