@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-17 20:56+0000\n"
+"PO-Revision-Date: 2022-01-17 21:50+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -1218,10 +1218,8 @@ msgstr "מחיקת ה_עיצוב"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7262
-#, fuzzy
-#| msgid "_Remove Link"
 msgid "_Remove Heading"
-msgstr "ה_סרת קישור"
+msgstr "ה_סרת כותרת ראשית"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7368
@@ -1902,8 +1900,6 @@ msgstr "ש_ליחה אל…"
 
 #. Menu item
 #: zim/gui/uiactions.py:186
-#, fuzzy
-#| msgid "_Rename or move Page..."
 msgid "_Rename or Move Page..."
 msgstr "שי_נוי שם או העברת עמוד…"
 
@@ -2005,10 +2001,8 @@ msgstr "הצ_גת רישום לניפוי שגיאות"
 
 #. Menu item
 #: zim/gui/uiactions.py:378
-#, fuzzy
-#| msgid "Update Index"
 msgid "Check and Update Index"
-msgstr "לחדש מפתח דפים"
+msgstr "בדיקה וחידוש מפתח דפים"
 
 #. Menu item
 #: zim/gui/uiactions.py:411
@@ -2147,13 +2141,11 @@ msgstr ""
 
 #. label in the TrashPage dialog to warn user of attachments being deleted
 #: zim/gui/uiactions.py:732
-#, fuzzy, python-format
-#| msgid "%i file will be deleted"
-#| msgid_plural "%i files will be deleted"
+#, python-format
 msgid "%i file will be trashed"
 msgid_plural "%i files will be trashed"
-msgstr[0] "%i קובץ אחד יימחק"
-msgstr[1] "%i קבצים יימחקו"
+msgstr[0] "קובץ אחד יועבר לאשפה"
+msgstr[1] "%i קבצים יועברו לאשפה"
 
 #. Title of progressbar dialog
 #: zim/gui/uiactions.py:742 zim/gui/uiactions.py:782
@@ -2423,21 +2415,20 @@ msgstr "לא ניתן להשתמש בשם הדף הזה עקב מגבלות טכ
 
 #. message for PageNotAvailableError
 #: zim/notebook/notebook.py:135
-#, fuzzy, python-format
-#| msgid "File is not writable: %s"
+#, python-format
 msgid "Page not available: %s"
-msgstr "הקובץ אינו פתוח לכתיבה: %s"
+msgstr "עמוד לא זמין: %s"
 
 #. description for PageNotAvailableError
 #: zim/notebook/notebook.py:136
 msgid "This page name cannot be used due to a conflicting file in the storage"
-msgstr ""
+msgstr "אי אפשר להשתמש בשם העמוד הזה עקב קובץ סותר באחסון"
 
 #. message for PageExistsError
 #: zim/notebook/notebook.py:145
 #, python-format
 msgid "Page already exists: %s"
-msgstr ""
+msgstr "העמוד כבר קיים: %s"
 
 #. error message for read-only pages
 #: zim/notebook/page.py:402
@@ -2448,13 +2439,13 @@ msgstr "לא ניתן לשנות את העמוד: %s"
 #. placeholder for unknown file name
 #: zim/parser.py:281
 msgid "<Unknown>"
-msgstr ""
+msgstr "<לא ידוע>"
 
 #. Extended error message while parsing a file, gives file name, line number and words where error occurred
 #: zim/parser.py:287
 #, python-format
 msgid "Error in %(file)s at line %(line)i near \"%(snippet)s\""
-msgstr ""
+msgstr "שגיאה בתוך %(file)s בשורה %(line)i ליד „%(snippet)s”"
 
 #. plugin name
 #: zim/plugins/arithmetic.py:16
@@ -2468,6 +2459,9 @@ msgid ""
 "It is based on the arithmetic module from\n"
 "http://pp.com.mx/python/arithmetic.\n"
 msgstr ""
+"תוסף זה מאפשר לך להטמיע חישובים חשבוניים ב־zim.\n"
+"הוא מבוסס על המודול החשבוני מתוך\n"
+"http://pp.com.mx/python/arithmetic.\n"
 
 #. menu item
 #: zim/plugins/arithmetic.py:33
@@ -2478,7 +2472,7 @@ msgstr "חשבון"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "למחוק את הקובץ ‚%s’?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -2487,10 +2481,8 @@ msgstr "מ_חיקה…"
 
 #. menu item to rename file
 #: zim/plugins/attachmentbrowser/filebrowser.py:396
-#, fuzzy
-#| msgid "_Replace..."
 msgid "_Rename..."
-msgstr "הח_לפה…"
+msgstr "_שינוי שם…"
 
 #. unspecified value for file modification time
 #: zim/plugins/attachmentbrowser/filebrowser.py:429
@@ -2500,7 +2492,7 @@ msgstr "לא ידוע"
 #. label for file type
 #: zim/plugins/attachmentbrowser/filebrowser.py:442
 msgid "Type"
-msgstr ""
+msgstr "סוג"
 
 #. label for file size
 #: zim/plugins/attachmentbrowser/filebrowser.py:443
@@ -2510,17 +2502,17 @@ msgstr "גודל"
 #. label for file modification date
 #: zim/plugins/attachmentbrowser/filebrowser.py:444
 msgid "Modified"
-msgstr "שונה"
+msgstr "נערך"
 
 #. popup menu action on drag-drop of a file
 #: zim/plugins/attachmentbrowser/filebrowser.py:480
 msgid "_Move Here"
-msgstr "ה_עבר לכאן"
+msgstr "ה_עברה לכאן"
 
 #. popup menu action on drag-drop of a file
 #: zim/plugins/attachmentbrowser/filebrowser.py:484
 msgid "_Copy Here"
-msgstr "העתק כאן"
+msgstr "הע_תקה כאן"
 
 #. popup menu action on drag-drop of a file
 #: zim/plugins/attachmentbrowser/filebrowser.py:489
@@ -2530,22 +2522,22 @@ msgstr "ביטול"
 #. dialog title
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
 msgid "Rename file"
-msgstr ""
+msgstr "שינוי שם קובץ"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
 msgid "File name should not be blank."
-msgstr ""
+msgstr "שם הקובץ לא אמור להישאר ריק."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:72
 msgid "A file with that name already exists."
-msgstr ""
+msgstr "כבר קיים קובץ בשם הזה."
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:75
 msgid "File name should not contain path declaration."
-msgstr ""
+msgstr "שם הקובץ לא אמור להכיל הכרזת נתיב."
 
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
@@ -3633,22 +3625,22 @@ msgstr "שורה למטה"
 #. menu item
 #: zim/plugins/tableeditor.py:466 zim/plugins/tableeditor.py:624
 msgid "Change columns"
-msgstr ""
+msgstr "שינוי עמודות"
 
 #. tooltip on mouse hover
 #: zim/plugins/tableeditor.py:468
 msgid "Open help"
-msgstr ""
+msgstr "פתיחת עזרה"
 
 #. menu item
 #: zim/plugins/tableeditor.py:616
 msgid "Delete row"
-msgstr ""
+msgstr "מחיקת שורה"
 
 #. menu item
 #: zim/plugins/tableeditor.py:619
 msgid "Open cell content link"
-msgstr ""
+msgstr "פתיחת קישור תוכן התא"
 
 #. Popup dialog
 #: zim/plugins/tableeditor.py:682
@@ -3656,31 +3648,33 @@ msgid ""
 "The table must consist of at least on row!\n"
 " No deletion done."
 msgstr ""
+"הטבלה חייבת להיות מורכבת משורה אחת לפחות!\n"
+" לא בוצעה מחיקה."
 
 #. Popup dialog
 #: zim/plugins/tableeditor.py:773 zim/plugins/tableeditor.py:1082
 msgid "Please select a row, before you push the button."
-msgstr ""
+msgstr "נא לבחור שורה, בטרם לחיצה על הכפתור."
 
 #. Dialog title
 #: zim/plugins/tableeditor.py:860
 msgid "Insert Table"
-msgstr ""
+msgstr "הוספת טבלה"
 
 #. Dialog title
 #: zim/plugins/tableeditor.py:860
 msgid "Edit Table"
-msgstr ""
+msgstr "עריכת טבלה"
 
 #. Description of "Table-Insert" Dialog
 #: zim/plugins/tableeditor.py:869
 msgid "Managing table columns"
-msgstr ""
+msgstr "ניהול עמודות טבלה"
 
 #. Initial data for column title in table
 #: zim/plugins/tableeditor.py:899
 msgid "Column 1"
-msgstr ""
+msgstr "עמודה 1"
 
 #. table header
 #: zim/plugins/tableeditor.py:932
@@ -3688,16 +3682,18 @@ msgid ""
 "Auto\n"
 "Wrap"
 msgstr ""
+"גלישה\n"
+"אוטומטית"
 
 #. table header
 #: zim/plugins/tableeditor.py:942
 msgid "Align"
-msgstr ""
+msgstr "יישור"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:969
 msgid "Add column"
-msgstr ""
+msgstr "הוספת עמודה"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:970
@@ -3924,12 +3920,12 @@ msgstr "לא להשתמש"
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:70
 msgid "as start date for tasks"
-msgstr ""
+msgstr "כתאריך התחלה למשימות"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:71
 msgid "as due date for tasks"
-msgstr ""
+msgstr "כתאריך סוף ביצוע למשימות"
 
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:73
@@ -3939,12 +3935,12 @@ msgstr ""
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:75
 msgid "Section(s) to ignore"
-msgstr ""
+msgstr "סעיפים להתעלמות"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:80
 msgid "Tags for non-actionable tasks"
-msgstr ""
+msgstr "תגיות למטלות שאינן לביצוע"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:82
@@ -3998,31 +3994,27 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "הצגת פקדים בעיטור החלון"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "אפשרות זו דורשת את הפעלת היישום מחדש"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
-#, fuzzy
-#| msgid "Show in the toolbar"
 msgid "Show toolbar"
-msgstr "הצגה בסרגל כלים"
+msgstr "הצגת סרגל כלים"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:80
 msgid "Include formatting tools in toolbar"
-msgstr ""
+msgstr "לכלול כלי עיצוב בסרגל הכלים"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:84
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Toolbar style"
-msgstr "סרגל _כלים"
+msgstr "סגנון סרגל כלים"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:86
@@ -4066,12 +4058,12 @@ msgstr "הצגת סמל נפרד עבור כל מחברת"
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:132
 msgid "_Quick Note..."
-msgstr "הערה ח_טופה..."
+msgstr "הערה ח_טופה…"
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:141
 msgid "_Other..."
-msgstr "_אחר..."
+msgstr "_אחר…"
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:197
@@ -4158,7 +4150,7 @@ msgstr "Git"
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:261
 msgid "Fossil"
-msgstr ""
+msgstr "Fossil"
 
 #. Question dialog
 #: zim/plugins/versioncontrol/__init__.py:721
