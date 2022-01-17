@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-12 11:57+0000\n"
+"PO-Revision-Date: 2022-01-17 20:56+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.11-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -3568,17 +3568,17 @@ msgstr ""
 #. option value
 #: zim/plugins/tableeditor.py:93
 msgid "with lines"
-msgstr ""
+msgstr "עם קווים"
 
 #. option value
 #: zim/plugins/tableeditor.py:94
 msgid "no grid lines"
-msgstr ""
+msgstr "ללא קווי רשת"
 
 #. option value
 #: zim/plugins/tableeditor.py:95
 msgid "horizontal lines"
-msgstr ""
+msgstr "קווים אופקיים"
 
 #. option value
 #: zim/plugins/tableeditor.py:96
@@ -3588,46 +3588,46 @@ msgstr "קווים אנכיים"
 #. preference description
 #: zim/plugins/tableeditor.py:102
 msgid "Show helper toolbar"
-msgstr ""
+msgstr "הצגת סרגל כלי סיוע"
 
 #. preference description
 #: zim/plugins/tableeditor.py:105
 msgid "Grid lines"
-msgstr ""
+msgstr "קווי רשת"
 
 #. menu item
 #: zim/plugins/tableeditor.py:155
 msgid "Table"
-msgstr ""
+msgstr "טבלה"
 
 #. tooltip on mouse hover | 
 #. menu item
 #: zim/plugins/tableeditor.py:459 zim/plugins/tableeditor.py:615
 msgid "Add row"
-msgstr ""
+msgstr "הוספת שורה"
 
 #. tooltip on mouse hover
 #: zim/plugins/tableeditor.py:460
 msgid "Remove row"
-msgstr ""
+msgstr "הסרת שורה"
 
 #. tooltip on mouse hover | 
 #. menu item
 #: zim/plugins/tableeditor.py:461 zim/plugins/tableeditor.py:617
 msgid "Clone row"
-msgstr ""
+msgstr "שכפול שורה"
 
 #. tooltip on mouse hover | 
 #. menu item
 #: zim/plugins/tableeditor.py:463 zim/plugins/tableeditor.py:621
 msgid "Row up"
-msgstr ""
+msgstr "שורה למעלה"
 
 #. tooltip on mouse hover | 
 #. menu item
 #: zim/plugins/tableeditor.py:464 zim/plugins/tableeditor.py:622
 msgid "Row down"
-msgstr ""
+msgstr "שורה למטה"
 
 #. tooltip on mouse hover | 
 #. menu item
