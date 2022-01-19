@@ -120,7 +120,7 @@ Known properties for TextView:
 * **tabs**: //integer//	- tab size in pixels
 * **linespacing**: //integer// - line spacing in pixels, effectively spacing between paragraphs
 * **wrapped-lines-linespacing**: //integer// - line spacing in pixels between wrapped lines
-* **justify**: ''JUSTIFY_LEFT'', ''JUSTIFY_FILL'', ...
+* **justify**: ''LEFT'', ''RIGHT'', ''CENTER'' or ''FILL''
 * **font**: //string//
 * **bullet_icon_size**: ''ICON_SIZE_MENU'', ''ICON_SIZE_LARGE_TOOLBAR'', ...
 

@@ -6063,8 +6063,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if self.text_style['TextView']['justify']:
 			try:
 				const = self.text_style['TextView']['justify']
-				assert hasattr(gtk, const), 'No such constant: Gtk.%s' % const
-				self.textview.set_justification(getattr(gtk, const))
+				assert hasattr(Gtk.Justification, const), 'No such constant: Gtk.%s' % const
+				self.textview.set_justification(getattr(Gtk.Justification, const))
 			except:
 				logger.exception('Exception while setting justification:')
 
