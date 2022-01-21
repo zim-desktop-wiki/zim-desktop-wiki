@@ -16,7 +16,7 @@ jobs:
         # disable macos until #1797 is fixed
         #os: [macos-latest, ubuntu-latest, windows-latest]
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: [3.6, 3.10]
 
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     steps:
