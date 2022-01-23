@@ -649,7 +649,7 @@ C
 		self.set_buffer(buffer, 'foo <tag name="test">@test</tag> bar')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('code')
-		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
+		self.assertBufferEquals(buffer, '<pre>foo @test bar</pre>')
 
 	def assertMergeLines(self, input, output, line=0, offset=None):
 		buffer = self.get_buffer(input)
@@ -2947,18 +2947,18 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		bounds = self.buffer.get_bounds()
 		self.buffer.select_range(*bounds)
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
 
 	def testApplyStyleOnFormatVerbatim(self):
 		self.buffer.set_text('line1\nline2\nline3\n')
 		bounds = self.buffer.get_bounds()
 		self.buffer.select_range(*bounds)
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
 		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
 		self.buffer.select_word()
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
 
 	def testApplyFormatSup(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())

@@ -1979,22 +1979,25 @@ class TextBuffer(Gtk.TextBuffer):
 			with self.user_action:
 				start, end = self.get_selection_bounds()
 				if name == 'code' and start.starts_line() \
-					and end.get_line() != start.get_line():
+					and (end.ends_line() or end.starts_line()):
 						name = 'pre'
+						if end.ends_line():
+							end.forward_line()
 						tag = self.get_tag_table().lookup('style-' + name)
-						if not self.whole_range_has_tag(tag, start, end):
-							start, end = self._fix_pre_selection(start, end)
+						if start.get_line() != end.get_line() and \
+							not self.whole_range_has_tag(tag, start, end):
+								start, end = self._fix_pre_selection(start, end)
 
 				had_tag = self.whole_range_has_tag(tag, start, end)
 				pre_tag = self.get_tag_table().lookup('style-pre')
 
 				if tag.zim_tag == "h":
-					self.smart_remove_tags(_is_heading_tag, start, end)
-					for line in range(start.get_line(), end.get_line()+1):
-						self._remove_indent(line)
+					assert start.starts_line() and (end.starts_line() or end.is_end()), 'Selection must be whole line'
+					self.smart_remove_tags(_is_line_based_tag, start, end)
 				elif tag.zim_tag == 'code':
 					self.smart_remove_tags(_is_non_nesting_tag, start, end)
 				elif tag.zim_tag == 'pre':
+					assert start.starts_line() and (end.starts_line() or end.is_end()), 'Selection must be whole line'
 					self.smart_remove_tags(_is_zim_tag, start, end)
 				elif self.range_has_tag(pre_tag, start, end):
 					return # do not allow formatting withing verbatim block
@@ -2013,7 +2016,7 @@ class TextBuffer(Gtk.TextBuffer):
 		start_mark = self.create_mark(None, start, True)
 		end_mark = self.create_mark(None, end, True)
 
-		lines = range(*sorted([start.get_line(), end.get_line()+1]))
+		lines = range(*sorted([start.get_line(), end.get_line()]))
 		min_indent = min(self.get_indent(line) for line in lines)
 
 		for line in lines:
