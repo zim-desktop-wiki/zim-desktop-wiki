@@ -2237,6 +2237,31 @@ Foo 123
 		menu = textview.get_popup()
 		self.assertIsInstance(menu, Gtk.Menu)
 
+	def testStyleConfig(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+
+		# font
+
+		# TODO
+
+		# tabs
+
+		# linespacing
+
+		# wrapped-line-linespacing
+
+		# font
+
+		# justify - constant for FILL is 3
+		pageview.text_style['TextView']['justify'] = 'FILL'
+		self.assertEqual(pageview.textview.get_justification(), 3)
+
+		# indent
+
+		# bullet_icon_size
+
+		# tag_styles
+
 
 class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 
