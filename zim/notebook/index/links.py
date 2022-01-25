@@ -1,7 +1,25 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+'''
+Links come in 3 flavors:
+1/ HREF_REL_ABSOLUTE - starting from the top level e.g. ":foo"
+2/ HREF_REL_FLOATING - relative to the source namespace, or parents, e.g. "foo"
+3/ HREF_REL_RELATIVE - below the source page, e.g. "+foo"
 
+If the target page does not exist, a "placeholder" is created for this
+page.
+
+Floating links are resolved to existing pages in parent namespaces
+therefore they may need to be recalculated when pages of the same name
+are created or deleted. This is done by the 'anchorkey' field in the
+links table.
+To avoid circular dependencies between the existance of placeholder
+pages and links, floating links do /not/ resolve to placeholders,
+but only to existing links.
+(Else we would need to drop all placeholders and
+re-calculate all links on every page index to ensure the outcome.)
+'''
 
 import logging
 import sqlite3
@@ -22,27 +40,6 @@ LINK_DIR_FORWARD = 1 #: Constant for forward links
 LINK_DIR_BACKWARD = 2 #: Constant for backward links
 LINK_DIR_BOTH = 3 #: Constant for links in any direction
 
-
-# Links come in 3 flavors:
-# 1/ HREF_REL_ABSOLUTE - starting from the top level e.g. ":foo"
-# 2/ HREF_REL_FLOATING - relative to the source namespace, or parents, e.g. "foo"
-# 3/ HREF_REL_RELATIVE - below the source page, e.g. "+foo"
-#
-# If the target page does not exist, a "placeholder" is created for this
-# page.
-#
-# Floating links are resolved to existing pages in parent namespaces
-# therefore they may need to be recalculated when pages of the same name
-# are created or deleted. This is done by the 'anchorkey' field in the
-# links table.
-# To avoid circular dependencies between the existance of placeholder
-# pages and links, floating links do /not/ resolve to placeholders,
-# but only to existing links.
-# (Else we would need to drop all placeholders and
-# re-calculate all links on every page index to ensure the outcome.)
-
-
-
 class IndexLink(object):
 	'''Class used to represent links between two pages
 
@@ -52,7 +49,7 @@ class IndexLink(object):
 
 	__slots__ = ('source', 'target')
 
-	def __init__(self, source, target):
+	def __init__(self, source: Path, target: Path):
 		self.source = source
 		self.target = target
 
