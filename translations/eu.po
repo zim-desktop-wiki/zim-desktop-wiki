@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2021-10-24 22:40+0000\n"
+"PO-Revision-Date: 2022-01-26 20:38+0000\n"
 "Last-Translator: Alexander Gabilondo <alexgabi@openmailbox.org>\n"
 "Language-Team: Basque <https://hosted.weblate.org/projects/zim/master/eu/>\n"
 "Language: eu\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.9-dev\n"
+"X-Generator: Weblate 4.11-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -2643,20 +2643,16 @@ msgstr "Bueltako estekak"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:116
-#, fuzzy, python-format
-#| msgid "%i BackLink"
-#| msgid_plural "%i BackLinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
-msgstr[0] "%i Bueltako esteka..."
-msgstr[1] "%i Bueltako estekak..."
+msgstr[0] "%i _Bueltako esteka..."
+msgstr[1] "%i _Bueltako estekak..."
 
 #. widget label
 #: zim/plugins/backlinkpane.py:119
-#, fuzzy
-#| msgid "BackLinks"
 msgid "_BackLinks"
-msgstr "Bueltako estekak"
+msgstr "_Bueltako estekak"
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:295
@@ -2901,14 +2897,12 @@ msgstr "Erabili letra kolorea gai ilunetarako"
 #. plugin preference
 #: zim/plugins/equationeditor.py:34
 msgid "Font size"
-msgstr ""
+msgstr "Letraren tamaina"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
-#, fuzzy
-#| msgid "Equation"
 msgid "Equation image DPI"
-msgstr "Ekuazioa"
+msgstr "Ekuazio-irudia DPI"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
@@ -3084,11 +3078,6 @@ msgstr "Lerroen ordenatzailea"
 
 #. plugin description
 #: zim/plugins/linesorter.py:27
-#, fuzzy
-#| msgid ""
-#| "This plugin sorts selected lines in alphabetical order.\n"
-#| "If the list is already sorted the order will be reversed\n"
-#| "(A-Z to Z-A).\n"
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3097,7 +3086,9 @@ msgid ""
 msgstr ""
 "Plugin honek hautatutako lerroak alfabetikoki ordenatzen ditu.\n"
 "Zerrenda lehendik ordenatuta badago ordena alderantzikatzen du.\n"
-"(A-Z > Z-A).\n"
+"(A-Z > Z-A). Funtzionalitate gehigarriak: mugitu testu-lerroak gora edo "
+"behera,\n"
+"testu-lerroak bikoiztu edo kendu.\n"
 
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
@@ -3803,7 +3794,7 @@ msgstr "Igo maila"
 #. widget label
 #: zim/plugins/tableofcontents.py:483
 msgid "T_oC"
-msgstr ""
+msgstr "Aurkibidea"
 
 #: zim/plugins/tableofcontents.py:513
 msgid "ToC"
@@ -3827,7 +3818,7 @@ msgstr ""
 #. title for sidepane tab
 #: zim/plugins/tags.py:98
 msgid "T_ags"
-msgstr ""
+msgstr "Etiket_ak"
 
 #. menu option
 #: zim/plugins/tags.py:148
@@ -3857,7 +3848,7 @@ msgstr "Erakutsi bakarrik zeregin aktiboak"
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tas_ks"
-msgstr ""
+msgstr "Zeregin_ak"
 
 #. label for filtering/searching tasks | 
 #. Input label
