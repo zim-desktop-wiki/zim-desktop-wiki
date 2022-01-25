@@ -47,10 +47,11 @@ class BackwardDitaaImageObjectType(BackwardImageGeneratorObjectType):
 	label = _('Ascii graph (Ditaa)') # T: menu item
 	syntax = None
 	scriptname = 'ditaa.dia'
-	imagefile_extension = '.png'
 
 
 class DitaaGenerator(ImageGeneratorClass):
+
+	imagefile_extension = '.png'
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)

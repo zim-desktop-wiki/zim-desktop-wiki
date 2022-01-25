@@ -1,5 +1,5 @@
 
-# Copyright 2009-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the base classes used by all plugins that
 create an image from text based input. Like the equation editor, the
@@ -11,6 +11,8 @@ import logging
 logger = logging.getLogger('zim.plugins')
 
 from gi.repository import Gtk
+
+import hashlib
 
 from zim.fs import adapt_from_oldfs
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
@@ -33,6 +35,9 @@ class ImageGeneratorObjectType(InsertedObjectTypeExtension):
 	Plugins should contain a sub-class of of this class to define the object
 	type name, label etc. It then will automatically load a sub-class from
 	ImageGeneratorClass defined in the same plugin to do the work.
+
+	See L{zim.insertedobjects} for more information on the C{ObjectType}
+	interface
 	'''
 
 	syntax = None
@@ -72,13 +77,11 @@ class BackwardImageGeneratorObjectType(ImageGeneratorObjectType):
 	}
 
 	is_inline = True # Behave like an image
-
 	scriptname = None
-	imagefile_extension = None
 
 	def model_from_data(self, notebook, page, attrib, data):
 		generator = self.generator_klass(self.plugin, notebook, page)
-		return BackwardImageGeneratorModel(notebook, page, generator, attrib, data, self.scriptname, self.imagefile_extension)
+		return BackwardImageGeneratorModel(notebook, page, generator, attrib, data, self.scriptname)
 
 	def format(self, format, dumper, attrib, data):
 		if data:
@@ -93,7 +96,7 @@ class BackwardImageGeneratorObjectType(ImageGeneratorObjectType):
 			return dumper.dump_img(IMAGE, attrib, None)
 
 
-class ImageGeneratorModel(SignalEmitter):
+class ImageGeneratorModelBase(SignalEmitter):
 
 	__signals__ = {'changed': (SIGNAL_RUN_FIRST, None, ())}
 
@@ -103,18 +106,68 @@ class ImageGeneratorModel(SignalEmitter):
 		self.generator = generator
 		self.attrib = attrib
 		self.data = data
+		self.image_file = None
 
 	def get_text(self):
-		raise NotImplementedError
+		'''Get the text of the model or default value'''
+		text = self.data or self.generator.get_default_text()
+		return self.generator.filter_source(text)
 
 	def set_from_generator(self, text, image_file):
+		'''Update state of the model based on output of the generator
+		this is used after the generator is run by another class.
+		@emits: changed
+		'''
 		raise NotImplementedError
 
 
-class BackwardImageGeneratorModel(ImageGeneratorModel):
+class ImageGeneratorModel(ImageGeneratorModelBase):
 
-	def __init__(self, notebook, page, generator, attrib, data, scriptname, imagefile_extension):
-		ImageGeneratorModel.__init__(self, notebook, page, generator, attrib, data)
+	def __init__(self, notebook, page, generator, attrib, data):
+		ImageGeneratorModelBase.__init__(self, notebook, page, generator, attrib, data)
+		self.image_file = self._new_image_file()
+
+		if self.data and not self.image_file.exists():
+			logger.debug('Image did not exist, re-generating: %r', self.image_file.path)
+			# Cache was cleaned - should we do this async ?
+			try:
+				image_file, log_file = self.generator.generate_image(data)
+			except Error:
+				pass
+			else:
+				self.set_from_generator(data, image_file)
+		elif not data and self.image_file.exists():
+			self.image_file.remove()
+
+	def _new_image_file(self):
+		cache_dir = self.notebook.folder.folder('_images')
+		if self.data:
+			content = []
+			for k, v in sorted(self.attrib.items()):
+				content.extend([k, v])
+			content.append(self.data)
+			basename = hashlib.md5(''.join(content).encode()).hexdigest() + self.generator.imagefile_extension
+		else:
+			basename = 'empty_image' + self.generator.imagefile_extension
+		file = cache_dir.file(basename)
+		logger.debug('New cache image: %s', file.path)
+		return file
+
+	def set_from_generator(self, text, image_file):
+		# Do not clean up the existing self.image_file - we don't know if
+		# any other object is using the same file
+		# TODO: use index table to keep track and clean up when ref count is zerp ?
+		self.data = text
+		self.image_file = self._new_image_file()
+		image_file.rename(self.image_file)
+		self.emit('changed')
+
+
+class BackwardImageGeneratorModel(ImageGeneratorModelBase):
+
+	def __init__(self, notebook, page, generator, attrib, data, scriptname):
+		ImageGeneratorModelBase.__init__(self, notebook, page, generator, attrib, data)
+		imagefile_extension = self.generator.imagefile_extension
 		if attrib['src'] and not attrib['src'] == '_new_':
 			# File give, derive script
 			self.image_file = adapt_from_oldfs(notebook.resolve_file(attrib['src'], page))
@@ -141,7 +194,6 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 	def set_from_generator(self, text, image_file):
 		image_file = adapt_from_oldfs(image_file)
 		self.script_file.write(text)
-
 		if image_file == self.image_file:
 			pass
 		else:
@@ -209,6 +261,8 @@ class ImageGeneratorClass(object):
 	Since the content of the image can depent on the notebook location, a
 	generator object is specific for a notebook page.
 	'''
+
+	imagefile_extension = None #: e.g. ".png" used by the model to create proper file path
 
 	def __init__(self, plugin, notebook, page):
 		self.plugin = plugin

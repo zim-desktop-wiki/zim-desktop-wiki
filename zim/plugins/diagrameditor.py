@@ -39,10 +39,11 @@ class BackwardDiagramImageObjectType(BackwardImageGeneratorObjectType):
 	label = _('Diagram') # T: menu item
 	syntax = 'dot'
 	scriptname = 'diagram.dot'
-	imagefile_extension = '.png'
 
 
 class DiagramGenerator(ImageGeneratorClass):
+
+	imagefile_extension = '.png'
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)

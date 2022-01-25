@@ -49,10 +49,11 @@ class BackwardGnuplotImageObjectType(BackwardImageGeneratorObjectType):
 	label = _('Gnuplot') # T: menu item
 	syntax = None
 	scriptname = 'gnuplot.gnu'
-	imagefile_extension = '.png'
 
 
 class GnuplotGenerator(ImageGeneratorClass):
+
+	imagefile_extension = '.png'
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)

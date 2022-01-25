@@ -52,10 +52,11 @@ class BackwardGnuRPlotImageObjectType(BackwardImageGeneratorObjectType):
 	label = _('GNU R Plot') # T: menu item
 	syntax = 'r'
 	scriptname = 'gnu_r_plot.r'
-	imagefile_extension = '.png'
 
 
 class GNURPlotGenerator(ImageGeneratorClass):
+
+	imagefile_extension = '.png'
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)

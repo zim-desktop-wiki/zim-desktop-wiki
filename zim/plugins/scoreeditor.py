@@ -68,11 +68,12 @@ class BackwardScoreImageObjectType(BackwardImageGeneratorObjectType):
 	label = _('Score') # T: menu item
 	syntax = None
 	scriptname = 'score.ly'
-	imagefile_extension = '.png'
 
 
 class ScoreGenerator(ImageGeneratorClass):
 
+	imagefile_extension = '.png'
+	
 	cur_lilypond_version = None
 
 	def __init__(self, plugin, notebook, page):

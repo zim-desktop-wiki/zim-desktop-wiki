@@ -49,7 +49,6 @@ class BackwardEquationImageObjectType(BackwardImageGeneratorObjectType):
 	label = _('Equation') # T: menu item
 	syntax = 'latex'
 	scriptname = 'equation.tex'
-	imagefile_extension = '.png'
 	widget_style = 'inline'
 
 	def format_latex(self, dumper, attrib, data):
@@ -64,6 +63,8 @@ class BackwardEquationImageObjectType(BackwardImageGeneratorObjectType):
 
 
 class EquationGenerator(ImageGeneratorClass):
+
+	imagefile_extension = '.png'
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)

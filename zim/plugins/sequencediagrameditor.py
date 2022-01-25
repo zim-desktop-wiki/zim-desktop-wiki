@@ -38,10 +38,11 @@ class BackwardSequenceDiagramImageObjectType(BackwardImageGeneratorObjectType):
 	label = _('Sequence Diagram') # T: menu item
 	syntax = None
 	scriptname = 'seqdiagram.diag'
-	imagefile_extension = '.png'
 
 
 class SequenceDiagramGenerator(ImageGeneratorClass):
+
+	imagefile_extension = '.png'
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
