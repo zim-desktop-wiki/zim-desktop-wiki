@@ -1942,6 +1942,15 @@ class TextBuffer(Gtk.TextBuffer):
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
 
+	def _iter_get_zim_tags_incl_line_based(self, iter):
+		# Simplified case for "range" methods where line based tags are included
+		start_tags = list(filter(_is_zim_tag, iter.get_toggled_tags(True)))
+		tags = [t for t in filter(_is_zim_tag, iter.get_tags()) if not t in start_tags]
+		end_tags = list(filter(_is_zim_tag, iter.get_toggled_tags(False)))
+		tags += end_tags
+		tags.sort(key=lambda tag: tag.get_priority())
+		return tags
+
 	def toggle_format_tag_by_name(self, name):
 		'''Toggle the current textstyle
 
@@ -2041,8 +2050,8 @@ class TextBuffer(Gtk.TextBuffer):
 		@param start: a C{Gtk.TextIter}
 		@param end: a C{Gtk.TextIter}
 		'''
-		if tag in start.get_tags() \
-				and tag in self.iter_get_zim_tags(end):
+		# test right gravity for start iter, but left gravity for end iter
+		if tag in start.get_tags() and tag in self._iter_get_zim_tags_incl_line_based(end):
 			iter = start.copy()
 			if iter.forward_to_tag_toggle(tag):
 				return iter.compare(end) >= 0
@@ -2059,8 +2068,7 @@ class TextBuffer(Gtk.TextBuffer):
 		@param end: a C{Gtk.TextIter}
 		'''
 		# test right gravity for start iter, but left gravity for end iter
-		if tag in start.get_tags() \
-				or tag in self.iter_get_zim_tags(end):
+		if tag in start.get_tags() or tag in self._iter_get_zim_tags_incl_line_based(end):
 			return True
 		else:
 			iter = start.copy()
@@ -2083,8 +2091,8 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		# test right gravity for start iter, but left gravity for end iter
 		if any(filter(func, start.get_tags())) \
-				or any(filter(func, self.iter_get_zim_tags(end))):
-			return True
+			or any(filter(func, self._iter_get_zim_tags_incl_line_based(end))):
+				return True
 		else:
 			iter = start.copy()
 			iter.forward_to_tag_toggle(None)
