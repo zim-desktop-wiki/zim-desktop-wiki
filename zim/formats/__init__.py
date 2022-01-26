@@ -135,6 +135,9 @@ BULLETLIST = 'ul'
 NUMBEREDLIST = 'ol'
 LISTITEM = 'li'
 
+BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, LISTITEM) # Top levels with nested text
+
+
 EMPHASIS = 'emphasis' # TODO change to "em" to be in line with html
 STRONG = 'strong'
 MARK = 'mark'
@@ -142,6 +145,9 @@ VERBATIM = 'code'
 STRIKE = 'strike'
 SUBSCRIPT = 'sub'
 SUPERSCRIPT = 'sup'
+
+INLINE_STYLE_TAGS = (EMPHASIS, STRONG, MARK, VERBATIM, STRIKE, SUBSCRIPT, SUPERSCRIPT) # Inline tags without additional semantics
+
 
 LINK = 'link'
 TAG = 'tag'
@@ -155,7 +161,6 @@ TABLEDATA = 'td'
 
 LINE = 'line'
 
-BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, LISTITEM) # Top levels with nested text
 
 # Tokens
 TEXT = 'T'
@@ -857,177 +862,136 @@ class ParseTreeBuilder(Builder):
 			self._last_char = text[-1] if text else None
 
 
-count_eol_re = re.compile(r'\n+\Z')
-split_para_re = re.compile(r'((?:^[ \t]*\n){2,})', re.M)
+class BackwardParseTreeBuilderWithCleanup(object):
+	'''Adaptor for the pageview compatible with the old builder interface'''
 
+	# Did not use TokenBuilder and TokenParser here to process tokens
+	# without "topLevelLists()" logic
 
-class OldParseTreeBuilder(object):
-	'''This class supplies an alternative for xml.etree.ElementTree.TreeBuilder
-	which cleans up the tree on the fly while building it. The main use
-	is to normalize the tree that is produced by the editor widget, but it can
-	also be used on other "dirty" interfaces.
+	# TODO: Adaptor breaks text at newline - move to real pageview tokenizer, combine
+	# with breaking inline tags at newline - or handle both in token filter function
 
-	This builder takes care of the following issues:
-		- ~~Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines~~
-		  (refactored out to `TextBuffer.get_parsetree()`)
-		- Tags can not contain only whitespace
-		- Tags can not be empty (with the exception of the 'img' tag)
-		- ~~There should be an empty line before each 'h', 'p' or 'pre'
-		  (with the exception of the first tag in the tree)~~
-		- The 'p' and 'pre' elements should always end with a newline ('\\n')
-		  --> all block elements must end in newline
-		- ~~Each 'p', 'pre' and 'h' should be postfixed with a newline ('\\n')
-		  (as a results 'p' and 'pre' are followed by an empty line, the
-		  'h' does not end in a newline itself, so it is different)~~
-		- ~~Newlines ('\\n') after a <li> alement are removed (optional)~~
-		- The element '_ignore_' is silently ignored
-	'''
+	# TODO: clean up of empty link & heading tags is a bit of a cludge, might be
+	# better resolved directly in tokenizer
 
-	## TODO TODO this also needs to be based on Builder ##
-
-	def __init__(self, remove_newlines_after_li=True):
-		assert remove_newlines_after_li, 'TODO'
-		self._stack = [] # stack of elements for open tags
-		self._last = None # last element opened or closed
-		self._data = [] # buffer with data
-		self._tail = False # True if we are after an end tag
-		self._last_char = None
+	def __init__(self):
+		self._tokens = []
 
 	def start(self, tag, attrib=None):
-		#print('START', tag)
-		if tag == '_ignore_':
-			return self._last
-		else:
-			self._flush()
-
-		if tag in BLOCK_LEVEL:
-			self._last_char = None
-
-		if tag == 'h':
-			if not (attrib and 'level' in attrib):
-				logger.warn('Missing "level" attribute for heading')
-				attrib = attrib or {}
-				attrib['level'] = 1
-		elif tag == 'link':
-			if not (attrib and 'href' in attrib):
-				logger.warn('Missing "href" attribute for link')
-				attrib = attrib or {}
-				attrib['href'] = "404"
-		# TODO check other mandatory properties !
-
-		if attrib:
-			self._last = ElementTreeModule.Element(tag, attrib)
-		else:
-			self._last = ElementTreeModule.Element(tag)
-
-		if self._stack:
-			self._stack[-1].append(self._last)
-		else:
-			assert tag == 'zim-tree', 'root element needs to be "zim-tree"'
-		self._stack.append(self._last)
-
-		self._tail = False
-		return self._last
-
-	def end(self, tag):
-		#print('END', tag)
-		if tag == '_ignore_':
-			return None
-		else:
-			assert self._stack[-1].tag == tag, \
-				"end tag mismatch (expected %s, got %s)" % (self._stack[-1].tag, tag)
-			self._flush()
-
-		if len(self._stack) > 1 and not (
-			tag in (IMAGE, OBJECT, HEADDATA, TABLEDATA)
-			or (self._stack[-1].text and not self._stack[-1].text.isspace())
-			or bool(list(self._stack[-1]))
-		):
-			# purge empty tags
-			if self._stack[-1].text and self._stack[-1].text.isspace():
-				self._append_to_previous(self._stack[-1].text)
-
-			empty = self._stack.pop()
-			self._stack[-1].remove(empty)
-			children = list(self._stack[-1])
-			if children:
-				self._last = children[-1]
-				if not self._last.tail is None:
-					self._data = [self._last.tail]
-					self._last.tail = None
-			else:
-				self._last = self._stack[-1]
-				self._tail = False
-				if not self._last.text is None:
-					self._data = [self._last.text]
-					self._last.text = None
-
-			return empty
-
-		else:
-			if tag in BLOCK_LEVEL and self._last_char != '\n':
-				# Fix trailing newlines
-				if self._tail:
-					text = self._last.tail or ''
-					self._last.tail = text + '\n'
-				else:
-					text = self._last.text or ''
-					self._last.text = text + '\n'
-				self._last_char = '\n'
-
-			self._last = self._stack[-1]
-			self._tail = True
-
-			return self._stack.pop()
+		if tag != '_ignore_':
+			self._tokens.append((tag, attrib))
 
 	def data(self, text):
-		#print("DATA %r" % text)
-		assert isinstance(text, str)
-		self._data.append(text)
+		for t in text.splitlines(True):
+			if t:
+				self._tokens.append((TEXT, t))
 
-	def append(self, tag, text):
-		self.start(tag)
-		self.data(text)
-		self.end(tag)
-
-	def _flush(self):
-		#~ print('DATA:', self._data)
-		text = ''.join(self._data) or ''
-		self._data = []
-
-		if not text:
-			return
-
-		assert not self._last is None, 'data seen before root element'
-
-		self._last_char = text[-1]
-
-		if self._tail:
-			tail = self._last.tail or ''
-			self._last.tail = tail + text
-		else:
-			mytext = self._last.text or ''
-			self._last.text = mytext + text
+	def end(self, tag):
+		if tag != '_ignore_':
+			self._tokens.append((END, tag))
 
 	def close(self):
-		assert len(self._stack) == 0, 'missing end tags'
-		assert not self._last is None and self._last.tag == 'zim-tree', 'missing root element'
-		return self._last
+		_pop_empty_head_and_linke(self._tokens)
+		tokens = list(strip_whitespace(iter(self._tokens)))
 
-	def _append_to_previous(self, text):
-		'''Add text before current element'''
-		parent = self._stack[-2]
-		children = list(parent)[:-1]
-		if children:
-			if children[-1].tail:
-				children[-1].tail = children[-1].tail + text
+		builder = ParseTreeBuilder()
+		for t in tokens:
+			if t[0] == END:
+				builder.end(t[1])
+			elif t[0] == TEXT:
+				builder.text(t[1])
 			else:
-				children[-1].tail = text
+				builder.start(*t)
+
+		return builder._b.close() # XXX
+
+
+def _pop_empty_head_and_linke(tokens):
+	# Filter needed to pass testIllegalHeadingWithListItem and testIllegalDoubleLink tests
+	i = len(tokens)-1
+	while i > 0:
+		if tokens[i][0] == END and tokens[i][1] in (HEADING, LINK) \
+			and tokens[i-1][0] == tokens[i][1]:
+				# Empty tag
+				tokens.pop(i)
+				tokens.pop(i-1)
+				i -= 2
 		else:
-			if parent.text:
-				parent.text = parent.text + text
-			else:
-				parent.text = text
+			i -= 1
+
+
+def strip_whitespace(token_iter):
+	'''Gererator that filters a token stream to sanitize whitespace around
+	inline formatting and remove empty tags
+	'''
+	# <b><i><space>foo</i></b> --> <space><b><i>foo</i></b>
+	# <b><space><i>foo</i></b> --> <space><b><i>foo</i></b>
+	# <b><i>foo<space></i></b> --> <b><i>foo</i></b><space>
+	# <b><i>foo</i><space></b> --> <b><i>foo</i></b><space>
+	# <b><i><space></i></b> --> <space>
+	# <b><i></i></b> -->  None
+	# <b><i><space><img /></i></b> --> <space><b><i><img /></i></b>
+	for t in token_iter:
+		if t[0] in INLINE_STYLE_TAGS:
+			for t in _strip_whitespace_inner(t, token_iter):
+				yield t
+		else:
+			yield t
+
+def _strip_whitespace_inner(start_tag, token_iter):
+	end_tag = (END, start_tag[0])
+	content = []
+	for t in token_iter:
+		if t == end_tag:
+			break
+		elif t[0] in INLINE_STYLE_TAGS:
+			content.extend(_strip_whitespace_inner(t, token_iter)) # recurs
+		else:
+			content.append(t)
+
+	# lstrip
+	prefix = None
+	if content and content[0][0] == TEXT:
+		text = content[0][1]
+		if text.isspace():
+			prefix = content.pop(0)
+		else:
+			stripped_text = text.lstrip()
+			i = len(text) - len(stripped_text)
+			if i > 0:
+				prefix = (TEXT, text[:i])
+				content[0] = (TEXT, text[i:])
+
+	# rstrip
+	postfix = None
+	if content and content[-1][0] == TEXT:
+		text = content[-1][1]
+		if text.isspace():
+			postfix = content.pop()
+		else:
+			stripped_text = text.rstrip()
+			i = len(text) - len(stripped_text)
+			if i > 0:
+				postfix = (TEXT, text[-i:])
+				content[-1] = (TEXT, text[:-i])
+
+	# put it together
+	if content:
+		content.insert(0, start_tag)
+		if prefix:
+			content.insert(0, prefix)
+
+		content.append(end_tag)
+		if postfix:
+			content.append(postfix)
+	elif prefix:
+		# ignore empty tag, just keep prefix if any
+		# cannot have postfix without content
+		content = [prefix]
+	else:
+		pass
+
+	return content
 
 
 class ParserClass(object):

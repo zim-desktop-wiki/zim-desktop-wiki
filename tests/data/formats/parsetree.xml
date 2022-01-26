@@ -168,7 +168,7 @@ the Achaeans.
 <p>normal <strong>bold</strong> normal2
 normal <strike>strike <strong>nested bold</strong> strike2</strike> normal2
 normal <strike>strike <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
-normal <strike>strike  <strong>nested bold</strong> middle of the text <emphasis>italic <link href="https://example.org">link</link></emphasis> yet another text <strong>another bold <emphasis>yet another italic</emphasis></strong> </strike> normal2
+normal <strike>strike  <strong>nested bold</strong> middle of the text <emphasis>italic <link href="https://example.org">link</link></emphasis> yet another text <strong>another bold <emphasis>yet another italic</emphasis></strong></strike> normal2
 </p>
 <p>This is a <link href="https://example.org">link <strong>with</strong> formatting</link>
 </p>

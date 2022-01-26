@@ -5,7 +5,7 @@
 
 import tests
 
-from zim.formats import ParseTree, StubLinker, OldParseTreeBuilder
+from zim.formats import ParseTree, StubLinker, BackwardParseTreeBuilderWithCleanup
 from zim.formats.wiki import Parser as WikiParser
 from zim.formats.wiki import Dumper as WikiDumper
 from zim.formats.html import Dumper as HtmlDumper
@@ -111,7 +111,7 @@ class TestTableObjectType(tests.TestCase):
 		self.assertIsNotNone(element)
 		model = self.otype.model_from_element(element.attrib, element)
 
-		builder = OldParseTreeBuilder() # XXX
+		builder = BackwardParseTreeBuilderWithCleanup() # XXX
 		builder.start('zim-tree')
 		self.otype.dump(builder, model)
 		builder.end('zim-tree')
@@ -125,7 +125,7 @@ class TestTableObjectType(tests.TestCase):
 		page = notebook.get_page(Path('Test'))
 		model = self.otype.model_from_data(notebook, page, {}, TABLE_WIKI_TEXT)
 
-		builder = OldParseTreeBuilder() # XXX
+		builder = BackwardParseTreeBuilderWithCleanup() # XXX
 		builder.start('zim-tree')
 		self.otype.dump(builder, model)
 		builder.end('zim-tree')

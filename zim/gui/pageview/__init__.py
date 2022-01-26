@@ -39,7 +39,7 @@ from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re
 from zim.formats import heading_to_anchor, get_format, increase_list_iter, \
-	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
+	ParseTree, ElementTreeModule, BackwardParseTreeBuilderWithCleanup, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, TRANSMIGRATED_BOX, MIGRATED_BOX, LINE, OBJECT, \
 	HEADING, LISTITEM, BLOCK_LEVEL, FORMATTEDTEXT
 from zim.formats.wiki import url_re, match_url
@@ -2698,7 +2698,7 @@ class TextBuffer(Gtk.TextBuffer):
 			attrib['raw'] = True
 			builder.start('zim-tree', attrib)
 		else:
-			builder = OldParseTreeBuilder()
+			builder = BackwardParseTreeBuilderWithCleanup()
 			builder.start('zim-tree', attrib)
 
 		open_tags = []
@@ -2837,7 +2837,6 @@ class TextBuffer(Gtk.TextBuffer):
 				elif pixbuf.zim_type == 'anchor':
 					attrib = pixbuf.zim_attrib.copy()
 					builder.start('anchor', attrib)
-					builder.data(attrib['name']) # HACK for OldParseTreeBuilder cleanup
 					builder.end('anchor')
 				else:
 					assert False, 'BUG: unknown pixbuf type'

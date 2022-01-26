@@ -336,6 +336,71 @@ class TestParseTree(tests.TestCase):
 		self.assertEqual(text, wanted)
 
 
+class TestWhitespaceCleanup(tests.TestCase):
+
+	def runTest(self):
+		for input, want in (
+			# <b><i><space>foo</i></b> --> <space><b><i>foo</i></b>
+			(
+				[(STRONG, None), (EMPHASIS, None), (TEXT, ' foo'), (END, EMPHASIS), (END, STRONG)],
+				[(TEXT, ' '), (STRONG, None), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG)]
+			),
+			(
+				[(STRONG, None), (EMPHASIS, None), (TEXT, ' '), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG)],
+				[(TEXT, ' '), (STRONG, None), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG)]
+			),
+			(
+				[(STRONG, None), (EMPHASIS, None), (TEXT, '   foo'), (END, EMPHASIS), (END, STRONG)],
+				[(TEXT, '   '), (STRONG, None), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG)]
+			),
+
+			# <b><space><i>foo</i></b> --> <space><b><i>foo</i></b>
+			(
+				[(STRONG, None), (TEXT, ' '), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG)],
+				[(TEXT, ' '), (STRONG, None), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG)]
+			),
+
+			# <b><i>foo<space></i></b> --> <b><i>foo</i></b><space>
+			(
+				[(STRONG, None), (EMPHASIS, None), (TEXT, 'foo '), (END, EMPHASIS), (END, STRONG)],
+				[(STRONG, None), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG), (TEXT, ' ')]
+			),
+
+			# <b><i>foo</i><space></b> --> <b><i>foo</i></b><space>
+			(
+				[(STRONG, None), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (TEXT, ' '), (END, STRONG)],
+				[(STRONG, None), (EMPHASIS, None), (TEXT, 'foo'), (END, EMPHASIS), (END, STRONG), (TEXT, ' ')]
+			),
+
+			# <b><space>foo<i><space>bar</i></b> --> <space><b>foo<space><i>bar</i></b>
+			(
+				[(STRONG, None), (TEXT, ' foo'), (EMPHASIS, None), (TEXT, ' bar'), (END, EMPHASIS), (END, STRONG)],
+				[(TEXT, ' '), (STRONG, None), (TEXT, 'foo'), (TEXT, ' '), (EMPHASIS, None), (TEXT, 'bar'), (END, EMPHASIS), (END, STRONG)]
+			),
+
+			# <b><i><space></i></b> --> <space>
+			(
+				[(STRONG, None), (EMPHASIS, None), (TEXT, ' '), (END, EMPHASIS), (END, STRONG)],
+				[(TEXT, ' ')]
+			),
+
+			# <b><i></i></b> -->  None
+			(
+				[(STRONG, None), (EMPHASIS, None), (END, EMPHASIS), (END, STRONG)],
+				[]
+			),
+
+			# <b><i><space><img /></i></b> --> <space><b><i><img /></i></b>
+			(
+				[(STRONG, None), (EMPHASIS, None), (TEXT, ' '), (IMAGE, {}), (END, IMAGE), (END, EMPHASIS), (END, STRONG)],
+				[(TEXT, ' '), (STRONG, None), (EMPHASIS, None), (IMAGE, {}), (END, IMAGE), (END, EMPHASIS), (END, STRONG)]
+			),
+
+		):
+			got = list(strip_whitespace(iter(input)))
+			self.assertEqual(got, want)
+
+
 class TestTextFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):

@@ -738,10 +738,10 @@ C
 				#        maybe removed by refactoring serialization
 
 	def testFormatHeadingOnAnchor(self):
-		buffer = self.get_buffer('Foo bar <anchor name="bar">bar</anchor>')
+		buffer = self.get_buffer('Foo bar <anchor name="bar" />')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('h2')
-		self.assertBufferEquals(buffer, '<h level="2">Foo bar <anchor name="bar">bar</anchor></h>')
+		self.assertBufferEquals(buffer, '<h level="2">Foo bar <anchor name="bar" /></h>')
 
 	def testBreakHeadingOnNewline(self):
 		buffer = self.get_buffer('<h level="1">Heading\n</h>')
@@ -772,10 +772,10 @@ C
 		buffer = self.get_buffer()
 		self.assertIsNone(buffer.find_anchor('test'))
 		# explicit anchor
-		buffer = self.get_buffer('Some text <anchor name="test">test</anchor>\n')
+		buffer = self.get_buffer('Some text <anchor name="test" />\n')
 		self.assertIsNotNone(buffer.find_anchor('test'))
 		# explicit anchor with text
-		buffer = self.get_buffer('Some text <anchor name="test">a real test</anchor>\n')
+		buffer = self.get_buffer('Some text <anchor name="test" />\n')
 		self.assertIsNotNone(buffer.find_anchor('test'))
 
 	def testFindImageAnchor(self):
@@ -813,13 +813,13 @@ C
 		self.assertIsNotNone(buffer.find_anchor('foo-bar'))
 
 	def testGetAnchorAtSameIter(self):
-		buffer = self.get_buffer('Some text <anchor name="test">test</anchor>\n')
+		buffer = self.get_buffer('Some text <anchor name="test" />\n')
 		iter = buffer.get_iter_at_offset(10)
 		anchor = buffer.get_anchor_for_location(iter)
 		self.assertEqual(anchor, 'test') # pick one at iter
 
 	def testGetAnchorNearbyIter(self):
-		buffer = self.get_buffer('Some <anchor name="anchor1">anchor1</anchor> text <anchor name="test">test</anchor>\n')
+		buffer = self.get_buffer('Some <anchor name="anchor1" /> text <anchor name="test" />\n')
 		iter = buffer.get_iter_at_offset(8)
 		anchor = buffer.get_anchor_for_location(iter)
 		self.assertEqual(anchor, 'anchor1') # pick closest one
@@ -833,13 +833,13 @@ C
 
 	def testGetAnchorNearbyIterForImage(self):
 		with FilterNoSuchImageWarning():
-			buffer = self.get_buffer('Some <img src="./foo.png" id="anchor1" /> text <anchor name="test">test</anchor>\n')
+			buffer = self.get_buffer('Some <img src="./foo.png" id="anchor1" /> text <anchor name="test" />\n')
 			iter = buffer.get_iter_at_offset(8)
 			anchor = buffer.get_anchor_for_location(iter)
 			self.assertEqual(anchor, 'anchor1') # pick closest one
 
 	def testGetAnchorForHeadingExplicit(self):
-		buffer = self.get_buffer('<h level="2">Some heading <anchor name="test">test</anchor>\n</h>')
+		buffer = self.get_buffer('<h level="2">Some heading <anchor name="test" />\n</h>')
 		iter = buffer.get_iter_at_offset(2)
 		anchor = buffer.get_anchor_for_location(iter)
 		self.assertEqual(anchor, 'test') # prefer explicit over implicit
@@ -1134,7 +1134,7 @@ C
 <zim-tree><p>normal <strong>bold</strong> normal2
 normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
 normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
-normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis> </strike>normal2
+normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis></strike> normal2
 </p></zim-tree>'''
 		buffer = self.get_buffer(xml)
 		self.assertBufferEquals(buffer, xml)
@@ -2508,13 +2508,13 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping('@test ', '<tag name="test">@test</tag> ')
 
 	def testAutoFormatAnchor(self):
-		self.assertTyping('##test ', '<anchor name="test">test</anchor> ')
+		self.assertTyping('##test ', '<anchor name="test" /> ')
 
 	def testAutoFormatAnchor2(self):
-		self.assertTyping('##case-1 ', '<anchor name="case-1">case-1</anchor> ')
+		self.assertTyping('##case-1 ', '<anchor name="case-1" /> ')
 
 	def testAutoFormatAnchor3(self):
-		self.assertTyping('##case_2 ', '<anchor name="case_2">case_2</anchor> ')
+		self.assertTyping('##case_2 ', '<anchor name="case_2" /> ')
 
 	def testAutoFormatAnchorLink(self):
 		self.assertTyping('#test ', '<link href="">#test</link> ')
