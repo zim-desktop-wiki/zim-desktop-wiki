@@ -14,8 +14,7 @@ from zim.notebook.index.base import IndexerBase, IndexView
 from zim.notebook.index.pages import PagesViewInternal
 from zim.formats import get_format, \
 	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANSMIGRATED_BOX, BULLET, TAG, ANCHOR, \
-	HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
-	Visitor, VisitorSkip
+	HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE
 from zim.tokenparser import TEXT, END, \
 	skip_to_end_token, tokens_to_text, tokens_by_line, collect_untill_end_token
 

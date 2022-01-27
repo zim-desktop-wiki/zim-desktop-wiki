@@ -143,9 +143,7 @@ class TestTaskParser(tests.TestCase):
 
 	def assertWikiTextToTasks(self, wikitext, wanted, parser_args={}, parse_args={}):
 		tree = WikiParser().parse(wikitext)
-		tb = TokenBuilder()
-		tree.visit(tb)
-		tokens = tb.tokens
+		tokens = list(tree.iter_tokens())
 		testTokenStream(tokens)
 
 		parser = TaskParser(**parser_args)

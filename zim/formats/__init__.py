@@ -306,6 +306,19 @@ class ParseTree(object):
 		self._object_cache = {}
 		self.meta = DefinitionOrderedDict()
 
+	@classmethod
+	def new_from_tokens(klass, tokens):
+		from zim.tokenparser import TokenParser
+		assert tokens
+		if tokens[0][0] != FORMATTEDTEXT:
+			tokens.insert(0, (FORMATTEDTEXT, None))
+			tokens.append((END, FORMATTEDTEXT))
+
+		builder = ParseTreeBuilder()
+		parser = TokenParser(builder)
+		parser.parse(tokens)
+		return builder.get_parsetree()
+
 	@property
 	def hascontent(self):
 		'''Returns True if the tree contains any content at all.'''
@@ -375,16 +388,29 @@ class ParseTree(object):
 		return xml.getvalue()
 
 	def copy(self):
-		builder = ParseTreeBuilder()
-		self.visit(builder)
-		return builder.get_parsetree()
+		#return self.__class__.new_from_tokens(list(self.iter_tokens()))
+		return ParseTree().fromstring(self.tostring())
 
 	def iter_tokens(self):
-		from zim.tokenparser import TokenBuilder
+		from zim.tokenparser import topLevelLists
 
-		tb = TokenBuilder()
-		self.visit(tb)
-		return iter(tb.tokens)
+		return iter(topLevelLists(self._get_tokens(self._etree.getroot())))
+
+	def _get_tokens(self, node):
+		tokens = [(node.tag, node.attrib.copy())]
+
+		if node.text:
+			for t in node.text.splitlines(True):
+				tokens.append((TEXT, t))
+
+		for child in node:
+			tokens.extend(self._get_tokens(child)) # recurs
+			if child.tail:
+				for t in child.tail.splitlines(True):
+					tokens.append((TEXT, t))
+
+		tokens.append((END, node.tag))
+		return tokens
 
 	def iter_href(self, include_page_local_links=False, include_anchors=False):
 		'''Generator for links in the text
@@ -589,35 +615,6 @@ class ParseTree(object):
 				else:
 					return False # empty element like image
 
-	def visit(self, visitor):
-		'''Visit all nodes of this tree
-
-		@note: If the visitor modifies the attrib dict on nodes, this
-		will modify the tree.
-
-		@param visitor: a L{Visitor} or L{Builder} object
-		'''
-		try:
-			self._visit(visitor, self._etree.getroot())
-		except VisitorStop:
-			pass
-
-	def _visit(self, visitor, node):
-		try:
-			if len(node): # Has children
-				visitor.start(node.tag, node.attrib)
-				if node.text:
-					visitor.text(node.text)
-				for child in node:
-					self._visit(visitor, child) # recurs
-					if child.tail:
-						visitor.text(child.tail)
-				visitor.end(node.tag)
-			else:
-				visitor.append(node.tag, node.attrib, node.text)
-		except VisitorSkip:
-			pass
-
 	def find(self, tag):
 		'''Find first occurence of C{tag} in the tree
 		@returns: a L{Node} object or C{None}
@@ -717,7 +714,7 @@ class ParseTree(object):
 	@staticmethod
 	def _node_to_etree(node):
 		builder = ParseTreeBuilder()
-		node.visit(builder)
+		node._visit(builder)
 		return builder._b.close()
 
 	def _insert_text(self, elt, i, text):
@@ -744,69 +741,6 @@ class VisitorSkip(Exception):
 	and not decent into it.
 	'''
 	pass
-
-
-class Visitor(object):
-	'''Conceptual opposite of a builder, but with same API.
-	Used to walk nodes in a parsetree and call callbacks for each node.
-	See e.g. L{ParseTree.visit()}.
-	'''
-
-	def start(self, tag, attrib=None):
-		'''Start formatted region
-
-		Visitor objects can raise two exceptions in this method
-		to influence the tree traversal:
-
-		  1. L{VisitorStop} will cancel the current parsing, but without
-			 raising an error. So code implementing a visit method should
-			 catch this.
-		  2. L{VisitorSkip} can be raised when the visitor wants to skip
-			 a node, and should prevent the implementation from further
-			 decending into this node
-
-		@note: If the visitor modifies the attrib dict on nodes, this
-		will modify the tree. If this is not intended, the implementation
-		needs to take care to copy the attrib to break the reference.
-
-		@param tag: the tag name
-		@param attrib: optional dict with attributes
-		@implementation: optional for subclasses
-		'''
-		pass
-
-	def text(self, text):
-		'''Append text
-		@param text: text to be appended as string
-		@implementation: optional for subclasses
-		'''
-		pass
-
-	def end(self, tag):
-		'''End formatted region
-		@param tag: the tag name
-		@raises AssertionError: when tag does not match current state
-		@implementation: optional for subclasses
-		'''
-		pass
-
-	def append(self, tag, attrib=None, text=None):
-		'''Convenience function to open a tag, append text and close
-		it immediatly.
-
-		Can raise L{VisitorStop} or L{VisitorSkip}, see C{start()}
-		for the conditions.
-
-		@param tag: the tag name
-		@param attrib: optional dict with attributes
-		@param text: formatted text
-		@implementation: optional for subclasses, default implementation
-		calls L{start()}, L{text()}, and L{end()}
-		'''
-		self.start(tag, attrib)
-		if text is not None:
-			self.text(text)
-		self.end(tag)
 
 
 class ParseTreeBuilder(Builder):
@@ -865,8 +799,7 @@ class ParseTreeBuilder(Builder):
 class BackwardParseTreeBuilderWithCleanup(object):
 	'''Adaptor for the pageview compatible with the old builder interface'''
 
-	# Did not use TokenBuilder and TokenParser here to process tokens
-	# without "topLevelLists()" logic
+	# NOTE: Processing tokens here without "topLevelLists()" logic
 
 	# TODO: Adaptor breaks text at newline - move to real pageview tokenizer, combine
 	# with breaking inline tags at newline - or handle both in token filter function
@@ -1039,15 +972,11 @@ class ParserClass(object):
 import collections
 
 DumperContextElement = collections.namedtuple('DumperContextElement', ('tag', 'attrib', 'text'))
-	# FIXME unify this class with a generic Element class (?)
 
 
-class DumperClass(Visitor):
+class DumperClass(object):
 	'''Base class for dumper classes. Dumper classes serialize the content
 	of a parse tree back to a text representation of the page content.
-	Therefore this class implements the visitor API, so it can be
-	used with any parse tree implementation or parser object that supports
-	this API.
 
 	To implement a dumper class, you need to define handlers for all
 	tags that can appear in a page. Tags that are represented by a simple
@@ -1068,6 +997,14 @@ class DumperClass(Visitor):
 	when a tag is closed either picks the appropriate prefix and postfix
 	from C{TAGS} or calls the corresponding C{dump_} method. As a result
 	tags are serialized depth-first.
+
+	NOTE: content that is serialized from a C{PageView} contains some
+	"illegal" shortcuts for which a Dumper of a native format (used to read/write
+	pages - not just export) should be robust:
+
+	  - paragraph tags are missing
+	  - list tags are missing, instead list items have an "indent" attribute
+
 
 	@ivar linker: the (optional) L{Linker} object, used to resolve links
 	@ivar template_options: a L{ConfigDict} with options that may be set
@@ -1094,7 +1031,7 @@ class DumperClass(Visitor):
 
 	def dump(self, tree):
 		'''Format a parsetree to text
-		@param tree: a parse tree object that supports a C{visit()} method
+		@param tree: a C{ParseTree} object
 		@returns: a list of lines
 		'''
 		# FIXME - issue here is that we need to reset state - should be in __init__
@@ -1415,7 +1352,7 @@ class Node(list):
 
 	__repr__ = toxml
 
-	def visit(self, visitor):
+	def _visit(self, visitor):
 		if len(self) == 1 and isinstance(self[0], str):
 			visitor.append(self.tag, self.attrib, self[0])
 		else:
@@ -1424,7 +1361,7 @@ class Node(list):
 				if isinstance(item, str):
 					visitor.text(item)
 				else:
-					item.visit(visitor)
+					item._visit(visitor)
 			visitor.end(self.tag)
 
 

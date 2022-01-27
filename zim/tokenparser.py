@@ -17,6 +17,22 @@ TEXT = 'T'
 END = '/'
 
 
+def skip_to_end_token(token_iter, end_token):
+	eol = 0
+	nesting = 0
+	for t in token_iter:
+		if t[0] == end_token:
+			nesting += 1
+		elif t == (END, end_token):
+			nesting -= 1
+			if nesting < 0:
+				break
+		elif t[0] == TEXT:
+			eol += t[1].count('\n')
+
+	return eol
+
+
 class EndOfTokenListError(AssertionError):
 	pass
 
@@ -117,33 +133,6 @@ class TokenParser(object):
 				self.builder.text(t[1])
 			else:
 				self.builder.start(*t)
-
-
-class TokenVisitor(object):
-	# Adaptor for the visit interface
-
-	def __init__(self, tokens):
-		self.tokens = tokens
-
-	def visit(self, builder):
-		parser = TokenParser(builder)
-		builder.parse(self.tokens)
-
-
-def skip_to_end_token(token_iter, end_token):
-	eol = 0
-	nesting = 0
-	for t in token_iter:
-		if t[0] == end_token:
-			nesting += 1
-		elif t == (END, end_token):
-			nesting -= 1
-			if nesting < 0:
-				break
-		elif t[0] == TEXT:
-			eol += t[1].count('\n')
-
-	return eol
 
 
 def topLevelLists(tokens):
