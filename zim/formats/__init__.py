@@ -79,6 +79,7 @@ import itertools
 import logging
 
 import types
+import collections
 
 from zim.newfs import LocalFile
 from zim.parsing import link_type, is_url_re, is_www_link_re, \
@@ -291,6 +292,9 @@ def heading_to_anchor(name):
 	"""Derive an anchor name from a heading"""
 	name = re.sub(r'\s', '-', name.strip().lower())
 	return re.sub(r'[^\w\-_]', '', name)
+
+
+TokenListElement = collections.namedtuple('TokenListElement', ('tag', 'attrib', 'content'))
 
 
 class ParseTree(object):
@@ -615,132 +619,53 @@ class ParseTree(object):
 				else:
 					return False # empty element like image
 
-	def find(self, tag):
-		'''Find first occurence of C{tag} in the tree
-		@returns: a L{Node} object or C{None}
-		'''
-		for elt in self.findall(tag):
-			return elt # return first
+	def find_element(self, tag):
+		'''Helper function to find the first occurence of C{tag}, returns a L{TokenListElement} or C{None}'''
+		for e in self.iter_elements(tag):
+			return e # return first
 		else:
 			return None
 
-	def findall(self, tag):
-		'''Find all occurences of C{tag} in the tree
-		@param tag: tag name
-		@returns: yields L{Node} objects
+	def iter_elements(self, tag):
+		'''Helper function to find all occurences of C{tag}, yields L{TokenListElement}s'''
+		from zim.tokenparser import collect_untill_end_token
+
+		token_iter = self.iter_tokens()
+		for t in token_iter:
+			if t[0] == tag:
+				content = collect_untill_end_token(token_iter, tag)
+				yield TokenListElement(t[0], t[1], content)
+
+	def substitute_elements(self, tags, func):
+		'''Helper function to create a copy while substituting certain elements
+
+		@param tags: list of tags to match
+		@param func: function that determines the substitution
+
+		The C{func} will get a L{TokenListElement} for each token that matches
+		C{tags}. The return value of C{func} can be C{None} to remove the element,
+		the same or a modified L{TokenListElement} or a list of tokens.
 		'''
-		for elt in self._etree.iter(tag):
-			yield Element.new_from_etree(elt)
+		from zim.tokenparser import collect_untill_end_token
 
-	def replace(self, tags, func):
-		'''Modify the tree by replacing all occurences of C{tag}
-		by the return value of C{func}.
-
-		@param tags: tag name, or list of tag names
-		@param func: function to generate replacement values.
-		Function will be called as::
-
-			func(node)
-
-		Where C{node} is a L{Node} object representing the subtree.
-		If the function returns another L{Node} object or modifies
-		C{node} and returns it, the subtree will be replaced by this
-		new node.
-		If the function raises L{VisitorSkip} the replace is skipped.
-		If the function raises L{VisitorStop} the replacement of all
-		nodes will stop.
-		'''
-		if not isinstance(tags, (tuple, list)):
-			tags = (tags,)
-		try:
-			self._replace(self._etree.getroot(), tags, func)
-		except VisitorStop:
-			pass
-
-	def _replace(self, elt, tags, func):
-		# Two-step replace in order to do items in order
-		# of appearance.
-		replacements = []
-		for i, child in enumerate(elt):
-			if child.tag in tags:
-				try:
-					replacement = func(Element.new_from_etree(child))
-				except VisitorSkip:
-					pass
+		tokens = []
+		token_iter = self.iter_tokens()
+		for t in token_iter:
+			if t[0] in tags:
+				content = collect_untill_end_token(token_iter, t[0])
+				replacement = func(TokenListElement(t[0], t[1], content))
+				if replacement is None:
+					pass # remove these tokens
+				elif isinstance(replacement, TokenListElement):
+					tokens.append((replacement.tag, replacement.attrib))
+					tokens.extend(replacement.content)
+					tokens.append((END, replacement.tag))
 				else:
-					replacements.append((i, child, replacement))
-			elif len(child):
-				self._replace(child, tags, func) # recurs
+					tokens.extend(replacement)
 			else:
-				pass
+				tokens.append(t)
 
-		if replacements:
-			self._do_replace(elt, replacements)
-
-	def _do_replace(self, elt, replacements):
-		offset = 0 # offset due to replacements
-		for i, child, node in replacements:
-			i += offset
-			if node is None:
-				# Remove element
-				tail = child.tail
-				elt.remove(child)
-				if tail:
-					self._insert_text(elt, i, tail)
-				offset -= 1
-			elif isinstance(node, Element):
-				# Just replace elements
-				newchild = self._node_to_etree(node)
-				newchild.tail = child.tail
-				elt[i] = newchild
-			elif isinstance(node, DocumentFragment):
-				# Insert list of elements and text
-				tail = child.tail
-				elt.remove(child)
-				offset -= 1
-				for item in node:
-					if isinstance(item, str):
-						self._insert_text(elt, i, item)
-					else:
-						assert isinstance(item, Element)
-						elt.insert(i, self._node_to_etree(item))
-						i += 1
-						offset += 1
-				if tail:
-					self._insert_text(elt, i, tail)
-			else:
-				raise TypeError('BUG: invalid replacement result')
-
-	@staticmethod
-	def _node_to_etree(node):
-		builder = ParseTreeBuilder()
-		node._visit(builder)
-		return builder._b.close()
-
-	def _insert_text(self, elt, i, text):
-		if i == 0:
-			if elt.text:
-				elt.text += text
-			else:
-				elt.text = text
-		else:
-			prev = elt[i - 1]
-			if prev.tail:
-				prev.tail += text
-			else:
-				prev.tail = text
-
-
-class VisitorStop(Exception):
-	'''Exception to be raised to cancel a visitor action'''
-	pass
-
-
-class VisitorSkip(Exception):
-	'''Exception to be raised when the visitor should skip a leaf node
-	and not decent into it.
-	'''
-	pass
+		return ParseTree.new_from_tokens(tokens)
 
 
 class ParseTreeBuilder(Builder):
@@ -967,9 +892,6 @@ class ParserClass(object):
 		else:
 			return {'src': url}
 
-
-
-import collections
 
 DumperContextElement = collections.namedtuple('DumperContextElement', ('tag', 'attrib', 'text'))
 
@@ -1259,125 +1181,6 @@ class StubLinker(BaseLinker):
 
 	def file_object(self, file):
 		return file.name
-
-
-
-class Node(list):
-	'''Base class for DOM-like access to the document structure.
-	@note: This class is not optimized for keeping large structures
-	in memory.
-
-	@ivar tag: tag name
-	@ivar attrib: dict with attributes
-	'''
-
-	__slots__ = ('tag', 'attrib')
-
-	def __init__(self, tag, attrib=None, *content):
-		self.tag = tag
-		self.attrib = attrib
-		if content:
-			self.extend(content)
-
-	@classmethod
-	def new_from_etree(klass, elt):
-		obj = klass(elt.tag, dict(elt.attrib))
-		if elt.text:
-			obj.append(elt.text)
-		for child in elt:
-			subnode = klass.new_from_etree(child) # recurs
-			obj.append(subnode)
-			if child.tail:
-				obj.append(child.tail)
-		return obj
-
-	def get(self, key, default=None):
-		if self.attrib:
-			return self.attrib.get(key, default)
-		else:
-			return default
-
-	def set(self, key, value):
-		if not self.attrib:
-			self.attrib = {}
-		self.attrib[key] = value
-
-	def append(self, item):
-		if isinstance(item, DocumentFragment):
-			list.extend(self, item)
-		else:
-			list.append(self, item)
-
-	def gettext(self):
-		'''Get text as string
-		Ignores any markup and attributes and simply returns textual
-		content.
-		@note: do _not_ use as replacement for exporting to plain text
-		@returns: string
-		'''
-		strings = self._gettext()
-		return ''.join(strings)
-
-	def _gettext(self):
-		strings = []
-		for item in self:
-			if isinstance(item, str):
-				strings.append(item)
-			else:
-				strings.extend(item._gettext())
-		return strings
-
-	def toxml(self):
-		strings = self._toxml()
-		return ''.join(strings)
-
-	def _toxml(self):
-		strings = []
-		if self.attrib:
-			strings.append('<%s' % self.tag)
-			for key in sorted(self.attrib):
-				strings.append(' %s="%s"' % (key, encode_xml(str(self.attrib[key]))))
-			strings.append('>')
-		else:
-			strings.append("<%s>" % self.tag)
-
-		for item in self:
-			if isinstance(item, str):
-				strings.append(encode_xml(item))
-			else:
-				strings.extend(item._toxml())
-
-		strings.append("</%s>" % self.tag)
-		return strings
-
-	__repr__ = toxml
-
-	def _visit(self, visitor):
-		if len(self) == 1 and isinstance(self[0], str):
-			visitor.append(self.tag, self.attrib, self[0])
-		else:
-			visitor.start(self.tag, self.attrib)
-			for item in self:
-				if isinstance(item, str):
-					visitor.text(item)
-				else:
-					item._visit(visitor)
-			visitor.end(self.tag)
-
-
-class Element(Node):
-	'''Element class for DOM-like access'''
-	pass
-
-
-class DocumentFragment(Node):
-	'''Document fragment class for DOM-like access'''
-
-	def __init__(self, *content):
-		self.tag = FRAGMENT
-		self.attrib = None
-		if content:
-			self.extend(content)
 
 
 class TableParser():

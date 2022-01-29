@@ -748,64 +748,6 @@ class Page(Path, SignalEmitter):
 		else:
 			self.set_parsetree(format.Parser().parse(text))
 
-	def get_links(self):
-		'''Generator for links in the page content
-
-		This method gives the raw links from the content, if you want
-		nice L{Link} objects use
-		L{index.list_links()<zim.index.Index.list_links()>} instead.
-
-		@returns: yields a list of 3-tuples C{(type, href, attrib)}
-		where:
-		  - C{type} is the link type (e.g. "page" or "file")
-		  - C{href} is the link itself
-		  - C{attrib} is a dict with link properties
-		'''
-		# FIXME optimize with a ParseTree.get_links that does not
-		#       use Node
-		tree = self.get_parsetree()
-		if tree:
-			for elt in tree.findall(zim.formats.LINK):
-				href = elt.attrib.pop('href')
-				type = link_type(href)
-				yield type, href, elt.attrib
-
-			for elt in tree.findall(zim.formats.IMAGE):
-				if not 'href' in elt.attrib:
-					continue
-				href = elt.attrib.pop('href')
-				type = link_type(href)
-				yield type, href, elt.attrib
-
-
-	def get_tags(self):
-		'''Generator for tags in the page content
-
-		@returns: yields an unordered list of unique 2-tuples
-		C{(name, attrib)} for tags in the parsetree.
-		'''
-		# FIXME optimize with a ParseTree.get_links that does not
-		#       use Node
-		tree = self.get_parsetree()
-		if tree:
-			seen = set()
-			for elt in tree.findall(zim.formats.TAG):
-				name = elt.gettext()
-				if not name in seen:
-					seen.add(name)
-					yield name.lstrip('@'), elt.attrib
-
-	def get_anchors(self):
-		'''Generator returning all the (explicit) anchors in the page content'''
-		tree = self.get_parsetree()
-		if tree:
-			seen = set()
-			for elt in tree.findall(zim.formats.ANCHOR):
-				name = elt.gettext()
-				if not name in seen:
-					seen.add(name)
-					yield name, elt.attrib
-
 	def get_title(self):
 		tree = self.get_parsetree()
 		if tree:

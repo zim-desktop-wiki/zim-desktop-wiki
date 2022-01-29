@@ -174,7 +174,7 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 		# test modification ends up in page
 		tree = pageview.page.get_parsetree()
 		#print(tree.tostring())
-		elt = tree.find('table')
+		elt = tree.find_element('table')
 		self.assertIsNotNone(elt)
 		# FIXME: test content
 
@@ -190,7 +190,7 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 			action.activate()
 
 		tree = window.pageview.page.get_parsetree()
-		elt = tree.find('table')
+		elt = tree.find_element('table')
 		self.assertIsNotNone(elt)
 
 	def testInsertDialogCancelled(self):
@@ -205,7 +205,7 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 			action.activate()
 
 		tree = window.pageview.page.get_parsetree()
-		elt = tree.find('table')
+		elt = tree.find_element('table')
 		self.assertIsNone(elt)
 
 

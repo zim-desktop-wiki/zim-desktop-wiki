@@ -9,6 +9,7 @@
 import tests
 
 from zim.formats import *
+from zim.tokenparser import skip_to_end_token
 from zim.notebook import Path
 from zim.templates import Template
 
@@ -114,7 +115,7 @@ class TestFormatMixin(object):
 		# TODO how to handle objects ??
 		assert isinstance(text, str)
 
-		def check_text(wanted):
+		def check_text(wanted, offset):
 			if not wanted:
 				return
 
@@ -128,27 +129,24 @@ class TestFormatMixin(object):
 			for piece in wanted.strip().split():
 				# ~ print("| >>%s<< @ offset %i" % (piece, offset))
 				try:
-					start = text.index(piece, self.offset)
+					start = text.index(piece, offset)
 				except ValueError:
 					self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (
-						piece, self.offset, text[self.offset:self.offset + 100]))
+						piece, offset, text[offset:offset + 100]))
 				else:
-					self.offset = start + len(piece)
+					offset = start + len(piece)
 
-		def loop_tree(tree):  # parse elements one by one, in-depth
-			if type(tree) is Element:
-				if tree.text and tree.tag != "img":  # img text is optional
-					check_text(tree.text)
+			return offset
 
-			for elt in tree.findall("*"):  # if that's a tree or a parent element, dive further
-				loop_tree(elt)
-
-			if type(tree) is Element:
-				check_text(tree.tail)
-
-		self.offset = 0
-		loop_tree(tree._etree)
-
+		offset = 0
+		token_iter = tree.iter_tokens()
+		for t in token_iter:
+			if t[0] == TEXT:
+				offset = check_text(t[1], offset)
+			elif t[0] == IMAGE:
+				skip_to_end_token(token_iter, IMAGE) # img text is optional
+			else:
+				pass
 
 
 class TestListFormats(tests.TestCase):
@@ -283,40 +281,20 @@ class TestParseTree(tests.TestCase):
 			tree = ParseTree().fromstring(xml)
 			self.assertEqual(tree.get_ends_with_newline(), newline)
 
-	def testFindall(self):
-		tree = ParseTree().fromstring(self.xml)
-		wanted = [
-			(1, 'Head 1\n'),
-			(2, 'Head 2\n'),
-			(3, 'Head 3\n'),
-			(2, 'Head 4\n'),
-			(5, 'Head 5\n'),
-			(4, 'Head 6\n'),
-			(5, 'Head 7\n'),
-			(6, 'Head 8\n'),
-		]
-		found = []
-		for elt in tree.findall(HEADING):
-			found.append((int(elt.get('level')), elt.gettext()))
-		self.assertEqual(found, wanted)
-
 	def testReplace(self):
 		def replace(elt):
 			# level 2 becomes 3
 			# level 3 is replaced by text
 			# level 4 is removed
-			# level 5 is skipped
-			# level 1 and 6 stay as is
-			level = int(elt.get('level'))
+			# level 1, 5 and 6 stay as is
+			level = int(elt.attrib['level'])
 			if level == 2:
 				elt.attrib['level'] = 3
 				return elt
 			elif level == 3:
-				return DocumentFragment(*elt)
+				return elt.content
 			elif level == 4:
 				return None
-			elif level == 5:
-				raise VisitorSkip
 			else:
 				return elt
 		tree = ParseTree().fromstring(self.xml)
@@ -331,8 +309,10 @@ class TestParseTree(tests.TestCase):
 </h><h level="5">Head 7
 </h><h level="6">Head 8
 </h></zim-tree>'''
-		tree.replace(HEADING, replace)
-		text = tree.tostring()
+		newtree = tree.substitute_elements((HEADING,), replace)
+		self.assertIsNot(newtree, tree)
+		self.assertNotEqual(newtree.tostring(), tree.tostring())
+		text = newtree.tostring()
 		self.assertEqual(text, wanted)
 
 
@@ -458,11 +438,9 @@ A list
 		tree = self.format.Parser().parse(text)
 		#~ print tree.tostring()
 		found = 0
-		for elt in tree.findall(LINK):
-			self.assertTrue(elt.gettext())
-			self.assertTrue(elt.get('href'))
+		for href in tree.iter_href():
 			found += 1
-		self.assertEqual(found, 3)
+		self.assertEqual(found, 2) # only unique href are processed
 
 	def testNoURLWithinLink(self):
 		# Ensure nested URL is not parsed

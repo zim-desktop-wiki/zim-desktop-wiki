@@ -1,5 +1,5 @@
 
-# Copyright 2016-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2016-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # Tokens come in 3 variants
 #   tuple((tag, attrib))  e.g. (HEADING, {'level': 3})
@@ -8,6 +8,13 @@
 #
 # Extra constraint is parsing must be per line, therefore a TEXT
 # item cannot contain newline other than at the end of the string
+#
+# For tags that don't have attributes, the "attrib" field can be None
+#
+# Tags always come in pairs of opening + closing tokens, there is no
+# "atomic" token for items that do not have content.
+#
+# Tags need to be properly nested, so they represent a hierarchy.
 
 
 from zim.parser import Builder

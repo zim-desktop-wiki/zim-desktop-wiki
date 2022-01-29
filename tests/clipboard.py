@@ -179,8 +179,8 @@ some <b>bold</b> text
 		file = LocalFile(os_native_path('/foo/bar/baz.txt'))
 		set_func(file.uri)
 		tree = Clipboard.get_parsetree(self.notebook, page)
-		link = tree.find('link')
-		rel_path = link.get('href')
+		link = tree.find_element('link')
+		rel_path = link.attrib.get('href')
 		self.assertEqual(self.notebook.resolve_file(rel_path, page), file)
 
 	@tests.expectedFailure
@@ -195,8 +195,8 @@ some <b>bold</b> text
 		file = tests.ZIM_DATA_FOLDER.file('./zim.png') # image file
 		set_func(file.uri)
 		tree = Clipboard.get_parsetree(self.notebook, page)
-		img = tree.find('img')
-		rel_path = img.get('src')
+		img = tree.find_element('img')
+		rel_path = img.attrib.get('src')
 		self.assertEqual(self.notebook.resolve_file(rel_path, page), file)
 
 	@tests.expectedFailure
@@ -210,8 +210,7 @@ some <b>bold</b> text
 		set_func('http://cpan.org', 'ftp://foo@test.org', 'user@mail.com')
 		page = self.notebook.get_page(Path('Test:wiki'))
 		tree = Clipboard.get_parsetree(self.notebook, page)
-		links = tree.findall('link')
-		hrefs = [e.attrib['href'] for e in links]
+		hrefs = [e.attrib['href'] for e in tree.iter_elements('link')]
 		self.assertEqual(hrefs,
 			['http://cpan.org', 'ftp://foo@test.org', 'user@mail.com'])
 
@@ -224,8 +223,8 @@ some <b>bold</b> text
 		file = tests.ZIM_DATA_FOLDER.file('./data/zim.png')
 		set_clipboard_image(file)
 		tree = Clipboard.get_parsetree(self.notebook, page)
-		img = tree.find('img')
-		rel_path = img.get('src')
+		img = tree.find_element('img')
+		rel_path = img.attrib.get('src')
 		self.assertEqual(self.notebook.resolve_file(rel_path, page), file)
 
 	def testCopyPageLinkPasteAsParseTree(self):

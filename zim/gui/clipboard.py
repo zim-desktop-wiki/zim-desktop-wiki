@@ -224,8 +224,7 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
 		parsetree = ParseTree().fromstring(selectiondata.get_data())
-		replace_parsetree_links_and_copy_images(parsetree, notebook, path)
-		return parsetree
+		return replace_parsetree_links_and_copy_images(parsetree, notebook, path)
 	elif targetname == PAGELIST_TARGET_NAME or targetname in URI_TARGET_NAMES:
 		links = selectiondata.get_uris()
 		return _link_tree(links, notebook, path)
@@ -460,8 +459,8 @@ class ParseTreeData(ClipboardData):
 
 	def get_data_as(self, targetid):
 		if targetid == PARSETREE_TARGET_ID:
-			set_parsetree_attributes_to_resolve_links(self.parsetree, self.notebook, self.path)
-			return self.parsetree.tostring()
+			newtree = set_parsetree_attributes_to_resolve_links(self.parsetree, self.notebook, self.path)
+			return newtree.tostring()
 		elif targetid == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
 				linker=StaticExportLinker(self.notebook, source=self.path))

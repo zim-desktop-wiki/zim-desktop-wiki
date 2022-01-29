@@ -667,11 +667,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		def replacefunc(elt):
 			text = elt.attrib['href']
 			if link_type(text) != 'page':
-				raise zim.formats.VisitorSkip
+				return elt
 
 			href = HRef.new_from_wiki_link(text)
 			if href.rel == HREF_REL_RELATIVE:
-				raise zim.formats.VisitorSkip
+				pass
 			elif href.rel == HREF_REL_ABSOLUTE:
 				oldtarget = self.pages.resolve_link(page, href)
 				if oldtarget == oldroot:
@@ -679,8 +679,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				elif oldtarget.ischild(oldroot):
 					newtarget = newroot + oldtarget.relname(oldroot)
 					return self._update_link_tag(elt, page, newtarget, href)
-				else:
-					raise zim.formats.VisitorSkip
 			else:
 				assert href.rel == HREF_REL_FLOATING
 				newtarget = self.pages.resolve_link(page, href)
@@ -691,18 +689,18 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				elif oldtarget.ischild(oldroot):
 					oldanchor = self.pages.resolve_link(oldpath, HRef(HREF_REL_FLOATING, href.parts()[0]))
 					if oldanchor.ischild(oldroot):
-						raise zim.formats.VisitorSkip # oldtarget cannot be trusted
+						pass # oldtarget cannot be trusted
 					else:
 						newtarget = newroot + oldtarget.relname(oldroot)
 						return self._update_link_tag(elt, page, newtarget, href)
 				elif newtarget != oldtarget:
 					# Redirect back to old target
 					return self._update_link_tag(elt, page, oldtarget, href)
-				else:
-					raise zim.formats.VisitorSkip
 
-		tree.replace(zim.formats.LINK, replacefunc)
-		page.set_parsetree(tree)
+			return elt
+
+		newtree = tree.substitute_elements((zim.formats.LINK,), replacefunc)
+		page.set_parsetree(newtree)
 		self.store_page(page)
 
 	def _update_links_to_moved_page(self, oldroot, newroot):
@@ -744,7 +742,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		def replacefunc(elt):
 			text = elt.attrib['href']
 			if link_type(text) != 'page':
-				raise zim.formats.VisitorSkip
+				return elt
 
 			href = HRef.new_from_wiki_link(text)
 			target = self.pages.resolve_link(page, href)
@@ -774,10 +772,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 						mynewroot = newroot.child(':'.join(href.parts()[1:]))
 						return self._update_link_tag(elt, page, mynewroot, href)
 
-			raise zim.formats.VisitorSkip
+			return elt
 
-		tree.replace(zim.formats.LINK, replacefunc)
-		page.set_parsetree(tree)
+		newtree = tree.substitute_elements((zim.formats.LINK,), replacefunc)
+		page.set_parsetree(newtree)
 		self.store_page(page)
 
 	def _update_link_tag(self, elt, source, target, oldhref):
@@ -792,18 +790,17 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		link = newhref.to_wiki_link()
 
-		if elt.gettext() == elt.get('href'):
-			elt[:] = [link]
-		elif elt.gettext() == oldhref.parts()[-1] and len(elt) == 1:
-			# We are using short links and the link text was short link
-			# and there were no sub-node (like bold text) that would be cancelled.
+		from zim.formats import TEXT
+		if elt.content == [(TEXT, elt.attrib['href'])]:
+			elt.content[:] = [(TEXT, link)]
+		elif elt.content == [(TEXT, oldhref.parts()[-1])]:
 			# Related to 'short_links' but not checking the property here.
 			short = newhref.parts()[-1]
 			if newhref.anchor:
 				short += '#' + newhref.anchor
-			elt[:] = [short]  # 'Journal:2020:01:20' -> '20'
+			elt.content[:] = [(TEXT, short)]  # 'Journal:2020:01:20' -> '20'
 
-		elt.set('href', link)
+		elt.attrib['href'] = link
 
 		return elt
 
@@ -964,19 +961,19 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			href = elt.attrib['href']
 			type = link_type(href)
 			if type != 'page':
-				raise zim.formats.VisitorSkip
+				return elt
 
 			hrefpath = self.pages.lookup_from_user_input(href, page)
 			#~ print('LINK', hrefpath)
 			if hrefpath == path \
 			or hrefpath.ischild(path):
 				# Replace the link by it's text
-				return zim.formats.DocumentFragment(*elt)
+				return elt.content
 			else:
-				raise zim.formats.VisitorSkip
+				return elt
 
-		tree.replace(zim.formats.LINK, replacefunc)
-		page.set_parsetree(tree)
+		newtree = tree.substitute_elements((zim.formats.LINK,), replacefunc)
+		page.set_parsetree(newtree)
 
 	def resolve_file(self, filename, path=None):
 		'''Resolve a file or directory path relative to a page or

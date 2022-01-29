@@ -55,10 +55,10 @@ def dump():
 		# test modification ends up in page
 		tree = pageview.page.get_parsetree()
 		#print(tree.tostring())
-		elt = tree.find('object')
+		elt = tree.find_element('object')
 		self.assertIsNotNone(elt)
 		self.assertEqual(elt.attrib['type'], 'code')
-		self.assertEqual(elt.gettext(), 'some new code\n')
+		self.assertEqual(elt.content[0][1], 'some new code\n')
 
 	def testInsertCodeBlock(self):
 		window = setUpMainWindow(self.setUpNotebook(content={'Test': 'Test 123'}), path='Test')
@@ -75,7 +75,7 @@ def dump():
 
 		tree = window.pageview.page.get_parsetree()
 		#print(tree.tostring())
-		elt = tree.find('object')
+		elt = tree.find_element('object')
 		self.assertIsNotNone(elt)
 		self.assertEqual(elt.attrib['type'], 'code')
 
@@ -96,7 +96,7 @@ def dump():
 
 		tree = window.pageview.page.get_parsetree()
 		#print(tree.tostring())
-		elt = tree.find('object')
+		elt = tree.find_element('object')
 		self.assertIsNone(elt)
 
 

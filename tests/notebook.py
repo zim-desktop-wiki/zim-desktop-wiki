@@ -1270,22 +1270,6 @@ class TestPage(TestPath):
 		page = self.generator('Foo')
 		page.set_parsetree(tree)
 
-		links = list(page.get_links())
-		self.assertEqual(links, [
-			('page', 'foo:bar', {}),
-			('page', 'bar', {}),
-		])
-
-		tags = list(page.get_tags())
-		self.assertEqual(tags, [
-			('baz', {'name': 'baz'}),
-		])
-
-		anchors = list(page.get_anchors())
-		self.assertEqual(anchors, [
-			('#bottom', {'name': 'bottom'}),
-		])
-
 		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
 			# ensure we didn't change the tree
 

@@ -8569,9 +8569,9 @@ class MoveTextDialog(Dialog):
 			newpage.set_parsetree(template)
 
 		parsetree = self.buffer.get_parsetree(bounds)
-		update_parsetree_and_copy_images(parsetree, self.notebook, self.page, newpage)
+		newtree = update_parsetree_and_copy_images(parsetree, self.notebook, self.page, newpage)
 
-		newpage.append_parsetree(parsetree)
+		newpage.append_parsetree(newtree)
 		self.notebook.store_page(newpage)
 
 		# Delete text (after copy was successfulll..)
