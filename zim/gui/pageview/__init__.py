@@ -1987,18 +1987,15 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			with self.user_action:
 				start, end = self.get_selection_bounds()
-				if name == 'code' and start.starts_line() \
-					and (end.ends_line() or end.starts_line()):
-						name = 'pre'
-						if end.ends_line():
-							end.forward_line()
-						tag = self.get_tag_table().lookup('style-' + name)
-						if start.get_line() != end.get_line() and \
-							not self.whole_range_has_tag(tag, start, end):
-								start, end = self._fix_pre_selection(start, end)
+				pre_tag = self.get_tag_table().lookup('style-pre')
+
+				if tag.zim_tag == 'code' and start.starts_line() and end.starts_line():
+					# Change 'code' to 'pre'
+					# In case line is selected up to end of line or selection stops
+					# halfway a line, it should remain  "code" and not become a "pre" block
+					tag = pre_tag
 
 				had_tag = self.whole_range_has_tag(tag, start, end)
-				pre_tag = self.get_tag_table().lookup('style-pre')
 
 				if tag.zim_tag == "h":
 					assert start.starts_line() and (end.starts_line() or end.is_end()), 'Selection must be whole line'
@@ -2007,6 +2004,8 @@ class TextBuffer(Gtk.TextBuffer):
 					self.smart_remove_tags(_is_non_nesting_tag, start, end)
 				elif tag.zim_tag == 'pre':
 					assert start.starts_line() and (end.starts_line() or end.is_end()), 'Selection must be whole line'
+					if not had_tag:
+						start, end = self._fix_pre_selection(start, end)
 					self.smart_remove_tags(_is_zim_tag, start, end)
 				elif self.range_has_tag(pre_tag, start, end):
 					return # do not allow formatting withing verbatim block
@@ -7333,10 +7332,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		buffer = self.textview.get_buffer()
 		selected = False
+		bounds = buffer.get_selection_bounds()
+		start, end = bounds if bounds else (None, None)
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
 		if format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
 			selected = self.autoselect(selectline=True)
+		elif format == 'code' and bounds and start.starts_line() and end.starts_line():
+			pass # Exception where we want to not do autoselect
 		else:
 			# Check formatting is consistent left and right
 			iter = buffer.get_insert_iter()

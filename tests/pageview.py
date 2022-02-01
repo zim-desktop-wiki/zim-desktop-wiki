@@ -687,7 +687,7 @@ C
 		self.set_buffer(buffer, 'foo <tag name="test">@test</tag> bar')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('code')
-		self.assertBufferEquals(buffer, '<pre>foo @test bar</pre>')
+		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
 
 	def assertMergeLines(self, input, output, line=0, offset=None):
 		buffer = self.get_buffer(input)
