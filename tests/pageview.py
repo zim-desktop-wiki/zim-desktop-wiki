@@ -208,6 +208,44 @@ More text
 
 		self.assertEqual(newwikitext, wikitext)
 
+	def testGetPartialParseTree(self):
+		# See issue #1895 for bug found here
+		# Select list item until end of line, not including newline
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul><li bullet="*">Item 1
+</li><li bullet="*">Item 2
+</li></ul></p>
+</zim-tree>'''
+		wanted_with_newline = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">Item 1
+</li><li bullet="*">Item 2
+</li></ul></p></zim-tree>'''
+		wanted_without_newline = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">Item 1
+</li><li bullet="*">Item 2</li></ul></p></zim-tree>'''
+
+		buffer = self.get_buffer(input)
+
+		start = buffer.get_iter_at_line(1)
+		end = buffer.get_iter_at_line(2)
+		end.forward_line()
+		result = buffer.get_parsetree(bounds=(start, end))
+		self.assertEqual(result.tostring(), wanted_with_newline)
+
+		start = buffer.get_iter_at_line(1)
+		end = buffer.get_iter_at_line(2)
+		end.forward_to_line_end()
+		result = buffer.get_parsetree(bounds=(start, end))
+		self.assertEqual(result.tostring(), wanted_without_newline)
+
+		newbuffer = self.get_buffer()
+		newbuffer.insert_parsetree_at_cursor(result)
+		result = newbuffer.get_parsetree()
+		self.assertEqual(result.tostring(), wanted_without_newline)
 
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
@@ -1354,6 +1392,7 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 		buffertree1 = buffer.get_parsetree(raw=True)
 
 		while undomanager.undo():
+			#print(">>>", buffer.get_parsetree(raw=True).tostring())
 			_ = buffer.get_parsetree() # just check for no warnings
 
 		emptytree = buffer.get_parsetree(raw=True)

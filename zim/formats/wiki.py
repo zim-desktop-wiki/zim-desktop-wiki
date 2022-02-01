@@ -45,7 +45,7 @@ bullet_pattern = '(?:[\\*\u2022]|\\[[ \\*x><]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 	# and '[ ]', '[*]', '[x]', '[>]' or [<]' for checkbox items
 	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
-bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
+bullet_line_re = re.compile(r'^(\t*)(%s)(.*$\n?)' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
 number_bullet_re = re.compile('^(\d+|[a-zA-Z])\.$')
@@ -242,9 +242,9 @@ class WikiParser(object):
 			Rule(
 				'X-Bullet-List',
 				r'''(
-					^ %s .* \n								# Line starting with bullet
+					^ %s .* $\n?							# Line starting with bullet
 					(?:
-						^ \t* %s .* \n						# Line with same or more indent and bullet
+						^ \t* %s .* $\n?					# Line with same or more indent and bullet
 					)*										# .. repeat
 				)''' % (bullet_pattern, bullet_pattern),
 				process=self.parse_list
@@ -252,9 +252,9 @@ class WikiParser(object):
 			Rule(
 				'X-Indented-Bullet-List',
 				r'''(
-					^(?P<list_indent>\t+) %s .* \n			# Line with indent and bullet
+					^(?P<list_indent>\t+) %s .* $\n?		# Line with indent and bullet
 					(?:
-						^(?P=list_indent) \t* %s .* \n		# Line with same or more indent and bullet
+						^(?P=list_indent) \t* %s .* $\n?	# Line with same or more indent and bullet
 					)*										# .. repeat
 				)''' % (bullet_pattern, bullet_pattern),
 				process=self.parse_list
@@ -262,10 +262,10 @@ class WikiParser(object):
 			Rule(
 				'X-Indented-Block',
 				r'''(
-					^(?P<block_indent>\t+) .* \n			# Line with indent
+					^(?P<block_indent>\t+) .* $\n?			 # Line with indent
 					(?:
-						^(?P=block_indent) (?!\t|%s) .* \n	# Line with _same_ indent, no bullet
-					)*										# .. repeat
+						^(?P=block_indent) (?!\t|%s) .* $\n? # Line with _same_ indent, no bullet
+					)*										 # .. repeat
 				)''' % bullet_pattern,
 				process=self.parse_indent
 			),
@@ -291,7 +291,7 @@ class WikiParser(object):
 				process=self.parse_object
 			),
 			Rule(HEADING,
-				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n',		# "==== heading ===="
+				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* $\n?',		# "==== heading ===="
 				process=self.parse_heading
 			),
 			# standard table format
@@ -538,7 +538,8 @@ class WikiParser(object):
 					else:
 						attrib = {'bullet': BULLET}
 				builder.start(LISTITEM, attrib)
-				self.inline_parser(builder, text)
+				if text: # Might be empty line apart from bullet - even no newline at end of buffer
+					self.inline_parser(builder, text)
 				builder.end(LISTITEM)
 
 				lines.pop(0)
@@ -549,7 +550,8 @@ class WikiParser(object):
 		'''Parse indented blocks and turn them into 'div' elements'''
 		text = _remove_indent(text, indent)
 		builder.start(BLOCK, {'indent': len(indent)})
-		self.inline_parser(builder, text)
+		if text: # Might be empty line apart from indent characters - even no newline at end of buffer
+			self.inline_parser(builder, text)
 		builder.end(BLOCK)
 
 	def parse_link(self, builder, text):
@@ -707,6 +709,8 @@ class Dumper(TextDumper):
 	def dump_pre(self, tag, attrib, strings):
 		# Indent and wrap with "'''" lines
 		strings.insert(0, "'''\n")
+		if strings and not strings[-1].endswith('\n'):
+			strings[-1] = strings[-1] + '\n'
 		strings.append("'''\n")
 		strings = self.dump_indent(tag, attrib, strings)
 		return strings

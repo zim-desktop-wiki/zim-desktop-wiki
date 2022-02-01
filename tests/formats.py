@@ -804,6 +804,31 @@ hmmm
 		tree = self.format.Parser().parse(text)
 		self.assertEqual(tree.tostring(), xml)
 
+	def testMissingNewline(self):
+		# Partial content e.g. from copy-paste can miss trailing newline
+		# for all BLOCK_LEVEL tags, need to be handled sane way on dump and parse
+		input = {
+			PARAGRAPH: ('<p>text 123</p>', 'text 123'),
+			VERBATIM_BLOCK: ('<pre>text 123</pre>', "'''\ntext 123\n'''\n"),
+			HEADING: ('<h level="3">text</h>', '==== text ====\n'),
+			BLOCK: ('<p><div indent="1">text</div></p>', '\ttext'),
+			LISTITEM: ('<p><ul><li bullet="*">text</li></ul></p>', '* text')
+		}
+
+		for tag in BLOCK_LEVEL:
+			xml, wanted = input[tag]
+			xml = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>" % xml
+			tree = ParseTree().fromstring(xml)
+			wiki = self.format.Dumper().dump(tree)
+			self.assertEqual(''.join(wiki), wanted)
+			if tag in (HEADING, VERBATIM_BLOCK):
+				# These cannot retain the newline due to wiki formatting
+				newtree = self.format.Parser().parse(wiki)
+				self.assertEqual(newtree.tostring().replace('\n</', '</'), xml)
+			else:
+				newtree = self.format.Parser().parse(wiki)
+				self.assertEqual(newtree.tostring(), xml)
+
 
 class TestGFMAutolinks(tests.TestCase):
 	# See https://github.github.com/gfm/#autolinks-extension-
