@@ -178,6 +178,15 @@ ui_preferences = (
 	('autolink_camelcase', 'bool', 'Editing',
 		_('Automatically turn "CamelCase" words into links'), True),
 		# T: option in preferences dialog
+	('autolink_page', 'bool', 'Editing',
+		_('Automatically turn wiki page names into links'), True),
+		# T: option in preferences dialog
+	('autolink_anchor', 'bool', 'Editing',
+		_('Automatically turn identifiers starting with "#" into links'), True),
+		# T: option in preferences dialog
+	('autolink_interwiki', 'bool', 'Editing',
+		_('Automatically turn interwiki names into links'), True),
+		# T: option in preferences dialog
 	('autolink_files', 'bool', 'Editing',
 		_('Automatically turn file paths into links'), True),
 		# T: option in preferences dialog
@@ -4770,7 +4779,6 @@ class TextView(Gtk.TextView):
 		buffer = self.get_buffer()
 		handled = False
 		#print('WORD >>%s<< CHAR >>%s<<' % (word, char))
-
 		def apply_anchor(match):
 			#print("ANCHOR >>%s<<" % word)
 			if buffer.range_has_tags(_is_non_nesting_tag, start, end):
@@ -4833,7 +4841,7 @@ class TextView(Gtk.TextView):
 				handled = True
 		elif tag_re.match(word):
 			handled = apply_tag(tag_re[0])
-		elif anchor_re.match(word):
+		elif self.preferences['autolink_anchor'] and anchor_re.match(word):
 			handled = apply_anchor(anchor_re[0])
 		elif url_re.search(word):
 			if char == ')':
@@ -4843,19 +4851,19 @@ class TextView(Gtk.TextView):
 				url = match_url(m.group(0))
 				tail = word[m.start()+len(url):]
 				handled = apply_link(url, offset_end=len(tail))
-		elif link_to_anchor_re.match(word):
-			handled = apply_link(link_to_anchor_re[0])
-		elif link_to_page_re.match(word):
-			# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
-			w = word.strip(':').split(':')
-			if w and twoletter_re.search(w[0]):
-				handled = apply_link(link_to_page_re[0])
-			else:
-				handled = False
-		elif interwiki_re.match(word):
-			handled = apply_link(interwiki_re[0])
+		elif self.preferences['autolink_anchor'] and link_to_anchor_re.match(word) and word.startswith('#'):
+				handled = apply_link(word)
+		elif self.preferences['autolink_page'] and \
+				(link_to_page_re.match(word) or (link_to_anchor_re.match(word) and not word.startswith('#'))):
+					# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
+					if twoletter_re.search(word):
+						handled = apply_link(word)
+					else:
+						handled = False
+		elif self.preferences['autolink_interwiki'] and interwiki_re.match(word):
+			handled = apply_link(word)
 		elif self.preferences['autolink_files'] and file_re.match(word):
-			handled = apply_link(file_re[0])
+			handled = apply_link(word)
 		elif self.preferences['autolink_camelcase'] and camelcase(word):
 			handled = apply_link(word)
 		elif self.preferences['auto_reformat']:
@@ -5875,6 +5883,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			follow_on_enter=Boolean(True),
 			read_only_cursor=Boolean(False),
 			autolink_camelcase=Boolean(True),
+			autolink_page=Boolean(True),
+			autolink_anchor=Boolean(True),
+			autolink_interwiki=Boolean(True),
 			autolink_files=Boolean(True),
 			autoselect=Boolean(True),
 			unindent_on_backspace=Boolean(True),
