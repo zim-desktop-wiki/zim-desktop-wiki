@@ -23,6 +23,12 @@ The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Pref
 ===== Editing =====
 **Automatically turn "CamelCase" words into links** is used to enable or disable [[Auto Formatting|auto-linking]] CamelCase words.
 
+**Automatically turn wiki page names into links** is used to enable or disable [[Auto Formatting|auto-linking]] words that look like page links, like ``Page:SubPage``, ``+SubPage``, ``:Page`` or ``Page#heading``.
+
+**Automatically turn identifiers starting with "#" into links** is used to enable or disable [[Auto Formatting|auto-linking]] words that look like "anchor links" like ``#heading``.
+
+**Automatically turn interwiki names into links** is used to enable or disable [[Auto Formatting|auto-linking]] words that look like inter-wiki links like ``wp?Topic``.
+
 **Automatically turn file paths into links** is used to enable or disable [[Auto Formatting|auto-linking]] for file paths.
 
 **Automatically select the current word when you apply formatting **is used to enable or disable the feature where pressing e.g. <Ctrl><B> to toggle Bold formatting will automatically select the current word when the cursor is inside a word. The same option also controls whether toggling the format for a heading will select the whole line automatically.
