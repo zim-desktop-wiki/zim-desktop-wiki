@@ -336,7 +336,7 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		self.uistate.setdefault('hpane_pos', 75)
 		self.hpane.set_position(self.uistate['hpane_pos'])
 		pane2_vbox = Gtk.VBox()
-		self.hpane.add2(pane2_vbox)
+		self.hpane.pack2(pane2_vbox, resize=True)
 
 		swindow = self._create_tasklisttreeview(navigation, properties)
 		self.add(self.hpane)
@@ -347,7 +347,7 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		filter_entry = self._create_filter_entry()
 		pane2_vbox.pack_start(filter_entry, False, True, 0)
 
-		self.hpane.add1(self._create_selection_pane(properties, show_inbox_next, width=150))
+		self.hpane.pack1(self._create_selection_pane(properties, show_inbox_next, width=150), resize=False)
 
 		self._create_menu()
 
@@ -683,6 +683,7 @@ class TaskListTreeView(BrowserTreeView):
 		self.use_workweek = use_workweek
 		self._render_waiting_actionable = False
 		self.view_columns = {}
+		self._visible_columns = {}
 
 		self._icon_names = {
 			TASK_STATUS_OPEN: 'task-list-open-symbolic',
@@ -800,6 +801,8 @@ class TaskListTreeView(BrowserTreeView):
 		self.view_columns['page'] = column
 
 		# Finalize
+		for key in self.view_columns:
+			self._visible_columns[key] = True # Default all visible
 		self.refresh()
 
 		# HACK because we can not register ourselves :S
@@ -812,6 +815,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def set_view_column_visible(self, key, visible):
 		assert key in self.view_columns
+		self._visible_columns[key] = visible
 		if self.taskselection.STYLE == 'inbox' and key in ('prio', 'due'):
 			pass
 		else:
@@ -821,11 +825,11 @@ class TaskListTreeView(BrowserTreeView):
 		self.taskselection = taskselection
 
 		if self.taskselection.STYLE == 'inbox':
-			self.view_columns['prio'].set_visible(False)
-			self.view_columns['due'].set_visible(False)
+			for key in ('prio', 'due'):
+				self.view_columns[key].set_visible(False)
 		else:
-			self.view_columns['prio'].set_visible(True)
-			self.view_columns['due'].set_visible(True)
+			for key in ('prio', 'due'):
+				self.view_columns[key].set_visible(self._visible_columns[key])
 
 		if self.taskselection.STYLE == 'waiting':
 			self._render_waiting_actionable = True
