@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2021-10-14 14:35+0000\n"
+"PO-Revision-Date: 2022-02-10 10:58+0000\n"
 "Last-Translator: SC <lalocas@protonmail.com>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/zim/master/pt/"
 ">\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.9-dev\n"
+"X-Generator: Weblate 4.11-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -2598,20 +2598,16 @@ msgstr "Suporte de miniaturas para SVG"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
-#, fuzzy
-#| msgid "Attachments"
 msgid "Atta_chments"
-msgstr "Anexos"
+msgstr "Ane_xos"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:182
-#, fuzzy, python-format
-#| msgid "%i Attachment"
-#| msgid_plural "%i Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
-msgstr[0] "%i Anexo"
-msgstr[1] "%i Anexos"
+msgstr[0] "%i Ane_xo"
+msgstr[1] "%i Ane_xos"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2648,9 +2644,7 @@ msgstr "Ligações inversas"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:116
-#, fuzzy, python-format
-#| msgid "%i BackLink"
-#| msgid_plural "%i BackLinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
 msgstr[0] "%i _ligação inversa"
@@ -2658,10 +2652,8 @@ msgstr[1] "%i _ligações inversas"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:119
-#, fuzzy
-#| msgid "BackLinks"
 msgid "_BackLinks"
-msgstr "Ligações inversas"
+msgstr "_Ligações inversas"
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:295
@@ -2906,14 +2898,12 @@ msgstr "Usar a cor da fonte para o tema escuro"
 #. plugin preference
 #: zim/plugins/equationeditor.py:34
 msgid "Font size"
-msgstr ""
+msgstr "Tamanho da fonte"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
-#, fuzzy
-#| msgid "Equation"
 msgid "Equation image DPI"
-msgstr "Equação"
+msgstr "DPI da imagem da equação"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
@@ -3071,10 +3061,8 @@ msgstr "Ho_je"
 
 #. side pane title
 #: zim/plugins/journal.py:334
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
-msgstr "Diário"
+msgstr "_Diário"
 
 #. strftime format for current date label
 #: zim/plugins/journal.py:395
@@ -3088,11 +3076,6 @@ msgstr "Ordenador de Linhas"
 
 #. plugin description
 #: zim/plugins/linesorter.py:27
-#, fuzzy
-#| msgid ""
-#| "This plugin sorts selected lines in alphabetical order.\n"
-#| "If the list is already sorted the order will be reversed\n"
-#| "(A-Z to Z-A).\n"
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3101,7 +3084,8 @@ msgid ""
 msgstr ""
 "Esta extensão ordena alfabeticamente as linhas selecionadas. \n"
 "Se a lista já estiver ordenada, a ordem será invertida\n"
-"(A-Z para Z-A).\n"
+"(A-Z para Z-A). Funcionalidades adicionais: mover linhas de\n"
+"texto para cima e para baixo, duplicar ou remover linhas de texto\n"
 
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
@@ -3210,10 +3194,8 @@ msgstr "Usar dica de contexto"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132
-#, fuzzy
-#| msgid "Index"
 msgid "Inde_x"
-msgstr "Índice"
+msgstr "Índic_e"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
@@ -3817,7 +3799,7 @@ msgstr "Promover"
 #. widget label
 #: zim/plugins/tableofcontents.py:483
 msgid "T_oC"
-msgstr ""
+msgstr "Índice de _conteúdos"
 
 #: zim/plugins/tableofcontents.py:513
 msgid "ToC"
@@ -3841,7 +3823,7 @@ msgstr ""
 #. title for sidepane tab
 #: zim/plugins/tags.py:98
 msgid "T_ags"
-msgstr ""
+msgstr "Etiquet_as"
 
 #. menu option
 #: zim/plugins/tags.py:148
@@ -3871,7 +3853,7 @@ msgstr "Mostrar Somente Tarefas Ativas"
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tas_ks"
-msgstr ""
+msgstr "Tare_fas"
 
 #. label for filtering/searching tasks | 
 #. Input label
