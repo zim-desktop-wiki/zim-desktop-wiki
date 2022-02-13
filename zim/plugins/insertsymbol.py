@@ -18,14 +18,15 @@ logger = logging.getLogger('zim.plugins.insertsymbol')
 VERBATIM = 'code'
 VERBATIM_BLOCK = 'pre'
 
+ESC = '|\n|'  # non-stripable char sequence which can't be found inside lines
 
 class InsertSymbolPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert Symbol'), # T: plugin name
 		'description': _('''\
-This plugin adds the 'Insert Symbol' dialog and allows
-auto-formatting typographic characters.
+This plugin adds the 'Insert Symbol' dialog and allows \
+auto-formatting typographic characters and phrases.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
@@ -47,14 +48,20 @@ This is a core plugin shipping with zim.
 			if not line or line.startswith('#'):
 				continue
 			try:
+				line = line.replace(r'\#', ESC)  # allow # in replacements
 				if '#' in line:
 					line, _ = line.split('#', 1)
 					line = line.strip()
-				shortcut, code = line.split()
-				symbol = chr(int(code))
+				line = line.replace(ESC, '#')
+				shortcut, code = line.split(maxsplit=1)
 				if not shortcut in self.symbols:
+					if code.isdigit():
+						symbol = chr(int(code))
+						self.symbol_order.append(shortcut)
+					else:  # not a symbol -> doesn't go into symbol_order -> hidden from gui
+						# allow newlines via literal \n, and literal \n via literal \\n
+						symbol = code.replace(r'\\n', ESC).replace(r'\n', '\n').replace(ESC, r'\n')
 					self.symbols[shortcut] = symbol
-					self.symbol_order.append(shortcut)
 				else:
 					logger.exception('Shortcut defined twice: %s', shortcut)
 			except:
