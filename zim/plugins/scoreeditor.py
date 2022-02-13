@@ -59,7 +59,11 @@ This is a core plugin shipping with zim.
 	@classmethod
 	def check_dependencies(klass):
 		has_lilypond = Application(lilypond_cmd).tryexec()
-		return has_lilypond, [('GNU Lilypond', has_lilypond, True)]
+		has_convertly = Application(convertly_cmd).tryexec()
+		return has_lilypond and has_convertly, [
+				('GNU Lilypond', has_lilypond, True),
+				('convert-ly', has_convertly, True)
+			]
 
 
 class BackwardScoreImageObjectType(BackwardImageGeneratorObjectType):
