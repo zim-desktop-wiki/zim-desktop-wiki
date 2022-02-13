@@ -1810,7 +1810,7 @@ msgstr "Suche auf die aktuelle Seite und Unterseite(n) einschränken"
 #. menu item
 #: zim/gui/searchdialog.py:150 zim/plugins/scoreeditor.py:68
 msgid "Score"
-msgstr "Bewertung"
+msgstr "Noten"
 
 #. Window title
 #: zim/gui/server.py:46
