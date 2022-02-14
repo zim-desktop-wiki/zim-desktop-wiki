@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-02-14 08:58+0000\n"
+"PO-Revision-Date: 2022-02-15 09:58+0000\n"
 "Last-Translator: Andreas Klostermaier <andreas.klostermaier@appendx.de>\n"
 "Language-Team: German <https://hosted.weblate.org/projects/zim/master/de/>\n"
 "Language: de\n"
@@ -519,7 +519,7 @@ msgstr "_Suchen"
 #. Menu title
 #: zim/gui/mainwindow.py:52
 msgid "For_mat"
-msgstr "For_mat"
+msgstr "Format"
 
 #. Menu title
 #: zim/gui/mainwindow.py:53
@@ -2619,16 +2619,12 @@ msgstr "Vorschaubilder für SVG unterstützen"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
-#, fuzzy
-#| msgid "Attachments"
 msgid "Atta_chments"
 msgstr "Dateianhänge"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:182
-#, fuzzy, python-format
-#| msgid "%i Attachment"
-#| msgid_plural "%i Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
 msgstr[0] "%i Anhang"
@@ -2669,9 +2665,7 @@ msgstr "Rückverweise"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:116
-#, fuzzy, python-format
-#| msgid "%i BackLink"
-#| msgid_plural "%i BackLinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
 msgstr[0] "%i Rückverweis"
@@ -2679,8 +2673,6 @@ msgstr[1] "%i Rückverweise"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:119
-#, fuzzy
-#| msgid "BackLinks"
 msgid "_BackLinks"
 msgstr "Rückverweise"
 
@@ -2932,10 +2924,8 @@ msgstr "Schriftgröße"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
-#, fuzzy
-#| msgid "Equation"
 msgid "Equation image DPI"
-msgstr "Formel"
+msgstr "Auflösung (dpi)"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
@@ -3097,8 +3087,6 @@ msgstr "_Heute"
 
 #. side pane title
 #: zim/plugins/journal.py:334
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
 msgstr "Tagebuch"
 
@@ -3114,11 +3102,6 @@ msgstr "Alphabetische Sortierung"
 
 #. plugin description
 #: zim/plugins/linesorter.py:27
-#, fuzzy
-#| msgid ""
-#| "This plugin sorts selected lines in alphabetical order.\n"
-#| "If the list is already sorted the order will be reversed\n"
-#| "(A-Z to Z-A).\n"
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3127,7 +3110,8 @@ msgid ""
 msgstr ""
 "Diese Erweiterung sortiert markierte Zeilen in alphabetischer Reihenfolge. "
 "Wiederholtes Sortieren ändert die Sortierreihenfolge zwischen auf- und "
-"absteigend.\n"
+"absteigend. Ausserdem können Zeilen hoch und runter bewegt, dupliziert und "
+"gelöscht werden.\n"
 
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
@@ -3233,8 +3217,6 @@ msgstr "Einblend-Hilfe verwenden"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132
-#, fuzzy
-#| msgid "Index"
 msgid "Inde_x"
 msgstr "Seiten"
 
