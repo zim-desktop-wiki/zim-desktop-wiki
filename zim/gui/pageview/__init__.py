@@ -1996,15 +1996,8 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			with self.user_action:
 				start, end = self.get_selection_bounds()
-				pre_tag = self.get_tag_table().lookup('style-pre')
-
-				if tag.zim_tag == 'code' and start.starts_line() and end.starts_line():
-					# Change 'code' to 'pre'
-					# In case line is selected up to end of line or selection stops
-					# halfway a line, it should remain  "code" and not become a "pre" block
-					tag = pre_tag
-
 				had_tag = self.whole_range_has_tag(tag, start, end)
+				pre_tag = self.get_tag_table().lookup('style-pre')
 
 				if tag.zim_tag == "h":
 					assert start.starts_line() and (end.starts_line() or end.is_end()), 'Selection must be whole line'
@@ -3034,6 +3027,20 @@ class TextBuffer(Gtk.TextBuffer):
 			return False
 		self.select_range(start, end)
 		return True
+
+	def select_lines_for_selection(self):
+		'''Ensure the selection is extended to cover full lines
+		@returns: C{True} if selection changed
+		'''
+		bounds = self.get_selection_bounds()
+		if bounds:
+			start, end = bounds
+			if start.starts_line() and end.starts_line():
+				return False
+			else:
+				return self.select_lines(start.get_line(), end.get_line())
+		else:
+			return self.select_line()
 
 	def select_word(self):
 		'''Selects the current word, if any
@@ -7274,10 +7281,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu item to remove formatting from current (auto-)selection'''
 		buffer = self.textview.get_buffer()
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
-		selected = self.autoselect()
 
+		pre_tag = buffer.get_tag_table().lookup('style-pre')
 		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
+			in_pre_block = buffer.range_has_tag(pre_tag, start, end)
+		else:
+			iter = buffer.get_insert_iter()
+			in_pre_block = pre_tag in buffer.iter_get_zim_tags(iter)
+
+		if in_pre_block:
+			selected = buffer.select_lines_for_selection()
+		else:
+			selected = self.autoselect()
+
+		if buffer.get_has_selection():
+			start, end = buffer.get_selection_bounds() # can be modified
 			if start.starts_line() and end.starts_line():
 				buffer.smart_remove_tags(_is_format_tag, start, end)
 			else:
@@ -7299,7 +7318,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu item to remove heading'''
 		buffer = self.textview.get_buffer()
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
-		selected = self.autoselect(selectline=True)
+		selected = buffer.select_lines_for_selection()
 		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
 			buffer.smart_remove_tags(_is_heading_tag, start, end)
@@ -7348,16 +7367,19 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
 		if format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-			selected = self.autoselect(selectline=True)
+			selected = buffer.select_lines_for_selection()
 		elif format == 'code' and bounds and start.starts_line() and end.starts_line():
-			pass # Exception where we want to not do autoselect
+			# Change 'code' to 'pre'
+			# In case line is selected up to end of line or selection stops
+			# halfway a line, it should remain  "code" and not become a "pre" block
+			format = 'pre'
 		else:
 			# Check formatting is consistent left and right
 			iter = buffer.get_insert_iter()
 			format_left = format in [t.zim_tag for t in buffer.iter_get_zim_tags(iter)]
 			format_right = format in [t.zim_tag for t in filter(_is_zim_tag, iter.get_tags())]
 			if format_left is format_right:
-				selected = self.autoselect(selectline=False)
+				selected = self.autoselect()
 
 		buffer.toggle_format_tag_by_name(format)
 
@@ -7383,11 +7405,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		buffer = self.textview.get_buffer()
 		if buffer.get_has_selection():
+			start, end = buffer.get_selection_bounds()
 			if selectline:
-				start, end = buffer.get_selection_bounds()
 				start_line, end_line = start.get_line(), end.get_line()
-				if end.starts_line():
+				if start.starts_line() and end.starts_line():
+					return False
+				elif end.starts_line():
 					end_line -= 1
+				else:
+					pass
 				return buffer.select_lines(start_line, end_line)
 			else:
 				return buffer.strip_selection()

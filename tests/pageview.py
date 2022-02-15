@@ -671,7 +671,7 @@ aaa <link href="xxx">bbb</link> ccc
 '''))
 		start, end = buffer.get_bounds()
 		buffer.select_range(start, end)
-		buffer.toggle_format_tag_by_name('code')
+		buffer.toggle_format_tag_by_name('pre')
 
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), '''\
