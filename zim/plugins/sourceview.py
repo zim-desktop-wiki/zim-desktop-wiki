@@ -44,7 +44,7 @@ if GtkSource:
 	lang_ids = lm.get_language_ids()
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
-	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
+	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids if not lm.get_language(i).get_hidden())
 
 	ssm = GtkSource.StyleSchemeManager()
 
