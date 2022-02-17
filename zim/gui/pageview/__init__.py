@@ -7207,7 +7207,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			def handler(menuitem, file):
 				self.insert_new_file(file)
 
-			for name in folder.list_files():
+			for file in folder.list_files():
 				name = file.basename
 				if '.' in name:
 					name, x = name.rsplit('.', 1)
