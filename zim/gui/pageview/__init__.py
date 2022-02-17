@@ -8188,12 +8188,19 @@ class InsertLinkDialog(Dialog):
 	def _link_to_text(self, link):
 		if not link:
 			return ''
-		if self.form['short_links'] and link_type(link) == 'page':
+		elif self.form['short_links'] and link_type(link) == 'page':
 				# Similar to 'short_links' notebook property but using uistate instead
-				parts = HRef.new_from_wiki_link(link).parts()
-				if len(parts) > 0:
-					return parts[-1]
-		return link
+				try:
+					parts = HRef.new_from_wiki_link(link).parts()
+				except ValueError:
+					return ''
+				else:
+					if len(parts) > 0:
+						return parts[-1]
+					else:
+						return link
+		else:
+			return link
 
 	def do_response_ok(self):
 		self.uistate['short_links'] = self.form['short_links']

@@ -60,7 +60,7 @@ import zim.config
 from zim.fs import adapt_from_oldfs
 from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.config import value_is_coord
-from zim.notebook import Notebook, Path, PageNotFoundError
+from zim.notebook import Notebook, Path, HRef, PageNotFoundError
 from zim.parsing import link_type
 from zim.signals import ConnectorMixin
 from zim.notebook.index import IndexNotFoundError
@@ -1982,16 +1982,9 @@ class LinkEntry(PageEntry, FileEntry):
 		self.file_type_hint = None
 
 	def get_path(self):
-		# Check we actually got a valid path
-		text = self.get_text()
-		if text:
-			type = link_type(text)
-			if type == 'page':
-				return PageEntry.get_path(self)
-			else:
-				return None
-		else:
-			return None
+		# TODO: proper check link syntax, including achor part instead
+		#       of just using PageEntry.get_path()
+		raise NotImplementedError
 
 	def update_input_valid(self):
 		# Switch between path completion and file completion
@@ -1999,7 +1992,13 @@ class LinkEntry(PageEntry, FileEntry):
 		if text:
 			type = link_type(text)
 			if type == 'page':
-				PageEntry.update_input_valid(self)
+				try:
+					href = HRef.new_from_wiki_link(text)
+				except ValueError:
+					self.set_input_valid(True)
+				else:
+					self.set_input_valid(href.names or href.anchor)
+						# Should not reduce to empty link
 			#~ elif type == 'file':
 				#~ FileEntry.update_input_valid(self)
 			else:
