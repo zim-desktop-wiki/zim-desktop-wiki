@@ -5,9 +5,9 @@ Wiki-Format: zim 0.4
 
 The score editor is a simple dialog that allows you to insert a score into a page using **GNU Lilypond**.
 
-In order to be able to use this plugin, you must have GNU Lilypond installed and the following command must be available on your system: "''lilypond"''. You can control the look of the scores using the special template "''_Score.ly"''.
+In order to be able to use this plugin, you must have GNU Lilypond installed and the following commands must be available on your system: "''lilypond"'' and "''convert-ly''" ([[#gnu-lilypond-version|why?]]). You can control the look of the scores using the special template "''_Score.ly"''.
 
-**Dependencies:** This plugin requires GNU Lilypond to be installed. In specific the "lilypond" command should be available in the system path.
+**Dependencies:** This plugin requires GNU Lilypond to be installed. Specifically, the "lilypond" and "convert-ly" commands should be available in the system path.
 
 ===== Syntax =====
 
@@ -129,7 +129,7 @@ Feel free to tailor the template file for your needs.
 
 Syntax of GNU Lilypond could change with new releases, and these changes need not be backward compatible. For this reason, the version of GNU Lilypond when the score was created is inserted into the score text by the plugin.
 
-When a different version of GNU Lilypond is installed, the plugin would use ''convert-ly'' (packaged with GNU Lilypond) to convert the score file to be compatible with installed version before rendering the score.
+When a different version of GNU Lilypond is installed, the plugin will use ''convert-ly'' (packaged with GNU Lilypond) to convert the score file to be compatible with installed version before rendering the score.
 
 ===== References =====
 
