@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-12-07 20:27+0100\n"
-"PO-Revision-Date: 2022-01-17 21:50+0000\n"
+"PO-Revision-Date: 2022-02-22 13:58+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
 "Language: he\n"
@@ -3741,17 +3741,17 @@ msgstr "הראה תוכן העניינים בחלון נפרד במקום בתו
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:120
 msgid "Show the page title heading in the ToC"
-msgstr ""
+msgstr "הצגת כותרת העמוד העליונה בתוכן העניינים"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:122
 msgid "Include horizontal lines in the ToC"
-msgstr ""
+msgstr "לכלול שורות אופקיות בתוכן העניינים"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
 msgid "Set ToC fontsize"
-msgstr ""
+msgstr "הגדרת גודל גופן תוכן העניינים"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:387
@@ -3766,7 +3766,7 @@ msgstr "העלה"
 #. widget label
 #: zim/plugins/tableofcontents.py:483
 msgid "T_oC"
-msgstr ""
+msgstr "_תוכן עניינים"
 
 #: zim/plugins/tableofcontents.py:513
 msgid "ToC"
@@ -3788,12 +3788,12 @@ msgstr "תוסף זה מספק מפתח דפים המסונן באותו האו�
 #. title for sidepane tab
 #: zim/plugins/tags.py:98
 msgid "T_ags"
-msgstr ""
+msgstr "_תגיות"
 
 #. menu option
 #: zim/plugins/tags.py:148
 msgid "Show full page name"
-msgstr ""
+msgstr "הצגת שם העמוד המלא"
 
 #. menu option
 #: zim/plugins/tags.py:153
@@ -3808,17 +3808,17 @@ msgstr "מיון לפי אלפבית"
 #. Checkbox in task list - hides parent items
 #: zim/plugins/tasklist/gui.py:36
 msgid "Show Tasks as Flat List"
-msgstr ""
+msgstr "הצגת משימות כרשימה שטוחה"
 
 #. Checkbox in task list - this options hides tasks that are not yet started
 #: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:172
 msgid "Only Show Active Tasks"
-msgstr ""
+msgstr "להציג משימות פעילות בלבד"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tas_ks"
-msgstr ""
+msgstr "מ_שימות"
 
 #. label for filtering/searching tasks | 
 #. Input label
