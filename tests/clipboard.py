@@ -302,7 +302,7 @@ some <b>bold</b> text
 
 	def testCopyPasteParseTreeWithLinkInDifferentPage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[+Foo]]\n[[+Foo|Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]')
+		page.parse('wiki', '[[+Foo]]\n[[+Foo|Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]\n[[#anchor]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -313,13 +313,14 @@ some <b>bold</b> text
 			'<link href="Test:Foo">Test:Foo</link>\n'
 			'<link href="Test:Foo">Foo</link>\n'
 			'<link href="Test:Foo">my foo link</link>\n'
-			'<link href="Test:Foo#anchor">Test:Foo#anchor</link>'
+			'<link href="Test:Foo#anchor">Test:Foo#anchor</link>\n'
+			'<link href="Test#anchor">Test#anchor</link>'
 			'</p></zim-tree>'
 		) # Link updated to point to same target from new location
 
 	def testCopyPasteParseTreeWithLinkInDifferentNotebook(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '[[+Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]')
+		page.parse('wiki', '[[+Foo]]\n[[+Foo|my foo link]]\n[[+Foo#anchor]]\n[[#anchor]]')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -330,7 +331,8 @@ some <b>bold</b> text
 			'<zim-tree><p>'
 			'<link href="first_notebook?Test:Foo">first_notebook?Test:Foo</link>\n'
 			'<link href="first_notebook?Test:Foo">my foo link</link>\n'
-			'<link href="first_notebook?Test:Foo#anchor">first_notebook?Test:Foo#anchor</link>'
+			'<link href="first_notebook?Test:Foo#anchor">first_notebook?Test:Foo#anchor</link>\n'
+			'<link href="first_notebook?Test#anchor">first_notebook?Test#anchor</link>'
 			'</p></zim-tree>'
 		) # Link updated to point to same target from new location
 

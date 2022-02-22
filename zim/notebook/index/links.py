@@ -97,7 +97,7 @@ class LinksIndexer(IndexerBase):
 			(row['id'],)
 		)
 		for href in doc.iter_href(include_anchors=False):
-			assert href.parts()	# links cannot be only anchor
+			assert href.parts()  # links cannot be only anchor
 			anchorkey = natural_sort_key(href.parts()[0])
 			try:
 				#print("INSERT INTO links(%d, %d, %d, %s,...)" % (row['id'], ROOT_ID, href.rel, href.names))

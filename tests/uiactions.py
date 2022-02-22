@@ -459,7 +459,7 @@ class TestUIActions(tests.TestCase):
 
 	def testMovePageUpdateLinks(self):
 		referrer = self.notebook.get_page(Path('Referrer'))
-		referrer.parse('wiki', 'Test [[Test]]\n')
+		referrer.parse('wiki', 'Test [[Test]]\n[[#anchor]]\n')
 		self.notebook.store_page(referrer)
 
 		def movepage(dialog):
@@ -471,7 +471,7 @@ class TestUIActions(tests.TestCase):
 		with tests.DialogContext(movepage):
 			self.uiactions.move_page()
 
-		self.assertEqual(referrer.dump('wiki'), ['Test [[NewParent:Test]]\n'])
+		self.assertEqual(referrer.dump('wiki'), ['Test [[NewParent:Test]]\n', '[[#anchor]]\n'])
 
 	def testMovePageNoUpdateLinks(self):
 		referrer = self.notebook.get_page(Path('Referrer'))
