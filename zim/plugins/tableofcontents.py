@@ -16,7 +16,7 @@ logger = logging.getLogger('zim.plugins.tableofcontents')
 from zim.plugins import PluginClass
 from zim.signals import ConnectorMixin, DelayedCallback
 from zim.notebook import Path
-from zim.tokenparser import collect_untill_end_token, tokens_to_text
+from zim.tokenparser import collect_until_end_token, tokens_to_text
 from zim.formats import HEADING, LINE
 
 from zim.gui.pageview import PageViewExtension
@@ -76,7 +76,7 @@ def get_headings(parsetree, include_hr):
 		if t[0] == HEADING:
 			level = int(t[1]['level'])
 			text = tokens_to_text(
-						collect_untill_end_token(tokens, HEADING) ).strip()
+						collect_until_end_token(tokens, HEADING) ).strip()
 			assert level > 0 # just to be sure
 			while stack[-1][0] >= level:
 				stack.pop()

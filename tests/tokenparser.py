@@ -59,25 +59,44 @@ class TestTokenParser(tests.TestCase):
 class TestFunctions(tests.TestCase):
 
 	def testCollectTokens(self):
-		self.assertEqual(	# simple
-			collect_untill_end_token(
+		# simple
+		self.assertEqual(
+			collect_until_end_token(
 				[('B', {}), ('T', ''), (END, 'B'), (END, 'A'), ('T', '')],
 				'A'
 			),
 				[('B', {}), ('T', ''), (END, 'B')]
 		)
-		self.assertEqual(	# nested
-			collect_untill_end_token(
+		# nested
+		self.assertEqual(
+			collect_until_end_token(
 				[('A', {}), ('T', ''), (END, 'A'), (END, 'A'), ('T', '')],
 				'A'
 			),
 				[('A', {}), ('T', ''), (END, 'A')]
 		)
+		# error case: no closing tag found
 		with self.assertRaises(EndOfTokenListError):
-			collect_untill_end_token(
+			collect_until_end_token(
 				[('B', {}), ('T', ''), (END, 'B'), ('T', '')],
 				'A'
 			)
+
+	def testFilterTokens(self):
+		self.assertEqual(
+			list(filter_token(
+				[('T', 'pre'), ('A', {}), ('T', 'inner'), (END, 'A'), ('T', 'post')],
+				'A'
+			)),
+			[('T', 'pre'), ('T', 'post')]
+		)
+		self.assertEqual(
+			list(filter_token(
+				[('T', 'pre'), ('A', {}), ('A', {}), ('T', 'inner'), (END, 'A'), (END, 'A'), ('T', 'post')],
+				'A'
+			)),
+			[('T', 'pre'), ('T', 'post')]
+		)
 
 	def testTokensToText(self):
 		self.assertEqual(
