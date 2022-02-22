@@ -496,7 +496,8 @@ def image_file_load_pixels(file, width_override=-1, height_override=-1):
 	# Let GTK try reading the file
 	try:
 		if b_size_override:
-			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, width_override, height_override)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path).scale_simple(width_override, height_override, GdkPixbuf.InterpType.BILINEAR)
+				# do not use new_from_file_at_size() here due to bug in Gtk for GIF images, see issue #1563
 		else:
 			pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 
