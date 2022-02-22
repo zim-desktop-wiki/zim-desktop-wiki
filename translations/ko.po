@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-12-07 20:27+0100\n"
+"POT-Creation-Date: 2022-02-22 20:39+0100\n"
 "PO-Revision-Date: 2017-07-11 12:14+0000\n"
 "Last-Translator: Jongsung Kang <limerainne@gmail.com>\n"
 "Language-Team: Korean <ko@li.org>\n"
@@ -95,7 +95,7 @@ msgid "File changed on disk: %s"
 msgstr "디스크에서 변경된 파일: %s"
 
 #. Heading in a question dialog for creating a folder
-#: zim/gui/applications.py:585 zim/gui/pageview/__init__.py:7231
+#: zim/gui/applications.py:585 zim/gui/pageview/__init__.py:7242
 msgid "Create folder?"
 msgstr "폴더를 생성하시겠습니까?"
 
@@ -186,7 +186,7 @@ msgstr "시스템 기본값"
 #. Input label in the 'rename page' dialog for the new name | 
 #. label for file name
 #: zim/gui/applications.py:1216 zim/gui/customtools.py:667
-#: zim/gui/notebookdialog.py:422 zim/gui/pageview/__init__.py:8568
+#: zim/gui/notebookdialog.py:422 zim/gui/pageview/__init__.py:8579
 #: zim/gui/preferencesdialog.py:333 zim/gui/propertiesdialog.py:16
 #: zim/gui/templateeditordialog.py:158 zim/gui/uiactions.py:606
 #: zim/plugins/attachmentbrowser/filebrowser.py:441
@@ -346,7 +346,7 @@ msgstr "단일 페이지(_P)"
 #. Column header search dialog | 
 #. Column header Task List dialog | 
 #. page label
-#: zim/gui/exportdialog.py:181 zim/gui/pageview/__init__.py:8448
+#: zim/gui/exportdialog.py:181 zim/gui/pageview/__init__.py:8459
 #: zim/gui/recentchangesdialog.py:59 zim/gui/searchdialog.py:149
 #: zim/plugins/quicknote.py:247 zim/plugins/tasklist/gui.py:495
 #: zim/plugins/tasklist/gui.py:801
@@ -370,7 +370,7 @@ msgstr "기타..."
 
 #. Input label in the export dialog | 
 #. label in "insert date" dialog
-#: zim/gui/exportdialog.py:223 zim/gui/pageview/__init__.py:7563
+#: zim/gui/exportdialog.py:223 zim/gui/pageview/__init__.py:7574
 msgid "Format"
 msgstr "형식"
 
@@ -488,7 +488,7 @@ msgstr "파일(_F)"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:48 zim/gui/pageview/__init__.py:7584
+#: zim/gui/mainwindow.py:48 zim/gui/pageview/__init__.py:7595
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "편집(_E)"
@@ -501,7 +501,7 @@ msgstr "보기(_V)"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:50 zim/gui/pageview/__init__.py:7534
+#: zim/gui/mainwindow.py:50 zim/gui/pageview/__init__.py:7545
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "삽입(_I)"
@@ -557,47 +557,47 @@ msgid "Leave Fullscreen"
 msgstr "전체 화면(_F)"
 
 #. Menu item
-#: zim/gui/mainwindow.py:182
+#: zim/gui/mainwindow.py:183
 msgid "_Fullscreen"
 msgstr "전체 화면(_F)"
 
 #. menu item
-#: zim/gui/mainwindow.py:192
+#: zim/gui/mainwindow.py:193
 #, fuzzy
 #| msgid "Notebook _Editable"
 msgid "Toggle _Editable"
 msgstr "노트북 편집가능(_E)"
 
 #. menu item
-#: zim/gui/mainwindow.py:192
+#: zim/gui/mainwindow.py:193
 #, fuzzy
 #| msgid "Notebook _Editable"
 msgid "Toggle editable"
 msgstr "노트북 편집가능(_E)"
 
 #. message in toggle editable tooltip
-#: zim/gui/mainwindow.py:221
+#: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
 msgstr ""
 
 #. Menu item
-#: zim/gui/mainwindow.py:255
+#: zim/gui/mainwindow.py:256
 msgid "_Side Panes"
 msgstr "사이드 창"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:494 zim/gui/widgets.py:2900
+#: zim/gui/mainwindow.py:495 zim/gui/widgets.py:2900
 msgid "_Close"
 msgstr "닫기(_C)"
 
 #. label for View->Menubar menu item
-#: zim/gui/mainwindow.py:565
+#: zim/gui/mainwindow.py:566
 msgid "Menubar"
 msgstr "메뉴 모음"
 
 #. short question on open-page if file exists
-#: zim/gui/mainwindow.py:680 zim/gui/uiactions.py:502
+#: zim/gui/mainwindow.py:685 zim/gui/uiactions.py:502
 #, fuzzy
 #| msgid ""
 #| "This file already exists.\n"
@@ -608,7 +608,7 @@ msgstr ""
 "덮어쓰시겠습니까?"
 
 #. longer question on open-page if file exists
-#: zim/gui/mainwindow.py:681 zim/gui/uiactions.py:503
+#: zim/gui/mainwindow.py:686 zim/gui/uiactions.py:503
 #, fuzzy, python-format
 #| msgid ""
 #| "The folder \"%s\" does not yet exist.\n"
@@ -621,75 +621,75 @@ msgstr ""
 "새로운 폴더를 만들겠습니까?"
 
 #. page status for title bar
-#: zim/gui/mainwindow.py:740 zim/gui/mainwindow.py:907
+#: zim/gui/mainwindow.py:741 zim/gui/mainwindow.py:908
 msgid "readonly"
 msgstr "읽기 전용"
 
 #. Menu item
-#: zim/gui/mainwindow.py:768
+#: zim/gui/mainwindow.py:769
 msgid "_Jump To..."
 msgstr "직접 이동...(_J)"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:773 zim/gui/widgets.py:3815
+#: zim/gui/mainwindow.py:774 zim/gui/widgets.py:3815
 msgid "_Back"
 msgstr "뒤로(_B)"
 
 #. tooltip for navigation button
-#: zim/gui/mainwindow.py:775
+#: zim/gui/mainwindow.py:776
 msgid "Go back"
 msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:786 zim/gui/widgets.py:3819
+#: zim/gui/mainwindow.py:787 zim/gui/widgets.py:3819
 msgid "_Forward"
 msgstr "앞으로(_F)"
 
 #. tooltip for navigation button
-#: zim/gui/mainwindow.py:788
+#: zim/gui/mainwindow.py:789
 #, fuzzy
 #| msgid "_Forward"
 msgid "Go forward"
 msgstr "앞으로(_F)"
 
 #. Menu item
-#: zim/gui/mainwindow.py:798
+#: zim/gui/mainwindow.py:799
 msgid "_Parent"
 msgstr "부모(_P)"
 
 #. Menu item
-#: zim/gui/mainwindow.py:807
+#: zim/gui/mainwindow.py:808
 msgid "_Child"
 msgstr "자녀(_C)"
 
 #. Menu item
-#: zim/gui/mainwindow.py:823
+#: zim/gui/mainwindow.py:824
 #, fuzzy
 #| msgid "_Previous in index"
 msgid "_Previous in Index"
 msgstr "색인에서 다음"
 
 #. Menu item
-#: zim/gui/mainwindow.py:832
+#: zim/gui/mainwindow.py:833
 #, fuzzy
 #| msgid "_Next in index"
 msgid "_Next in Index"
 msgstr "색인에서 이전"
 
 #. Menu item
-#: zim/gui/mainwindow.py:841
+#: zim/gui/mainwindow.py:842
 msgid "_Home"
 msgstr "홈(_H)"
 
 #. Menu item
-#: zim/gui/mainwindow.py:841
+#: zim/gui/mainwindow.py:842
 msgid "Go to home page"
 msgstr ""
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/mainwindow.py:863
+#: zim/gui/mainwindow.py:864
 #, fuzzy, python-format
 #| msgid "%i _Backlink..."
 #| msgid_plural "%i _Backlinks..."
@@ -698,17 +698,17 @@ msgid_plural "%i _Backlinks"
 msgstr[0] "%i 역링크(_B)..."
 
 #. Dialog title
-#: zim/gui/mainwindow.py:1000
+#: zim/gui/mainwindow.py:1001
 msgid "Jump to"
 msgstr "직접 이동"
 
 #. Button label
-#: zim/gui/mainwindow.py:1001
+#: zim/gui/mainwindow.py:1002
 msgid "_Jump"
 msgstr ""
 
 #. Label for page input
-#: zim/gui/mainwindow.py:1006
+#: zim/gui/mainwindow.py:1007
 msgid "Jump to Page"
 msgstr "페이지로 직접 이동"
 
@@ -795,16 +795,37 @@ msgstr "\"CamelCase\" 단어를 자동으로 링크로 전환"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:182
-msgid "Automatically turn file paths into links"
+#, fuzzy
+#| msgid "Automatically turn file paths into links"
+msgid "Automatically turn wiki page names into links"
 msgstr "파일 경로를 자동으로 링크로 전환"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:185
+#, fuzzy
+#| msgid "Automatically turn file paths into links"
+msgid "Automatically turn identifiers starting with \"#\" into links"
+msgstr "파일 경로를 자동으로 링크로 전환"
+
+#. option in preferences dialog
+#: zim/gui/pageview/__init__.py:188
+#, fuzzy
+#| msgid "Automatically turn file paths into links"
+msgid "Automatically turn interwiki names into links"
+msgstr "파일 경로를 자동으로 링크로 전환"
+
+#. option in preferences dialog
+#: zim/gui/pageview/__init__.py:191
+msgid "Automatically turn file paths into links"
+msgstr "파일 경로를 자동으로 링크로 전환"
+
+#. option in preferences dialog
+#: zim/gui/pageview/__init__.py:194
 msgid "Automatically select the current word when you apply formatting"
 msgstr "서식을 적용할 때 현재 단어를 자동으로 선택"
 
 #. option in preferences dialog
-#: zim/gui/pageview/__init__.py:188
+#: zim/gui/pageview/__init__.py:197
 msgid ""
 "Unindent on <BackSpace>\n"
 "(If disabled you can still use <Shift><Tab>)"
@@ -813,46 +834,46 @@ msgstr ""
 "(사용안함 상태이더라도 <Shift><Tab>를 사용할 수 있습니다)"
 
 #. option in preferences dialog
-#: zim/gui/pageview/__init__.py:191
+#: zim/gui/pageview/__init__.py:200
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
 
 #. option in preferences dialog
-#: zim/gui/pageview/__init__.py:194
+#: zim/gui/pageview/__init__.py:203
 #, fuzzy
 #| msgid "(Un-)Indenting a list item also change any sub-items"
 msgid "(Un-)indenting a list item also changes any sub-items"
 msgstr "목록 항목의 들여쓰기 변경을 하위 항목에도 적용"
 
 #. option in preferences dialog
-#: zim/gui/pageview/__init__.py:197
+#: zim/gui/pageview/__init__.py:206
 #, fuzzy
 #| msgid "Checking a checkbox also change any sub-items"
 msgid "Checking a checkbox also changes any sub-items"
 msgstr "체크 박스 체크 여부를 하위 항목에도 적용"
 
 #. option in preferences dialog
-#: zim/gui/pageview/__init__.py:200
+#: zim/gui/pageview/__init__.py:209
 msgid "Reformat wiki markup on the fly"
 msgstr "편집 중에 위키 마크업 바로 적용"
 
 #. option in preferences dialog
-#: zim/gui/pageview/__init__.py:203
+#: zim/gui/pageview/__init__.py:212
 msgid "Default format for copying text to the clipboard"
 msgstr "클립보드로 텍스트 복사 시 적용될 기본 형식"
 
 #. option in preferences dialog
-#: zim/gui/pageview/__init__.py:206
+#: zim/gui/pageview/__init__.py:215
 msgid "Folder with templates for attachment files"
 msgstr "첨부 파일 서식 탐색 폴더"
 
 #. tooltip for button in anchor popover
-#: zim/gui/pageview/__init__.py:4727
+#: zim/gui/pageview/__init__.py:4736
 msgid "Copy link to clipboard"
 msgstr ""
 
 #. tooltip label for image with href
-#: zim/gui/pageview/__init__.py:4970
+#: zim/gui/pageview/__init__.py:4978
 #, fuzzy
 #| msgid "_Link"
 msgid "Link"
@@ -860,19 +881,19 @@ msgstr "링크(_L)"
 
 #. tooltip label for image with anchor id | 
 #. input label for object ID
-#: zim/gui/pageview/__init__.py:4972 zim/gui/pageview/__init__.py:7885
+#: zim/gui/pageview/__init__.py:4980 zim/gui/pageview/__init__.py:7896
 #: zim/plugins/sourceview.py:379
 msgid "Id"
 msgstr ""
 
 #. Heading of error dialog
-#: zim/gui/pageview/__init__.py:5523
+#: zim/gui/pageview/__init__.py:5531
 #, python-format
 msgid "Could not save page: %s"
 msgstr "페이지를 저장할 수 없습니다: %s"
 
 #. text in error dialog when saving page failed
-#: zim/gui/pageview/__init__.py:5527
+#: zim/gui/pageview/__init__.py:5535
 msgid ""
 "To continue you can save a copy of this page or discard\n"
 "any changes. If you save a copy changes will be also\n"
@@ -882,177 +903,177 @@ msgstr ""
 "장하면, 나중에 사본에서 변경 사항을 복원할 수 있습니다."
 
 #. Button label
-#: zim/gui/pageview/__init__.py:5546 zim/gui/pageview/__init__.py:7821
+#: zim/gui/pageview/__init__.py:5554 zim/gui/pageview/__init__.py:7832
 #: zim/gui/searchdialog.py:45 zim/gui/widgets.py:91
 msgid "_Cancel"
 msgstr ""
 
 #. Button in error dialog
-#: zim/gui/pageview/__init__.py:5551
+#: zim/gui/pageview/__init__.py:5559
 msgid "_Discard Changes"
 msgstr "바뀐 사항 버리기(_D)"
 
 #. Button in error dialog
-#: zim/gui/pageview/__init__.py:5556
+#: zim/gui/pageview/__init__.py:5564
 msgid "_Save Copy"
 msgstr "사본 저장(_S)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:5771
+#: zim/gui/pageview/__init__.py:5779
 msgid "Heading _1"
 msgstr "제목 _1"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:5772
+#: zim/gui/pageview/__init__.py:5780
 msgid "Heading _2"
 msgstr "제목 _2"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:5773
+#: zim/gui/pageview/__init__.py:5781
 msgid "Heading _3"
 msgstr "제목 _3"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:5774
+#: zim/gui/pageview/__init__.py:5782
 msgid "Heading _4"
 msgstr "제목 _4"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:5775
+#: zim/gui/pageview/__init__.py:5783
 msgid "Heading _5"
 msgstr "제목 _5"
 
 #. Menu item | 
 #. menu item for formatting
-#: zim/gui/pageview/__init__.py:5776 zim/gui/pageview/__init__.py:5791
+#: zim/gui/pageview/__init__.py:5784 zim/gui/pageview/__init__.py:5799
 msgid "_Strong"
 msgstr "굵게(_S)"
 
 #. Menu item | 
 #. menu item for formatting
-#: zim/gui/pageview/__init__.py:5777 zim/gui/pageview/__init__.py:5792
+#: zim/gui/pageview/__init__.py:5785 zim/gui/pageview/__init__.py:5800
 msgid "_Emphasis"
 msgstr "강조(_E)"
 
 #. Menu item | 
 #. menu item for formatting
-#: zim/gui/pageview/__init__.py:5778 zim/gui/pageview/__init__.py:5793
+#: zim/gui/pageview/__init__.py:5786 zim/gui/pageview/__init__.py:5801
 msgid "_Mark"
 msgstr "표시(_M)"
 
 #. Menu item | 
 #. menu item for formatting
-#: zim/gui/pageview/__init__.py:5779 zim/gui/pageview/__init__.py:5794
+#: zim/gui/pageview/__init__.py:5787 zim/gui/pageview/__init__.py:5802
 msgid "_Strike"
 msgstr "취소선(_S)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:5780
+#: zim/gui/pageview/__init__.py:5788
 msgid "_Subscript"
 msgstr "아래첨자(_S)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:5781
+#: zim/gui/pageview/__init__.py:5789
 msgid "_Superscript"
 msgstr "위첨자(_S)"
 
 #. Menu item | 
 #. menu item for formatting
-#: zim/gui/pageview/__init__.py:5782 zim/gui/pageview/__init__.py:5795
+#: zim/gui/pageview/__init__.py:5790 zim/gui/pageview/__init__.py:5803
 msgid "_Verbatim"
 msgstr "서식 무시(_V)"
 
 #. menu item for formatting
-#: zim/gui/pageview/__init__.py:5796
+#: zim/gui/pageview/__init__.py:5804
 #, fuzzy
 #| msgid "_Superscript"
 msgid "Su_perscript"
 msgstr "위첨자(_S)"
 
 #. menu item for formatting
-#: zim/gui/pageview/__init__.py:5797
+#: zim/gui/pageview/__init__.py:5805
 #, fuzzy
 #| msgid "_Subscript"
 msgid "Su_bscript"
 msgstr "아래첨자(_S)"
 
 #. error when unknown interwiki link is clicked
-#: zim/gui/pageview/__init__.py:6509
+#: zim/gui/pageview/__init__.py:6520
 #, python-format
 msgid "No such wiki defined: %s"
 msgstr "정의된 위키 페이지가 없습니다: %s"
 
 #. error when anchor location in page not found
-#: zim/gui/pageview/__init__.py:6563
+#: zim/gui/pageview/__init__.py:6574
 #, python-format
 msgid "Id \"%s\" not found on the current page"
 msgstr ""
 
 #. menu item for context menu of editor
-#: zim/gui/pageview/__init__.py:6619
+#: zim/gui/pageview/__init__.py:6630
 msgid "Copy _As..."
 msgstr "다음으로 복사(_A)..."
 
 #. menu item for context menu of editor
-#: zim/gui/pageview/__init__.py:6625
+#: zim/gui/pageview/__init__.py:6636
 #, fuzzy
 #| msgid "_Verbatim"
 msgid "Paste As _Verbatim"
 msgstr "서식 무시(_V)"
 
 #. Context menu item for pageview to move selected text to new/other page
-#: zim/gui/pageview/__init__.py:6633
+#: zim/gui/pageview/__init__.py:6644
 msgid "Move Selected Text..."
 msgstr "선택한 텍스트 이동..."
 
 #. menu item to copy link to achor location in page
-#: zim/gui/pageview/__init__.py:6657
+#: zim/gui/pageview/__init__.py:6668
 #, fuzzy
 #| msgid "Copy _Location"
 msgid "Copy _link to this location"
 msgstr "위치 복사(_L)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6694 zim/gui/pageview/__init__.py:6945
+#: zim/gui/pageview/__init__.py:6705 zim/gui/pageview/__init__.py:6956
 msgid "_Remove Link"
 msgstr "링크 제거(_R)"
 
 #. menu item in context menu for image
-#: zim/gui/pageview/__init__.py:6701
+#: zim/gui/pageview/__init__.py:6712
 msgid "_Edit Properties"
 msgstr "속성 편집(_E)"
 
 #. menu item in context menu
-#: zim/gui/pageview/__init__.py:6703
+#: zim/gui/pageview/__init__.py:6714
 msgid "_Edit Link"
 msgstr "링크 편집(_E)"
 
 #. context menu item
-#: zim/gui/pageview/__init__.py:6723 zim/gui/pageview/__init__.py:6728
-#: zim/gui/pageview/__init__.py:6735
+#: zim/gui/pageview/__init__.py:6734 zim/gui/pageview/__init__.py:6739
+#: zim/gui/pageview/__init__.py:6746
 msgid "Copy _Link"
 msgstr "링크 복사(_L)"
 
 #. context menu item
-#: zim/gui/pageview/__init__.py:6732
+#: zim/gui/pageview/__init__.py:6743
 msgid "Copy Email Address"
 msgstr "이메일 주소 복사"
 
 #. menu item to open containing folder of files
-#: zim/gui/pageview/__init__.py:6743
+#: zim/gui/pageview/__init__.py:6754
 msgid "Open Folder"
 msgstr "폴더 열기"
 
 #. menu item for sub menu with applications | 
 #. menu item
-#: zim/gui/pageview/__init__.py:6752 zim/gui/pageview/__init__.py:6763
+#: zim/gui/pageview/__init__.py:6763 zim/gui/pageview/__init__.py:6774
 #: zim/plugins/attachmentbrowser/filebrowser.py:400
 msgid "Open With..."
 msgstr "다음으로 열기..."
 
 #. menu item to open a link | 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6773 zim/gui/uiactions.py:147
+#: zim/gui/pageview/__init__.py:6784 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:129
 msgid "Open in New _Window"
 msgstr "새 창에서 열기(_W)"
@@ -1060,138 +1081,138 @@ msgstr "새 창에서 열기(_W)"
 #. menu item to open a link or file | 
 #. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview/__init__.py:6783 zim/gui/widgets.py:3493
+#: zim/gui/pageview/__init__.py:6794 zim/gui/widgets.py:3493
 #: zim/plugins/attachmentbrowser/filebrowser.py:407
 msgid "_Open"
 msgstr "열기(_O)"
 
 #. popup menu menuitem
-#: zim/gui/pageview/__init__.py:6798
+#: zim/gui/pageview/__init__.py:6809
 #, fuzzy
 #| msgid "Check Checkbox '>'"
 msgid "Check Checkbox '<'"
 msgstr "체크박스 체크 '>'"
 
 #. popup menu menuitem
-#: zim/gui/pageview/__init__.py:6799
+#: zim/gui/pageview/__init__.py:6810
 msgid "Check Checkbox '>'"
 msgstr "체크박스 체크 '>'"
 
 #. popup menu menuitem
-#: zim/gui/pageview/__init__.py:6800
+#: zim/gui/pageview/__init__.py:6811
 msgid "Check Checkbox 'X'"
 msgstr "체크박스 체크 'X'"
 
 #. popup menu menuitem
-#: zim/gui/pageview/__init__.py:6801
+#: zim/gui/pageview/__init__.py:6812
 msgid "Check Checkbox 'V'"
 msgstr "체크박스 체크 'V'"
 
 #. popup menu menuitem | 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6802 zim/gui/pageview/__init__.py:6865
+#: zim/gui/pageview/__init__.py:6813 zim/gui/pageview/__init__.py:6876
 msgid "Un-check Checkbox"
 msgstr "체크박스 체크해제"
 
 #. Menu item | 
 #. Button label | 
 #. button label
-#: zim/gui/pageview/__init__.py:6811 zim/gui/widgets.py:3495
+#: zim/gui/pageview/__init__.py:6822 zim/gui/widgets.py:3495
 #: zim/plugins/versioncontrol/__init__.py:753
 msgid "_Save"
 msgstr "저장하기(_S)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6821
+#: zim/gui/pageview/__init__.py:6832
 msgid "_Reload"
 msgstr "새로고침(_R)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6831
+#: zim/gui/pageview/__init__.py:6842
 msgid "_Undo"
 msgstr "되돌리기(_U)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6838
+#: zim/gui/pageview/__init__.py:6849
 msgid "_Redo"
 msgstr "다시 실행(_R)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6845
+#: zim/gui/pageview/__init__.py:6856
 msgid "Cu_t"
 msgstr "잘라내기(_T)"
 
 #. Menu item | 
 #. Button label | 
 #. menu label
-#: zim/gui/pageview/__init__.py:6850 zim/gui/templateeditordialog.py:46
+#: zim/gui/pageview/__init__.py:6861 zim/gui/templateeditordialog.py:46
 #: zim/plugins/tasklist/gui.py:773
 msgid "_Copy"
 msgstr "복사(_C)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6855
+#: zim/gui/pageview/__init__.py:6866
 msgid "_Paste"
 msgstr "붙여넣기(_P)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6860
+#: zim/gui/pageview/__init__.py:6871
 msgid "_Delete"
 msgstr "지우기(_D)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6871
+#: zim/gui/pageview/__init__.py:6882
 msgid "Toggle Checkbox 'V'"
 msgstr "체크박스 'V' 전환"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6880
+#: zim/gui/pageview/__init__.py:6891
 msgid "Toggle Checkbox 'X'"
 msgstr "체크박스 'X' 전환"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6889
+#: zim/gui/pageview/__init__.py:6900
 msgid "Toggle Checkbox '>'"
 msgstr "체크박스 전환 '>'"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6898
+#: zim/gui/pageview/__init__.py:6909
 #, fuzzy
 #| msgid "Toggle Checkbox 'V'"
 msgid "Toggle Checkbox '<'"
 msgstr "체크박스 'V' 전환"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6907
+#: zim/gui/pageview/__init__.py:6918
 msgid "_Edit Link or Object..."
 msgstr "링크 및 객체 편집(_E)..."
 
 #. menu item to copy current line to clipboard
-#: zim/gui/pageview/__init__.py:6963
+#: zim/gui/pageview/__init__.py:6974
 #, fuzzy
 #| msgid "Copy _Link"
 msgid "Copy Line"
 msgstr "링크 복사(_L)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:6979
+#: zim/gui/pageview/__init__.py:6990
 #, fuzzy
 #| msgid "_Date and Time..."
 msgid "Date and Time..."
 msgstr "날짜와 시간(_D)..."
 
 #. Menu item for Insert menu
-#: zim/gui/pageview/__init__.py:6994
+#: zim/gui/pageview/__init__.py:7005
 msgid "Horizontal _Line"
 msgstr "수평선(&L)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7003
+#: zim/gui/pageview/__init__.py:7014
 msgid "_Image..."
 msgstr "그림(_I)..."
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7010
+#: zim/gui/pageview/__init__.py:7021
 #, fuzzy
 #| msgid "Attachments"
 msgid "_Attachment..."
@@ -1199,51 +1220,51 @@ msgstr "첨부 파일"
 
 #. Menu item | 
 #. Menu item,
-#: zim/gui/pageview/__init__.py:7027 zim/gui/pageview/__init__.py:7054
+#: zim/gui/pageview/__init__.py:7038 zim/gui/pageview/__init__.py:7065
 msgid "Bulle_t List"
 msgstr "글머리 기호 목록(_T)"
 
 #. Menu item | 
 #. Menu item,
-#: zim/gui/pageview/__init__.py:7032 zim/gui/pageview/__init__.py:7059
+#: zim/gui/pageview/__init__.py:7043 zim/gui/pageview/__init__.py:7070
 msgid "_Numbered List"
 msgstr "번호 목록(_N)"
 
 #. Menu item | 
 #. Menu item,
-#: zim/gui/pageview/__init__.py:7037 zim/gui/pageview/__init__.py:7064
+#: zim/gui/pageview/__init__.py:7048 zim/gui/pageview/__init__.py:7075
 msgid "Checkbo_x List"
 msgstr "체크박스 목록(_X)"
 
 #. Menu item,
-#: zim/gui/pageview/__init__.py:7069
+#: zim/gui/pageview/__init__.py:7080
 #, fuzzy
 #| msgid "_Remove Link"
 msgid "_Remove List"
 msgstr "링크 제거(_R)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7097
+#: zim/gui/pageview/__init__.py:7108
 msgid "Text From _File..."
 msgstr "텍스트 파일 내용(_F)..."
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7141
+#: zim/gui/pageview/__init__.py:7152
 msgid "_Link..."
 msgstr "링크(_L)..."
 
 #. message when no file templates are found in ~/Templates
-#: zim/gui/pageview/__init__.py:7170
+#: zim/gui/pageview/__init__.py:7181
 msgid "No templates installed"
 msgstr "설치된 서식이 없습니다"
 
 #. Menu item in "Insert > New File Attachment" submenu
-#: zim/gui/pageview/__init__.py:7219
+#: zim/gui/pageview/__init__.py:7230
 msgid "File _Templates..."
 msgstr "파일 서식(_T)..."
 
 #. Text in a question dialog for creating a folder, %s is the folder path
-#: zim/gui/pageview/__init__.py:7233
+#: zim/gui/pageview/__init__.py:7244
 #, python-format
 msgid ""
 "The folder\n"
@@ -1253,109 +1274,109 @@ msgid ""
 msgstr "%s 폴더가 존재하지 않습니다. 생성하시겠습니까?"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7242
+#: zim/gui/pageview/__init__.py:7253
 msgid "_Clear Formatting"
 msgstr "서식 지우기(_C)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7262
+#: zim/gui/pageview/__init__.py:7273
 #, fuzzy
 #| msgid "_Remove Link"
 msgid "_Remove Heading"
 msgstr "링크 제거(_R)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7368
+#: zim/gui/pageview/__init__.py:7379
 msgid "_Find..."
 msgstr "찾기(_F)..."
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7389
+#: zim/gui/pageview/__init__.py:7400
 msgid "Find Ne_xt"
 msgstr "다음 찾기(_X)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7395
+#: zim/gui/pageview/__init__.py:7406
 msgid "Find Pre_vious"
 msgstr "이전 찾기(_V)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7401
+#: zim/gui/pageview/__init__.py:7412
 msgid "_Replace..."
 msgstr "바꾸기(_R)..."
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7408
+#: zim/gui/pageview/__init__.py:7419
 msgid "Word Count..."
 msgstr "단어 세기..."
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7413
+#: zim/gui/pageview/__init__.py:7424
 msgid "_Zoom In"
 msgstr "확대(_Z)"
 
 #. Menu item
-#: zim/gui/pageview/__init__.py:7418
+#: zim/gui/pageview/__init__.py:7429
 msgid "Zoom _Out"
 msgstr "축소(_O)"
 
 #. Menu item to reset zoom
-#: zim/gui/pageview/__init__.py:7446
+#: zim/gui/pageview/__init__.py:7457
 msgid "_Normal Size"
 msgstr "보통 크기(_N)"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:7533
+#: zim/gui/pageview/__init__.py:7544
 msgid "Insert Date and Time"
 msgstr "날짜와 시간 입력"
 
 #. label in "insert date" dialog | 
 #. Column header Task List dialog | 
 #. Column header versions dialog
-#: zim/gui/pageview/__init__.py:7549 zim/plugins/tasklist/gui.py:486
+#: zim/gui/pageview/__init__.py:7560 zim/plugins/tasklist/gui.py:486
 #: zim/plugins/versioncontrol/__init__.py:1066
 msgid "Date"
 msgstr "날짜"
 
 #. check box in InsertDate dialog
-#: zim/gui/pageview/__init__.py:7579
+#: zim/gui/pageview/__init__.py:7590
 msgid "_Link to date"
 msgstr "해당 날짜로 링크(_L)"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:7672
+#: zim/gui/pageview/__init__.py:7683
 msgid "Insert Image"
 msgstr "그림 넣기"
 
 #. checkbox in the "Insert Image" dialog
-#: zim/gui/pageview/__init__.py:7685
+#: zim/gui/pageview/__init__.py:7696
 msgid "Attach image first"
 msgstr "그림 먼저 첨부"
 
 #. Error message when trying to insert a not supported file as image
-#: zim/gui/pageview/__init__.py:7701
+#: zim/gui/pageview/__init__.py:7712
 #, python-format
 msgid "File type not supported: %s"
 msgstr "지원하지 않는 파일 형식: %s"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:7726
+#: zim/gui/pageview/__init__.py:7737
 msgid "Attach File"
 msgstr "파일 첨부"
 
 #. Error dialog - %s is the full page name
-#: zim/gui/pageview/__init__.py:7733
+#: zim/gui/pageview/__init__.py:7744
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
 msgstr "페이지 \"%s\"에는 첨부 폴더가 없습니다."
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:7793
+#: zim/gui/pageview/__init__.py:7804
 msgid "File Exists"
 msgstr "파일 존재"
 
 #. Dialog text in 'new filename' dialog
-#: zim/gui/pageview/__init__.py:7794
+#: zim/gui/pageview/__init__.py:7805
 #, python-format
 msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
@@ -1365,216 +1386,216 @@ msgstr ""
 "다른 이름으로 바꾸거나 기존 파일을 덮어쓸 수 있습니다."
 
 #. Input label
-#: zim/gui/pageview/__init__.py:7803
+#: zim/gui/pageview/__init__.py:7814
 msgid "Filename"
 msgstr "파일 이름"
 
 #. Button label
-#: zim/gui/pageview/__init__.py:7812 zim/gui/widgets.py:1077
+#: zim/gui/pageview/__init__.py:7823 zim/gui/widgets.py:1077
 #: zim/gui/widgets.py:1101
 msgid "_Browse"
 msgstr "찾아보기(_B)"
 
 #. Button label
-#: zim/gui/pageview/__init__.py:7817
+#: zim/gui/pageview/__init__.py:7828
 msgid "Overwrite"
 msgstr "덮어쓰기"
 
 #. Button label
-#: zim/gui/pageview/__init__.py:7822 zim/gui/widgets.py:92
+#: zim/gui/pageview/__init__.py:7833 zim/gui/widgets.py:92
 msgid "_OK"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:7860
+#: zim/gui/pageview/__init__.py:7871
 msgid "Edit Image"
 msgstr "그림 편집"
 
 #. Input in 'edit image' dialog | 
 #. Input label for the section to move a page to
-#: zim/gui/pageview/__init__.py:7881 zim/gui/uiactions.py:608
+#: zim/gui/pageview/__init__.py:7892 zim/gui/uiactions.py:608
 msgid "Location"
 msgstr "위치"
 
 #. Input in 'edit image' dialog | 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview/__init__.py:7882 zim/gui/pageview/__init__.py:8053
+#: zim/gui/pageview/__init__.py:7893 zim/gui/pageview/__init__.py:8064
 msgid "Link to"
 msgstr "연결 대상"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview/__init__.py:7883
+#: zim/gui/pageview/__init__.py:7894
 msgid "Width"
 msgstr "너비"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview/__init__.py:7884
+#: zim/gui/pageview/__init__.py:7895
 msgid "Height"
 msgstr "높이"
 
 #. Button in 'edit image' dialog
-#: zim/gui/pageview/__init__.py:7895
+#: zim/gui/pageview/__init__.py:7906
 msgid "_Reset Size"
 msgstr "원래 크기(_R)"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:8017
+#: zim/gui/pageview/__init__.py:8028
 msgid "Insert Text From File"
 msgstr "텍스트를 파일로부터 삽입"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:8044
+#: zim/gui/pageview/__init__.py:8055
 msgid "Edit Link"
 msgstr "링크 편집"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:8046
+#: zim/gui/pageview/__init__.py:8057
 msgid "Insert Link"
 msgstr "링크 삽입"
 
 #. Dialog button
-#: zim/gui/pageview/__init__.py:8048
+#: zim/gui/pageview/__init__.py:8059
 msgid "_Link"
 msgstr "링크(_L)"
 
 #. Input in 'insert link' dialog | 
 #. toolbar style
-#: zim/gui/pageview/__init__.py:8054 zim/plugins/toolbar.py:42
+#: zim/gui/pageview/__init__.py:8065 zim/plugins/toolbar.py:42
 msgid "Text"
 msgstr "텍스트"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview/__init__.py:8055
+#: zim/gui/pageview/__init__.py:8066
 msgid "Prefer short link names for pages"
 msgstr ""
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview/__init__.py:8171
+#: zim/gui/pageview/__init__.py:8182
 msgid "_Next"
 msgstr "다음(_N)"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview/__init__.py:8177
+#: zim/gui/pageview/__init__.py:8188
 msgid "_Previous"
 msgstr "이전(_P)"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview/__init__.py:8183
+#: zim/gui/pageview/__init__.py:8194
 msgid "Match _case"
 msgstr "대소문자 구분(_C)"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview/__init__.py:8188
+#: zim/gui/pageview/__init__.py:8199
 msgid "Whole _word"
 msgstr "단어 전체(_W)"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview/__init__.py:8193
+#: zim/gui/pageview/__init__.py:8204
 msgid "_Regular expression"
 msgstr "정규식(_R)"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview/__init__.py:8198
+#: zim/gui/pageview/__init__.py:8209
 msgid "_Highlight"
 msgstr "강조(_H)"
 
 #. label for input in find bar on bottom of page
-#: zim/gui/pageview/__init__.py:8284
+#: zim/gui/pageview/__init__.py:8295
 msgid "Find"
 msgstr "찾기"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:8330
+#: zim/gui/pageview/__init__.py:8341
 msgid "Find and Replace"
 msgstr "찾아 바꾸기"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview/__init__.py:8340
+#: zim/gui/pageview/__init__.py:8351
 msgid "Find what"
 msgstr "찾기"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview/__init__.py:8350
+#: zim/gui/pageview/__init__.py:8361
 msgid "Replace with"
 msgstr "바꾸기"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview/__init__.py:8364
+#: zim/gui/pageview/__init__.py:8375
 msgid "_Replace"
 msgstr "바꾸기(_R)"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview/__init__.py:8369
+#: zim/gui/pageview/__init__.py:8380
 msgid "Replace _All"
 msgstr "모두 바꾸기(_A)"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:8406
+#: zim/gui/pageview/__init__.py:8417
 msgid "Word Count"
 msgstr "단어 개수"
 
 #. label in word count dialog
-#: zim/gui/pageview/__init__.py:8449
+#: zim/gui/pageview/__init__.py:8460
 msgid "Paragraph"
 msgstr "문단"
 
 #. label in word count dialog
-#: zim/gui/pageview/__init__.py:8450
+#: zim/gui/pageview/__init__.py:8461
 msgid "Selection"
 msgstr "선택한 부분"
 
 #. label in word count dialog
-#: zim/gui/pageview/__init__.py:8451
+#: zim/gui/pageview/__init__.py:8462
 msgid "Words"
 msgstr "단어"
 
 #. label in word count dialog
-#: zim/gui/pageview/__init__.py:8452
+#: zim/gui/pageview/__init__.py:8463
 msgid "Lines"
 msgstr "줄"
 
 #. label in word count dialog
-#: zim/gui/pageview/__init__.py:8453
+#: zim/gui/pageview/__init__.py:8464
 msgid "Characters"
 msgstr "문자"
 
 #. label in word count dialog
-#: zim/gui/pageview/__init__.py:8454
+#: zim/gui/pageview/__init__.py:8465
 msgid "Characters excluding spaces"
 msgstr "공백 제외 문자"
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:8502
+#: zim/gui/pageview/__init__.py:8513
 msgid "Move Text to Other Page"
 msgstr "다른 페이지로 텍스트 이동"
 
 #. Button label
-#: zim/gui/pageview/__init__.py:8503
+#: zim/gui/pageview/__init__.py:8514
 msgid "_Move"
 msgstr "이동(_M)"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview/__init__.py:8514
+#: zim/gui/pageview/__init__.py:8525
 msgid "Move text to"
 msgstr "이동 위치"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview/__init__.py:8515
+#: zim/gui/pageview/__init__.py:8526
 msgid "Leave link to new page"
 msgstr "새 페이지에 링크 남기기"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview/__init__.py:8516
+#: zim/gui/pageview/__init__.py:8527
 msgid "Open new page"
 msgstr "새 페이지 열기"
 
 #. error message in "move selected text" action
-#: zim/gui/pageview/__init__.py:8533
+#: zim/gui/pageview/__init__.py:8544
 msgid "No text selected"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/pageview/__init__.py:8566
+#: zim/gui/pageview/__init__.py:8577
 msgid "New File"
 msgstr "새 파일"
 
@@ -1839,9 +1860,8 @@ msgstr ""
 msgid "_Limit search to the current page and sub-pages"
 msgstr "현재 페이지 및 하위 페이지로 검색 제한"
 
-#. Column header search dialog | 
-#. menu item
-#: zim/gui/searchdialog.py:150 zim/plugins/scoreeditor.py:68
+#. Column header search dialog
+#: zim/gui/searchdialog.py:150
 msgid "Score"
 msgstr "점수"
 
@@ -3379,6 +3399,11 @@ msgstr "공통 삽입 머리말"
 #: zim/plugins/scoreeditor.py:56
 msgid "Common include footer"
 msgstr "공통 삽입 꼬리말"
+
+#. menu item
+#: zim/plugins/scoreeditor.py:68
+msgid "Musical Score"
+msgstr ""
 
 #. plugin name | 
 #. dialog title
