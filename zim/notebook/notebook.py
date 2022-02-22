@@ -686,7 +686,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 				if oldtarget == oldroot:
 					return self._update_link_tag(elt, page, newroot, href)
-				elif oldtarget.ischild(oldroot):
+				elif oldtarget.ischild(oldroot) and href.names:  # make sure href has parts
 					oldanchor = self.pages.resolve_link(oldpath, HRef(HREF_REL_FLOATING, href.parts()[0]))
 					if oldanchor.ischild(oldroot):
 						pass # oldtarget cannot be trusted
@@ -753,7 +753,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				newtarget = newroot.child(target.relname(oldroot))
 				return self._update_link_tag(elt, page, newtarget, href)
 
-			elif href.rel == HREF_REL_FLOATING \
+			elif href.rel == HREF_REL_FLOATING and href.names \
 			and natural_sort_key(href.parts()[0]) == natural_sort_key(oldroot.basename) \
 			and page.ischild(oldroot.parent):
 				try:

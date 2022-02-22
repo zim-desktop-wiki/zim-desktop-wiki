@@ -380,7 +380,7 @@ class HRef():
 		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
 		return '<%s: %s %s %s>' % (self.__class__.__name__, rel, self.names, self.anchor)
 
-	def parts(self) -> List[str]:
+	def parts(self) -> Union[List, List[str]]:
 		return self.names.split(':') if self.names else []
 
 	def short_name(self) -> str:
