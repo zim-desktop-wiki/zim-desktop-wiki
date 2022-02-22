@@ -16,7 +16,7 @@ from zim.formats import get_format, \
 	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANSMIGRATED_BOX, BULLET, TAG, ANCHOR, \
 	HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE
 from zim.tokenparser import TEXT, END, \
-	skip_to_end_token, tokens_to_text, tokens_by_line, collect_untill_end_token
+	skip_to_end_token, tokens_to_text, tokens_by_line, collect_until_end_token
 
 from zim.plugins.journal import daterange_from_path
 	# TODO instead of just importing this function we should define
@@ -583,7 +583,7 @@ class TaskParser(object):
 			return False
 
 	def _parse_heading(self, token_iter, daterange):
-		head = collect_untill_end_token(token_iter, HEADING)
+		head = collect_until_end_token(token_iter, HEADING)
 
 		if daterange:
 			day = self._parse_heading_day(head, daterange)
@@ -628,7 +628,7 @@ class TaskParser(object):
 
 	def _parse_paragraph(self, token_iter, defaults):
 		# Look for lines that define tasks
-		paragraph = collect_untill_end_token(token_iter, PARAGRAPH)
+		paragraph = collect_until_end_token(token_iter, PARAGRAPH)
 		tasks = []
 
 		for line in tokens_by_line(paragraph):

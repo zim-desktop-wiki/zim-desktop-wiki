@@ -628,12 +628,12 @@ class ParseTree(object):
 
 	def iter_elements(self, tag):
 		'''Helper function to find all occurences of C{tag}, yields L{TokenListElement}s'''
-		from zim.tokenparser import collect_untill_end_token
+		from zim.tokenparser import collect_until_end_token
 
 		token_iter = self.iter_tokens()
 		for t in token_iter:
 			if t[0] == tag:
-				content = collect_untill_end_token(token_iter, tag)
+				content = collect_until_end_token(token_iter, tag)
 				yield TokenListElement(t[0], t[1], content)
 
 	def substitute_elements(self, tags, func):
@@ -646,13 +646,13 @@ class ParseTree(object):
 		C{tags}. The return value of C{func} can be C{None} to remove the element,
 		the same or a modified L{TokenListElement} or a list of tokens.
 		'''
-		from zim.tokenparser import collect_untill_end_token
+		from zim.tokenparser import collect_until_end_token
 
 		tokens = []
 		token_iter = self.iter_tokens()
 		for t in token_iter:
 			if t[0] in tags:
-				content = collect_untill_end_token(token_iter, t[0])
+				content = collect_until_end_token(token_iter, t[0])
 				replacement = func(TokenListElement(t[0], t[1], content))
 				if replacement is None:
 					pass # remove these tokens

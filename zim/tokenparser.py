@@ -44,7 +44,7 @@ class EndOfTokenListError(AssertionError):
 	pass
 
 
-def collect_untill_end_token(token_iter, tag):
+def collect_until_end_token(token_iter, tag):
 	nesting = 0
 	tokens = []
 	end_token = (END, tag)
@@ -61,6 +61,23 @@ def collect_untill_end_token(token_iter, tag):
 		raise EndOfTokenListError('Did not find "%s" closing tag' % tag)
 
 	return tokens
+
+
+def filter_token(token_iter, token):
+	"""
+	Iterator removing all tokens enclosed by an opening/closing tag 'token'.
+	Nested occurrence of 'token' is taken into account.
+	"""
+	nesting = 0
+	for t in token_iter:
+		if t[0] == token:
+			nesting += 1
+		elif t == (END, token):
+			nesting -= 1
+		elif nesting == 0:
+			yield t
+	if nesting != 0:
+		raise EndOfTokenListError('Mismatch in opening/closing tags for "%s"' % token)
 
 
 def tokens_to_text(tokens):
