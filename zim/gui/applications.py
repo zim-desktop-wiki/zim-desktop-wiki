@@ -28,7 +28,7 @@ from zim.errors import Error
 from zim.newfs import File, LocalFile, TmpFile, FileNotFoundError, \
 	cleanup_filename, get_mimetype_from_path
 from zim.config import XDG_CONFIG_HOME, XDG_CONFIG_DIRS, XDG_DATA_HOME, XDG_DATA_DIRS, \
-	data_dirs, SectionedConfigDict, INIConfigFile
+	data_dirs, SectionedConfigDict, INIConfigFile, Boolean, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme, is_win32_share_re, \
 	normalize_win32_share, is_win32_share_re, is_url_re, is_uri_re, is_www_link_re
 from zim.applications import Application, WebBrowser, StartFile
@@ -39,6 +39,14 @@ from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, QuestionDialog, 
 
 logger = logging.getLogger('zim.gui.applications')
 
+ConfigManager.preferences['Application'].setdefault('always_create_missing_dirs', False)
+
+ui_preferences = (
+	# key, type, category, label, default
+	('always_create_missing_dirs', 'bool', 'Interface',
+		_('Create missing directories automatically\n(If disabled you will be prompted)'), True),
+			# T: option in preferences dialog
+)
 
 def _application_file(path, dirs):
 	# Some logic to check multiple options, e.g. a path of kde-foo.desktop
@@ -578,12 +586,18 @@ def open_folder_prompt_create(widget, folder):
 	try:
 		open_folder(widget, folder)
 	except FileNotFoundError:
-		if QuestionDialog(widget, (
-			_('Create folder?'),
-				# T: Heading in a question dialog for creating a folder
-			_('The folder "%s" does not yet exist.\nDo you want to create it now?') % folder.basename
-				# T: Text in a question dialog for creating a folder, %s will be the folder base name
-		)).run():
+		create_dir = ConfigManager.preferences['Application']['always_create_missing_dirs']
+
+		# prompt user if we're not asked to always create directories
+		if not create_dir:
+			create_dir = QuestionDialog(widget, (
+				_('Create folder?'),
+					# T: Heading in a question dialog for creating a folder
+				_('The folder "%s" does not yet exist.\nDo you want to create it now?') % folder.basename
+					# T: Text in a question dialog for creating a folder, %s will be the folder base name
+				)).run()
+
+		if create_dir:
 			folder.touch()
 			open_folder(widget, folder)
 
