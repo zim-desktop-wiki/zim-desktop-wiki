@@ -326,9 +326,7 @@ def _link_tree(links, notebook, path):
 				href.anchor = anchor
 				link = href.to_wiki_link()
 				if notebook.config['Notebook']['short_links']:
-					name = href.parts()[-1]
-					if anchor:
-						name += '#' + anchor
+					name = href.short_name()
 			elif type == 'file':
 				try:
 					file = LocalFile(link) # Assume links are always URIs
@@ -508,9 +506,7 @@ class PageLinkData(ClipboardData):
 				text = self.text
 			elif self.notebook.config['Notebook']['short_links']:
 				href = HRef.new_from_wiki_link(link)
-				text = href.parts()[-1]
-				if self.anchor:
-					text += '#' + self.anchor
+				text = href.short_name()
 			else:
 				text = link
 

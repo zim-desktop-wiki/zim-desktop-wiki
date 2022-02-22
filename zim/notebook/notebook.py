@@ -793,12 +793,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		from zim.formats import TEXT
 		if elt.content == [(TEXT, elt.attrib['href'])]:
 			elt.content[:] = [(TEXT, link)]
-		elif elt.content == [(TEXT, oldhref.parts()[-1])]:
+		elif elt.content == [(TEXT, oldhref.short_name())]:
 			# Related to 'short_links' but not checking the property here.
-			short = newhref.parts()[-1]
-			if newhref.anchor:
-				short += '#' + newhref.anchor
-			elt.content[:] = [(TEXT, short)]  # 'Journal:2020:01:20' -> '20'
+			elt.content[:] = [(TEXT, newhref.short_name())]  # 'Journal:2020:01:20' -> '20'
 
 		elt.attrib['href'] = link
 

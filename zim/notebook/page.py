@@ -383,6 +383,11 @@ class HRef():
 	def parts(self) -> List[str]:
 		return self.names.split(':') if self.names else []
 
+	def short_name(self) -> str:
+		" Returns the last name part and/or anchor if any. "
+		name = self.parts()[-1] if self.names else ""
+		return name + "#" + self.anchor if self.anchor else name
+
 	def to_wiki_link(self) -> str:
 		'''Returns href as text for wiki link'''
 		if self.rel == HREF_REL_ABSOLUTE:
