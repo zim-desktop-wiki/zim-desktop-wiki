@@ -39,8 +39,6 @@ from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, QuestionDialog, 
 
 logger = logging.getLogger('zim.gui.applications')
 
-ConfigManager.preferences['Application'].setdefault('always_create_missing_dirs', False)
-
 ui_preferences = (
 	# key, type, category, label, default
 	('always_create_missing_dirs', 'bool', 'Interface',
@@ -586,7 +584,9 @@ def open_folder_prompt_create(widget, folder):
 	try:
 		open_folder(widget, folder)
 	except FileNotFoundError:
-		create_dir = ConfigManager.preferences['Application']['always_create_missing_dirs']
+		config = ConfigManager.preferences['Application']
+		config.setdefault('always_create_missing_dirs', False)
+		create_dir = config['always_create_missing_dirs']
 
 		# prompt user if we're not asked to always create directories
 		if not create_dir:

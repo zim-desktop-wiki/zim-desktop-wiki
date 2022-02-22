@@ -3541,7 +3541,6 @@ class TestPageViewActions(tests.TestCase):
 		pageview = setUpPageView(self.setUpNotebook())
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		pageview.preferences['file_templates_folder'] = folder.path
-		ConfigManager.preferences['Application'].setdefault('always_create_missing_dirs', False)
 
 		def create_folder(dialog):
 			dialog.answer_yes()
