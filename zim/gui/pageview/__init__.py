@@ -478,7 +478,7 @@ def image_file_get_dimensions(file_path):
 		with Image.open(file_path) as img_pil:
 			return (img_pil.width, img_pil.height)
 	except:
-		return None
+		raise AssertionError('Could not get size for: %s' % file_path)
 
 
 def image_file_load_pixels(file, width_override=-1, height_override=-1):
@@ -492,15 +492,20 @@ def image_file_load_pixels(file, width_override=-1, height_override=-1):
 		raise FileNotFoundError(file.path)
 
 	b_size_override = width_override > 0 or height_override > 0
+	if b_size_override and (width_override <= 0 or height_override <= 0):
+		w, h = image_file_get_dimensions(file.path) # can raise
+		if height_override <= 0:
+			height_override = int(h * width_override / w)
+		else:
+			width_override = int(w * height_override / h)
 
 	# Let GTK try reading the file
 	try:
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
+
 		if b_size_override:
-			pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
-			pixbuf.scale_simple(width_override, height_override, GdkPixbuf.InterpType.BILINEAR)
+			pixbuf = pixbuf.scale_simple(width_override, height_override, GdkPixbuf.InterpType.BILINEAR)
 				# do not use new_from_file_at_size() here due to bug in Gtk for GIF images, see issue #1563
-		else:
-			pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 
 		pixbuf = rotate_pixbuf(pixbuf)
 
@@ -513,11 +518,6 @@ def image_file_load_pixels(file, width_override=-1, height_override=-1):
 
 			# resize if a specific size was requested
 			if b_size_override:
-				if height_override <= 0:
-					height_override = int(img_pil.height * width_override / img_pil.width)
-				if width_override <= 0:
-					width_override = int(img_pil.width * height_override / img_pil.height)
-
 				logger.debug('PIL resizing %s %s', width_override, height_override)
 				img_pil = img_pil.resize((width_override, height_override))
 
@@ -7770,7 +7770,9 @@ class InsertImageDialog(FileDialog):
 		if file is None:
 			return False
 
-		if not image_file_get_dimensions(file.path):
+		try:
+			image_file_get_dimensions(file.path)
+		except AssertionError:
 			ErrorDialog(self, _('File type not supported: %s') % file.mimetype()).run()
 				# T: Error message when trying to insert a not supported file as image
 			return False
@@ -7998,9 +8000,7 @@ class EditImageDialog(Dialog):
 		try:
 			if file is None:
 				raise AssertionError
-			w, h = image_file_get_dimensions(file.path)
-			if w <= 0 or h <= 0:
-				raise AssertionError
+			w, h = image_file_get_dimensions(file.path) # can raise
 		except:
 			logger.warn('Could not get size for image: %s', file.path)
 			width.set_sensitive(False)
