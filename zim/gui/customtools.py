@@ -12,17 +12,17 @@ from gi.repository import Gtk
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
 
-
+import re
 import logging
 
 from functools import partial
 
 
-from zim. newfs import FilePath, LocalFile, TmpFile, cleanup_filename
-from zim.parsing import split_quoted_strings
+from zim.newfs import FilePath, LocalFile, TmpFile, cleanup_filename
 from zim.config import ConfigManager, XDG_CONFIG_HOME, INIConfigFile
 from zim.signals import SignalEmitter, SIGNAL_NORMAL, SignalHandler
 
+from zim.applications import split_quoted_strings
 from zim.gui.applications import Application, DesktopEntryDict, String, Boolean
 from zim.gui.widgets import Dialog, IconButton, IconChooserButton
 
@@ -211,6 +211,7 @@ class CustomToolDict(DesktopEntryDict):
 		- C{%f} for source file as tmp file current page
 		- C{%d} for attachment directory
 		- C{%s} for real source file (if any)
+		- C{%p} for the page name
 		- C{%n} for notebook location (file or directory)
 		- C{%D} for document root
 		- C{%t} for selected text or word under cursor
@@ -288,47 +289,42 @@ class CustomToolDict(DesktopEntryDict):
 			# assert statement could be optimized away
 		notebook, page, pageview = args
 
-		cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
-		if '%f' in cmd:
-			self._tmpfile = TmpFile('tmp-page-source.txt')
-			self._tmpfile.writelines(page.dump('wiki'))
-			cmd[cmd.index('%f')] = self._tmpfile.path
-
-		if '%d' in cmd:
-			dir = notebook.get_attachments_dir(page)
-			if dir:
-				cmd[cmd.index('%d')] = dir.path
+		def sub_field_code(m):
+			m = m.group()
+			if m == '%f':
+				self._tmpfile = TmpFile('tmp-page-source.txt')
+				self._tmpfile.writelines(page.dump('wiki'))
+				return self._tmpfile.path
+			elif m == '%d':
+				dir = notebook.get_attachments_dir(page)
+				return dir.path if dir else ''
+			elif m == '%s':
+				return page.source_file.path if page.source_file else ''
+			elif m == '%p':
+				return page.name
+			elif m == '%n':
+				return FilePath(notebook.uri).path
+			elif m == '%D':
+				return notebook.document_root.path if notebook.document_root else ''
+			elif m == '%t':
+				if pageview is not None:
+					text = pageview.get_selection() or pageview.get_word()
+					return text or ''
+				else:
+					return ''
+			elif m == '%T':
+				if pageview is not None:
+					text = pageview.get_selection(format='wiki') or pageview.get_word(format='wiki')
+					return text or ''
+				else:
+					return ''
 			else:
-				cmd[cmd.index('%d')] = ''
+				return '%'
 
-		if '%s' in cmd:
-			if page.source_file is not None:
-				cmd[cmd.index('%s')] = page.source_file.path
-			else:
-				cmd[cmd.index('%s')] = ''
-
-		if '%p' in cmd:
-			cmd[cmd.index('%p')] = page.name
-
-		if '%n' in cmd:
-			cmd[cmd.index('%n')] = FilePath(notebook.uri).path
-
-		if '%D' in cmd:
-			dir = notebook.document_root
-			if dir:
-				cmd[cmd.index('%D')] = dir.path
-			else:
-				cmd[cmd.index('%D')] = ''
-
-		if '%t' in cmd and pageview is not None:
-			text = pageview.get_selection() or pageview.get_word()
-			cmd[cmd.index('%t')] = text or ''
-			# FIXME - need to substitute this in arguments + url encoding
-
-		if '%T' in cmd and pageview is not None:
-			text = pageview.get_selection(format='wiki') or pageview.get_word(format='wiki')
-			cmd[cmd.index('%T')] = text or ''
-			# FIXME - need to substitute this in arguments + url encoding
+		cmd = []
+		for word in split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool']):
+			word = re.sub('%%|%[fdspnDtT]', sub_field_code, word)
+			cmd.append(word)
 
 		return tuple(cmd)
 

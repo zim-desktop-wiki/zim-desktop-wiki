@@ -16,6 +16,7 @@ user can define a new command on the fly.
 
 import os
 import sys
+import re
 import logging
 from gi.repository import Gtk
 from gi.repository import GObject
@@ -29,9 +30,9 @@ from zim.newfs import File, LocalFile, TmpFile, FileNotFoundError, \
 	cleanup_filename, get_mimetype_from_path
 from zim.config import XDG_CONFIG_HOME, XDG_CONFIG_DIRS, XDG_DATA_HOME, XDG_DATA_DIRS, \
 	data_dirs, SectionedConfigDict, INIConfigFile, Boolean, ConfigManager
-from zim.parsing import split_quoted_strings, uri_scheme, is_win32_share_re, \
+from zim.parsing import uri_scheme, is_win32_share_re, \
 	normalize_win32_share, is_win32_share_re, is_url_re, is_uri_re, is_www_link_re
-from zim.applications import Application, WebBrowser, StartFile
+from zim.applications import Application, WebBrowser, StartFile, split_quoted_strings
 from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, QuestionDialog, strip_boolean_result
 
 
@@ -761,11 +762,35 @@ from zim.config import String as BaseString
 from zim.config import Boolean as BaseBoolean
 from zim.config import Float as Numeric
 
-class String(BaseString):
+
+class XDGString(BaseString):
+
+	def check(self, value):
+		if isinstance(value, str):
+			value = BaseString.check(self, value)
+			if isinstance(value, str):
+				# According to the XDG Desktop entry spec we should support
+				# the follwoing codes: \s, \n, \t, \r, and \\
+				# However, only do \\ to avoid conflicts invalid strings
+				# also no use case for other codes in keys we use (?)
+				return re.sub(r'\\\\', '\\\\', value)
+			else:
+				return value
+		else:
+			return BaseString.check(self, value)
+
+	def tostring(self, value):
+		if value is None:
+			return ''
+		else:
+			return value.replace('\\', '\\\\')
+
+
+class String(XDGString):
 
 	def check(self, value):
 		# Only ascii chars allowed in these keys
-		value = BaseString.check(self, value)
+		value = XDGString.check(self, value)
 		if isinstance(value, str):
 			try:
 				x = value.encode('ascii')
@@ -776,7 +801,7 @@ class String(BaseString):
 		return value
 
 
-class LocaleString(BaseString):
+class LocaleString(XDGString):
 	pass # utf8 already supported by default
 
 
@@ -923,6 +948,12 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		@param args: list of either URLs or L{File} objects
 		@returns: the full command to execute as a tuple
 		'''
+		# The XDG Desktop Entry spec specifies repalcement of field codes when
+		# they appear as a single argument. Handling of field codes inside
+		# arguments is explicitly left undefined. Users seem to expect these
+		# to work, so at least interpolate the values that expand to a single
+		# argument.
+
 		assert args is None or isinstance(args, (list, tuple))
 
 		def uris(args):
@@ -934,56 +965,54 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 					uris.append(str(arg))
 			return uris
 
-		cmd = split_quoted_strings(self['Desktop Entry']['Exec'])
-		if args is None or len(args) == 0:
-			if '%f' in cmd:
-				cmd.remove('%f')
-			elif '%F' in cmd:
-				cmd.remove('%F')
-			elif '%u' in cmd:
-				cmd.remove('%u')
-			elif '%U' in cmd:
-				cmd.remove('%U')
-		elif '%f' in cmd:
-			assert len(args) == 1, 'application takes one file name'
-			i = cmd.index('%f')
-			cmd[i] = str(args[0])
-		elif '%F' in cmd:
-			i = cmd.index('%F')
-			for arg in reversed(list(map(str, args))):
-				cmd.insert(i, str(arg))
-			cmd.remove('%F')
-		elif '%u' in cmd:
-			assert len(args) == 1, 'application takes one url'
-			i = cmd.index('%u')
-			cmd[i] = uris(args)[0]
-		elif '%U' in cmd:
-			i = cmd.index('%U')
-			for arg in reversed(uris(args)):
-				cmd.insert(i, str(arg))
-			cmd.remove('%U')
-		else:
-			cmd.extend(list(map(str, args)))
+		cmd = []
+		seen_arg_code = False
 
-		if '%i' in cmd:
-			if 'Icon' in self['Desktop Entry'] \
-			and self['Desktop Entry']['Icon']:
-				i = cmd.index('%i')
-				cmd[i] = self['Desktop Entry']['Icon']
-				cmd.insert(i, '--icon')
+		def sub_field_code(m):
+			nonlocal seen_arg_code
+			m = m.group()
+			if m == '%f':
+				seen_arg_code = True
+				return str(args[0]) if args else ''
+			elif m == '%u':
+				seen_arg_code = True
+				return uris(args)[0] if args else ''
+			elif m == '%k':
+				return self.file.path if hasattr(self, 'file') else ''
+			elif m == '%c':
+				return self.name
 			else:
-				cmd.remove('%i')
+				return '%'
 
-		if '%c' in cmd:
-			i = cmd.index('%c')
-			cmd[i] = self.name
-
-		if '%k' in cmd:
-			i = cmd.index('%k')
-			if hasattr(self, 'file'):
-				cmd[i] = self.file.path
+		for word in split_quoted_strings(self['Desktop Entry']['Exec']):
+			# These expnd to multiple arguments and cannot be interpolated
+			if word in ('%d', '%D', '%n', '%N', '%v', '%m'):
+				continue # deprecated codes
+			elif word == '%F':
+				if args:
+					cmd.extend([str(a) for a in args])
+				seen_arg_code = True
+				continue
+			elif word == '%U':
+				if args:
+					cmd.extend([str(a) for a in uris(args)])
+				seen_arg_code = True
+				continue
+			elif word == '%i':
+				if 'Icon' in self['Desktop Entry'] \
+				and self['Desktop Entry']['Icon']:
+					cmd.extend(['--icon', self['Desktop Entry']['Icon']])
+				continue
+			elif word in ('%f', '%u') and not args:
+				seen_arg_code = True
+				continue
 			else:
-				cmd[i] = ''
+				# These can be interpolated inside arguments
+				word = re.sub('%%|%[fukc]', sub_field_code, word)
+				cmd.append(word)
+
+		if not seen_arg_code:
+			cmd.extend([str(a) for a in args])
 
 		return tuple(cmd)
 

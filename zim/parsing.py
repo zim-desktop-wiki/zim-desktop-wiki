@@ -6,67 +6,13 @@
 import re
 import os
 
-def split_quoted_strings(string, unescape=True, strict=True):
-	'''Split a word list respecting quotes
-
-	This function always expect full words to be quoted, even if quotes
-	appear in the middle of a word, they are considered word
-	boundries.
-
-	( XDG Desktop Entry spec says full words must be quoted and
-	quotes in a word escaped, but doesn't specifify what to do with
-	loose quotes in a string. )
-
-	Also a comma "," is handled specially and is always considered a
-	word on it's own.
-
-	@param string: string to split in words
-	@param unescape: if C{True} quotes are removed, else they are
-	left in place
-	@param strict: if C{True} unmatched quotes will cause a C{ValueError}
-	to be raised, if C{False} unmatched quotes are ignored.
-	@returns: list of strings
-	'''
-	word_re = Re(r'''
-		(	'(\\'|[^'])*' |  # single quoted word
-			"(\\"|[^"])*" |  # double quoted word
-			[^\s,'"]+     |  # word without spaces and commas
-			,                # comma - (allow "words,word"<<)
-		)''', re.X)
-	string = string.strip()
-	words = []
-	while word_re.match(string):
-		words.append(word_re[0])
-		i = word_re.m.end()
-		string = string[i:].lstrip()
-
-	if string and strict:
-		raise ValueError('Unmatched quote')
-	elif string:
-		words += string.split()
-
-	if unescape:
-		words = [unescape_quoted_string(w) for w in words]
-	return words
-
-
-def unescape_quoted_string(string):
-	'''Removes quotes from a string and unescapes embedded quotes
-	@returns: string
-	'''
-	escape_re = re.compile(r'(\\(\\)|\\([\'\"]))')
-	def replace(m):
-		return m.group(2) or m.group(3)
-	if (string.startswith('"') or string.startswith("'")) \
-	and string[-1] == string[0]:
-		string = string[1:-1]
-		string = escape_re.sub(replace, string)
-	return string
 
 def _escape(match):
 	char = match.group(0)
 	if char == '\n':
 		return '\\n'
+	if char == '\r':
+		return '\\r'
 	elif char == '\t':
 		return '\\t'
 	else:
@@ -77,7 +23,7 @@ def escape_string(string, chars=''):
 	'''Escape special characters with a backslash
 	Escapes newline, tab, backslash itself and any characters in C{chars}
 	'''
-	return re.sub('[\n\t\\\\%s]' % chars, _escape, string)
+	return re.sub('[\n\r\t\\\\%s]' % chars, _escape, string)
 
 
 def _unescape(match):

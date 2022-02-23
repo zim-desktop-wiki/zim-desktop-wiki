@@ -18,13 +18,17 @@ The **Command** ...
 
 When defining a command, you can use the following parameters to supply the external program with some context information from within zim:
 
-**%f**	for page source as a temporary file
-**%d**	for the [[Help:Attachments|attachment]] directory of the current page
-**%s**	for the real page source file (if any)
-**%p**	for the page name
-**%n**	for the notebook location (file or folder)
-**%D**	for the document root (if any)
-**%t** 	for the selected text or word under cursor
+* **%f**	for page source as a temporary file
+* **%d**	for the [[Help:Attachments|attachment]] directory of the current page
+* **%s**	for the real page source file (if any)
+* **%p**	for the page name
+* **%n**	for the notebook location (file or folder)
+* **%D**	for the document root (if any)
+* **%t** 	for the selected text or word under cursor
+* **%T** 	for the selected text or word under cursor including wiki formatting
+
+The quoting of the command should follow the "XDG Desktop Entry" specification. See [[Default Applications]] for a summary.
+
 
 The optional **Icon** is used for toolbar items and for menu items depending on your Gtk appearance settings.
 

@@ -48,7 +48,7 @@ For content '*' can occur on both sides, but does not match whitespace
 import re
 import logging
 
-from zim.parsing import split_quoted_strings, unescape_quoted_string, Re
+from zim.parsing import Re, unescape_string
 from zim.notebook import Path, \
 	PageNotFoundError, IndexNotFoundError, \
 	LINK_DIR_BACKWARD, LINK_DIR_FORWARD
@@ -117,6 +117,48 @@ class QueryGroup(list):
 			self[:] = terms
 
 
+_word_re = re.compile(r'''
+	(	'(\\'|[^'])*' |  # single quoted word
+		"(\\"|[^"])*" |  # double quoted word
+		[^\s'"]+         # word without spaces
+	)''', re.X)
+
+
+def split_quoted_strings(string):
+	'''Split a word list respecting quotes, does not remove the quotes
+
+	Allow both double and single quotes
+
+	This function always expect full words to be quoted, even if quotes
+	appear in the middle of a word, they are considered word
+	boundries.
+	'''
+	string = string.strip()
+	words = []
+	m = _word_re.match(string)
+	while m:
+		words.append(m.group(0))
+		i = m.end()
+		string = string[i:].lstrip()
+		m = _word_re.match(string)
+
+	if string:
+		words += string.split() # unmatched quote ?
+
+	return [w for w in words if w]
+
+
+def unescape_quoted_string(string):
+	'''Removes quotes from a string and unescapes embedded quotes
+	@returns: string
+	'''
+	if not string:
+		return string
+	elif string[0] in ('"', "'") and string[-1] == string[0]:
+		string = string[1:-1]
+	return unescape_string(string)
+
+
 class Query(object):
 	'''This class wraps a query as typed by the user. It parses the
 	query into a tree of QueryGroup and QueryTerm objects. The 'root'
@@ -131,7 +173,7 @@ class Query(object):
 
 	def _parse_query(self, string):
 		# First do a raw tokenizer
-		words = split_quoted_strings(string, unescape=False, strict=False)
+		words = split_quoted_strings(string)
 		tokens = []
 		while words:
 			if operators_re.match(words[0]):

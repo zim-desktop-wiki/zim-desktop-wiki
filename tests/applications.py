@@ -49,6 +49,42 @@ def replace(l, old, new):
 
 class TestApplications(tests.TestCase):
 
+	def testParseQuotes(self):
+		# Test split quoting rules according to Destop spec
+		for string, list in (
+			('"foo bar" "\\"foooo bar\\"" dusss ja \'foo\'',
+				['foo bar', '"foooo bar"', 'dusss', 'ja', '\'foo\'']),
+			("If you don't mind me' asking", # don't use single quote escapes
+				["If", "you", "don't", "mind", "me'", "asking"]),
+			("C:\some\path here",
+				["C:\some\path", "here"]), # Don't touch \ in this path!
+			("Some stray quote \"here", # invalid, handle gracefully
+				["Some", "stray", "quote", "\"here"]),
+		):
+			result = split_quoted_strings(string)
+			self.assertEqual(result, list)
+
+	def testDesktopFileQuoting(self):
+		# From the spec:
+		#
+		#    Note that the general escape rule for values of type string states
+		#    that the backslash character can be escaped as ("\\") as well and
+		#    that this escape rule is applied before the quoting rule. As such,
+		#    to unambiguously represent a literal backslash character in a
+		#    quoted argument in a desktop entry file requires the use of four
+		#    successive backslash characters ("\\\\")
+		#
+		for exec, cmd in (
+			('foo bar', ['foo', 'bar']),
+			('foo "two words"', ['foo', 'two words']),
+			(r'foo "escapes \\\\ here \\$"', ['foo', r'escapes \ here $']),
+			(r'C:\some\path here', [r'C:\some\path', 'here']), # Don't touch \ in this path!
+		):
+			entry = DesktopEntryDict()
+			entry['Desktop Entry'].input(Exec=exec)
+			self.assertEqual(entry.cmd, cmd)
+
+
 	def testParseExec(self):
 		'''Test parsing of .desktop Exec strings'''
 
@@ -76,6 +112,14 @@ class TestApplications(tests.TestCase):
 			('foo %u', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('file:///foo/bar'))),
 			('foo %F', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('/foo/bar'))),
 			('foo %U', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('file:///foo/bar'))),
+			('foo "%f"', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('/foo/bar'))),
+			('foo "file:%f"', (LocalFile(os_native_path('/foo/bar')),), ('foo', 'file:'+os_native_path('/foo/bar'))),
+			('foo "file:%F"', (LocalFile(os_native_path('/foo/bar')),), ('foo', 'file:%F', os_native_path('/foo/bar'))),
+			('foo "%u"', (LocalFile(os_native_path('/foo/bar')),), ('foo', os_native_path('file:///foo/bar'))),
+			('foo "url:%u"', (LocalFile(os_native_path('/foo/bar')),), ('foo', 'url:'+os_native_path('file:///foo/bar'))),
+			('foo "file:%U"', (LocalFile(os_native_path('/foo/bar')),), ('foo', 'file:%U', os_native_path('/foo/bar'))),
+			('foo %%f', ('file',), ('foo', '%f', 'file')),
+			('foo %%u', ('uri',), ('foo', '%u', 'uri')),
 		):
 			#print app, args
 			entry['Desktop Entry']['Exec'] = app

@@ -20,14 +20,23 @@ The //Add Application// dialog allows adding a new application for a specific fi
 
 The **Name** is the application name and **Command** is the command to execute. Usually, this is just the name of an executable or a script to execute. The command can also use the following special codes:
 
-	''%f ''a single file path to be opened
-	''%F ''a list of file paths to be opened
-	''%u ''a single URL to be opened
-	''%U ''a list of URLs to be opened
-	''%c ''the application name
+*	**%f** a single file path to be opened
+*	**%F** a list of file paths to be opened
+*	**%u** a single URL to be opened
+*	**%U** a list of URLs to be opened
+*	**%c** the application name
 
 If "**Make default application**" is enabled the new application will become the new default. This implies that it does not show up in the menu itself. If this is not set the new application will just be added to the menu.
 
+The quoting of the command should follow the "XDG Desktop Entry" specification. In short:
+* Arguments can be quoted in full with double quotes
+* Arguments containing reserved characters must be quoted - these are: '"', "'", "`", "`" "\", " ", "\t", "\n", ">", "<", "~", "|", "&", ";", "$", "*", "?", "#", "(" and ")"
+* Within quoted arguments quotes and other reserved characters should be escaped with a backslash e.g. '\"'
+* Within quoted arguments a literal backslash is written as a double backslash ''\\'
+
+Zim is tolerant for reserved characters in arguments that are not quoted, and does not process escape sequences in arguments that are not quoted. However for interoperability with other applications the above rules should be followed.
+
+The special codes that do expand to a single argument can also appear inside (quoted) arguments. This behavior is unspecified in the specification. Be aware that no whitespace escaping and other escaping is done with this replacement.
 
 
 ===== Technical Details =====

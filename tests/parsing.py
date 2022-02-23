@@ -8,27 +8,6 @@ from zim.parser import *
 
 class TestParsing(tests.TestCase):
 
-	def testSplitWords(self):
-		'''Test parsing quoted strings'''
-		string = r'''"foo bar", "\"foooo bar\"" dusss ja'''
-		list = ['foo bar', ',', '"foooo bar"', 'dusss', 'ja']
-		result = split_quoted_strings(string)
-		self.assertEqual(result, list)
-		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
-		result = split_quoted_strings(string, unescape=False)
-		self.assertEqual(result, list)
-
-		string = r'''"foo bar", False, True'''
-		list = ['foo bar', ',', 'False', ',', 'True']
-		result = split_quoted_strings(string)
-		self.assertEqual(result, list)
-
-		self.assertRaises(ValueError, split_quoted_strings, "If you don't mind me asking")
-		string = "If you don't mind me asking"
-		list = ["If", "you", "don", "'t", "mind", "me", "asking"]
-		result = split_quoted_strings(string, strict=False)
-		self.assertEqual(result, list)
-
 	def testParseDate(self):
 		'''Test parsing dates'''
 		from datetime import date

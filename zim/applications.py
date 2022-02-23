@@ -9,6 +9,7 @@ applications defined in desktop entry files.
 
 import sys
 import os
+import re
 import logging
 import subprocess
 import locale
@@ -20,7 +21,7 @@ import zim.errors
 
 from zim.fs import adapt_from_oldfs
 from zim.newfs import SEP, is_abs_filepath, LocalFile, LocalFolder
-from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
+from zim.parsing import is_uri_re, is_win32_path_re
 
 
 logger = logging.getLogger('zim.applications')
@@ -68,6 +69,59 @@ def _split_environ_list(value):
 		return []
 	else:
 		raise ValueError
+
+
+
+_word_re = re.compile(r'''
+	(
+		"(\\"|[^"])*" |  # double quoted word
+		[^\s"]+          # word without spaces
+	)''', re.X)
+
+
+def split_quoted_strings(string):
+	'''Split a word list respecting quotes according to XDG desktop entry spec
+
+	Only supports double quotes as specified in the spec
+
+	This function always expect full words to be quoted, even if quotes
+	appear in the middle of a word, they are considered word
+	boundries.
+
+	( XDG Desktop Entry spec says full words must be quoted and
+	quotes in a word escaped, but doesn't specify what to do with
+	loose quotes in a string. Also this spec does not allow single
+	quote quotes)
+	'''
+	string = string.strip()
+	words = []
+	m = _word_re.match(string)
+	while m:
+		w = m.group(0)
+
+		words.append(w)
+		i = m.end()
+		string = string[i:].lstrip()
+		m = _word_re.match(string)
+
+	if string:
+		words += string.split() # unmatched quote ?
+
+	return [_unescape_quoted_string(w) for w in words if w]
+
+
+def _unescape_quoted_string(string):
+	# XDG Desktop entry spec says:"If an argument contains a reserved character
+	# the argument *must* be quoted."
+	# Therefore, unquoted arguments with backslash are invalid. However on
+	# Windows we may have created these, so for backward compatibility pass
+	# them through without unescaping.
+	# Unescaping here does not target \n etc. but \" and other reserved characters
+	# avoid touching alphabetic chars in case there are invalid paths in the string
+	if string[0] == '"' and string[-1] == '"':
+		return re.sub(r'\\(\W)', '\\1', string[1:-1])
+	else:
+		return string
 
 
 class ApplicationError(zim.errors.Error):

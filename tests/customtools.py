@@ -148,7 +148,10 @@ class TestCustomTools(tests.TestCase):
 			('foo %n', ('foo', notebook.folder.path)),
 			('foo %D', ('foo', '')), # no document root
 			('foo %t', ('foo', 'FooBar')),
+			('foo "text %t"', ('foo', 'text FooBar')),
 			('foo %T', ('foo', '**FooBar**')),
+			('foo "text %T"', ('foo', 'text **FooBar**')),
+			('foo %%t', ('foo', '%t')),
 		):
 			#~ print('>>>', cmd)
 			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd

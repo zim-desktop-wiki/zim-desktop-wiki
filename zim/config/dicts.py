@@ -239,7 +239,13 @@ class Boolean(ConfigDefinition):
 class String(ConfigDefinition):
 	'''This class defines a config key that maps to a string'''
 
-	# TODO support esacpe codes \s \t \n \r (see desktop / json spec)
+	# Might expect backslash escaping to be supported here
+	# however we cannot add that backward compatible because this
+	# config type is also used to store paths which may contain
+	# windows paths with unescaped backslashes.
+	# If e.g. a multiline value with escaped "\n" is needed, this
+	# requires a separate "MultiLineString" class or similar.
+	# See also the String definition used in zim.gui.applications
 
 	def __init__(self, default, allow_empty=False):
 		if default == '':
