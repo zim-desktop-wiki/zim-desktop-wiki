@@ -5,9 +5,8 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Pango
+from typing import List, Optional, Tuple
 
-import re
-import datetime
 import logging
 
 logger = logging.getLogger('zim.plugins.tableofcontents')
@@ -15,14 +14,14 @@ logger = logging.getLogger('zim.plugins.tableofcontents')
 
 from zim.plugins import PluginClass
 from zim.signals import ConnectorMixin, DelayedCallback
-from zim.notebook import Path
 from zim.tokenparser import collect_until_end_token, tokens_to_text
-from zim.formats import HEADING, LINE
+from zim.formats import ANCHOR, HEADING, LINE
 
+from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
 	WindowSidePaneWidget, widget_set_css
-from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag, LineSeparatorAnchor
+from zim.gui.pageview import SCROLL_TO_MARK_MARGIN, _is_heading_tag, LineSeparatorAnchor
 
 LINE_LEVEL = 2  # assume level 1 is page heading, level 2 is topic break within page
 
@@ -373,6 +372,29 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 		buffer.select_range(start, end)
 
+	def on_copy_link_to_anchor(self, obj, anchor: str, heading_text: str):
+		Clipboard.set_pagelink(self.pageview.notebook, self.pageview.page, anchor, heading_text)
+		SelectionClipboard.set_pagelink(self.pageview.notebook, self.pageview.page, anchor, heading_text)
+		return True
+
+	def can_copy_link_to_anchor(self, paths: List[str]) -> Optional[Tuple[str,str]]:
+		if not paths or len(paths) != 1:
+			return None
+		model = self.treeview.get_model()
+		n = model.get_nth_heading(paths[0])
+		textview = self.pageview.textview
+		buffer = textview.get_buffer()
+		hd_iter = find_heading(buffer, n, self.include_hr)
+		if not hd_iter:
+			return None
+		anchor = buffer.get_anchor_for_location(hd_iter)
+		if not anchor:
+			return None
+		heading_text = buffer.get_heading_text(hd_iter)
+		if not heading_text:
+			return None
+		return anchor, heading_text
+
 	def on_populate_popup(self, treeview, menu):
 		model, paths = treeview.get_selection().get_selected_rows()
 		if not paths:
@@ -381,6 +403,8 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		else:
 			can_promote = self.can_promote(paths)
 			can_demote = self.can_demote(paths)
+
+		link_details = self.can_copy_link_to_anchor(paths)
 
 		populate_popup_add_separator(menu, prepend=True)
 		for text, sensitive, handler in (
@@ -391,12 +415,32 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		):
 			item = Gtk.MenuItem.new_with_mnemonic(text)
 			menu.prepend(item)
-			if sensitive:
+			if sensitive and link_details:  # exclude horizontal bars
 				item.connect('activate', handler)
 			else:
 				item.set_sensitive(False)
 
+		menu.append(Gtk.SeparatorMenuItem())
+
+		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _link to this location'))  # T: menu item
+		menu.append(item)
+		if link_details:
+			item.connect('activate', self.on_copy_link_to_anchor, *link_details)
+		else:
+			item.set_sensitive(False)
+
+		# open item in new window
+		item = Gtk.MenuItem.new_with_mnemonic(_('Open in New _Window'))  # T: menu item
+		menu.append(item)
+		if link_details:
+			item.connect('activate', self.on_open_in_new_window, *link_details)
+		else:
+			item.set_sensitive(False)
+
 		menu.show_all()
+
+	def on_open_in_new_window(self, obj, anchor: str, heading_text: str):
+		self.pageview.navigation.open_page(self.pageview.page, anchor, new_window=True)
 
 	def can_promote(self, paths):
 		# All headings have level larger than 1
@@ -414,7 +458,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 			for i in model.walk(iter):
 				p = model.get_path(i)
 				key = tuple(p)
-				if not key in seen:
+				if key not in seen:
 					if self.show_h1:
 						newlevel = len(p) - 1
 					else:
