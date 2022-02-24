@@ -40,7 +40,6 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Link Map',
 	}
 
-
 	plugin_preferences = (
 		# key, type, label, default
 		('button_in_headerbar', 'bool', _('Show linkmap button in headerbar'), True),
@@ -50,6 +49,10 @@ This is a core plugin shipping with zim.
 		('sticky', 'bool', _('Follow main window'), False),
 			# T: preferences option
 		('new_window', 'bool', _('Always open links in new windows'), False),
+			# T: preferences option
+		('ui_depth', 'int', _('Link depth in UI'), 2, (1, 4)),
+			# T: preferences option
+		('export_depth', 'int', _('Link depth in exports'), 2, (1, 100)),
 			# T: preferences option
 	)
 
@@ -210,12 +213,12 @@ class LinkMapDialog(Dialog):
 		logger.debug('Load dotcode for page %s', page.name)
 		self.set_title(page.name + self.title_ending)
 		self.xdotview.set_dotcode(
-			LinkMap(self.pageview.notebook, page, blocklist=self.blocklist).get_dotcode().encode('UTF-8'))
+			LinkMap(self.pageview.notebook, page, depth=self.preferences['ui_depth'], blocklist=self.blocklist).get_dotcode().encode('UTF-8'))
 		if self.preferences['zoom_fit']:
 			self.xdotview.on_zoom_fit(0)  # takes an action, doesn't use it
 
 	def save_dotcode(self, *a):
-		import os  # FIXME: learn zim fs api
+		import os, timeit  # FIXME: learn zim fs api
 		folder = self.pageview.notebook.get_attachments_dir(self.page)
 		if folder is None:
 			raise Error('%s does not have an attachments dir' % path)
@@ -233,7 +236,9 @@ class LinkMapDialog(Dialog):
 		except Exception:
 			pass
 		with open(str(dest), 'w') as f:
-			f.write(LinkMap(self.pageview.notebook, self.page, blocklist=self.blocklist).get_dotcode())
+			def w():
+				f.write(LinkMap(self.pageview.notebook, self.page, depth=self.preferences['export_depth'], blocklist=self.blocklist).get_dotcode())
+			logger.info('Wrote dotcode into %s in %ss.', dest, timeit.timeit(stmt=w, number=1))
 
 	def refresh_xdotview(self, *a):
 		if self.preferences['sticky']:
