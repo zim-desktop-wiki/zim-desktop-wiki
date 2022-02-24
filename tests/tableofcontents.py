@@ -7,6 +7,7 @@ import tests
 
 from tests.mainwindow import setUpMainWindow
 
+from zim.notebook import Path
 from zim.plugins import PluginManager
 from zim.plugins.tableofcontents import *
 from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
