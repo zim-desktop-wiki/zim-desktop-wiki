@@ -22,6 +22,6 @@ The option **Show linkmap button in headerbar** determines whether a button to s
 
 The option **Autozoom to fit map** determines whether the map gets automatically zoomed out to fit inside the window.
 
-The option **Follow main window** determines whether refreshing the map rebuilds the currently shown view or builds a graph for the page that's open in the main window.
+The option **Follow main window** determines whether refreshing the map rebuilds the currently shown view or builds a graph for the page that's open in the main window. When set, the map is also updated when opening a map link in the main window.
 
-The option **Open links in new windows** does what the name implies. When not set, opening links also refreshes the map if it's set to follow the main window.
+The option **Always open links in new windows** does what the name implies. You can middle-click to open links in new windows regardless.

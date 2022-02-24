@@ -49,7 +49,7 @@ This is a core plugin shipping with zim.
 			# T: preferences option
 		('sticky', 'bool', _('Follow main window'), False),
 			# T: preferences option
-		('new_window', 'bool', _('Open links in new windows'), False),
+		('new_window', 'bool', _('Always open links in new windows'), False),
 			# T: preferences option
 	)
 
@@ -139,6 +139,17 @@ class LinkMapPageViewExtension(PageViewExtension):
 		dialog = LinkMapDialog(self.pageview, self.navigation, self.preferences)
 		dialog.show_all()
 
+class LinkMapWidget(xdot.DotWidget):
+	def on_click(self, element, event):
+		# override to add middle-click support
+		#logger.debug('on_click: %s, %s', element, event.button)
+		if element and event.button != 1:
+			try:
+				self.emit('clicked', element.url, event)
+				return True
+			except Exception:
+				return False
+		return False
 
 class LinkMapDialog(Dialog):
 
@@ -159,7 +170,7 @@ class LinkMapDialog(Dialog):
 		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, True, True, 0)
 
-		self.xdotview = xdot.DotWidget()
+		self.xdotview = LinkMapWidget()
 		self.xdotview.set_filter('fdp')
 		self.refresh_xdotview()
 		self.xdotview.connect('clicked', self.on_node_clicked)
@@ -197,7 +208,7 @@ class LinkMapDialog(Dialog):
 			# Bug in dotcode ? URLS come in as strings containing byte representation
 			name = ast.literal_eval(name).decode('UTF-8')
 
-		new_window = self.preferences['new_window']
+		new_window = event.button == 2 or self.preferences['new_window']
 
 		self.navigation.open_page(Path(name), new_window=new_window)
 
