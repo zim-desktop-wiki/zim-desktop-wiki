@@ -58,6 +58,7 @@ This plugin adds the page index pane to the main window.
 
 	plugin_preferences = (
 		# key, type, label, default
+		('namespace', 'namespace', _('Namespace'), ''), # T: input label
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
 			# T: preferences option
 		('use_drag_and_drop', 'bool', _('Use drag&drop to move pages in the notebook'), False),
@@ -77,10 +78,9 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 
 	def __init__(self, plugin, pageview):
 		NotebookViewExtension.__init__(self, plugin, pageview)
-		index = pageview.notebook.index
-		model = PageTreeStore(index)
+
+		self.notebook = pageview.notebook
 		self.treeview = PageTreeView(pageview.notebook, self.navigation)
-		self.treeview.set_model(model)
 		self.widget = PageIndexWidget(self.treeview)
 
 		# Connect to ui signals
@@ -99,6 +99,13 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.plugin.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
+		old_model = self.treeview.get_model()
+		self.disconnect_from(old_model)
+
+		namespace = None if preferences['namespace'] is None or len(preferences['namespace'].strip()) == 0 else Path(preferences['namespace'])
+		new_model = PageTreeStore(self.notebook.index, root=namespace)
+		self.treeview.set_model(new_model)
+
 		self.treeview.set_use_drag_and_drop(preferences['use_drag_and_drop'])
 		self.treeview.set_use_tooltip(preferences['use_tooltip'])
 		self.treeview.set_use_ellipsize(not preferences['use_hscroll'])
