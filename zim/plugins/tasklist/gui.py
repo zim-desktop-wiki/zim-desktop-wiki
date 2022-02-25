@@ -96,7 +96,6 @@ class TaskListWidgetMixin(object):
 		self.tasklisttreeview = TaskListTreeView(
 			self.taskselection, opener,
 			_parse_task_labels(properties['labels']),
-			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
 			use_workweek=properties['use_workweek'],
 			sort_column=self.uistate['sort_column'],
 			sort_order=self.uistate['sort_order'],
@@ -187,10 +186,8 @@ class TaskListWidgetMixin(object):
 
 	def on_properties_changed(self, properties):
 		task_labels = _parse_task_labels(properties['labels'])
-		nonactionable_tags = _parse_task_labels(properties['nonactionable_tags'])
 		self.tasklisttreeview.update_properties(
 			task_labels=task_labels,
-			nonactionable_tags=nonactionable_tags,
 			use_workweek=properties['use_workweek'],
 		)
 		self.tag_list.update_properties(
@@ -659,7 +656,6 @@ class TaskListTreeView(BrowserTreeView):
 	def __init__(self,
 		taskselection, opener,
 		task_labels,
-		nonactionable_tags=(),
 		use_workweek=False,
 		sort_column=PRIO_COL, sort_order=Gtk.SortType.DESCENDING
 	):
@@ -678,7 +674,6 @@ class TaskListTreeView(BrowserTreeView):
 		self.tag_filter = None
 		self.label_filter = None
 		self.page_filter = None
-		self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
 		self.task_labels = task_labels
 		self.use_workweek = use_workweek
 		self._render_waiting_actionable = False
@@ -840,14 +835,10 @@ class TaskListTreeView(BrowserTreeView):
 
 	def update_properties(self,
 		task_labels=None,
-		nonactionable_tags=None,
 		use_workweek=None,
 	):
 		if task_labels is not None:
 			self.task_labels = task_labels
-
-		if nonactionable_tags is not None:
-			self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
 
 		if use_workweek is not None:
 			self.use_workweek = use_workweek
@@ -873,15 +864,7 @@ class TaskListTreeView(BrowserTreeView):
 			path = Path(row['name'])
 			tags = [t for t in row['tags'].split(',') if t]
 			lowertags = [t.lower() for t in tags]
-			if self._render_waiting_actionable:
-				actionable = not (
-					any(t in lowertags for t in self.nonactionable_tags)
-				)
-			else:
-				actionable = not (
-					row['waiting'] or
-					any(t in lowertags for t in self.nonactionable_tags)
-				)
+			actionable = self._render_waiting_actionable or not row['waiting']
 
 			# Checkbox
 			status = row['status']

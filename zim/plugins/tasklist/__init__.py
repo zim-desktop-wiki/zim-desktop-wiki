@@ -75,16 +75,18 @@ This is a core plugin shipping with zim.
 			# T: Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 		('excluded_subtrees', 'string', _('Section(s) to ignore'), '', StringAllowEmpty),
 			# T: Notebook sections to exclude when searching for tasks - default is none
-	)
-
-	plugin_notebook_properties = parser_properties + (
 		('nonactionable_tags', 'string', None, '', StringAllowEmpty),
 			# Hidden option - deprecated
+	)
+
+	view_properties = (
 		('show_pages', 'bool', _('Show page names in selection pane'), True),
 			# T: label for plugin preferences dialog
 		('use_workweek', 'bool', _('Don\'t count Saturday and Sunday as working days'), False),
 			# T: label for plugin preferences dialog
 	)
+
+	plugin_notebook_properties = parser_properties + view_properties
 
 
 class TaskListNotebookExtension(NotebookExtension):

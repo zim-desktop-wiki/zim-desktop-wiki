@@ -143,6 +143,9 @@ class TasksIndexer(IndexerBase):
 			waiting_label_re=_task_labels_re(
 				_parse_task_labels(
 					properties['waiting_labels']), re.IGNORECASE),
+			nonactionable_tags=tuple(
+				t.strip('@').lower()
+					for t in _parse_task_labels(properties['nonactionable_tags'])),
 			all_checkboxes=properties['all_checkboxes'],
 		)
 
@@ -547,10 +550,12 @@ class TaskParser(object):
 	def __init__(self,
 			task_label_re=_task_labels_re(['TODO', 'FIXME']),
 			waiting_label_re=_task_labels_re(['Waiting'], re.IGNORECASE),
+			nonactionable_tags=(),
 			all_checkboxes=True,
 	):
 		self.task_label_re = task_label_re
 		self.waiting_label_re = waiting_label_re
+		self.nonactionable_tags = nonactionable_tags
 		self.all_checkboxes = all_checkboxes
 
 	def parse(self, tokens, default_start_date=_MIN_START_DATE, default_due_date=_MAX_DUE_DATE, daterange=None):
@@ -750,7 +755,8 @@ class TaskParser(object):
 
 		prio = text.count('!')
 		start, due = _MIN_START_DATE, _MAX_DUE_DATE
-		waiting = bool(self.waiting_label_re.match(text.lstrip()))
+		waiting = bool(self.waiting_label_re.match(text.lstrip())) \
+					or any(t in tags for t in self.nonactionable_tags)
 
 		if defaults:
 			if prio == 0:
