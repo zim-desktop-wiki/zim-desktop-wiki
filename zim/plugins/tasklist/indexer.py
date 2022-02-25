@@ -482,12 +482,48 @@ class WaitingTasks(AllTasks):
 	# All tasks that have status open and labelled as waiting
 
 	_status_sql = '(0)' # TASK_STATUS_OPEN
-	_sql_filter = 'and waiting'
+	_include_not_started = False
 
 	STYLE = 'waiting'
 
 	def set_status_included(self, *status):
 		pass # ignore - keep default on TASK_STATUS_OPEN
+
+	def list_tasks(self, parent=None):
+		if parent:
+			return AllTasks.list_tasks(self, parent)
+		else:
+			seen = set()
+			for row in self._list_all(_sql_filter='and waiting', _include_not_started=self._include_not_started):
+				seen.add(row['id'])
+				if row['parent'] not in seen:
+					yield row
+
+	def _list_all(self, _sql_filter, _include_not_started):
+		# TODO: code copied from AllTasks.list_tasks(), but without parent id
+		#      - refactor to keep in one place ?
+		#
+		# Sort:
+		#  started tasks by prio, due date, page + id to keep order in page
+		#  not-started tasks by start date, ...
+		today = str(datetime.date.today())
+		for row in self.db.execute('''
+			SELECT tasklist.*, pages.name FROM tasklist
+			LEFT JOIN pages ON tasklist.source = pages.id
+			WHERE tasklist.status in %s and tasklist.start<=? %s
+			ORDER BY tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
+			''' % (self._status_sql, _sql_filter), (today,)
+		):
+			yield row
+		if _include_not_started:
+			for row in self.db.execute('''
+				SELECT tasklist.*, pages.name FROM tasklist
+				LEFT JOIN pages ON tasklist.source = pages.id
+				WHERE tasklist.status in %s and tasklist.start>? %s
+				ORDER BY tasklist.start ASC, tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
+				''' % (self._status_sql, _sql_filter), (today,)
+			):
+				yield row
 
 
 class TaskParser(object):
