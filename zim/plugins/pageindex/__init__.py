@@ -1,6 +1,7 @@
 
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from nturl2path import pathname2url
 from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -17,7 +18,7 @@ from zim.notebook.index.base import TreeModelMixinBase
 from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError, IS_PAGE
 
 from zim.plugins import PluginClass
-from zim.actions import PRIMARY_MODIFIER_MASK
+from zim.actions import PRIMARY_MODIFIER_MASK, action
 
 from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
@@ -125,6 +126,10 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.treeview.disconnect_index()
 		model = PageTreeStore(self.pageview.notebook.index)
 		self.treeview.set_model(model)
+
+	@action(_('Collapse All'), accelerator='<Alt>K', menuhints='view') # T: menu item
+	def collapse(self):
+		self.treeview.collapse_all()
 
 
 class PageIndexWidget(Gtk.VBox, WindowSidePaneWidget):
