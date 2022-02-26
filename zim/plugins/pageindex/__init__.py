@@ -17,7 +17,7 @@ from zim.notebook.index.base import TreeModelMixinBase
 from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError, IS_PAGE
 
 from zim.plugins import PluginClass
-from zim.actions import PRIMARY_MODIFIER_MASK
+from zim.actions import PRIMARY_MODIFIER_MASK, action
 
 from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
@@ -125,6 +125,21 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.treeview.disconnect_index()
 		model = PageTreeStore(self.pageview.notebook.index)
 		self.treeview.set_model(model)
+
+	@action(_('Collapse Page Index'), accelerator=None, menuhints='view') # T: menu item
+	def collapse(self):
+		self.treeview.collapse_all()
+
+	@action(_('Reveal current page in Page Index'), accelerator=None, menuhints='view') # T: menu item
+	def reveal(self):
+		model = self.treeview.get_model()
+		try:
+			treepaths = model.find_all(model.current_page)
+		except IndexNotFoundError:
+			return
+		else:
+			if len(treepaths) != 0:
+				self.treeview.select_treepath(treepaths[0])
 
 
 class PageIndexWidget(Gtk.VBox, WindowSidePaneWidget):
