@@ -1,6 +1,7 @@
 
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from nturl2path import pathname2url
 from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -66,6 +67,8 @@ This plugin adds the page index pane to the main window.
 			# T: preferences option
 		('autocollapse', 'bool', _('Automatically collapse sections on close page'), True),
 			# T: preferences option
+		('autoexpandexclude', 'string', _('Namespaces to exclude from autoexpand/autocollapse (separated by comma)'), ''),
+			# T: preferences option
 		('use_hscroll', 'bool', _('Use horizontal scrollbar (may need restart)'), False),
 			# T: preferences option
 		('use_tooltip', 'bool', _('Use tooltips'), True),
@@ -103,7 +106,7 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.treeview.set_use_tooltip(preferences['use_tooltip'])
 		self.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
-		self.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'])
+		self.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'], preferences['autoexpandexclude'])
 
 	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
@@ -385,6 +388,7 @@ class PageTreeView(BrowserTreeView):
 		self._autoexpanded = None
 		self._autoexpand = True
 		self._autocollapse = True
+		self._autoexpandexclude = []
 
 		column = Gtk.TreeViewColumn('_pages_')
 		column.set_expand(True)
@@ -436,9 +440,13 @@ class PageTreeView(BrowserTreeView):
 		value = Pango.EllipsizeMode.END if use_ellipsize else Pango.EllipsizeMode.NONE
 		self._cr1.set_property('ellipsize', value)
 
-	def set_autoexpand(self, autoexpand, autocollapse):
+	def set_autoexpand(self, autoexpand, autocollapse, autoexpandexclude):
 		self._autoexpand = autoexpand
 		self._autocollapse = autocollapse
+		self._autoexpandexclude = []
+		if len(autoexpandexclude) != 0:
+			for c in autoexpandexclude.split(','):
+				self._autoexpandexclude.append(Path(c))
 
 	def disconnect_index(self):
 		'''Stop the widget from listening to the index. Used e.g. to
@@ -613,11 +621,19 @@ class PageTreeView(BrowserTreeView):
 		if treepath:
 			selected_path = self.get_selected_path()
 			if selected_path != path:
-				if self._autocollapse:
-					self.restore_autoexpanded_path()
 
-				if self._autoexpand:
-					self.select_treepath(treepath)
+				found = False
+				for c in self._autoexpandexclude:
+					if path.ischild(c):
+						found = True
+						break
+
+				if not found:
+					if self._autocollapse:
+						self.restore_autoexpanded_path()
+
+					if self._autoexpand:
+							self.select_treepath(treepath)
 
 		return treepath # can be None
 
