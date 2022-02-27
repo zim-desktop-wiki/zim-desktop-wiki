@@ -131,6 +131,17 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 	def collapse(self):
 		self.treeview.collapse_all()
 
+	@action(_('Reveal current page in Page Index'), accelerator='<Alt>Y', menuhints='view') # T: menu item
+	def reveal(self):
+		model = self.treeview.get_model()
+		try:
+			treepaths = model.find_all(model.current_page)
+		except IndexNotFoundError:
+			return
+		else:
+			if len(treepaths) != 0:
+				self.treeview.select_treepath(treepaths[0])
+
 
 class PageIndexWidget(Gtk.VBox, WindowSidePaneWidget):
 
