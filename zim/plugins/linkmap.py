@@ -21,8 +21,11 @@ logger = logging.getLogger('zim.plugins')
 
 try:
 	import xdot
+	from xdot import DotWidget
 except ImportError:
 	xdot = None
+	class DotWidget:  # workaround
+		pass
 
 class LinkMapPlugin(PluginClass):
 
@@ -139,7 +142,7 @@ class LinkMapPageViewExtension(PageViewExtension):
 		dialog = LinkMapDialog(self.pageview, self.navigation, self.preferences)
 		dialog.show_all()
 
-class LinkMapWidget(xdot.DotWidget):
+class LinkMapWidget(DotWidget):
 	def on_click(self, element, event):
 		# override to add middle-click support
 		#logger.debug('on_click: %s, %s', element, event.button)
