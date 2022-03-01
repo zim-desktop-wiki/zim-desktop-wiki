@@ -146,6 +146,12 @@ class LineSorterPageViewExtension(PageViewExtension):
 			insert_line = iter.get_line()
 			buffer.insert_parsetree_at_cursor(tree)
 
+			# Fixup line end if selection happened to be end of buffer without newline
+			# and moving up
+			iter = buffer.get_insert_iter()
+			if not iter.starts_line():
+				buffer.insert_at_cursor('\n')
+
 			# redo selection/place cursor at same position
 			if has_selection:
 				start = buffer.get_iter_at_line_offset(insert_line, sel_start_offset)
