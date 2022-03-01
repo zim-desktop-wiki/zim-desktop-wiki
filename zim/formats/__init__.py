@@ -138,7 +138,6 @@ LISTITEM = 'li'
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, LISTITEM) # Top levels with nested text
 
-
 EMPHASIS = 'emphasis' # TODO change to "em" to be in line with html
 STRONG = 'strong'
 MARK = 'mark'
@@ -161,6 +160,7 @@ TABLEROW = 'trow'
 TABLEDATA = 'td'
 
 LINE = 'line'
+OBJECT_LIKE = (OBJECT, TABLE, LINE) # Do not include trailing newline
 
 
 # Tokens
@@ -701,7 +701,7 @@ class ParseTreeBuilder(Builder):
 		assert tag == self.stack[-1], 'Unmatched tag closed: %s' % tag
 		self._b.end(tag)
 		self.stack.pop()
-		if tag in (TABLE, OBJECT):
+		if tag in OBJECT_LIKE:
 			self._last_char = '\n' # Special case - implicit newline in object
 
 	def append(self, tag, attrib=None, text=None):
@@ -711,11 +711,11 @@ class ParseTreeBuilder(Builder):
 		if text:
 			self._last_char = text[-1]
 			self._b.data(text)
-		if tag in (TABLE, OBJECT):
+		if tag in OBJECT_LIKE:
 			self._last_char = '\n' # Special case - implicit newline in object
 		self._b.end(tag)
 
-		if tag in (TABLE, OBJECT):
+		if tag in OBJECT_LIKE:
 			self._last_char = '\n' # Special case - implicit newline in object
 		else:
 			self._last_char = text[-1] if text else None
