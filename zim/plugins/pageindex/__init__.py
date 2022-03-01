@@ -1,7 +1,6 @@
 
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from nturl2path import pathname2url
 from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -127,7 +126,7 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		model = PageTreeStore(self.pageview.notebook.index)
 		self.treeview.set_model(model)
 
-	@action(_('Collapse All'), accelerator='<Alt>K', menuhints='view') # T: menu item
+	@action(_('Collapse Page Index'), accelerator='<Alt>K', menuhints='view') # T: menu item
 	def collapse(self):
 		self.treeview.collapse_all()
 
