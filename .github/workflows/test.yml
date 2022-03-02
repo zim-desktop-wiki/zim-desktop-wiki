@@ -64,6 +64,7 @@ jobs:
     
     name: MSYS2 on windows-latest
     steps:
+      - uses: actions/checkout@v2
     
       - name: Install Windows MSYS2
         uses: msys2/setup-msys2@v2
