@@ -8,21 +8,21 @@ on:
       - develop
 
 jobs:
-  build:
+  unix-build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         # disable macos until #1797 is fixed
-        #os: [macos-latest, ubuntu-latest, windows-latest]
-        os: [ubuntu-latest, windows-latest]
+        #os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]
         python-version: ["3.6", "3.10"]
 
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup python
+      - name: Setup Python (Ubuntu & MacOS)
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
@@ -39,33 +39,15 @@ jobs:
           sudo apt-get install -qq -y gir1.2-gtk-3.0 gobject-introspection libgirepository1.0-dev xvfb
         if: matrix.os == 'ubuntu-latest'
 
-      - name: Install Windows MSYS2
-        uses: msys2/setup-msys2@v2
-        if: matrix.os == 'windows-latest'
-
-      - name: Install Windows system dependencies
-        shell: msys2 {0}
-        run: |
-          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject
-        if: matrix.os == 'windows-latest'
-
-      - name: Install python dependencies
+      - name: Install Python dependencies
         run: |
           pip install PyGObject
           pip install pyxdg
 
-      - name: Configure git (Ubuntu & MacOS)
+      - name: Configure git
         run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
-        if: matrix.os != 'windows-latest'
-
-      - name: Configure git (Windows)
-        shell: msys2 {0}
-        run: |
-          git config --global user.email "you@example.com"
-          git config --global user.name "Your Name"
-        if: matrix.os == 'windows-latest'
 
       - name: Test MacOS
         run: python3 ./test.py
@@ -74,8 +56,29 @@ jobs:
       - name: Test Ubuntu
         run: xvfb-run ./test.py
         if: matrix.os == 'ubuntu-latest'
+        
+  windows-build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+    
+    name: MSYS2 on windows-latest
+    steps:
+    
+      - name: Install Windows MSYS2
+        uses: msys2/setup-msys2@v2
+
+      - name: Install Windows system dependencies
+        shell: msys2 {0}
+        run: |
+          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python-xdg
+
+      - name: Configure git
+        shell: msys2 {0}
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
 
       - name: Test Windows
         shell: msys2 {0}
         run: python ./test.py
-        if: matrix.os == 'windows-latest'
