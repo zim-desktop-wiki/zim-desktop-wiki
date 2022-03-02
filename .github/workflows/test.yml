@@ -41,18 +41,19 @@ jobs:
 
       - name: Install Windows MSYS2
         uses: msys2/setup-msys2@v2
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && matrix.python-version == "3.10"
 
       - name: Install Windows system dependencies
         shell: msys2 {0}
         run: |
-          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject
-        if: matrix.os == 'windows-latest'
+          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python-xdg
+        if: matrix.os == 'windows-latest' && matrix.python-version == "3.10"
 
-      - name: Install python dependencies
+      - name: Install Python dependencies
         run: |
           pip install PyGObject
           pip install pyxdg
+        if: matrix.os != 'windows-latest'
 
       - name: Configure git (Ubuntu & MacOS)
         run: |
@@ -65,7 +66,7 @@ jobs:
         run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && matrix.python-version == "3.10"
 
       - name: Test MacOS
         run: python3 ./test.py
@@ -78,4 +79,4 @@ jobs:
       - name: Test Windows
         shell: msys2 {0}
         run: python ./test.py
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && matrix.python-version == "3.10"
