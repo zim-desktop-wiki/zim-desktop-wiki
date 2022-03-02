@@ -8573,6 +8573,9 @@ class MoveTextDialog(Dialog):
 
 	def __init__(self, pageview, notebook, page, buffer, navigation):
 		assert buffer.get_has_selection(), 'No Selection present'
+		# save selection bounds (see #1963)
+		self.bounds = buffer.get_selection_bounds()
+
 		Dialog.__init__(
 			self,
 			pageview,
@@ -8587,12 +8590,21 @@ class MoveTextDialog(Dialog):
 
 		self.uistate.setdefault('link', True)
 		self.uistate.setdefault('open_page', False)
+		self.uistate.setdefault('short_links', pageview.notebook.config['Notebook']['short_links'])
 		self.add_form([
 			('page', 'page', _('Move text to'), page), # T: Input in 'move text' dialog
 			('link', 'bool', _('Leave link to new page')), # T: Input in 'move text' dialog
+			('short_links', 'bool', _('Prefer short link names for pages')), # T: Input in 'move text' dialog
 			('open_page', 'bool', _('Open new page')), # T: Input in 'move text' dialog
 
 		], self.uistate)
+
+		self.form.widgets['link'].connect('toggled', self.on_link_changed)
+		self.on_link_changed()
+
+	def on_link_changed(self, *a):
+		# Set short link names toggle sensitivity according to link leaving toggle
+		self.form.widgets['short_links'].set_sensitive(self.form['link'])
 
 	def do_response_ok(self):
 		newpage = self.form['page']
@@ -8605,8 +8617,7 @@ class MoveTextDialog(Dialog):
 			return False
 
 		# Copy text
-		bounds = self.buffer.get_selection_bounds()
-		if not bounds:
+		if not self.bounds:
 			ErrorDialog(self, _('No text selected')).run() # T: error message in "move selected text" action
 			return False
 
@@ -8614,20 +8625,27 @@ class MoveTextDialog(Dialog):
 			template = self.notebook.get_template(newpage)
 			newpage.set_parsetree(template)
 
-		parsetree = self.buffer.get_parsetree(bounds)
+		parsetree = self.buffer.get_parsetree(self.bounds)
 		newtree = update_parsetree_and_copy_images(parsetree, self.notebook, self.page, newpage)
 
 		newpage.append_parsetree(newtree)
 		self.notebook.store_page(newpage)
 
-		# Delete text (after copy was successfulll..)
-		self.buffer.delete(*bounds)
+		# Delete text (after copy was successfull..)
+		self.buffer.delete(*self.bounds)
+
+		# Save link format preference
+		self.uistate['short_links'] = self.form['short_links']
 
 		# Insert Link
 		self.uistate['link'] = self.form['link']
 		if self.form['link']:
-			href = self.form.widgets['page'].get_text() # TODO add method to Path "get_link" which gives rel path formatted correctly
-			self.buffer.insert_link_at_cursor(href, href)
+			href = self.form.widgets['page'].get_text()  # TODO add method to Path "get_link" which gives rel path formatted correctly
+			try:
+				text = HRef.new_from_wiki_link(href).short_name() if self.uistate['short_links'] else href
+			except ValueError:
+				text = href
+			self.buffer.insert_link_at_cursor(text, href)
 
 		# Show page
 		self.uistate['open_page'] = self.form['open_page']
