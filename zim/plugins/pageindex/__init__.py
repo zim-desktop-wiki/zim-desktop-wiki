@@ -126,11 +126,11 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		model = PageTreeStore(self.pageview.notebook.index)
 		self.treeview.set_model(model)
 
-	@action(_('Collapse Page Index'), accelerator='<Alt>K', menuhints='view') # T: menu item
+	@action(_('Collapse Page Index'), accelerator=None, menuhints='view') # T: menu item
 	def collapse(self):
 		self.treeview.collapse_all()
 
-	@action(_('Reveal current page in Page Index'), accelerator='<Alt>Y', menuhints='view') # T: menu item
+	@action(_('Reveal current page in Page Index'), accelerator=None, menuhints='view') # T: menu item
 	def reveal(self):
 		model = self.treeview.get_model()
 		try:
