@@ -50,16 +50,6 @@ bullet_line_re = re.compile(r'^(\t*)(%s)(.*$\n?)' % bullet_pattern)
 
 number_bullet_re = re.compile('^(\d+|[a-zA-Z])\.$')
 
-def check_number_bullet(bullet):
-	'''If bullet is a numbered bullet this returns the number or letter,
-	C{None} otherwise
-	'''
-	m = number_bullet_re.match(bullet)
-	if m:
-		return m.group(1)
-	else:
-		return None
-
 param_re = re.compile('([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
 	# matches parameter list for objects
 	# allow name="foo bar" and name=Foo
@@ -487,64 +477,66 @@ class WikiParser(object):
 		'''
 		if indent:
 			text = _remove_indent(text, indent)
-			attrib = {'indent': len(indent)}
+			indent = len(indent)
 		else:
 			attrib = None
 
 		lines = text.splitlines(True)
-		self.parse_list_lines(builder, lines, 0, attrib)
+		self.parse_list_lines(builder, lines, indent)
 
-	def parse_list_lines(self, builder, lines, level, attrib=None):
-		listtype = None
-		first = True
-		while lines:
-			line = lines[0]
+	def parse_list_lines(self, builder, lines, list_indent=None):
+		stack = [(None, -1)] # list type, indent
+
+		def start_list(number_m):
+			attrib = {'indent': list_indent} if (list_indent and len(stack) == 1) else None
+			if number_m:
+				l = NUMBEREDLIST
+				attrib = attrib or {}
+				attrib['start'] = number_m.group(1)
+			else:
+				l = BULLETLIST
+			builder.start(l, attrib)
+			stack.append((l, my_indent))
+
+		for line in lines:
 			m = bullet_line_re.match(line)
 			assert m, 'Line does not match a list item: >>%s<<' % line
 			prefix, bullet, text = m.groups()
+			my_indent = len(prefix)
 			bullet = bullet.rstrip()
+			number_m = number_bullet_re.match(bullet)
 
-			if first:
-				number = check_number_bullet(bullet)
-				if number:
-					listtype = NUMBEREDLIST
-					if not attrib:
-						attrib = {}
-					attrib['start'] = number
-				else:
-					listtype = BULLETLIST
-				builder.start(listtype, attrib)
-				first = False
-
-			mylevel = len(prefix)
-			if mylevel > level:
-				self.parse_list_lines(builder, lines, level + 1) # recurs
-			elif mylevel < level:
-				builder.end(listtype)
-				return
+			if my_indent > stack[-1][-1]:
+				start_list(number_m)
+			elif my_indent <= stack[-2][-1]:
+				# Check parent of current level my_indent could be lower than
+				# current level but still on same hierarchy level due to
+				# inconsistent formatting
+				l, i = stack.pop()
+				builder.end(l)
+			elif (stack[-1][0] == NUMBEREDLIST and bullet in self.BULLETS) \
+				or (stack[-1][0] == BULLETLIST and number_m):
+					# inconsistent list, break to bottom of stack and start new
+					while len(stack) > 1:
+						l, x = stack.pop()
+						builder.end(l)
+					start_list(number_m)
 			else:
-				if listtype == NUMBEREDLIST:
-					if bullet in self.BULLETS:
-						builder.end(listtype)
-						return self.parse_list_lines(builder, lines, level) # recurs
-					else:
-						attrib = None
-				else: # BULLETLIST
-					if bullet in self.BULLETS:
-						attrib = {'bullet': self.BULLETS[bullet]}
-					elif number_bullet_re.match(bullet):
-						builder.end(listtype)
-						return self.parse_list_lines(builder, lines, level) # recurs
-					else:
-						attrib = {'bullet': BULLET}
-				builder.start(LISTITEM, attrib)
-				if text: # Might be empty line apart from bullet - even no newline at end of buffer
-					self.inline_parser(builder, text)
-				builder.end(LISTITEM)
+				pass # we are at right level
 
-				lines.pop(0)
+			if stack[-1][0] == NUMBEREDLIST:
+				attrib = None
+			else: # BULLETLIST
+				attrib = {'bullet': self.BULLETS.get(bullet, BULLET)}
 
-		builder.end(listtype)
+			builder.start(LISTITEM, attrib)
+			if text: # Might be empty line apart from bullet - even no newline at end of buffer
+				self.inline_parser(builder, text)
+			builder.end(LISTITEM)
+
+		while len(stack) > 1:
+			l, x = stack.pop()
+			builder.end(l)
 
 	def parse_indent(self, builder, text, indent):
 		'''Parse indented blocks and turn them into 'div' elements'''

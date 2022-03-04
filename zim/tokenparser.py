@@ -163,7 +163,9 @@ def topLevelLists(tokens):
 	# Make tree more HTML-like:
 	# - Move UL / OL to top level, outside P
 	# - Put sub-UL / sub-OL inside LI element
-	# - Make indent blocks their own para
+	#
+	# Consider multiple lists one after the other as a single list
+	# section here - this can happen for mixed bullet + numbered list items
 	#
 	# <p><ul>...</ul></p> --> <ul>...</ul>
 	# <p><ul>...</ul>.. --> <ul>...</ul><p>..
@@ -187,13 +189,9 @@ def topLevelLists(tokens):
 
 			nexttoken = next(tokeniter)
 			while nexttoken[0] in (BULLETLIST, NUMBEREDLIST):
-				# edge case due to messed up indenting: jumping back to
-				# lower level than start of list will cause new list
 				newtokens.append(nexttoken)
 				newtokens.extend(_changeList(tokeniter))
 				nexttoken = next(tokeniter)
-
-			assert not (nexttoken[0] == END and nexttoken[1] in (BULLETLIST, NUMBEREDLIST))
 
 			if nexttoken == (END, PARAGRAPH):
 				pass
@@ -239,14 +237,14 @@ def _changeList(tokeniter):
 def reverseTopLevelLists(tokens):
 	# Undo effect of topLevelLists()
 	#
-	# <br><ul>...</ul><br> --> <p><ul>...</ul></p>
-	# <br><ul>...</ul><p>.. --> <p><ul>...</ul>..
-	# ..</p><ul>...</ul><p>.. ..<ul>...</ul>..
-	# ..</p><ul>...</ul><br> --> ..<ul>...</ul></p>
+	# Consider multiple lists one after the other as a single list
+	# section here - this can happen for mixed bullet + numbered list items
 	#
-
-	def isbr(token):
-		return token[0] == TEXT and token[1].isspace() and '\n' in token[1]
+	# ..<ul>...</ul>.. --> <p><ul>...</ul></p>
+	# ..<ul>...</ul><p>.. --> <p><ul>...</ul>..
+	# ..</p><ul>...</ul><p>.. ..<ul>...</ul>..
+	# ..</p><ul>...</ul>.. --> ..<ul>...</ul></p>
+	#
 
 	tokeniter = iter(tokens)
 	newtokens = []
@@ -261,9 +259,10 @@ def reverseTopLevelLists(tokens):
 			newtokens.extend(_reverseChangeList(tokeniter))
 
 			nexttoken = next(tokeniter)
-			if nexttoken[0] in (BULLETLIST, NUMBEREDLIST) \
-			or nexttoken[0] == END and nexttoken[1] in (BULLETLIST, NUMBEREDLIST):
-				raise AssertionError
+			while nexttoken[0] in (BULLETLIST, NUMBEREDLIST):
+				newtokens.append(nexttoken)
+				newtokens.extend(_reverseChangeList(tokeniter))
+				nexttoken = next(tokeniter)
 
 			if nexttoken[0] == PARAGRAPH:
 				pass

@@ -313,6 +313,7 @@ class ParseTree(object):
 	@classmethod
 	def new_from_tokens(klass, tokens):
 		from zim.tokenparser import TokenParser
+		tokens = list(tokens) # TODO: allow efficient use of generator here ?
 		assert tokens
 		if tokens[0][0] != FORMATTEDTEXT:
 			tokens.insert(0, (FORMATTEDTEXT, None))

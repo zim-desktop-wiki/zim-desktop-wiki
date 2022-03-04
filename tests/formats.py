@@ -498,223 +498,6 @@ test 4 5 6
 		output = self.format.Dumper().dump(t)
 		self.assertEqual(output, wanted.splitlines(True))
 
-	def testList(self):
-		def check(text, xml, wanted=None):
-			if wanted is None:
-				wanted = text
-
-			tree = self.format.Parser().parse(text)
-			#~ print('>>>\n' + tree.tostring() + '\n<<<')
-			self.assertEqual(tree.tostring(), xml)
-
-			lines = self.format.Dumper().dump(tree)
-			result = ''.join(lines)
-			#~ print('>>>\n' + result + '<<<')
-			self.assertEqual(result, wanted)
-
-
-		# Bullet list (unordered list)
-		text = '''\
-* foo
-* bar
-	* sub list
-	* here
-* hmmm
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo
-</li><li bullet="*">bar
-</li><ul><li bullet="*">sub list
-</li><li bullet="*">here
-</li></ul><li bullet="*">hmmm
-</li></ul></p></zim-tree>'''
-		check(text, xml)
-
-		# Numbered list (ordered list)
-		text = '''\
-1. foo
-2. bar
-	a. sub list
-	b. here
-3. hmmm
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="1"><li>foo
-</li><li>bar
-</li><ol start="a"><li>sub list
-</li><li>here
-</li></ol><li>hmmm
-</li></ol></p></zim-tree>'''
-		check(text, xml)
-
-		text = '''\
-A. foo
-B. bar
-C. hmmm
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="A"><li>foo
-</li><li>bar
-</li><li>hmmm
-</li></ol></p></zim-tree>'''
-		check(text, xml)
-
-		text = '''\
-10. foo
-11. bar
-12. hmmm
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="10"><li>foo
-</li><li>bar
-</li><li>hmmm
-</li></ol></p></zim-tree>'''
-		check(text, xml)
-
-
-		# Incosistent list with different checkbox types
-		text = '''\
-* foo
-[ ] bar
-* dus
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo
-</li><li bullet="unchecked-box">bar
-</li><li bullet="*">dus
-</li></ul></p></zim-tree>'''
-		wanted = '''\
-* foo
-[ ] bar
-* dus
-'''
-		check(text, xml, wanted)
-
-		# Inconsistent lists get broken in multiple lists
-		text = '''\
-1. foo
-4. bar
-* hmmm
-a. dus
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="1"><li>foo
-</li><li>bar
-</li></ol><ul><li bullet="*">hmmm
-</li></ul><ol start="a"><li>dus
-</li></ol></p></zim-tree>'''
-		wanted = '''\
-1. foo
-2. bar
-* hmmm
-a. dus
-'''
-		check(text, xml, wanted)
-
-		text = '''\
-* foo
-4. bar
-a. hmmm
-* dus
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo
-</li></ul><ol start="4"><li>bar
-</li><li>hmmm
-</li></ol><ul><li bullet="*">dus
-</li></ul></p></zim-tree>'''
-		wanted = '''\
-* foo
-4. bar
-5. hmmm
-* dus
-'''
-		check(text, xml, wanted)
-
-
-		# Mixed sub-list
-		text = '''\
-* foo
-* bar
-	1. sub list
-	2. here
-* hmmm
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo
-</li><li bullet="*">bar
-</li><ol start="1"><li>sub list
-</li><li>here
-</li></ol><li bullet="*">hmmm
-</li></ul></p></zim-tree>'''
-		check(text, xml)
-
-		# Indented list
-		text = '''\
-	* foo
-	* bar
-		1. sub list
-		2. here
-	* hmmm
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul indent="1"><li bullet="*">foo
-</li><li bullet="*">bar
-</li><ol start="1"><li>sub list
-</li><li>here
-</li></ol><li bullet="*">hmmm
-</li></ul></p></zim-tree>'''
-		check(text, xml)
-
-		# Double indent sub-list - clean up automatically
-		text = '''\
-* foo
-* bar
-		1. sub list
-		2. here
-* hmmm
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo
-</li><li bullet="*">bar
-</li><ol start="1"><ol start="1"><li>sub list
-</li><li>here
-</li></ol></ol><li bullet="*">hmmm
-</li></ul></p></zim-tree>'''
-		wanted = '''\
-* foo
-* bar
-	1. sub list
-	2. here
-* hmmm
-'''
-		check(text, xml, wanted)
-
-		# This is not a list
-		text = '''\
-foo.
-dus ja.
-1.3
-'''
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>foo.
-dus ja.
-1.3
-</p></zim-tree>'''
-		check(text, xml)
-
-
 	def testIndent(self):
 		# Test some odditied pageview can give us
 		xml = '''\
@@ -828,6 +611,262 @@ hmmm
 			else:
 				newtree = self.format.Parser().parse(wiki)
 				self.assertEqual(newtree.tostring(), xml)
+
+
+class TestWikiListParsing(tests.TestCase):
+
+	def setUp(self):
+		self.format = get_format('wiki')
+
+	def assertListParsing(self, text, xml, wanted=None):
+		if wanted is None:
+			wanted = text
+
+		tree = self.format.Parser().parse(text)
+		self.assertEqual(tree.tostring(), xml)
+
+		lines = self.format.Dumper().dump(tree)
+		result = ''.join(lines)
+		#~ print('>>>\n' + result + '<<<')
+		self.assertEqual(result, wanted)
+
+		# Ensure round trip for topLevelLists() & reverseTopLevelLists()
+		newtree = ParseTree.new_from_tokens(tree.iter_tokens())
+		self.assertEqual(newtree.tostring(), xml)
+
+	def testBulletList(self):
+		text = '''\
+* foo
+* bar
+	* sub list
+	* here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ul><li bullet="*">sub list
+</li><li bullet="*">here
+</li></ul><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
+		self.assertListParsing(text, xml)
+
+	def testNumberedList(self):
+		text = '''\
+1. foo
+2. bar
+	a. sub list
+	b. here
+3. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="1"><li>foo
+</li><li>bar
+</li><ol start="a"><li>sub list
+</li><li>here
+</li></ol><li>hmmm
+</li></ol></p></zim-tree>'''
+		self.assertListParsing(text, xml)
+
+	def testNumberedListCapitals(self):
+		text = '''\
+A. foo
+B. bar
+C. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="A"><li>foo
+</li><li>bar
+</li><li>hmmm
+</li></ol></p></zim-tree>'''
+		self.assertListParsing(text, xml)
+
+	def testNumberedListStartingNumber(self):
+		text = '''\
+10. foo
+11. bar
+12. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="10"><li>foo
+</li><li>bar
+</li><li>hmmm
+</li></ol></p></zim-tree>'''
+		self.assertListParsing(text, xml)
+
+	def testInconsistentListBulletCheckbox(self):
+		text = '''\
+* foo
+[ ] bar
+* dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="unchecked-box">bar
+</li><li bullet="*">dus
+</li></ul></p></zim-tree>'''
+		wanted = '''\
+* foo
+[ ] bar
+* dus
+'''
+		self.assertListParsing(text, xml, wanted)
+
+	def testInconsistentListNumberedBullet(self):
+		# Inconsistent lists get broken in multiple lists
+		text = '''\
+1. foo
+4. bar
+* hmmm
+a. dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="1"><li>foo
+</li><li>bar
+</li></ol><ul><li bullet="*">hmmm
+</li></ul><ol start="a"><li>dus
+</li></ol></p></zim-tree>'''
+		wanted = '''\
+1. foo
+2. bar
+* hmmm
+a. dus
+'''
+		self.assertListParsing(text, xml, wanted)
+
+	def testInconsistentListBulletNumbered(self):
+		text = '''\
+* foo
+4. bar
+a. hmmm
+* dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo
+</li></ul><ol start="4"><li>bar
+</li><li>hmmm
+</li></ol><ul><li bullet="*">dus
+</li></ul></p></zim-tree>'''
+		wanted = '''\
+* foo
+4. bar
+5. hmmm
+* dus
+'''
+		self.assertListParsing(text, xml, wanted)
+
+	def testInconsistentSubListBreaksList(self):
+		# On purpose do not use indent here to outline
+		# broken list on same level - make issue obvious instead of hiding it
+		text = '''\
+* parent
+	* foo
+	4. bar
+	a. hmmm
+	* dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">parent
+</li><ul><li bullet="*">foo
+</li></ul></ul><ol start="4"><li>bar
+</li><li>hmmm
+</li></ol><ul><li bullet="*">dus
+</li></ul></p></zim-tree>'''
+		wanted = '''\
+* parent
+	* foo
+4. bar
+5. hmmm
+* dus
+'''
+		self.assertListParsing(text, xml, wanted)
+
+	def testBulletListWithNumberedSubList(self):
+		text = '''\
+* foo
+* bar
+	1. sub list
+	2. here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ol start="1"><li>sub list
+</li><li>here
+</li></ol><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
+		self.assertListParsing(text, xml)
+
+	def testIndentedList(self):
+		text = '''\
+	* foo
+	* bar
+		1. sub list
+		2. here
+	* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul indent="1"><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ol start="1"><li>sub list
+</li><li>here
+</li></ol><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
+		self.assertListParsing(text, xml)
+
+	def testDoubleIndentSublistCleanup(self):
+		# Double indent sub-list - clean up automatically
+		text = '''\
+* foo
+* bar
+		1. sub list
+		2. here
+	3. half jump back is same level
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo
+</li><li bullet="*">bar
+</li><ol start="1"><li>sub list
+</li><li>here
+</li><li>half jump back is same level
+</li></ol><li bullet="*">hmmm
+</li></ul></p></zim-tree>'''
+		wanted = '''\
+* foo
+* bar
+	1. sub list
+	2. here
+	3. half jump back is same level
+* hmmm
+'''
+		self.assertListParsing(text, xml, wanted)
+
+	def testNotAList(self):
+		text = '''\
+foo.
+dus ja.
+1.3
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>foo.
+dus ja.
+1.3
+</p></zim-tree>'''
+		self.assertListParsing(text, xml)
 
 
 class TestGFMAutolinks(tests.TestCase):
