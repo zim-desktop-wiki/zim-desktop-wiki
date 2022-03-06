@@ -512,8 +512,9 @@ class WikiParser(object):
 				# Check parent of current level my_indent could be lower than
 				# current level but still on same hierarchy level due to
 				# inconsistent formatting
-				l, i = stack.pop()
-				builder.end(l)
+				while my_indent <= stack[-2][-1]:
+					l, i = stack.pop()
+					builder.end(l)
 			elif (stack[-1][0] == NUMBEREDLIST and bullet in self.BULLETS) \
 				or (stack[-1][0] == BULLETLIST and number_m):
 					# inconsistent list, break to bottom of stack and start new

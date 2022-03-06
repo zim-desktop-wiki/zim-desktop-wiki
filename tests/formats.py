@@ -640,6 +640,7 @@ class TestWikiListParsing(tests.TestCase):
 * bar
 	* sub list
 	* here
+		* etc
 * hmmm
 '''
 		xml = '''\
@@ -648,7 +649,8 @@ class TestWikiListParsing(tests.TestCase):
 </li><li bullet="*">bar
 </li><ul><li bullet="*">sub list
 </li><li bullet="*">here
-</li></ul><li bullet="*">hmmm
+</li><ul><li bullet="*">etc
+</li></ul></ul><li bullet="*">hmmm
 </li></ul></p></zim-tree>'''
 		self.assertListParsing(text, xml)
 
