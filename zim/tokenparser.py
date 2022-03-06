@@ -207,29 +207,31 @@ def topLevelLists(tokens):
 
 	return newtokens
 
+
 def _changeList(tokeniter):
 	# </li><ul>...</ul> --> <ul>...</ul></li>
 	newtokens = []
 	for t in tokeniter:
 		if t[0] in (NUMBEREDLIST, BULLETLIST):
-			if newtokens:
-				listend = newtokens.pop()
-				if not listend == (END, LISTITEM):
-					raise AssertionError
+			assert newtokens and newtokens[-1] == (END, LISTITEM), 'Empty parent ?'
+			newtokens.pop()
+			newtokens.append(t)
+			newtokens.extend(_changeList(tokeniter)) # recurs
+			t = next(tokeniter)
+			while t[0] in (NUMBEREDLIST, BULLETLIST):
+				# There can be multiple list after each other
 				newtokens.append(t)
 				newtokens.extend(_changeList(tokeniter)) # recurs
-				newtokens.append(listend)
+				t = next(tokeniter)
 			else:
-				# edge case, list skipped a level without LISTITEM -- remove
-				# one nesting level by recursing while dropping start and end
-				newtokens.extend(_changeList(tokeniter)) # recurs
-				if not newtokens.pop() == (END, t[0]):
-					raise AssertionError
+				newtokens.append((END, LISTITEM))
+
+		# note: no "elif" here ! can process remainder of above block
+		if t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
+			newtokens.append(t)
+			break
 		else:
 			newtokens.append(t)
-
-		if t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
-			break
 
 	return newtokens
 
@@ -280,18 +282,22 @@ def _reverseChangeList(tokeniter):
 	newtokens = []
 	for t in tokeniter:
 		if t[0] in (NUMBEREDLIST, BULLETLIST):
-			listtokens = _reverseChangeList(tokeniter) # recurs
-			liend = next(tokeniter)
-			if not liend == (END, LISTITEM):
-				raise AssertionError
-			newtokens.append(liend)
-			newtokens.append(t)
+			listtokens = [t] + _reverseChangeList(tokeniter) # recurs
+			nexttoken = next(tokeniter)
+			while nexttoken[0] in (NUMBEREDLIST, BULLETLIST):
+				# There can be multiple list after each other
+				listtokens.append(nexttoken)
+				listtokens.extend(_reverseChangeList(tokeniter)) # recurs
+				nexttoken = next(tokeniter)
+			else:
+				assert nexttoken == (END, LISTITEM), 'unexpected token: %s' % nexttoken
+			newtokens.append((END, LISTITEM))
 			newtokens.extend(listtokens)
+		elif t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
+			newtokens.append(t)
+			break
 		else:
 			newtokens.append(t)
-
-		if t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
-			break
 
 	return newtokens
 

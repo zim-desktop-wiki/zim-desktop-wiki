@@ -765,8 +765,6 @@ a. hmmm
 		self.assertListParsing(text, xml, wanted)
 
 	def testInconsistentSubListBreaksList(self):
-		# On purpose do not use indent here to outline
-		# broken list on same level - make issue obvious instead of hiding it
 		text = '''\
 * parent
 	* foo
@@ -778,16 +776,16 @@ a. hmmm
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree><p><ul><li bullet="*">parent
 </li><ul><li bullet="*">foo
-</li></ul></ul><ol start="4"><li>bar
+</li></ul><ol start="4"><li>bar
 </li><li>hmmm
 </li></ol><ul><li bullet="*">dus
-</li></ul></p></zim-tree>'''
+</li></ul></ul></p></zim-tree>'''
 		wanted = '''\
 * parent
 	* foo
-4. bar
-5. hmmm
-* dus
+	4. bar
+	5. hmmm
+	* dus
 '''
 		self.assertListParsing(text, xml, wanted)
 

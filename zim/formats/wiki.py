@@ -517,10 +517,9 @@ class WikiParser(object):
 					builder.end(l)
 			elif (stack[-1][0] == NUMBEREDLIST and bullet in self.BULLETS) \
 				or (stack[-1][0] == BULLETLIST and number_m):
-					# inconsistent list, break to bottom of stack and start new
-					while len(stack) > 1:
-						l, x = stack.pop()
-						builder.end(l)
+					# inconsistent list, break current level and start new list
+					l, x = stack.pop()
+					builder.end(l)
 					start_list(number_m)
 			else:
 				pass # we are at right level
