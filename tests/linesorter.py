@@ -141,6 +141,18 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		self.extension.move_line_down()
 		self.assertEqual(self.get_text(), 'A line\nB line\nC line\n')
 
+	def testHandleMissingNewlineAtEndForMoveUp(self):
+		self.set_text('A line\nB line\nC line')
+		self.place_cursor(18)
+		self.extension.move_line_up()
+		self.assertEqual(self.get_text(), 'A line\nC line\nB line\n')
+
+	def testHandleMissingNewlineAtEndForMoveDown(self):
+		self.set_text('A line\nB line\nC line')
+		self.place_cursor(10)
+		self.extension.move_line_down()
+		self.assertEqual(self.get_text(), 'A line\nC line\nB line\n')
+
 	def testDuplicateLine(self):
 		self.set_text('Line A\nLine B\nLine C\n')
 		self.place_cursor(10)

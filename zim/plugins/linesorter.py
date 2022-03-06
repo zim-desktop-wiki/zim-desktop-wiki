@@ -143,6 +143,14 @@ class LineSorterPageViewExtension(PageViewExtension):
 			else:
 				iter.backward_lines(abs(offset))
 			buffer.place_cursor(iter)
+
+			# Fixup line end if we move down towards end of buffer without
+			# newline at end of buffer
+			if not iter.starts_line():
+				buffer.insert_at_cursor('\n')
+				iter = buffer.get_insert_iter()
+
+			# actual insert
 			insert_line = iter.get_line()
 			buffer.insert_parsetree_at_cursor(tree)
 
