@@ -196,7 +196,10 @@ def _update_image(notebook, new_path, src_file, node):
 def _copy_image(notebook, new_path, src_file, node):
 	folder = notebook.get_page(new_path).attachments_folder
 	new_file = folder.new_file(src_file.basename)
-	src_file.copyto(new_file)
+	if src_file.exists():
+		src_file.copyto(new_file)
+	else:
+		logger.warning('File not found: %s' % src_file.userpath)
 	node.attrib['src'] = '.' + SEP + new_file.basename
 	return node
 

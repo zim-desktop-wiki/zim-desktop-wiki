@@ -394,7 +394,7 @@ some <b>bold</b> text
 
 	def testCopyPasteParseTreeWithImageInSamePage(self):
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '{{./attachment.png}}\n{{../OtherPage/otherimage.png}}')
+		page.parse('wiki', '{{./attachment.png}}\n{{../OtherPage/otherimage.png}}\n{{./broken_image.png}}')
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
@@ -403,7 +403,8 @@ some <b>bold</b> text
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
 			'<img src="./attachment.png" />\n'
-			'<img src="../OtherPage/otherimage.png" />'
+			'<img src="../OtherPage/otherimage.png" />\n'
+			'<img src="./broken_image.png" />'
 			'</p></zim-tree>'
 		) # No need to update the images
 
@@ -411,7 +412,7 @@ some <b>bold</b> text
 		self.notebook = self.setUpNotebook(name='first notebook', content=('Test',), mock=tests.MOCK_ALWAYS_REAL)
 
 		page = self.notebook.get_page(Path('Test'))
-		page.parse('wiki', '{{./attachment1.png}}\n{{attachment2.png}}\n{{../OtherPage/otherimage.png}}\n{{./../OtherPage/otherimage.png}}')
+		page.parse('wiki', '{{./attachment1.png}}\n{{attachment2.png}}\n{{../OtherPage/otherimage.png}}\n{{./../OtherPage/otherimage.png}}\n{{./broken_image.png}}')
 		page.attachments_folder.file('attachment1.png').touch()
 		page.attachments_folder.file('attachment2.png').touch()
 
@@ -420,13 +421,17 @@ some <b>bold</b> text
 			newfile = newpage.attachments_folder.file(name)
 			self.assertFalse(newfile.exists())
 
+		self.assertFalse(page.attachments_folder.file('broken_image.png').exists())
+
 		parsetree = page.get_parsetree()
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
-		newtree = Clipboard.get_parsetree(self.notebook, Path('OtherPage'))
+		with tests.LoggingFilter('zim.notebook.updater', 'File not found:'):
+			newtree = Clipboard.get_parsetree(self.notebook, Path('OtherPage'))
 		self.assertEqual(newtree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 			'<zim-tree><p>'
+			'<img src="%s" />\n'
 			'<img src="%s" />\n'
 			'<img src="%s" />\n'
 			'<img src="%s" />\n'
@@ -436,6 +441,7 @@ some <b>bold</b> text
 				os_native_path('./attachment2.png'),
 				os_native_path('./otherimage.png'),
 				os_native_path('./otherimage.png'),
+				os_native_path('./broken_image.png'),
 			)
 		)
 		# No update on two attachments, *but* file is copied

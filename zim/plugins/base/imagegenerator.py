@@ -242,7 +242,10 @@ def copy_imagegenerator_src_files(src_file, folder):
 	new_file = folder.new_file(src_file.basename, check_new_file)
 	for f in src_files:
 		new_f = _stitch_fileextension(new_file, f.basename)
-		f.copyto(new_f)
+		if f.exists():
+			f.copyto(new_f)
+		else:
+			logger.warning('File not found: %s' % f.userpath)
 
 	return new_file
 
