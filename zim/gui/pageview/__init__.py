@@ -893,7 +893,15 @@ class TextBuffer(Gtk.TextBuffer):
 
 		# Prepare
 		startoffset = iter.get_offset()
-		if not interactive:
+		indent_offset = 0
+		if interactive:
+			if iter.starts_line() and any(_is_indent_tag(t) for t in self._editmode_tags):
+				# Special case - risk of being overwritten in tree insert
+				# TODO: need to think through how to map the whole tree to indent
+				#       or at least the elements that allow it and break at first
+				#       element that does not allow it
+				indent_offset = self.get_indent(iter.get_line())
+		else:
 			self._editmode_tags = []
 		tree.decode_urls()
 
@@ -907,7 +915,7 @@ class TextBuffer(Gtk.TextBuffer):
 			self.emit('begin-insert-tree', interactive)
 			if root.text:
 				self.insert_at_cursor(root.text)
-			self._insert_element_children(root, raw=raw)
+			self._insert_element_children(root, raw=raw, indent_offset=indent_offset)
 
 			# Fix partial tree inserts
 			startiter = self.get_iter_at_offset(startoffset)
@@ -954,7 +962,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 	# emitting textstyle-changed is skipped while loading the tree
 
-	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', raw=False, textstyles=[]):
+	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', raw=False, textstyles=[], indent_offset=0):
 		# FIXME should load list_level from cursor position
 		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
 		list_iter = list_start
@@ -998,7 +1006,9 @@ class TextBuffer(Gtk.TextBuffer):
 			if element.tag in ('p', 'div'):
 				# No force line start here on purpose
 				if 'indent' in element.attrib:
-					set_indent(int(element.attrib['indent']))
+					set_indent(int(element.attrib['indent']) + indent_offset)
+				elif indent_offset:
+					set_indent(indent_offset)
 				else:
 					set_indent(None)
 
@@ -1011,7 +1021,7 @@ class TextBuffer(Gtk.TextBuffer):
 			elif element.tag in ('ul', 'ol'):
 				start = element.attrib.get('start')
 				if 'indent' in element.attrib:
-					level = int(element.attrib['indent'])
+					level = int(element.attrib['indent']) + indent_offset
 				else:
 					level = list_level + 1
 				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw,
