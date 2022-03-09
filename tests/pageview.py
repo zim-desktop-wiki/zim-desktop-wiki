@@ -3088,6 +3088,36 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.activate('apply_format_code')
 		self.assertBufferEquals(self.buffer, '<code>Test</code> 123\n')
 
+	def testApplyFormatVerbatimForLines(self):
+		# Automatic conversion of "code" to "verbatim"
+		self.buffer.set_text('line1\nline2\nline3\n')
+		start = self.buffer.get_iter_at_line(1)
+		end = self.buffer.get_iter_at_line(2)
+		self.buffer.select_range(start, end)
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, 'line1\n<pre>line2\n</pre>line3\n')
+
+	def testNotApplyFormatVerbatimForHalfLines(self):
+		# No conversion if not selected up to and *including* line end
+		# this is crucial to allow both behaviors and not block code formatting
+		# of a whole line
+		self.buffer.set_text('line1\nline2\nline3\n')
+		start = self.buffer.get_iter_at_line(1)
+		end = self.buffer.get_iter_at_line(2)
+		end.backward_chars(1)
+		self.buffer.select_range(start, end)
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, 'line1\n<code>line2</code>\nline3\n')
+
+	def testApplyFormatVerbatimForLinesPreservesWhitespaceIndent(self):
+		self.buffer.set_text('line1\n    line2\nline3\n')
+		start = self.buffer.get_iter_at_line(1)
+		end = self.buffer.get_iter_at_line(2)
+		self.buffer.select_range(start, end)
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, 'line1\n<pre>    line2\n</pre>line3\n')
+		self.assertEqual(''.join(self.pageview.page.dump('wiki')), "line1\n'''\n    line2\n'''\nline3\n")
+
 	def testApplyFormatVerbatimOnStyle(self):
 		self.buffer.set_text('line1\nline2\nline3\n')
 		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
