@@ -4830,15 +4830,23 @@ class TextView(Gtk.TextView):
 				buffer.apply_tag(tag, start, end)
 				return True
 
-		def apply_link(match, offset_end=0):
+		def apply_link(match, exclude_end=0):
 			#print("LINK >>%s<<" % word)
 			myend = end.copy()
-			myend.backward_chars(offset_end)
+			myend.backward_chars(exclude_end)
 			start = myend.copy()
 			if not start.backward_chars(len(match)):
 				return False
-			elif buffer.range_has_tags(_is_non_nesting_tag, start, myend) \
-				or buffer.range_has_tags(_is_link_tag, start, myend):
+			elif buffer.range_has_tags(_is_non_nesting_tag, start, myend):
+				return False # These do not allow overlap with link formatting
+			elif buffer.range_has_tags(_is_link_tag, start, myend):
+				if exclude_end > 0:
+					# Force excluding end of match, even if already formatted as
+					# a link - used to exclude trailing punctuation from a URL
+					# link.
+					buffer.smart_remove_tags(_is_link_tag, myend, end)
+					return True
+				else:
 					return False # No link inside a link
 			else:
 				tag = buffer._create_link_tag(match, match)
@@ -4880,7 +4888,7 @@ class TextView(Gtk.TextView):
 				m = url_re.search(word)
 				url = match_url(m.group(0))
 				tail = word[m.start()+len(url):]
-				handled = apply_link(url, offset_end=len(tail))
+				handled = apply_link(url, exclude_end=len(tail))
 		elif self.preferences['autolink_anchor'] and link_to_anchor_re.match(word) and word.startswith('#'):
 				handled = apply_link(word)
 		elif self.preferences['autolink_page'] and \

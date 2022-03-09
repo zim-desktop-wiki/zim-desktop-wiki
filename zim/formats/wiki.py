@@ -101,7 +101,8 @@ url_re = re.compile(
 	re.VERBOSE
 )
 
-url_trailing_punctuation = ('?', '!', '.', ',', ':', '*', '_', '~')
+url_trailing_punctuation = ('?', '!', '.', ',', ':', '*', '_', '~', "'", '"')
+	# do not add ";" here, it is handled separatedly in the function
 
 
 def is_url(text):

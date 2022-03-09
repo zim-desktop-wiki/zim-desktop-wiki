@@ -920,7 +920,8 @@ class TestGFMAutolinks(tests.TestCase):
 		('https://da.sharelatex.com/templates/books/springer\'s-monograph-type-svm', True, None),
 		('https://en.wikipedia.org/wiki/80/20_(framing_system)', True, None),
 		('https://bugs.kde.org/buglist.cgi?resolution=---', True, None),
-		('https://vimhelp.org/options.txt.html#\'iskeyword\'', True, None),
+		#('https://vimhelp.org/options.txt.html#\'iskeyword\'', True, None),
+		#	-> this example is overruled by new behavior
 		('https://example.com/foo]', True, None),
 
 		# Zim extensions

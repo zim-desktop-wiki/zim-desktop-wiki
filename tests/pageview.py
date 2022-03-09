@@ -2601,6 +2601,24 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 	def testAutoFormatURLMatchingBracket(self):
 		self.assertTyping('(www.google.com/search?q=Markup+(business)) ', '(<link href="">www.google.com/search?q=Markup+(business)</link>) ')
 
+	def testAutoFormatURLQuotes(self):
+		self.assertTyping('"http://test.com" ', '"<link href="">http://test.com</link>" ')
+
+	def testAutoStripURLQuotes(self):
+		# If the link already exists and we type trailing punctuation, it should
+		# be stripped from the link
+		self.set_buffer(self.buffer, '"<link href="">http://test.com</link>')
+		self.assertTyping('" ', '"<link href="">http://test.com</link>" ')
+
+	def testAutoFormatURLPunctuation(self):
+		self.assertTyping('http://test.com. ', '<link href="">http://test.com</link>. ')
+
+	def testAutoStripURLPunctuation(self):
+		# If the link already exists and we type trailing punctuation, it should
+		# be stripped from the link
+		self.set_buffer(self.buffer, '<link href="">http://test.com</link>')
+		self.assertTyping('. ', '<link href="">http://test.com</link>. ')
+
 	def testAutoFormatEmail(self):
 		self.assertTyping('hello+xyz@mail.example ', '<link href="">hello+xyz@mail.example</link> ')
 
