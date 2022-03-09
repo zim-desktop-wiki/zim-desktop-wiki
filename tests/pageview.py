@@ -806,6 +806,44 @@ C
 		buffer.insert_at_cursor('test 123')
 		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>test 123')
 
+	def testMoveHeadingOnNewlineAtStart(self):
+		# Newline at start of heading should not result in empty line
+		# with heading tag, insetad move heading down and leave normal line
+		buffer = self.get_buffer('<h level="1">Heading\n</h>')
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+
+		buffer.place_cursor(buffer.get_iter_at_offset(0))
+		with buffer.user_action:
+			buffer.insert_at_cursor('\n')
+		self.assertBufferEquals(buffer, '\n<h level="1">Heading\n</h>')
+		with buffer.user_action:
+			buffer.insert_at_cursor('test 123')
+		self.assertBufferEquals(buffer, '\n<h level="1">test 123Heading\n</h>')
+
+		# Check undo stack since this is special case in do_insert_text()
+		buffer.undostack.undo()
+		self.assertBufferEquals(buffer, '\n<h level="1">Heading\n</h>')
+		buffer.undostack.undo()
+		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+
+	def testMoveIndentOnNewlineAtStart(self):
+		buffer = self.get_buffer('<div indent="2">Test 123\n</div>')
+		self.assertBufferEquals(buffer, '<div indent="2">Test 123\n</div>')
+
+		buffer.place_cursor(buffer.get_iter_at_offset(0))
+		with buffer.user_action:
+			buffer.insert_at_cursor('\n')
+		self.assertBufferEquals(buffer, '\n<div indent="2">Test 123\n</div>')
+
+	def testMoveVerbatimBlockOnNewlineAtStart(self):
+		buffer = self.get_buffer('<pre>Test 123\n</pre>')
+		self.assertBufferEquals(buffer, '<pre>Test 123\n</pre>')
+
+		buffer.place_cursor(buffer.get_iter_at_offset(0))
+		with buffer.user_action:
+			buffer.insert_at_cursor('\n')
+		self.assertBufferEquals(buffer, '\n<pre>Test 123\n</pre>')
+
 	def testFindAnchor(self):
 		buffer = self.get_buffer()
 		self.assertIsNone(buffer.find_anchor('test'))

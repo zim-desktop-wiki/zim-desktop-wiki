@@ -2457,6 +2457,16 @@ class TextBuffer(Gtk.TextBuffer):
 				if not end.equal(iter):
 					self.smart_remove_tags(_is_heading_tag, iter, end)
 				self._editmode_tags = list(filter(_is_not_heading_tag, self._editmode_tags))
+		elif not self._insert_tree_in_progress and string == '\n' \
+			and any(_is_line_based_tag(t) for t in self._editmode_tags):
+				# Check whether we inserted empty line in fron of line based block
+				# ('h', 'div' or 'pre') and if so remove formatting on empty line
+				# effectively moving block down.
+				start = iter.copy()
+				start.backward_char()
+				if start.starts_line():
+					# empty line, so did not break in the middle of the line
+					self.smart_remove_tags(_is_line_based_tag, start, iter)
 
 	def insert_child_anchor(self, iter, anchor):
 		# Make sure we always apply the correct tags when inserting an object
