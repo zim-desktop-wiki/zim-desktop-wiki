@@ -8,12 +8,12 @@ on:
       - develop
 
 jobs:
-  test:
+  test_linux:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         python-version: ["3.6", "3.10"]
 
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
@@ -32,42 +32,19 @@ jobs:
           sudo apt-get install -qq -y gir1.2-gtk-3.0 gobject-introspection libgirepository1.0-dev xvfb
         if: matrix.os == 'ubuntu-latest'
 
-      - name: Install Windows MSYS2
-        uses: msys2/setup-msys2@v2
-        if: matrix.os == 'windows-latest'
-
-      - name: Install Windows system dependencies
-        shell: msys2 {0}
-        run: |
-          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject
-        if: matrix.os == 'windows-latest'
-
-      - name: Install python dependencies
+      - name: Install Python dependencies
         run: |
           pip install PyGObject
           pip install pyxdg
 
-      - name: Configure git (Ubuntu)
+      - name: Configure git
         run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
-        if: matrix.os == 'ubuntu-latest'
 
-      - name: Configure git (Windows)
-        shell: msys2 {0}
-        run: |
-          git config --global user.email "you@example.com"
-          git config --global user.name "Your Name"
-        if: matrix.os == 'windows-latest'
-
-      - name: Test Ubuntu
+      - name: Test ${{ matrix.os }}
         run: xvfb-run ./test.py
-        if: matrix.os == 'ubuntu-latest'
 
-      - name: Test Windows
-        shell: msys2 {0}
-        run: python ./test.py
-        if: matrix.os == 'windows-latest'
 
   test_macos:
     runs-on: macos-10.15
@@ -109,3 +86,31 @@ jobs:
         env:
           VER_DIR: ${{ steps.dependencies.outputs.VER_DIR }}
           SYS_IGNORE_USR_LOCAL: true
+
+
+  test_windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+    
+    name: MSYS2 Python 3.x on windows-latest
+    steps:
+      - uses: actions/checkout@v2
+    
+      - name: Install MSYS2
+        uses: msys2/setup-msys2@v2
+
+      - name: Install system dependencies
+        shell: msys2 {0}
+        run: |
+          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python-xdg
+
+      - name: Configure git
+        shell: msys2 {0}
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+
+      - name: Test Windows
+        shell: msys2 {0}
+        run: python ./test.py
