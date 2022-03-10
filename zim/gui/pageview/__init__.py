@@ -6763,7 +6763,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			item = Gtk.MenuItem.new_with_mnemonic(_('Open With...'))
 				# T: menu item for sub menu with applications
 			menu.prepend(item)
-			if file.exists():
+			if FilePath.exists(file):
 				submenu = OpenWithMenu(self, file)
 				item.set_submenu(submenu)
 			else:
@@ -6793,7 +6793,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		item = Gtk.MenuItem.new_with_mnemonic(_('_Open'))
 			# T: menu item to open a link or file
-		if file and not file.exists():
+		if file and not FilePath.exists(file):
 			item.set_sensitive(False)
 		else:
 			item.connect_object(
