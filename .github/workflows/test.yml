@@ -8,13 +8,11 @@ on:
       - develop
 
 jobs:
-  build:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # disable macos until #1797 is fixed
-        #os: [macos-latest, ubuntu-latest, windows-latest]
         os: [ubuntu-latest, windows-latest]
         python-version: ["3.6", "3.10"]
 
@@ -27,11 +25,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
-
-      - name: Install MacOS system dependencies
-        run: |
-          brew install gtk+3 pygobject3
-        if: matrix.os == 'macos-latest'
 
       - name: Install Ubuntu system dependencies
         run: |
@@ -54,11 +47,11 @@ jobs:
           pip install PyGObject
           pip install pyxdg
 
-      - name: Configure git (Ubuntu & MacOS)
+      - name: Configure git (Ubuntu)
         run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'ubuntu-latest'
 
       - name: Configure git (Windows)
         shell: msys2 {0}
@@ -66,10 +59,6 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
         if: matrix.os == 'windows-latest'
-
-      - name: Test MacOS
-        run: python3 ./test.py
-        if: matrix.os == 'macos-latest'
 
       - name: Test Ubuntu
         run: xvfb-run ./test.py
@@ -79,3 +68,44 @@ jobs:
         shell: msys2 {0}
         run: python ./test.py
         if: matrix.os == 'windows-latest'
+
+  test_macos:
+    runs-on: macos-10.15
+    env:
+      # a fixed path is required to use precompiled dependencies
+      WRK_DIR: /Users/Shared/work
+
+    name: Python 3.x on macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure git
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+
+      # Install the latests version of the same dependencies that are used to
+      # create the app. Determine the canoncial path and store it in VER_DIR
+      # (e.g. "/Users/Shared/work/jhb-0.4"). Run a reconfiguration to adapt
+      # to the system this is running on (path to MacOSX.sdk).
+      - name: Install dependencies
+        id: dependencies
+        run: |
+          mkdir $WRK_DIR
+          curl -L https://gitlab.com/dehesselle/zim_macos/-/jobs/artifacts/master/raw/jhb-zim.tar.xz?job=build_zim:elcapitan | tar -C $WRK_DIR -xpJ
+          VER_DIR=$(echo $WRK_DIR/jhb-*)
+          echo "::set-output name=VER_DIR::$VER_DIR"
+          source $VER_DIR/etc/jhb.conf.sh
+          source $VER_DIR/usr/src/jhb/jhbuild.sh
+          jhbuild_configure
+
+      # Remove GraphViz ("dot") to skip testing "Diagram Editor" plugin (that
+      # test isn't run on any other platform and appears to be broken.) and
+      # run the test suite.
+      - name: Test macOS
+        run: |
+          rm $VER_DIR/bin/dot
+          $VER_DIR/usr/bin/jhb run python3 $(pwd)/test.py
+        env:
+          VER_DIR: ${{ steps.dependencies.outputs.VER_DIR }}
+          SYS_IGNORE_USR_LOCAL: true
