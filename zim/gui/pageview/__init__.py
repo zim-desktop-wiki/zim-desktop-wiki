@@ -172,6 +172,9 @@ ui_preferences = (
 	('follow_on_enter', 'bool', 'Interface',
 		_('Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)'), True),
 		# T: option in preferences dialog
+	('show_link_label', 'bool', 'Interface',
+		_('Preview link destination in overlay'), True),
+		# T: option in preferences dialog
 	('read_only_cursor', 'bool', 'Interface',
 		_('Show the cursor also for pages that can not be edited'), False),
 		# T: option in preferences dialog
@@ -5940,6 +5943,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.preferences.define(
 			show_edit_bar=Boolean(True),
 			follow_on_enter=Boolean(True),
+			show_link_label=Boolean(True),
 			read_only_cursor=Boolean(False),
 			autolink_camelcase=Boolean(True),
 			autolink_page=Boolean(True),
@@ -5982,10 +5986,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.textview.connect_object('link-clicked', PageView.activate_link, self)
 		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
-		self.textview.connect('link-enter', self.on_link_enter)
-		self.textview.connect('link-leave', self.on_link_leave)
-		self.connect('link-caret-enter', self.on_link_enter)
-		self.connect('link-caret-leave', self.on_link_leave)
+		self._overlay_handlers = ()  # holds signal handler ids
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.textview)
@@ -6070,6 +6071,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.textview.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 		self._set_edit_bar_visible(self.preferences['show_edit_bar'])
+		self._set_overlay_visibility(self.preferences['show_link_label'])
 
 	def on_text_style_changed(self, *a):
 		'''(Re-)intializes properties for TextView, TextBuffer and
@@ -6175,6 +6177,24 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		window = self.get_toplevel()
 		if window and window != self:
 			window.connect('set-focus', set_actiongroup_sensitive)
+
+	def _set_overlay_visibility(self, show_overlay):
+		# Determines whether link overlay shows up on mouseover/caret
+		# according to user preference; doesn't toggle it
+		if show_overlay and not self._overlay_handlers:
+			self._overlay_handlers = (
+					self.textview.connect('link-enter', self.on_link_enter),
+					self.textview.connect('link-leave', self.on_link_leave),
+					self.connect('link-caret-enter', self.on_link_enter),
+					self.connect('link-caret-leave', self.on_link_leave)
+					)
+		elif not show_overlay and self._overlay_handlers:
+			self.textview.disconnect(self._overlay_handlers[0])
+			self.textview.disconnect(self._overlay_handlers[1])
+			self.disconnect(self._overlay_handlers[2])
+			self.disconnect(self._overlay_handlers[3])
+			self._overlay_handlers = ()
+			self._overlay_label.hide()  # in case one is shown while toggling preferences
 
 	def on_link_enter(self, view, link):
 		if link_type(link['href']) == 'page':
