@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2021-12-14 20:51+0000\n"
+"PO-Revision-Date: 2022-03-12 14:39+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
-"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/"
-">\n"
+"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/master/hu/>"
+"\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.10-dev\n"
+"X-Generator: Weblate 4.12-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
@@ -782,29 +782,23 @@ msgstr "A \"CamelCase\" szavak automatikusan hivatkozások lesznek"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:182
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn wiki page names into links"
-msgstr "A fájl elérési utak automatikusan hivatkozások lesznek"
+msgstr "A wiki oldalak neveit automatikusan hivatkozásokká alakítja át"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:185
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn identifiers starting with \"#\" into links"
-msgstr "A fájl elérési utak automatikusan hivatkozások lesznek"
+msgstr "A '#'-el kezdődő azonosítókat automatikusan hivatkozásokká alakítja át"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:188
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn interwiki names into links"
-msgstr "A fájl elérési utak automatikusan hivatkozások lesznek"
+msgstr "Az interwiki neveket automatikusan hivatkozásokká alakítja át"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
 msgid "Automatically turn file paths into links"
-msgstr "A fájl elérési utak automatikusan hivatkozások lesznek"
+msgstr "A fájl elérési utakat automatikusan hivatkozásokká alakítja át"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:194
@@ -3359,7 +3353,7 @@ msgstr "Általános lábléc"
 #. menu item
 #: zim/plugins/scoreeditor.py:68
 msgid "Musical Score"
-msgstr ""
+msgstr "Zenei kotta"
 
 #. plugin name | 
 #. dialog title
