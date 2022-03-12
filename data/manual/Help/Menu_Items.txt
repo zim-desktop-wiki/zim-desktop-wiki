@@ -269,6 +269,9 @@ Open a list with recently changed pages and the time stamps of the last modifica
 **Word Count**
 Show number of lines, words, characters if current page, paragraph and selection.
 
+**Move selected text**
+Opens a dialog which allows moving the current text selection to another page and optionally leave a link to the destination page. Similar to cut-and-paste but as a direct action.
+
 **Check Spelling <F7>**
 Turn on spell checking.
 

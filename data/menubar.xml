@@ -118,6 +118,7 @@
 		</menu>
 		<menu action='tools_menu'>
 			<menuitem action='show_word_count'/>
+			<menuitem action='move_text'/>
 			<placeholder name='page_tools'/>
 			<separator/>
 			<menuitem action='open_attachments_folder'/>

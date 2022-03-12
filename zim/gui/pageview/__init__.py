@@ -6711,8 +6711,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# FIXME get code from test to seek stock item
 
 		if buffer.get_has_selection():
-			item.connect('activate',
-				lambda o: MoveTextDialog(self, self.notebook, self.page, buffer, self.navigation).run())
+			item.connect('activate', lambda o: self.move_text())
 		else:
 			item.set_sensitive(False)
 		###
@@ -7457,6 +7456,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			return buffer.select_line()
 		else:
 			return buffer.select_word()
+
+	@action(_('Move selected text...')) # T: Menu item
+	def move_text(self):
+		buffer = self.textview.get_buffer()
+		MoveTextDialog(self, self.notebook, self.page, buffer, self.navigation).run()
 
 	def find(self, string, flags=0):
 		'''Find some string in the text, scroll there and select it
