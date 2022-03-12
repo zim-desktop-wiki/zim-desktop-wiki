@@ -699,15 +699,36 @@ C
 		end = iter.copy()
 		end.forward_char()
 		buffer.place_cursor(iter)
-		buffer.delete_interactive(iter, end, True)
 
+		with buffer.user_action:
+			buffer.delete_interactive(iter, end, True)
+		self.assertBufferEquals(buffer, output)
+
+		# Check undo / redo of special handling of bullets at merge - see issue #1949
+		buffer.undostack.undo()
+		self.assertBufferEquals(buffer, input)
+		buffer.undostack.redo()
 		self.assertBufferEquals(buffer, output)
 
 	def testMergeLinesWithBullet(self):
 		# Ensure that bullet of line 2 is removed, in raw tree also the space is gone
 		self.assertMergeLines(
-			'<li bullet="*" indent="0"> item 1\n</li><li> item 2\n</li>',
+			'<li bullet="*" indent="0"> item 1\n</li><li bullet="*" indent="0"> item 2\n</li>',
 			'<li bullet="*" indent="0"> item 1item 2\n</li>'
+		)
+
+	def testMergeLinesWithNumberedBullet(self):
+		# Ensure that bullet of line 2 is removed, in raw tree also the space is gone
+		self.assertMergeLines(
+			'<li bullet="1." indent="0"> item 1\n</li><li bullet="2." indent="0"> item 2\n</li>',
+			'<li bullet="1." indent="0"> item 1item 2\n</li>'
+		)
+
+	def testMergeLinesWithBulletWithNotABullet(self):
+		# Check numer at start of 2nd bullet is preserved - see issue #1949
+		self.assertMergeLines(
+			'<li bullet="*" indent="0"> item 1\n</li><li bullet="*" indent="0"> 1. item 2\n</li>',
+			'<li bullet="*" indent="0"> item 11. item 2\n</li>'
 		)
 
 	def testMergeLinesWithNotABulletWithoutNewline(self):

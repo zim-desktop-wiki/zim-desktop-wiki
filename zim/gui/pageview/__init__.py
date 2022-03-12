@@ -736,6 +736,7 @@ class TextBuffer(Gtk.TextBuffer):
 		self.notebook = notebook
 		self.page = page
 		self._insert_tree_in_progress = False
+		self._raw_delete_ongoing = False
 		self._deleted_editmode_mark = None
 		self._deleted_line_end = False
 		self._check_renumber = []
@@ -2526,6 +2527,9 @@ class TextBuffer(Gtk.TextBuffer):
 		# Therefore we set a mark to remember the formatting and clear it
 		# at the end of a user action, or with the next insert at a different
 		# location
+		if self._raw_delete_ongoing:
+			return
+
 		if self._deleted_editmode_mark:
 			self.delete_mark(self._deleted_editmode_mark)
 		self._deleted_editmode_mark = self.create_mark(None, end, left_gravity=True)
@@ -2538,6 +2542,8 @@ class TextBuffer(Gtk.TextBuffer):
 		# Post handler to hook _do_lines_merged and do some logic
 		# when deleting bullets
 		# Note that 'start' and 'end' refer to the same postion here ...
+		if self._raw_delete_ongoing:
+			return
 
 		was_list = any(
 			t for t in start.get_tags()
@@ -5437,9 +5443,9 @@ class UndoStackManager:
 				tree = self.buffer.get_parsetree((iter, bound), raw=True)
 				#~ print('REAL', tree.tostring())
 				with self.buffer.user_action:
+					self.buffer._raw_delete_ongoing = True # XXX
 					self.buffer.delete(iter, bound)
-					self.buffer._check_renumber = []
-						# Flush renumber check - HACK to avoid messing up the stack
+					self.buffer._raw_delete_ongoing = False # XXX
 				if tree.tostring() != data.tostring():
 					logger.warn('Mismatch in undo stack\n%s\n%s\n', tree.tostring(), data.tostring())
 			elif action == self.ACTION_APPLY_TAG:
