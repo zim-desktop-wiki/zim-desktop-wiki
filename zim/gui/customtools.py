@@ -328,8 +328,6 @@ class CustomToolDict(DesktopEntryDict):
 
 		return tuple(cmd)
 
-	_cmd = parse_exec # To hook into Application.spawn and Application.run
-
 	def run(self, notebook, page, pageview=None):
 		args = (notebook, page, pageview)
 		cwd = page.source_file.parent()

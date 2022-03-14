@@ -124,8 +124,18 @@ def _unescape_quoted_string(string):
 		return string
 
 
+class ApplicationLookUpError(zim.errors.Error):
+	'''Error raised when an application is not found'''
+
+	description = None
+
+	def __init__(self, cmd):
+		self.msg = _('Cound not find application: %s') % cmd
+			# T: Error message when external application could not be found, %s is the command
+
+
 class ApplicationError(zim.errors.Error):
-	'''Error raises for error in sub process errors'''
+	'''Error raised for errors in the sub process'''
 
 	description = None
 

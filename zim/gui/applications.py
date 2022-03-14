@@ -32,7 +32,7 @@ from zim.config import XDG_CONFIG_HOME, XDG_CONFIG_DIRS, XDG_DATA_HOME, XDG_DATA
 	data_dirs, SectionedConfigDict, INIConfigFile, Boolean, ConfigManager
 from zim.parsing import uri_scheme, is_win32_share_re, \
 	normalize_win32_share, is_win32_share_re, is_url_re, is_uri_re, is_www_link_re
-from zim.applications import Application, WebBrowser, StartFile, split_quoted_strings
+from zim.applications import Application, WebBrowser, StartFile, split_quoted_strings, ApplicationLookUpError
 from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, QuestionDialog, strip_boolean_result
 
 
@@ -821,6 +821,31 @@ class Boolean(BaseBoolean):
 		return str(value).lower()
 
 
+class TerminalLookUpError(ApplicationLookUpError):
+
+	def __init__(self, cmd):
+		self.msg = _('Cound not find terminal emulator to run application: %s') % cmd
+			# T: Error message when external application could not be run in terminal, %s is the command
+
+
+_terminal_commands = (
+	('xdg-terminal'),
+	#('x-terminal-emulator', '-x'), # Testing shows "-x" does not work as advertised :(
+	('gnome-terminal', '-x'),
+	('xterm', '-e'),
+)
+
+def _get_terminal_command(appcmd):
+	# Intended as *minimal* implementation for getting a terminal emulator.
+	# Since there is no spec how to do this lookup, don't add any complexity
+	# here other than maybe a switch per OS. Instead pull-in xdg-terminal as
+	# dependency if more sophisticated logic is needed.
+	for cmd in _terminal_commands:
+		if Application(cmd).tryexec():
+			return cmd + tuple(appcmd)
+	else:
+		raise TerminalLookUpError(appcmd[0])
+
 
 class DesktopEntryDict(SectionedConfigDict, Application):
 	'''Base class for L{DesktopEntryFile}, defines most of the logic.
@@ -908,6 +933,10 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		return self['Desktop Entry'].get('NoDisplay', False)
 
 	@property
+	def needsterminal(self):
+		return self['Desktop Entry'].get('Terminal', False)
+
+	@property
 	def tryexeccmd(self):
 		return self['Desktop Entry'].get('TryExec')
 
@@ -948,7 +977,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		@param args: list of either URLs or L{File} objects
 		@returns: the full command to execute as a tuple
 		'''
-		# The XDG Desktop Entry spec specifies repalcement of field codes when
+		# The XDG Desktop Entry spec specifies replacement of field codes when
 		# they appear as a single argument. Handling of field codes inside
 		# arguments is explicitly left undefined. Users seem to expect these
 		# to work, so at least interpolate the values that expand to a single
@@ -1011,12 +1040,17 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 				word = re.sub('%%|%[fukc]', sub_field_code, word)
 				cmd.append(word)
 
-		if not seen_arg_code:
+		if not seen_arg_code and args:
 			cmd.extend([str(a) for a in args])
 
 		return tuple(cmd)
 
-	_cmd = parse_exec # To hook into Application.spawn and Application.run
+	def _cmd(self, args):
+		# Hook into Application.spawn and Application.run
+		cmd = self.parse_exec(args)
+		if self.needsterminal:
+			cmd = _get_terminal_command(cmd)
+		return cmd
 
 	def update(self, E=(), **F):
 		'''Same as C{dict.update()}'''

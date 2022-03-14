@@ -165,6 +165,33 @@ class TestApplications(tests.TestCase):
 	# see that json.loads does what it is supposed to do
 
 
+class TestTerminalCommand(tests.TestCase):
+
+	@tests.skipUnless(Application(('ls',)).tryexec(), 'Missing dependency')
+	def testLookUpTerminalOK(self):
+		# Using 'ls' as arbitrairy command we always expect to succeed
+		import zim.gui.applications
+		zim.gui.applications._terminal_commands = [('ls', '-la')]
+		cmd = zim.gui.applications._get_terminal_command(['foo', '-x'])
+		self.assertEqual(cmd, ('ls', '-la', 'foo', '-x'))
+
+		app = DesktopEntryDict()
+		app.update(Exec='foo -x', Terminal='true')
+		cmd = app._cmd([])
+		self.assertEqual(cmd, ('ls', '-la', 'foo', '-x'))
+
+	def testLookUpTerminalNOK(self):
+		import zim.gui.applications
+		zim.gui.applications._terminal_commands = [('non_existing_application', '-x')]
+		with self.assertRaises(TerminalLookUpError):
+			cmd = zim.gui.applications._get_terminal_command(['foo', '-x'])
+
+		app = DesktopEntryDict()
+		app.update(Exec='foo -x', Terminal='true')
+		with self.assertRaises(TerminalLookUpError):
+			cmd = app._cmd([])
+
+
 @tests.slowTest
 class TestApplicationManager(tests.TestCase):
 
