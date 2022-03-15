@@ -514,25 +514,6 @@ class ParseTree(object):
 			root.text = None
 			root.insert(0, heading)
 
-	def remove_heading(self, level=-1):
-		'''If the tree starts with a heading, remove it and any trailing
-		whitespace.
-		Will modify the tree.
-		@returns: a 2-tuple of text and heading level or C{(None, None)}
-		'''
-		root = self._etree.getroot()
-		roottext = root.text and not root.text.isspace()
-		children = list(root)
-
-		if children and not roottext:
-			first = children[0]
-			if first.tag == 'h':
-				mylevel = int(first.attrib['level'])
-				if level == -1 or mylevel <= level:
-					root.remove(first)
-					if first.tail and not first.tail.isspace():
-						root.text = first.tail # Keep trailing text
-
 	def cleanup_headings(self, offset=0, max=6):
 		'''Change the heading levels throughout the tree. This makes sure that
 		al headings are nested directly under their parent (no gaps in the
@@ -667,6 +648,56 @@ class ParseTree(object):
 				tokens.append(t)
 
 		return ParseTree.new_from_tokens(tokens)
+
+
+def split_heading_from_parsetree(parsetree, keep_head_token=True):
+	'''Helper function to split the header from a L{ParseTree}
+	Looks for a header at the start of a page and strips empty lines after it.
+	Returns two L{ParseTree} objects: one for the header (can be C{None}) and
+	one for the main body of the content.
+	'''
+	from zim.tokenparser import collect_until_end_token
+
+	token_iter = parsetree.iter_tokens()
+	heading = []
+	body = []
+	for t in token_iter:
+		if t[0] == FORMATTEDTEXT:
+			pass
+		elif t[0] == HEADING:
+			heading.append(t)
+			heading.extend(collect_until_end_token(token_iter, HEADING))
+			heading.append((END, HEADING))
+			break
+		elif t[0] == TEXT and t[1].isspace():
+			pass
+		else:
+			body.append(t)
+			break
+
+	if not body:
+		for t in token_iter:
+			if t[0] == TEXT and t[1].isspace():
+				pass
+			else:
+				body.append(t)
+				break
+
+	body.extend(list(token_iter))
+	if body[-1] == (END, FORMATTEDTEXT):
+		body.pop()
+
+	if heading:
+		if not keep_head_token:
+			heading = heading[1:-1]
+			if heading[-1][0] == TEXT:
+				if heading[-1][1] == '\n':
+					heading.pop()
+				elif heading[-1][1].endswith('\n'):
+					heading[-1] = (TEXT, heading[-1][1][:-1])
+		return (ParseTree.new_from_tokens(heading), ParseTree.new_from_tokens(body))
+	else:
+		return (None, ParseTree.new_from_tokens(body))
 
 
 class ParseTreeBuilder(Builder):

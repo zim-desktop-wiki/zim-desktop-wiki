@@ -88,7 +88,8 @@ from zim.newfs import format_file_size
 from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
 from zim.formats import ParseTree, ParseTreeBuilder, \
-	FORMATTEDTEXT, PARAGRAPH, BULLETLIST, LISTITEM, STRONG, LINK, HEADING, END
+	FORMATTEDTEXT, PARAGRAPH, BULLETLIST, LISTITEM, STRONG, LINK, HEADING, END, \
+	split_heading_from_parsetree
 
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
@@ -414,7 +415,11 @@ class ParseTreeProxy(object):
 	@property
 	def heading(self):
 		head, body = self._split_head()
-		return head
+		if head:
+			lines = self._dumper.dump(head)
+			return ''.join(lines)
+		else:
+			return ''
 
 	@property
 	def body(self):
@@ -443,13 +448,11 @@ class ParseTreeProxy(object):
 
 	def _split_head(self):
 		if not hasattr(self, '_severed_head'):
+			self._severed_head = (None, None)
 			if self._tree:
-				tree = self._tree.copy()
-				head = tree.get_heading_text()
-				tree.remove_heading()
-				self._severed_head = (head, tree)
-			else:
-				self._severed_head = (None, None)
+				head, tree = split_heading_from_parsetree(self._tree, keep_head_token=False)
+				if head:
+					self._severed_head = (head, tree)
 
 		return self._severed_head
 
@@ -471,7 +474,10 @@ class PageProxy(ParseTreeProxy):
 
 	@property
 	def title(self):
-		return self.heading or self.basename
+		if self._tree:
+			return self._tree.get_heading_text() or self.basename
+		else:
+			return self.basename
 
 	@ExpressionFunction
 	def headings(self, max_level=None):

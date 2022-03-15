@@ -324,6 +324,31 @@ class TestExportTemplateContext(tests.TestCase):
 
 
 
+class TestPageProxyWithFormattedHeading(tests.TestCase):
+
+	CONTENT = {
+		'test': '''\
+======= This is a **heading** with __formatting__ =======
+
+Some content here
+'''
+	}
+
+	def runTest(self):
+		from zim.formats import StubLinker
+		notebook = self.setUpNotebook(content=self.CONTENT)
+		page = notebook.get_page(Path('test'))
+		dumper = get_format('html').Dumper()
+		linker = StubLinker()
+		proxy = PageProxy(notebook, page, dumper, linker)
+
+		self.assertEqual(proxy.title, 'This is a heading with formatting')
+		self.assertEqual(proxy.heading, 'This is a <b>heading</b> with <u>formatting</u>')
+		self.assertIsInstance(proxy.body, str)
+		self.assertTrue(proxy.body.startswith('<p>'))
+		self.assertIsInstance(proxy.content, str)
+		self.assertTrue(proxy.content.startswith('<h1>'))
+
 
 class TestPageSelections(tests.TestCase):
 
