@@ -6,7 +6,7 @@ from zim.newfs.helpers import FSObjectMonitor
 from zim.newfs.base import _md5
 
 from gi.repository import GObject, Gtk
-import zim.plugins.merger.diffs
+import zim.plugins.diskmerger.diffs
 
 import os, stat
 import logging
@@ -50,9 +50,11 @@ class ConfirmDialog(Dialog):
         return 1
     def do_keep_disk(self, btn):
         self.parent.merge_changes = 'disk'
+        self.close()
         return 1
     def do_keep_buffer(self, btn):
         self.parent.merge_changes = 'buffer'
+        self.close()
         return 1
 
 
@@ -150,6 +152,8 @@ class MergerPageViewExtension(PageViewExtension):
             elif self.merge_changes == 'merge':
                 newlines = self.get_merged_text(bufferlines, disklines)
                 self.merge_disk_in_buffer(newlines,disk_etag)
+            elif self.merge_changes == 'buffer':
+                page.set_modified(True)
             page._last_etag = disk_etag #enable saving without errors
             self.old_etag = disk_etag
         
