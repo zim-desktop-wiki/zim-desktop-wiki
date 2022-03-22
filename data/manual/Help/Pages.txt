@@ -13,7 +13,7 @@ Page names use a ":" as a path separator for pages that are nested in the hierar
 `--- Bar
 '''
 
-Use double quotation marks for longer page names [[foo:"This is a child page of foo"]].
+Use always brackets for longer page names or put them between double quotes [[foo:+This is a child page of foo]].
 
 The parent page is sometimes also referred to as a notebook "section" in which the page is store. So in this case the page "Bar" is said to be part of the section "Foo". Which is the same as saying that "Bar" is a sub-page of "Foo". Sections can be used to organize notebooks. Also sometimes sections are used for special purposes, for example the [[Plugins:Journal|Journal plugin]] uses a section like ":Journal:" to contain all journal pages.
 
