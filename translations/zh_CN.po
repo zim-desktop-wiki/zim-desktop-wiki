@@ -8,16 +8,17 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2019-03-29 01:16+0000\n"
-"Last-Translator: Tian Xie <txie@live.cn>\n"
-"Language-Team: Simplified Chinese <zh_CN@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2022-04-04 14:12+0000\n"
+"Last-Translator: Antony <que0601@foxmail.com>\n"
+"Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
+"master/zh_Hans/>\n"
+"Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 4.12-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
@@ -572,7 +573,7 @@ msgstr "笔记本可编辑(_E)"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "只读页面，不可编辑"
 
 #. Menu item
 #: zim/gui/mainwindow.py:256
@@ -631,7 +632,7 @@ msgstr "后退(_B)"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:776
 msgid "Go back"
-msgstr ""
+msgstr "返回"
 
 #. Menu item | 
 #. Button label
@@ -678,7 +679,7 @@ msgstr "主页(_H)"
 #. Menu item
 #: zim/gui/mainwindow.py:842
 msgid "Go to home page"
-msgstr ""
+msgstr "返回首页"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:864
@@ -763,8 +764,9 @@ msgstr "新附件(_A)"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:170
+#, fuzzy
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "‎在编辑器底部显示编辑栏‎"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
@@ -861,8 +863,9 @@ msgstr "包含附件文件模板的文件夹"
 
 #. tooltip for button in anchor popover
 #: zim/gui/pageview/__init__.py:4736
+#, fuzzy
 msgid "Copy link to clipboard"
-msgstr ""
+msgstr "将链接复制到剪贴板"
 
 #. tooltip label for image with href
 #: zim/gui/pageview/__init__.py:4978
