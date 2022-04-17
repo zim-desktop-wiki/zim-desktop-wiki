@@ -36,6 +36,8 @@ from zim.gui.customtools import CustomToolManager
 
 import zim.errors
 
+import os  # see issue #2007 - Gtk bug on other platforms
+DEFAULT_DECOR = os.uname().sysname == 'Linux'
 
 STYLES = (
 	('ICONS', _('Icons')), # T: toolbar style
@@ -73,7 +75,7 @@ configuring the window decoration.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('show_headerbar', 'bool', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), True),
+		('show_headerbar', 'bool', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), DEFAULT_DECOR),
 			# T: option for plugin preferences
 		('show_toolbar', 'bool', _('Show toolbar'), True),
 			# T: option for plugin preferences
