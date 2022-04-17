@@ -61,15 +61,16 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
 
-      # Install the latests version of the same dependencies that are used to
+      # Install the latest version of the same dependencies that are used to
       # create the app. Determine the canoncial path and store it in VER_DIR
       # (e.g. "/Users/Shared/work/jhb-0.4"). Run a reconfiguration to adapt
       # to the system this is running on (path to MacOSX.sdk).
       - name: Install dependencies
         id: dependencies
         run: |
+          ARCH=$(uname -m)
           mkdir $WRK_DIR
-          curl -L https://gitlab.com/dehesselle/zim_macos/-/jobs/artifacts/master/raw/jhb-zim.tar.xz?job=build_zim:elcapitan | tar -C $WRK_DIR -xpJ
+          curl -L https://gitlab.com/dehesselle/zim_macos/-/jobs/artifacts/master/raw/jhb-zim_$ARCH.tar.xz?job=build_zim:$ARCH | tar -C $WRK_DIR -xpJ
           VER_DIR=$(echo $WRK_DIR/jhb-*)
           echo "::set-output name=VER_DIR::$VER_DIR"
           source $VER_DIR/etc/jhb.conf.sh
@@ -77,7 +78,7 @@ jobs:
           jhbuild_configure
 
       # Remove GraphViz ("dot") to skip testing "Diagram Editor" plugin (that
-      # test isn't run on any other platform and appears to be broken.) and
+      # test isn't run on any other platform and appears to be broken) and
       # run the test suite.
       - name: Test macOS
         run: |
