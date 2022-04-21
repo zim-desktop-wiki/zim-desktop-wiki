@@ -36,8 +36,10 @@ from zim.gui.customtools import CustomToolManager
 
 import zim.errors
 
-import os  # see issue #2007 - Gtk bug on other platforms
-DEFAULT_DECOR = os.uname().sysname == 'Linux'
+import os  # see issue #2007 - Gtk bug on Windows and macOS
+DEFAULT_DECOR = not (os.name == 'nt' or \
+	(hasattr(os, 'uname') and os.uname().sysname == 'Darwin')
+)
 
 STYLES = (
 	('ICONS', _('Icons')), # T: toolbar style
@@ -63,11 +65,16 @@ class ToolBarPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Tool Bar'), # T: plugin name
-		'description': _('''\
+		'description': _(f'''\
 This plugin adds a "tool bar" to the main window.
 It can be a "classic" toolbar at the top of the window
-or running along the side of the window. It also allows
-configuring the window decoration.
+or running along the side of the window.
+
+It also allows configuring the window decoration,
+thought changing the defaults can have unintended
+consequences on Windows and macOS; please consult
+the manual before disabling the plugin or modifying
+the window decoration related settings.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:ToolBar',
@@ -75,7 +82,7 @@ configuring the window decoration.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('show_headerbar', 'bool', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), DEFAULT_DECOR),
+		('show_headerbar', 'bool', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), DEFAULT_DECOR),  # OS spesific
 			# T: option for plugin preferences
 		('show_toolbar', 'bool', _('Show toolbar'), True),
 			# T: option for plugin preferences

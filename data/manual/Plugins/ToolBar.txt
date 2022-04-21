@@ -7,6 +7,8 @@ This plugin adds a "tool bar" to the main window. It can be a "classic" toolbar 
 
 The toolbar will show a few default tools as well as tools defined in plugins and [[Help:Custom_Tools|custom tools]].
 
+**Note:** Due to an upstream bug, this plugin should be kept enabled on Windows and macOS with the "Show controls in the window decoration" option disabled in order for the windows to behave correctly.
+
 
 ===== Options =====
 
