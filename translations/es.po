@@ -7,15 +7,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-01-20 20:56+0000\n"
-"Last-Translator: profesorinfo <javmanfer@gmail.com>\n"
+"PO-Revision-Date: 2022-05-01 09:12+0000\n"
+"Last-Translator: Jaime Marquínez Ferrándiz <weblate@jregistros.fastmail.net>"
+"\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/zim/master/es/>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.11-dev\n"
+"X-Generator: Weblate 4.12.1\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -2064,10 +2065,8 @@ msgstr "Ver registro de depuración"
 
 #. Menu item
 #: zim/gui/uiactions.py:378
-#, fuzzy
-#| msgid "Update Index"
 msgid "Check and Update Index"
-msgstr "Actualizar índice"
+msgstr "Comprobar y actualizar índice"
 
 #. Menu item
 #: zim/gui/uiactions.py:411
@@ -2147,7 +2146,7 @@ msgstr "Guardar una copia"
 #. Dialog title
 #: zim/gui/uiactions.py:585
 msgid "Rename or Move Page"
-msgstr "Cambiar nombre o mover página"
+msgstr "Renombrar o mover página"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/uiactions.py:590
@@ -3027,7 +3026,7 @@ msgstr "Esta extensión provee un editor de gráficos basado en GNU R.\n"
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:52
 msgid "GNU R Plot"
-msgstr ""
+msgstr "Gráfico GNU R"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -3455,7 +3454,7 @@ msgstr "Incluir pié de página común"
 #. menu item
 #: zim/plugins/scoreeditor.py:68
 msgid "Musical Score"
-msgstr ""
+msgstr "Partitura"
 
 #. plugin name | 
 #. dialog title
@@ -3883,7 +3882,7 @@ msgstr "Mostrar título de la página en el sumario"
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:122
 msgid "Include horizontal lines in the ToC"
-msgstr "Incluir líneas horizontales en el sumario"
+msgstr "Incluir líneas horizontales en la tabla de contenidos"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
@@ -4034,7 +4033,7 @@ msgstr "Mostrar lista de tareas en el panel lateral"
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:58
 msgid "Show due date in sidepane"
-msgstr "Mostrar fecha límite en el panel lateral"
+msgstr "Mostrar la fecha límite en el panel lateral"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:64
