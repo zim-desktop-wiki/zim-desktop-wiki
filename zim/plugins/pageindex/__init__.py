@@ -539,7 +539,7 @@ class PageTreeView(BrowserTreeView):
 		assert selectiondata.get_target().name() == PAGELIST_TARGET_NAME
 		data = selectiondata.get_data()
 		logger.debug('Drag data recieved: %r', data)
-		if data is None:
+		if data is None or len(data)==0:
 			data = zim.gui.clipboard._internal_selection_data # HACK issue #390
 			zim.gui.clipboard._internal_selection_data = None
 			logger.debug('Got data via workaround: %s', data)
