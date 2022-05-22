@@ -977,7 +977,7 @@ state. Or select multiple versions to see changes between those versions.
 		# TODO check for gannotated
 		file = self._get_file()
 		assert not file is None
-		annotated = self.vcs.annotated(file)
+		annotated = self.vcs.annotate(file)
 		TextDialog(self, _('Annotated Page Source'), annotated).run()
 			# T: dialog title
 
