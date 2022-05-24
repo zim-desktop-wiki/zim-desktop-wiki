@@ -37,7 +37,7 @@ A Windows installer can also be found [[/downloads/|here]]. This installer is bu
 
 {{/images/zim_macos.png}}
 
-A macOS app can be found [[https://gitlab.com/dehesselle/zim_macos/-/releases|here]]. It supports OS X El Capitan up to macOS Monterey. Rosetta 2 is required on M1 Macs.
+A macOS app can be found [[https://gitlab.com/dehesselle/zim_macos/-/releases|here]]. It supports OS X El Capitan up to macOS Monterey.
 See the configuration section in the [[https://gitlab.com/dehesselle/zim_macos/-/blob/master/README.md|readme]] on where to find configuration files and how to get plugins to recognize external dependencies.
 
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**
