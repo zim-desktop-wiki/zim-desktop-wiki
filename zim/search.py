@@ -557,7 +557,7 @@ class SearchSelection(PageSelection):
 				try:
 					yield self.notebook.get_page(path)
 				except:
-					logger.exception('Exception opening: %s', page)
+					logger.exception('Exception opening: %s', path)
 					continue
 
 		if scope:
