@@ -23,7 +23,8 @@ If the option "**Consider all checkboxes as tasks**" is enabled any checkboxes f
 
 The option **Labels marking tasks** gives a comma-separated list of labels that are used to flag tasks. By default, these are "TODO" and "FIXME" but this can be customized.
 
-The option **Labels for "waiting" tasks** gives specific labels for tasks that are waiting for something and thus are not immediately actionable.
+The option **Labels for "waiting" tasks** gives specific labels for tasks that are waiting for something and thus are not immediately actionable, typical usage is tasks that are delegated or planned already.
+The option **Tags for "waiting" tasks** has the same meaning, but uses tags rather than labels to flag tasks.
 
 If **Use date from journal pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as starting date and/or due date. If the page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date while for the start day the first day will be used. If the page covers a week or a month and the task appears under a heading which gives the specific day, the task will be assigned to that day. For this to work, the heading must contain an explicit anchor id which gives the date in the standard date format (see the default Journal template for an example how to generate those).
 

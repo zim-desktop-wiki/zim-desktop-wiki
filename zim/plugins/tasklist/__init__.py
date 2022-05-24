@@ -64,8 +64,10 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', StringAllowEmpty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO"
-		('waiting_labels', 'string', _('Labels for "waiting" tasks'), 'Waiting', StringAllowEmpty),
-			# T: label for plugin preferences dialog - labels are e.g. "Waiting"
+		('waiting_labels', 'string', _('Labels for "waiting" tasks'), 'Waiting, Planned', StringAllowEmpty),
+			# T: label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
+		('nonactionable_tags', 'string', _('Tags for "waiting" tasks'), '@waiting, @planned', StringAllowEmpty),
+			# T: label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 		('integrate_with_journal', 'choice', _('Use date from journal pages'), 'start', ( # T: label for preference with multiple options
 			('none', _('do not use')),        # T: choice for "Use date from journal pages"
 			('start', _('as start date for tasks')),  # T: choice for "Use date from journal pages"
@@ -75,8 +77,6 @@ This is a core plugin shipping with zim.
 			# T: Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 		('excluded_subtrees', 'string', _('Section(s) to ignore'), '', StringAllowEmpty),
 			# T: Notebook sections to exclude when searching for tasks - default is none
-		('nonactionable_tags', 'string', None, '', StringAllowEmpty),
-			# Hidden option - deprecated
 	)
 
 	view_properties = (
