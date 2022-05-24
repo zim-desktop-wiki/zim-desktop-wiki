@@ -140,7 +140,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 
 		@returns: a boolean True if a repo is already setup, or False
 		"""
-		return self.root.file('.fslckout').exists() or self.root.file('_FOSSIL_').exists()
+		return self.root.file('.fslckout').exists() or self.root.file('notebook.fossil').exists()
 
 	def init(self):
 		"""
@@ -154,7 +154,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 
 	def checkout(self, file):
 		# Create working folder
-		return self.run(['open', file])
+		return self.run(['open', '--keep', file])
 
 	def is_modified(self):
 		"""Returns true if the repo is not up-to-date, or False
