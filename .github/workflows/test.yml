@@ -47,12 +47,12 @@ jobs:
 
 
   test_macos:
-    runs-on: macos-10.15
+    runs-on: macos-11
     env:
       # a fixed path is required to use precompiled dependencies
       WRK_DIR: /Users/Shared/work
 
-    name: Python 3.x on macos-10.15
+    name: Python 3.x on macos-11
     steps:
       - uses: actions/checkout@v2
 
