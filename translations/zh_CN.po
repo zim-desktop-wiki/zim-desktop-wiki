@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-09 02:15+0000\n"
-"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
+"PO-Revision-Date: 2022-06-10 03:14+0000\n"
+"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -1539,7 +1539,6 @@ msgstr "打开新页面"
 
 #. error message in "move selected text" action
 #: zim/gui/pageview/__init__.py:8544
-#, fuzzy
 msgid "No text selected"
 msgstr "未选择任何文本"
 
