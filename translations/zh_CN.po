@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-04-11 03:12+0000\n"
-"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
+"PO-Revision-Date: 2022-06-09 02:15+0000\n"
+"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.12-dev\n"
+"X-Generator: Weblate 4.13-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -807,7 +807,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:200
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "重复点击复选框以循环复选框的状态"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:203
@@ -849,7 +849,7 @@ msgstr "链接"
 #: zim/gui/pageview/__init__.py:4980 zim/gui/pageview/__init__.py:7896
 #: zim/plugins/sourceview.py:379
 msgid "Id"
-msgstr ""
+msgstr "ID"
 
 #. Heading of error dialog
 #: zim/gui/pageview/__init__.py:5531
@@ -969,7 +969,7 @@ msgstr "该内部链接 %s 无效"
 #: zim/gui/pageview/__init__.py:6574
 #, python-format
 msgid "Id \"%s\" not found on the current page"
-msgstr ""
+msgstr "本页中未找到ID：“%s”"
 
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6630
@@ -1352,7 +1352,7 @@ msgstr "覆写"
 #. Button label
 #: zim/gui/pageview/__init__.py:7833 zim/gui/widgets.py:92
 msgid "_OK"
-msgstr ""
+msgstr "确认(_O)"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:7871
@@ -1415,7 +1415,7 @@ msgstr "文本"
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:8066
 msgid "Prefer short link names for pages"
-msgstr ""
+msgstr "偏好使用页面的短链接名称"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview/__init__.py:8182
@@ -1539,8 +1539,9 @@ msgstr "打开新页面"
 
 #. error message in "move selected text" action
 #: zim/gui/pageview/__init__.py:8544
+#, fuzzy
 msgid "No text selected"
-msgstr ""
+msgstr "未选择任何文本"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:8577
