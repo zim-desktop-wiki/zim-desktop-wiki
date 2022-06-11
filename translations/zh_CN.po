@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-11 01:16+0000\n"
+"PO-Revision-Date: 2022-06-11 01:19+0000\n"
 "Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
@@ -3974,17 +3974,17 @@ msgstr "作为任务的开始日期"
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:71
 msgid "as due date for tasks"
-msgstr ""
+msgstr "作为任务的截止日期"
 
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:73
 msgid "Section(s) to index"
-msgstr ""
+msgstr "要索引的部分"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:75
 msgid "Section(s) to ignore"
-msgstr ""
+msgstr "要忽略的部分"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:80
@@ -4014,17 +4014,18 @@ msgstr "图标和文字"
 #. toolbar style
 #: zim/plugins/toolbar.py:44
 msgid "Icons & Text horizontal"
-msgstr ""
+msgstr "图标和文本水平"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:52
+#, fuzzy
 msgid "Small"
-msgstr ""
+msgstr "小"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:53
 msgid "Large"
-msgstr ""
+msgstr "大"
 
 #. plugin name
 #: zim/plugins/toolbar.py:63
