@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-11 01:27+0000\n"
-"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
+"PO-Revision-Date: 2022-06-11 01:28+0000\n"
+"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -2898,7 +2898,6 @@ msgstr ""
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:33
-#, fuzzy
 msgid "Use font color for dark theme"
 msgstr "为深色主题使用字体颜色"
 
