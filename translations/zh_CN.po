@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-11 01:28+0000\n"
+"PO-Revision-Date: 2022-06-11 01:29+0000\n"
 "Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
@@ -3161,15 +3161,13 @@ msgstr "这个插件提供 macOS 菜单栏。"
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
-#, fuzzy
 msgid "Page Index"
 msgstr "页面索引"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:52
-#, fuzzy
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr "此插件将页面索引窗格添加到主窗口中。\n"
+msgstr "此插件将页面索引窗格添加到主窗口。\n"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
