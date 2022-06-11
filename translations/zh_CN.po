@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-11 01:19+0000\n"
+"PO-Revision-Date: 2022-06-11 01:26+0000\n"
 "Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
@@ -2435,13 +2435,13 @@ msgstr "更新索引"
 
 #. message for PageNotFoundError
 #: zim/notebook/notebook.py:125
-#, fuzzy, python-format
+#, python-format
 msgid "No such page: %s"
 msgstr "没有这样的页面： %s"
 
 #. message for PageNotAllowedError
 #: zim/notebook/notebook.py:129
-#, fuzzy, python-format
+#, python-format
 msgid "Page not allowed: %s"
 msgstr "不允许的页面：%s"
 
@@ -2464,7 +2464,7 @@ msgstr "由于存储中有冲突的文件，无法使用此页名"
 
 #. message for PageExistsError
 #: zim/notebook/notebook.py:145
-#, fuzzy, python-format
+#, python-format
 msgid "Page already exists: %s"
 msgstr "页面已存在：%s"
 
@@ -2508,9 +2508,9 @@ msgstr "算术(_A)"
 
 #. text in confirmation dialog on deleting a file
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, fuzzy, python-format
+#, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr "您确定要删除文件“%s”吗？"
+msgstr "你确定要删除文件“%s”吗？"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -2559,13 +2559,11 @@ msgstr "取消"
 
 #. dialog title
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
-#, fuzzy
 msgid "Rename file"
 msgstr "重命名文件"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
-#, fuzzy
 msgid "File name should not be blank."
 msgstr "文件名不应为空。"
 
@@ -2576,7 +2574,6 @@ msgstr "已存在同名文件。"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:75
-#, fuzzy
 msgid "File name should not contain path declaration."
 msgstr "文件名不应包含路径声明。"
 
@@ -2605,7 +2602,6 @@ msgstr "窗口中的位置"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
-#, fuzzy
 msgid "Use thumbnails"
 msgstr "使用缩略图"
 
@@ -4019,7 +4015,6 @@ msgstr "图标和文本水平"
 
 #. Toolbar size small
 #: zim/plugins/toolbar.py:52
-#, fuzzy
 msgid "Small"
 msgstr "小"
 
