@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
 "PO-Revision-Date: 2022-06-11 01:27+0000\n"
-"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
+"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -2765,13 +2765,11 @@ msgstr "移除全部"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
-#, fuzzy
 msgid "Copy"
 msgstr "复制"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
-#, fuzzy
 msgid "Paste"
 msgstr "粘贴"
 
@@ -2818,7 +2816,6 @@ msgstr ""
 
 #. menu item
 #: zim/plugins/diagrameditor.py:39
-#, fuzzy
 msgid "Diagram"
 msgstr "图表"
 
@@ -2849,7 +2846,6 @@ msgstr "最大页面宽度"
 #. plugin preference | 
 #. preference option for sourceview plugin
 #: zim/plugins/distractionfree.py:38 zim/plugins/sourceview.py:99
-#, fuzzy
 msgid "Border width"
 msgstr "边框宽度"
 
