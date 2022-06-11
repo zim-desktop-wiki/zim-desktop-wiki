@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-11 01:30+0000\n"
-"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
+"PO-Revision-Date: 2022-06-11 01:32+0000\n"
+"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -572,7 +572,7 @@ msgstr "切换可编辑状态"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
-msgstr "只读页面，不可编辑"
+msgstr "本页只读，不可编辑"
 
 #. Menu item
 #: zim/gui/mainwindow.py:256
@@ -593,7 +593,7 @@ msgstr "菜单栏"
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:685 zim/gui/uiactions.py:502
 msgid "File exists, do you want to import?"
-msgstr "文件存在，你想导入吗？"
+msgstr "文件已存在，你想导入吗？"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:686 zim/gui/uiactions.py:503
