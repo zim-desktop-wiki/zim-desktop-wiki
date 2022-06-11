@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-11 01:29+0000\n"
+"PO-Revision-Date: 2022-06-11 01:30+0000\n"
 "Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
@@ -3349,7 +3349,6 @@ msgstr "Common include footer"
 
 #. menu item
 #: zim/plugins/scoreeditor.py:68
-#, fuzzy
 msgid "Musical Score"
 msgstr "乐谱"
 
@@ -3448,7 +3447,6 @@ msgstr "永不换行"
 
 #. option value
 #: zim/plugins/sourceview.py:81
-#, fuzzy
 msgid "Try wrap at word boundaries or character"
 msgstr "尝试在单词边界或字符处换行"
 
