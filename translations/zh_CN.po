@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-10 03:14+0000\n"
-"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
+"PO-Revision-Date: 2022-06-11 01:16+0000\n"
+"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -1565,7 +1565,8 @@ msgid ""
 "characters\n"
 "or see errors due to encoding, please ensure to configure your system to use "
 "\"UTF-8\""
-msgstr ""
+msgstr "系统编码目前为%s，如果您想支持需要的特殊字符或者解决编码错误，请务必确认将系"
+"统编码设置为“UTF-8”"
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:51
@@ -1624,6 +1625,9 @@ msgid ""
 "Please see the dependencies section below for details.\n"
 "\n"
 msgstr ""
+"插件未启用或依赖丢失。\n"
+"请查看依赖部分获取详细信息。\n"
+"\n"
 
 #. help text when plugin cannot be loaded due to bug / issue
 #: zim/gui/preferencesdialog.py:325
@@ -1631,6 +1635,8 @@ msgid ""
 "There was a problem loading this plugin\n"
 "\n"
 msgstr ""
+"本插件加载过程中发现问题。\n"
+"\n"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:337
@@ -1711,6 +1717,9 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"快捷键绑定可以通过点击列表中有按键组合的输入框，\n"
+"然后输入新的快捷键绑定。\n"
+"要禁用一个快捷键绑定，选择列表中的它，然后使用<tt>&lt;回车&gt;</tt>。"
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:565
@@ -1740,7 +1749,7 @@ msgstr "文档根目录"
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:21
 msgid "Prefer short names for page links"
-msgstr ""
+msgstr "页面链接首选短名称"
 
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:22
@@ -1816,8 +1825,9 @@ msgstr "允许公开访问"
 
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
+#, fuzzy
 msgid "Require authentication"
-msgstr ""
+msgstr "需要身份验证"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1831,8 +1841,9 @@ msgstr "用户名"
 
 #. Field in web server gui
 #: zim/gui/server.py:112
+#, fuzzy
 msgid "Password"
-msgstr ""
+msgstr "密码"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -1873,7 +1884,7 @@ msgstr "新建子页面(_U)…"
 #. Menu item
 #: zim/gui/uiactions.py:114
 msgid "_New Page Here..."
-msgstr ""
+msgstr "在此处新建页面(_N)…"
 
 #. Menu item
 #: zim/gui/uiactions.py:122
@@ -1913,7 +1924,7 @@ msgstr "删除页面(_R)"
 #. question in "delete page" action
 #: zim/gui/uiactions.py:224
 msgid "Trash failed, do you want to permanently delete instead ?"
-msgstr ""
+msgstr "放入回收站失败，您想永久删除吗？"
 
 #. Menu item
 #: zim/gui/uiactions.py:230
@@ -1983,8 +1994,9 @@ msgstr "打开文档根目录(_D)"
 
 #. Error message
 #: zim/gui/uiactions.py:335
+#, fuzzy
 msgid "No document root defined for this notebook"
-msgstr ""
+msgstr "没有为此笔记本定义文档根目录"
 
 #. Menu item
 #: zim/gui/uiactions.py:341
@@ -2040,7 +2052,7 @@ msgstr "关于(_A)"
 #: zim/gui/uiactions.py:459
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "在 %s 新建页面"
 
 #. Dialog title
 #: zim/gui/uiactions.py:461
@@ -2111,14 +2123,14 @@ msgstr "更新链接"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:681
-#, python-format
+#, fuzzy, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "删除指向 %s 的链接"
 
 #. Dialog title
 #: zim/gui/uiactions.py:725
 msgid "Trash Page"
-msgstr ""
+msgstr "将页面放入回收站"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
@@ -2330,9 +2342,9 @@ msgstr "图片"
 
 #. lable in progressbar giving number of items and total
 #: zim/gui/widgets.py:3749
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{total} 的 {count}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3771
@@ -2388,6 +2400,9 @@ msgid ""
 "of the file name, please try using a name with less\n"
 "than 255 characters"
 msgstr ""
+"无法写入此文件。这可能是由于文件名的长度，\n"
+"请尝试使用少于 255 个字符\n"
+"的文件名"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
@@ -2402,12 +2417,15 @@ msgid ""
 "of the file path, please try using a folder structure resulting in less\n"
 "than 4096 characters"
 msgstr ""
+"无法写入此文件。这可能是由于文件路径的长度导致的，\n"
+"请尝试使用少于 4096 个字符\n"
+"的文件夹结构"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
-#, python-format
+#, fuzzy, python-format
 msgid "File path too long: %s"
-msgstr ""
+msgstr "文件路径太长：%s"
 
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:435
@@ -2416,15 +2434,15 @@ msgstr "更新索引"
 
 #. message for PageNotFoundError
 #: zim/notebook/notebook.py:125
-#, python-format
+#, fuzzy, python-format
 msgid "No such page: %s"
-msgstr ""
+msgstr "没有这样的页面： %s"
 
 #. message for PageNotAllowedError
 #: zim/notebook/notebook.py:129
-#, python-format
+#, fuzzy, python-format
 msgid "Page not allowed: %s"
-msgstr ""
+msgstr "不允许的页面：%s"
 
 #. description for PageNotAllowedError
 #: zim/notebook/notebook.py:130
@@ -2445,9 +2463,9 @@ msgstr "由于存储中有冲突的文件，无法使用此页名"
 
 #. message for PageExistsError
 #: zim/notebook/notebook.py:145
-#, python-format
+#, fuzzy, python-format
 msgid "Page already exists: %s"
-msgstr ""
+msgstr "页面已存在：%s"
 
 #. error message for read-only pages
 #: zim/notebook/page.py:402
@@ -2489,9 +2507,9 @@ msgstr "算术(_A)"
 
 #. text in confirmation dialog on deleting a file
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
-#, python-format
+#, fuzzy, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "您确定要删除文件“%s”吗？"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:392
@@ -2540,23 +2558,26 @@ msgstr "取消"
 
 #. dialog title
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
+#, fuzzy
 msgid "Rename file"
-msgstr ""
+msgstr "重命名文件"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
+#, fuzzy
 msgid "File name should not be blank."
-msgstr ""
+msgstr "文件名不应为空。"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:72
 msgid "A file with that name already exists."
-msgstr ""
+msgstr "已存在同名文件。"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:75
+#, fuzzy
 msgid "File name should not contain path declaration."
-msgstr ""
+msgstr "文件名不应包含路径声明。"
 
 #. plugin name
 #: zim/plugins/attachmentbrowser/__init__.py:69
@@ -2583,13 +2604,14 @@ msgstr "窗口中的位置"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
+#, fuzzy
 msgid "Use thumbnails"
-msgstr ""
+msgstr "使用缩略图"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:86
 msgid "Support thumbnails for SVG"
-msgstr ""
+msgstr "支持 SVG 缩略图"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
@@ -2623,8 +2645,9 @@ msgstr ""
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:37
+#, fuzzy
 msgid "Show BackLink count in title"
-msgstr ""
+msgstr "在标题中显示反向链接计数"
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:39
@@ -2651,13 +2674,13 @@ msgstr "反向链接(_B)"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:295
 msgid "_Edit..."
-msgstr ""
+msgstr "编辑(_E)..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:324
-#, python-format
+#, fuzzy, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "编辑 %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:349
@@ -2689,8 +2712,9 @@ msgstr ""
 
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:45
+#, fuzzy
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "书签的最大数量"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:46
@@ -2749,13 +2773,15 @@ msgstr "移除全部"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
+#, fuzzy
 msgid "Copy"
-msgstr ""
+msgstr "复制"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
+#, fuzzy
 msgid "Paste"
-msgstr ""
+msgstr "粘贴"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2779,6 +2805,9 @@ msgid ""
 "The search dialog can be opened by pressing the keyboard shortcut Ctrl+Shift"
 "+P which can be customized via Zim's key bindings preferences."
 msgstr ""
+"这个插件可以打开一个搜索对话框，以便快速执行菜单条目。"
+"搜索对话框可以通过按键盘快捷键 Ctrl+Shift+P 来打开，可以通过 Zim "
+"的按键绑定偏好来定制。"
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
@@ -2797,8 +2826,9 @@ msgstr ""
 
 #. menu item
 #: zim/plugins/diagrameditor.py:39
+#, fuzzy
 msgid "Diagram"
-msgstr ""
+msgstr "图表"
 
 #. plugin name
 #: zim/plugins/distractionfree.py:25
@@ -2827,8 +2857,9 @@ msgstr "最大页面宽度"
 #. plugin preference | 
 #. preference option for sourceview plugin
 #: zim/plugins/distractionfree.py:38 zim/plugins/sourceview.py:99
+#, fuzzy
 msgid "Border width"
-msgstr ""
+msgstr "边框宽度"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:39
@@ -2879,23 +2910,26 @@ msgstr ""
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:33
+#, fuzzy
 msgid "Use font color for dark theme"
-msgstr ""
+msgstr "为深色主题使用字体颜色"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:34
+#, fuzzy
 msgid "Font size"
-msgstr ""
+msgstr "字体大小"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
+#, fuzzy
 msgid "Equation image DPI"
-msgstr ""
+msgstr "公式图像 DPI"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
 msgid "Equation"
-msgstr ""
+msgstr "公式"
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
@@ -2924,8 +2958,9 @@ msgstr "此插件提供 zim 基于 GNU R 的绘图编辑器。\n"
 
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:52
+#, fuzzy
 msgid "GNU R Plot"
-msgstr ""
+msgstr "GNU R 绘图"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -3027,7 +3062,7 @@ msgstr "年"
 #. preferences option
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
-msgstr ""
+msgstr "隐藏空的日志面板"
 
 #. input label
 #: zim/plugins/journal.py:121
@@ -3075,7 +3110,7 @@ msgstr ""
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
 msgid "Please select more than one line of text"
-msgstr ""
+msgstr "请选择一行以上文字"
 
 #. menu item
 #: zim/plugins/linesorter.py:71
@@ -3085,12 +3120,12 @@ msgstr "排序行"
 #. Menu item
 #: zim/plugins/linesorter.py:161
 msgid "_Move Line Up"
-msgstr ""
+msgstr "向上移动行(_M)"
 
 #. Menu item
 #: zim/plugins/linesorter.py:167
 msgid "_Move Line Down"
-msgstr ""
+msgstr "向下移动行(_M)"
 
 #. Menu item
 #: zim/plugins/linesorter.py:173
@@ -3128,7 +3163,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/linkmap.py:45
 msgid "Show linkmap button in headerbar"
-msgstr ""
+msgstr "在标题栏中显示链接地图按钮"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3142,18 +3177,21 @@ msgstr "这个插件提供 macOS 菜单栏。"
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:51
+#, fuzzy
 msgid "Page Index"
-msgstr ""
+msgstr "页面索引"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:52
+#, fuzzy
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr ""
+msgstr "此插件将页面索引窗格添加到主窗口中。\n"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
+#, fuzzy
 msgid "Use drag&drop to move pages in the notebook"
-msgstr ""
+msgstr "使用拖放操作在笔记本中移动页面"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
@@ -3162,18 +3200,20 @@ msgstr "在打开的页面上自动展开章节"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:51
+#, fuzzy
 msgid "Automatically collapse sections on close page"
-msgstr ""
+msgstr "在关闭页面时自动折叠部分"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
 msgid "Use horizontal scrollbar (may need restart)"
-msgstr ""
+msgstr "使用水平滚动条（可能需要重新启动）"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
+#, fuzzy
 msgid "Use tooltips"
-msgstr ""
+msgstr "使用工具提示"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:132
@@ -3182,8 +3222,9 @@ msgstr "索引(_X)"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
+#, fuzzy
 msgid "Path Bar"
-msgstr ""
+msgstr "路径栏"
 
 #. plugin description
 #: zim/plugins/pathbar.py:39
@@ -3192,6 +3233,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"这个插件在窗口的顶部添加了一个\"路径栏\"。\n"
+"这个\"路径栏\"可以显示当前页面的笔记本路径，\n"
+"最近访问过的页面或最近编辑过的页面。\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:80
@@ -3252,7 +3296,7 @@ msgstr "打印至浏览器(_P)"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "打印(_P)"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
@@ -3327,8 +3371,9 @@ msgstr "Common include footer"
 
 #. menu item
 #: zim/plugins/scoreeditor.py:68
+#, fuzzy
 msgid "Musical Score"
-msgstr ""
+msgstr "乐谱"
 
 #. plugin name | 
 #. dialog title
@@ -3415,6 +3460,8 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"这个插件允许在页面中插入“代码块”。这些将被\n"
+"显示为带有语法高亮和行号等的内嵌组件。\n"
 
 #. option value
 #: zim/plugins/sourceview.py:80
@@ -3423,18 +3470,19 @@ msgstr "永不换行"
 
 #. option value
 #: zim/plugins/sourceview.py:81
+#, fuzzy
 msgid "Try wrap at word boundaries or character"
-msgstr ""
+msgstr "尝试在单词边界或字符处换行"
 
 #. option value
 #: zim/plugins/sourceview.py:82
 msgid "Always wrap at character"
-msgstr ""
+msgstr "始终以字符处换行"
 
 #. option value
 #: zim/plugins/sourceview.py:83
 msgid "Always wrap at word boundaries"
-msgstr ""
+msgstr "始终在单词边界处换行"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:87
@@ -3469,12 +3517,12 @@ msgstr "Tab宽度"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:101
 msgid "Text wrap mode"
-msgstr ""
+msgstr "文字换行模式"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:103
 msgid "Theme"
-msgstr ""
+msgstr "主题"
 
 #. menu item
 #: zim/plugins/sourceview.py:118
@@ -3499,7 +3547,7 @@ msgstr "插入代码块"
 #. input checkbox
 #: zim/plugins/sourceview.py:384
 msgid "Display line numbers"
-msgstr ""
+msgstr "显示行号"
 
 #. plugin name
 #: zim/plugins/spell.py:69
@@ -3753,7 +3801,7 @@ msgstr "在目录中包括水平线"
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:124
 msgid "Set ToC fontsize"
-msgstr ""
+msgstr "设置目录的字体大小"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:387
@@ -3768,7 +3816,7 @@ msgstr "提升"
 #. widget label
 #: zim/plugins/tableofcontents.py:483
 msgid "T_oC"
-msgstr ""
+msgstr "目录(_O)"
 
 #: zim/plugins/tableofcontents.py:513
 msgid "ToC"
@@ -3790,7 +3838,7 @@ msgstr "该插件依据标签云中的所选标签，生成页面索引\n"
 #. title for sidepane tab
 #: zim/plugins/tags.py:98
 msgid "T_ags"
-msgstr ""
+msgstr "标签(_A)"
 
 #. menu option
 #: zim/plugins/tags.py:148
@@ -3810,17 +3858,17 @@ msgstr "按字母顺序排序"
 #. Checkbox in task list - hides parent items
 #: zim/plugins/tasklist/gui.py:36
 msgid "Show Tasks as Flat List"
-msgstr ""
+msgstr "将任务显示为平级列表"
 
 #. Checkbox in task list - this options hides tasks that are not yet started
 #: zim/plugins/tasklist/gui.py:43 zim/plugins/tasklist/gui.py:172
 msgid "Only Show Active Tasks"
-msgstr ""
+msgstr "仅显示活动任务"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:63
 msgid "Tas_ks"
-msgstr ""
+msgstr "任务(_K)"
 
 #. label for filtering/searching tasks | 
 #. Input label
@@ -3886,17 +3934,17 @@ msgstr ""
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
 msgid "Show tasklist button in headerbar"
-msgstr ""
+msgstr "在标题栏中显示任务列表按钮"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:54
 msgid "Show tasklist in sidepane"
-msgstr ""
+msgstr "在侧窗格中显示任务列表"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:58
 msgid "Show due date in sidepane"
-msgstr ""
+msgstr "在侧边栏显示到期日期"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:64
@@ -3911,17 +3959,17 @@ msgstr "使用标签标注任务"
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:68
 msgid "Use date from journal pages"
-msgstr ""
+msgstr "使用日记页中的日期"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:69
 msgid "do not use"
-msgstr ""
+msgstr "不使用"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:70
 msgid "as start date for tasks"
-msgstr ""
+msgstr "作为任务的开始日期"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:71
