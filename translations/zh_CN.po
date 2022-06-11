@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-11 01:26+0000\n"
+"PO-Revision-Date: 2022-06-11 01:27+0000\n"
 "Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
@@ -2705,7 +2705,6 @@ msgstr ""
 
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:45
-#, fuzzy
 msgid "Maximum number of bookmarks"
 msgstr "书签的最大数量"
 
