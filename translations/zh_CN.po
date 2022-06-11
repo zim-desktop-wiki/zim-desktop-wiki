@@ -3181,9 +3181,8 @@ msgstr "在打开的页面上自动展开章节"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:67 zim/plugins/tags.py:51
-#, fuzzy
 msgid "Automatically collapse sections on close page"
-msgstr "在关闭页面时自动折叠部分"
+msgstr "关闭页面时自动折叠部分"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:69 zim/plugins/tags.py:53
@@ -3192,7 +3191,6 @@ msgstr "使用水平滚动条（可能需要重新启动）"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:71 zim/plugins/tags.py:55
-#, fuzzy
 msgid "Use tooltips"
 msgstr "使用工具提示"
 
@@ -3203,7 +3201,6 @@ msgstr "索引(_X)"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
-#, fuzzy
 msgid "Path Bar"
 msgstr "路径栏"
 
