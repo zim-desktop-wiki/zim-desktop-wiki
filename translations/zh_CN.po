@@ -3171,9 +3171,8 @@ msgstr "此插件将页面索引窗格添加到主窗口。\n"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:63
-#, fuzzy
 msgid "Use drag&drop to move pages in the notebook"
-msgstr "使用拖放操作在笔记本中移动页面"
+msgstr "使用拖放操作移动笔记本页面"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:65 zim/plugins/tags.py:49
