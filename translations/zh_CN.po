@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
 "PO-Revision-Date: 2022-06-11 01:26+0000\n"
-"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
+"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -2671,7 +2671,7 @@ msgstr "编辑(_E)..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:324
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s"
 msgstr "编辑 %s"
 
