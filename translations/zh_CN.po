@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
 "PO-Revision-Date: 2022-06-11 01:26+0000\n"
-"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
+"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -1826,7 +1826,6 @@ msgstr "允许公开访问"
 
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
-#, fuzzy
 msgid "Require authentication"
 msgstr "需要身份验证"
 
@@ -1842,7 +1841,6 @@ msgstr "用户名"
 
 #. Field in web server gui
 #: zim/gui/server.py:112
-#, fuzzy
 msgid "Password"
 msgstr "密码"
 
@@ -1995,7 +1993,6 @@ msgstr "打开文档根目录(_D)"
 
 #. Error message
 #: zim/gui/uiactions.py:335
-#, fuzzy
 msgid "No document root defined for this notebook"
 msgstr "没有为此笔记本定义文档根目录"
 
@@ -2124,7 +2121,7 @@ msgstr "更新链接"
 
 #. label in DeletePageDialog
 #: zim/gui/uiactions.py:681
-#, fuzzy, python-format
+#, python-format
 msgid "Remove links to %s"
 msgstr "删除指向 %s 的链接"
 
@@ -2343,7 +2340,7 @@ msgstr "图片"
 
 #. lable in progressbar giving number of items and total
 #: zim/gui/widgets.py:3749
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{count} of {total}"
 msgstr "{total} 的 {count}"
 
@@ -2424,7 +2421,7 @@ msgstr ""
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
-#, fuzzy, python-format
+#, python-format
 msgid "File path too long: %s"
 msgstr "文件路径太长：%s"
 
@@ -4036,16 +4033,20 @@ msgid ""
 "or running along the side of the window. It also allows\n"
 "configuring the window decoration.\n"
 msgstr ""
+"这个插件在主窗口添加了一个\"工具栏\"。\n"
+"它可以是一个位于窗口顶部的\"经典\"工具条\n"
+"或沿着窗口的侧面运行。它还允许\n"
+"配置窗口的装饰。\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "在窗口装饰中显示控件"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:76
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "这个选项需要重新启动应用程序"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:78
@@ -4141,7 +4142,7 @@ msgstr ""
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:68
 msgid "Autosave version when the notebook is closed"
-msgstr ""
+msgstr "笔记本关闭时自动保存版本"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:69
@@ -4151,7 +4152,7 @@ msgstr "以常规时间间隔自动保存版本"
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:70
 msgid "Autosave interval in minutes"
-msgstr ""
+msgstr "自动保存间隔（以分钟为单位）"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:202
