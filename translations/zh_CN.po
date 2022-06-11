@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
 "PO-Revision-Date: 2022-06-11 01:26+0000\n"
-"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
+"Last-Translator: Eric <alchemillatruth@purelymail.com>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
 "master/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -2639,7 +2639,6 @@ msgstr ""
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:37
-#, fuzzy
 msgid "Show BackLink count in title"
 msgstr "在标题中显示反向链接计数"
 
