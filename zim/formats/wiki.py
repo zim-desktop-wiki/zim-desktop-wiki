@@ -633,6 +633,8 @@ class Parser(ParserClass):
 		if not isinstance(input, str):
 			input = ''.join(input)
 
+		input = input.replace('\u2029', ' ') # Unicode PARAGRAPH SEPARATOR, causes conflict between "splitlines()" and regex "\n" matching - see issues #1760
+
 		if not partial:
 			input = fix_line_end(input)
 

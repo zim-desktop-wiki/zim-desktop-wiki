@@ -42,7 +42,8 @@ You will at least need the following:
 * python3 >= 3.2
 * python3-gi (also known as pygobject, but make sure to have the "gi" based version)
 * python3-xdg (optional, but recommended)
-* xdg-utils (optional, but recommended)
+* xdg-utils (optional, but recommended on linux)
+* python3-pillow (optional, to support more image formats like ".webp")
 
 To verify that zim is working properly on your system, you can run the test suite using `./test.py`. Failures do not have to be critical, but in principle, all tests should pass.
 
@@ -65,6 +66,7 @@ On Ubuntu or other Debian derived systems, the following packages should be inst
 * gir1.2-gtk-3.0
 * python3-gi
 * python3-xdg
+* python3-pillow
 
 ### Windows
 

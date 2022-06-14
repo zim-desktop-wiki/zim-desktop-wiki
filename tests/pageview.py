@@ -2237,6 +2237,31 @@ Foo 123
 		menu = textview.get_popup()
 		self.assertIsInstance(menu, Gtk.Menu)
 
+	def testStyleConfig(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+
+		# font
+
+		# TODO
+
+		# tabs
+
+		# linespacing
+
+		# wrapped-line-linespacing
+
+		# font
+
+		# justify - constant for FILL is 3
+		pageview.text_style['TextView']['justify'] = 'FILL'
+		self.assertEqual(pageview.textview.get_justification(), 3)
+
+		# indent
+
+		# bullet_icon_size
+
+		# tag_styles
+
 
 class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 
@@ -2440,6 +2465,11 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		press(self.view, text)
 		self.assertBufferEquals(self.buffer, wanted)
 
+	def set_textview_preference(self, key, value):
+		orig = self.view.preferences[key]
+		self.view.preferences[key] = value
+		self.addCleanup(lambda: self.view.preferences.__setitem__(key, orig))
+
 	def testAutoFormatTag(self):
 		self.assertTyping('@test ', '<tag name="test">@test</tag> ')
 
@@ -2452,17 +2482,34 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 	def testAutoFormatAnchor3(self):
 		self.assertTyping('##case_2 ', '<anchor name="case_2">case_2</anchor> ')
 
+	def testNoAutoFormatAnchorPref(self):
+		self.set_textview_preference('autolink_anchor', False)
+		self.assertTyping('##test ', '##test ')
+
 	def testAutoFormatAnchorLink(self):
 		self.assertTyping('#test ', '<link href="">#test</link> ')
 
-	def testAutoFormatPageWithAnchorLink(self):
-		self.assertTyping('foo#test ', '<link href="">foo#test</link> ')
-
-	def testAutoFormatAnchorLink2(self):
+	def testAutoFormatAnchorLink1(self):
 		self.assertTyping('#test-1 ', '<link href="">#test-1</link> ')
 
 	def testAutoFormatAnchorLink2(self):
 		self.assertTyping('#test_2 ', '<link href="">#test_2</link> ')
+
+	def testNoAutoFormatAnchorLinkPref(self):
+		self.set_textview_preference('autolink_anchor', False)
+		self.assertTyping('#test ', '#test ')
+
+	def testAutoFormatPageWithAnchorLink(self):
+		self.assertTyping('foo#test ', '<link href="">foo#test</link> ')
+
+	def testAutoFormatPageWithAnchorLinkWithoutAnchorPref(self):
+		# With page prefix, this is switched by 'autolink_page' preference
+		self.set_textview_preference('autolink_anchor', False)
+		self.assertTyping('foo#test ', '<link href="">foo#test</link> ')
+
+	def testNoAutoFormatPageWithAnchorLinkPref(self):
+		self.set_textview_preference('autolink_page', False)
+		self.assertTyping('foo#test ', 'foo#test ')
 
 	def testAutoFormatURL(self):
 		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
@@ -2481,6 +2528,10 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testAutoFormatPageLink(self):
 		self.assertTyping('Foo:Bar ', '<link href="">Foo:Bar</link> ')
+
+	def testNoAutoFormatPageLinkPref(self):
+		self.set_textview_preference('autolink_page', False)
+		self.assertTyping('Foo:Bar ', 'Foo:Bar ')
 
 	def testAutoFormatPageLinkWithAnchor(self):
 		self.assertTyping('Foo:Bar#anchor ', '<link href="">Foo:Bar#anchor</link> ')
@@ -2506,14 +2557,23 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 	def testAutoFormatInterWikiLink(self):
 		self.assertTyping('wp?Test ', '<link href="">wp?Test</link> ')
 
+	def testNoAutoFormatInterWikiLinkPref(self):
+		self.set_textview_preference('autolink_interwiki', False)
+		self.assertTyping('wp?Test ', 'wp?Test ')
+
 	def testAutoFormatCamelCaseLink(self):
 		self.assertTyping('FooBar ', '<link href="">FooBar</link> ')
+
+	def testNoAutoFormatCamelCaseLinkPref(self):
+		self.set_textview_preference('autolink_camelcase', False)
+		self.assertTyping('FooBar ', 'FooBar ')
 
 	def testAutoFormatFileLink(self):
 		self.assertTyping('./test.pdf ', '<link href="">./test.pdf</link> ')
 
-	#def testAutoFormatNotFileLink(self):
-	#	self.assertTyping("Type ''$ ./test.py'' ", 'Type <code>$ ./test.py</code> ')
+	def testAutoFormatFileLink(self):
+		self.set_textview_preference('autolink_files', False)
+		self.assertTyping('./test.pdf ', './test.pdf ')
 
 	def testAutoFormatWikiStrong(self):
 		self.assertTyping('Foo**Bar** ', 'Foo<strong>Bar</strong> ')
@@ -2601,6 +2661,39 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.set_buffer(self.buffer, '<h level="1">test</h>\n')
 		self.buffer.place_cursor(self.buffer.get_iter_at_offset(0))
 		self.assertTyping('* Test ', '<h level="1">* Test test</h>\n')
+
+	#def testUnicodeCamelCase(self):
+	#	self.assertTyping('ВаняИванов', '<link href="">ВаняИванов</link>')
+
+	def testUnicodeLinks(self):
+		# Different style test framework, probably needs locale settings to
+		# work with "assertTyping()"
+		test = (
+			'ВаняИванов',		# CamelCase
+			'+ВаняИванов',		# page match
+			'ВаняИванов:foo', 	# page match
+		)
+
+		buffer = self.view.get_buffer()
+		for word in test:
+			buffer.insert_at_cursor(word)
+			iter = buffer.get_insert_iter()
+			start = iter.copy()
+			start.backward_chars(len(word))
+			char = '\n'
+			editmode = []
+			self.view.emit('end-of-word', start, iter, word, char, editmode)
+			buffer.insert_at_cursor('\n')
+
+		xml = buffer.get_parsetree().tostring()
+		self.assertEqual(xml,
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<link href="ВаняИванов">ВаняИванов</link>\n'
+			'<link href="+ВаняИванов">+ВаняИванов</link>\n'
+			'<link href="ВаняИванов:foo">ВаняИванов:foo</link>\n'
+			'</p></zim-tree>'
+		)
 
 
 class TestPageView(tests.TestCase, TextBufferTestCaseMixin):
@@ -3673,37 +3766,6 @@ class TestCamelCase(tests.TestCase):
 			)
 
 
-class TestAutolink(tests.TestCase):
-
-	def runTest(self):
-		test = (
-			'ВаняИванов',		# CamelCase
-			'+ВаняИванов',		# page match
-			'ВаняИванов:foo', 	# page match
-		)
-		view = TextView({'autolink_files': True, 'autolink_camelcase': True})
-		buffer = view.get_buffer()
-		for word in test:
-			buffer.insert_at_cursor(word)
-			iter = buffer.get_insert_iter()
-			start = iter.copy()
-			start.backward_chars(len(word))
-			char = '\n'
-			editmode = []
-			view.emit('end-of-word', start, iter, word, char, editmode)
-			buffer.insert_at_cursor('\n')
-
-		xml = buffer.get_parsetree().tostring()
-		self.assertEqual(xml,
-			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
-			'<zim-tree><p>'
-			'<link href="ВаняИванов">ВаняИванов</link>\n'
-			'<link href="+ВаняИванов">+ВаняИванов</link>\n'
-			'<link href="ВаняИванов:foo">ВаняИванов:foo</link>\n'
-			'</p></zim-tree>'
-		)
-
-
 class TestDragAndDropFunctions(tests.TestCase):
 
 	@tests.expectedFailure
@@ -3790,6 +3852,8 @@ class TestWebPImageSupport(tests.TestCase):
 		notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL)
 		page = notebook.get_page(Path('Test'))
 		file = page.attachments_folder.file('image_webp_test.webp')
+		self.assertTrue(file.mimetype().startswith('image/'))
+		self.assertTrue(file.isimage())
 		src = tests.TEST_DATA_FOLDER.file('image_webp_test/image_webp_test.webp')
 		src.copyto(file)
 

@@ -11,11 +11,9 @@ from zim.fs import File, TmpFile
 from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
-
 # TODO put these commands in preferences
-latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
-dvipngcmd = ('dvipng', '-q', '-bg', 'Transparent', '-T', 'tight', '-o')
-
+latexcmd = 'latex'
+dvipngcmd = 'dvipng'
 
 class InsertEquationPlugin(PluginClass):
 
@@ -33,6 +31,8 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('dark_mode', 'bool', _('Use font color for dark theme'), False), # T: plugin preference
+		('font_size', 'int', _('Font size'), 12, (6, 24)), # T: plugin preference
+		('output_dpi', 'choice', _('Equation image DPI'), "96", ("96","120","150","200","300","400","600")), # T: plugin preference
     )
 
 	@classmethod
@@ -50,6 +50,7 @@ class BackwardEquationImageObjectType(BackwardImageGeneratorObjectType):
 	syntax = 'latex'
 	scriptname = 'equation.tex'
 	imagefile_extension = '.png'
+	widget_style = 'inline'
 
 	def format_latex(self, dumper, attrib, data):
 		if attrib['src'] and not attrib['src'] == '_new_':
@@ -83,6 +84,7 @@ class EquationGenerator(ImageGeneratorClass):
 		lines = []
 		self.template.process(lines, {
 			'equation': text,
+			'font_size': self.preferences['font_size'],
 			'dark_mode': self.preferences['dark_mode']
 		})
 		self.texfile.writelines(lines)
@@ -92,7 +94,7 @@ class EquationGenerator(ImageGeneratorClass):
 		logfile = File(self.texfile.path[:-4] + '.log') # len('.tex') == 4
 		#~ print(">>>", self.texfile, logfile)
 		try:
-			latex = Application(latexcmd)
+			latex = Application('%s -no-shell-escape -halt-on-error' % (latexcmd))
 			latex.run((self.texfile.basename,), cwd=self.texfile.dir)
 		except ApplicationError:
 			# log should have details of failure
@@ -101,9 +103,9 @@ class EquationGenerator(ImageGeneratorClass):
 		# Call dvipng
 		dvifile = File(self.texfile.path[:-4] + '.dvi') # len('.tex') == 4
 		pngfile = File(self.texfile.path[:-4] + '.png') # len('.tex') == 4
-		dvipng = Application(dvipngcmd)
+		dvipng = Application('%s -q -bg Transparent -T tight -D %s -o' % (dvipngcmd,self.preferences['output_dpi']))
 		dvipng.run((pngfile, dvifile)) # output, input
-			# No try .. except here - should never fail
+		# No try .. except here - should never fail
 		# TODO dvipng can start processing before latex finished - can we win speed there ?
 
 		return pngfile, logfile

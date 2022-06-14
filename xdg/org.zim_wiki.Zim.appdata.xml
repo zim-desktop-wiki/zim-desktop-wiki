@@ -35,6 +35,26 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2021-12-07" version="0.74.3">
+      <description>
+        <ul>
+          <li>Fix issue with broken links on move page</li>
+          <li>Fix bug in copy-paste</li>
+          <li>Fix bug on move page for existing textbuffer</li>
+          <li>Fix bug with saving of notebook editable state</li>
+          <li>Fix for error while loading plugins</li>
+          <li>Fix issue with stray unicode character</li>
+          <li>Fix issue to allow relative document root</li>
+          <li>Fix hack for rendering sourceview blocks</li>
+          <li>Add mnemonic keys to open sidepane tabs</li>
+          <li>Add links and screenshot to macOS app &amp; update README information</li>
+          <li>Improve inline rendering of equations &amp; make image DPI confingurable</li>
+          <li>Add box drawing characters to symbols list</li>
+          <li>Scroll on moving lines with linesorter plugin</li>
+          <li>Move floating table of contents to overlay layer</li>
+        </ul>
+      </description>
+    </release>
     <release date="2021-10-11" version="0.74.2">
       <description>
         <ul>

@@ -581,11 +581,11 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 				links.add((link.source.name, link.target.name))
 		return links
 
-	def movePage(self, pre, move, post):
+	def movePage(self, pre, move, post, update_links=True):
 		notebook = self.setUpNotebook(content=pre[0])
 		self.assertEqual(self.getNotebookLinks(notebook), set(pre[1]))
 		with tests.LoggingFilter('zim.notebook', message='Number of links after move'):
-			notebook.move_page(Path(move[0]), Path(move[1]))
+			notebook.move_page(Path(move[0]), Path(move[1]), update_links=update_links)
 		self.assertEqual(self.getNotebookContent(notebook), post[0])
 		self.assertEqual(self.getNotebookLinks(notebook), set(post[1]))
 
@@ -984,6 +984,96 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 				[('B', 'D')]
 			)
 		)
+
+	def testFloatingLinkFromNestedPage(self):
+		# Based on report issue #1725
+		# These links are technically floating even though they look like the
+		# full path. Default "insert link" will produce this format.
+		# Error happened because when updating "Calendar:Week 1"  the link
+		# "Project" resolves to "Calendar:Project" which has no relation with
+		# the old root and we need to figure out the floating behavior.
+		self.movePage(
+			pre=(
+				{
+					'Archive': 'test 123\n',
+					'Calendar': '[[Project]]\n[[Project:Note]]\n',
+					'Calendar:Week 1': '[[Project]]\n[[Project:Note]]\n',
+					'Project': 'test 123\n',
+					'Project:Note': 'test 123\n',
+				},
+				[
+					('Calendar', 'Project'),
+					('Calendar', 'Project:Note'),
+					('Calendar:Week 1', 'Project'),
+					('Calendar:Week 1', 'Project:Note'),
+				]
+			),
+			move=('Project', 'Archive:Project'),
+			post=(
+				{
+					'Archive': 'test 123\n',
+					'Archive:Project': 'test 123\n',
+					'Archive:Project:Note': 'test 123\n',
+					'Calendar': '[[Archive:Project]]\n[[Archive:Project:Note]]\n',
+					'Calendar:Week 1': '[[Archive:Project]]\n[[Archive:Project:Note]]\n',
+				},
+				[
+					('Calendar', 'Archive:Project'),
+					('Calendar', 'Archive:Project:Note'),
+					('Calendar:Week 1', 'Archive:Project'),
+					('Calendar:Week 1', 'Archive:Project:Note'),
+				]
+			)
+		)
+
+	def testFloatingLinkFromNestedPage2(self):
+		# Based on report issue #1725
+		# Additional issue found while deep diving this issue: need to check
+		#
+		# To reproduce that case, run same test as above but *without* updating
+		# links. Here only link database should be updated on target of the
+		# links. Before the fix "Calendar:Week 1" kept referring to "Project",
+		# which seems correct, but isn't because it creates a circular dependency
+		# between placeholders from "Calendar" and "Calendar:Week 1".
+		self.movePage(
+			pre=(
+				{
+					'Archive': 'test 123\n',
+					'Calendar': '[[Project]]\n[[Project:Note]]\n',
+					'Calendar:Week 1': '[[Project]]\n[[Project:Note]]\n',
+					'Project': 'test 123\n',
+					'Project:Note': 'test 123\n',
+				},
+				[
+					('Calendar', 'Project'),
+					('Calendar', 'Project:Note'),
+					('Calendar:Week 1', 'Project'),
+					('Calendar:Week 1', 'Project:Note'),
+				]
+			),
+			move=('Project', 'Archive:Project'),
+			update_links=False,
+			post=(
+				{
+					'Archive': 'test 123\n',
+					'Archive:Project': 'test 123\n',
+					'Archive:Project:Note': 'test 123\n',
+					'Calendar': '[[Project]]\n[[Project:Note]]\n',
+					'Calendar:Week 1': '[[Project]]\n[[Project:Note]]\n',
+					'Project': '',
+					'Project:Note': '',
+					'Calendar:Project': '',
+					'Calendar:Project:Note': '',
+				},
+				[
+					('Calendar', 'Project'),
+					('Calendar', 'Project:Note'),
+					('Calendar:Week 1', 'Calendar:Project'),
+					('Calendar:Week 1', 'Calendar:Project:Note'),
+				]
+			)
+		)
+
 
 
 class TestUpdateCacheOnMovePage(tests.TestCase):

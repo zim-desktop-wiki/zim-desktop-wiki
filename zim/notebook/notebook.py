@@ -764,9 +764,13 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			elif href.rel == HREF_REL_FLOATING \
 			and natural_sort_key(href.parts()[0]) == natural_sort_key(oldroot.basename) \
 			and page.ischild(oldroot.parent):
-				targetrecord = self.pages.lookup_by_pagename(target)
+				try:
+					targetrecord = self.pages.lookup_by_pagename(target)
+				except IndexNotFoundError:
+					targetrecord = None # technically this is a bug, but let's be robust
+
 				if not target.ischild(oldroot.parent) \
-				or not targetrecord.exists():
+				or targetrecord is None or not targetrecord.exists():
 					# An link that was anchored to the moved page,
 					# but now resolves somewhere higher in the tree
 					# Or a link that no longer resolves
