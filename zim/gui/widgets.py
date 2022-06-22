@@ -2760,7 +2760,8 @@ class Window(Gtk.Window):
 		self.show_all()
 
 	def show_all(self):
-		self.init_uistate()
+		if not self._uistate_initialized:
+			self.init_uistate()
 		if not TEST_MODE:
 			Gtk.Window.show_all(self)
 
