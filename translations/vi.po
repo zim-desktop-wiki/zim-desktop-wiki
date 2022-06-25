@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-25 02:14+0000\n"
+"PO-Revision-Date: 2022-06-26 14:19+0000\n"
 "Last-Translator: Nguyễn Phú Lâm <nguyenphulam44@gmail.com>\n"
 "Language-Team: Vietnamese <https://hosted.weblate.org/projects/zim/master/vi/"
 ">\n"
@@ -486,90 +486,90 @@ msgstr "Loại Ảnh Không Xác định"
 #. Menu title
 #: zim/gui/mainwindow.py:47
 msgid "_File"
-msgstr ""
+msgstr "_Tệp"
 
 #. Menu title | 
 #. Button label
 #: zim/gui/mainwindow.py:48 zim/gui/pageview/__init__.py:7595
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
-msgstr ""
+msgstr "_Chỉnh sửa"
 
 #. Menu title | 
 #. button label
 #: zim/gui/mainwindow.py:49 zim/gui/templateeditordialog.py:43
 msgid "_View"
-msgstr ""
+msgstr "_Xem"
 
 #. Menu title | 
 #. Button label
 #: zim/gui/mainwindow.py:50 zim/gui/pageview/__init__.py:7545
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
-msgstr ""
+msgstr "_Chèn"
 
 #. Menu title | 
 #. input label
 #: zim/gui/mainwindow.py:51 zim/gui/searchdialog.py:34
 msgid "_Search"
-msgstr ""
+msgstr "_Tìm kiếm"
 
 #. Menu title
 #: zim/gui/mainwindow.py:52
 msgid "For_mat"
-msgstr ""
+msgstr "_Định dạng"
 
 #. Menu title
 #: zim/gui/mainwindow.py:53
 msgid "_Tools"
-msgstr ""
+msgstr "_Công cụ"
 
 #. Menu title
 #: zim/gui/mainwindow.py:54
 msgid "_Go"
-msgstr ""
+msgstr "_Go"
 
 #. Menu title | 
 #. Button label
 #: zim/gui/mainwindow.py:55 zim/gui/widgets.py:2939
 msgid "_Help"
-msgstr ""
+msgstr "_Trợ giúp"
 
 #. Menu title
 #: zim/gui/mainwindow.py:56
 msgid "_Checkbox"
-msgstr ""
+msgstr "_ Checkbox"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 #: zim/gui/mainwindow.py:66
 #, python-format
 msgid "Use %s to switch to the side pane"
-msgstr ""
+msgstr "Sử dụng %s để chuyển sang ngăn bên"
 
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:70
 msgid "Always use last cursor position when opening a page"
-msgstr ""
+msgstr "Luôn sử dụng vị trí con trỏ cuối cùng khi mở trang"
 
 #. button label for fullscreen window header
 #: zim/gui/mainwindow.py:144
 msgid "Leave Fullscreen"
-msgstr ""
+msgstr "Rời khỏi chế độ Toàn màn hình"
 
 #. Menu item
 #: zim/gui/mainwindow.py:183
 msgid "_Fullscreen"
-msgstr ""
+msgstr "_ Fullscreen"
 
 #. menu item
 #: zim/gui/mainwindow.py:193
 msgid "Toggle _Editable"
-msgstr ""
+msgstr "Chuyển đổi _Editable"
 
 #. menu item
 #: zim/gui/mainwindow.py:193
 msgid "Toggle editable"
-msgstr ""
+msgstr "Chuyển đổi có thể chỉnh sửa"
 
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
