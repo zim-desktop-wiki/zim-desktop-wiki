@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-06-26 14:19+0000\n"
+"PO-Revision-Date: 2022-06-28 00:15+0000\n"
 "Last-Translator: Nguyễn Phú Lâm <nguyenphulam44@gmail.com>\n"
 "Language-Team: Vietnamese <https://hosted.weblate.org/projects/zim/master/vi/"
 ">\n"
@@ -574,28 +574,28 @@ msgstr "Chuyển đổi có thể chỉnh sửa"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:222
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "Trang ở chế độ chỉ-đọc và không thể chỉnh sửa"
 
 #. Menu item
 #: zim/gui/mainwindow.py:256
 msgid "_Side Panes"
-msgstr ""
+msgstr "_ Side Panes"
 
 #. Menu item | 
 #. Button label
 #: zim/gui/mainwindow.py:495 zim/gui/widgets.py:2900
 msgid "_Close"
-msgstr ""
+msgstr "_ Close"
 
 #. label for View->Menubar menu item
 #: zim/gui/mainwindow.py:566
 msgid "Menubar"
-msgstr ""
+msgstr "thanh Menu"
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:685 zim/gui/uiactions.py:502
 msgid "File exists, do you want to import?"
-msgstr ""
+msgstr "Tệp tồn tại, bạn có muốn nhập không?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:686 zim/gui/uiactions.py:503
