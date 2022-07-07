@@ -157,6 +157,30 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 		for widget in self._widgets:
 			widget.set_preferences(preferences)
 
+	def format_markdown(self, dumper, attrib, data):
+		# Output "fenced code blocks" for markdown
+		# following gfm spec on how these work
+		info = attrib['lang']
+		lines = data.splitlines(True)
+		# find appropriate fence..
+		for i in range(3, 10):
+			fence = ('`' * i) + '\n'
+			if fence not in lines:
+				break
+			fence = ('~' * i) + '\n'
+			if fence not in lines:
+				break
+		else:
+			# we give up, just indent it
+			return ['\t' + l for l in lines]
+
+		return [
+			fence[:-1] + info + '\n',
+			data,
+			fence
+		]
+
+
 	def format_html(self, dumper, attrib, data):
 		# to use highlight.js add the following to your template:
 		#<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/styles/default.min.css">
