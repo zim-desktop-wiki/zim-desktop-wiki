@@ -6069,6 +6069,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._insertedobject_manager = InsertedObjectPageviewManager(self)
 		self.__zim_extension_objects__.append(self._insertedobject_manager) # HACK to make actions discoverable
 
+	def do_key_press_event(self, event: Gdk.EventKey) -> bool:
+		keyval = strip_boolean_result(event.get_keyval())
+		if keyval == KEYVAL_ESC:
+			# hide the find_bar if it is currently visible
+			if self.find_bar.get_visible():
+				self.hide_find()
+				return True
+		return Gtk.VBox.do_key_press_event(self, event)
+
 	def grab_focus(self):
 		self.textview.grab_focus()
 
@@ -8427,14 +8436,6 @@ class FindBar(FindWidget, Gtk.ActionBar):
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()
 		self.find_next()
-
-	def do_key_press_event(self, event):
-		keyval = strip_boolean_result(event.get_keyval())
-		if keyval == KEYVAL_ESC:
-			self.hide()
-			return True
-		else:
-			return Gtk.HBox.do_key_press_event(self, event)
 
 
 class FindAndReplaceDialog(FindWidget, Dialog):
