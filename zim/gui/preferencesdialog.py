@@ -549,13 +549,15 @@ class KeyBindingsTab(Gtk.VBox):
 		self.add(ScrolledWindow(KeyBindingTreeView()))
 		self.pack_end(help_text_factory(help), False, True, 12)
 
+
 class KeyBindingTreeView(Gtk.TreeView):
 	def __init__(self):
 		GObject.GObject.__init__(self)
 		model = Gtk.ListStore(str, int, Gdk.ModifierType) # accel_path, accel_key, accel_mods
 
 		def _append(data, accel_path, accel_key, accel_mods, changed):
-			model.append((accel_path, accel_key, accel_mods))
+			if not accel_path.endswith('_menu'):
+				model.append((accel_path, accel_key, accel_mods))
 		Gtk.AccelMap.foreach(None, _append)
 
 		model.set_sort_column_id(0, Gtk.SortType.ASCENDING)

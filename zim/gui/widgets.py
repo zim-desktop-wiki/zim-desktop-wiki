@@ -2734,7 +2734,7 @@ class Window(Gtk.Window):
 	def focus_sidepane(self):
 		try:
 			self.focus_last_focussed_sidepane() \
-				or self.get_visible_panes()[0].grab_focus()
+				or self.get_visible_panes()[0].notebook.grab_focus()
 		except IndexError:
 			pass
 

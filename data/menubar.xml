@@ -203,4 +203,5 @@
 	<accelerator action='find_next_alt1'/>
 	<accelerator action='find_previous_alt1'/>
 	<accelerator action='redo_alt1'/>
+	<accelerator action='focus_sidepane_key_toggle'/>
 </ui>

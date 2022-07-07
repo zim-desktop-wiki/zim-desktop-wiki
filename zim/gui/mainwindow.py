@@ -278,7 +278,11 @@ class WindowBaseMixin(object):
 			# Sidepane open and should close automatically
 			self.toggle_panes(False)
 
-	def toggle_sidepane_focus(self, *a):
+	@action(_('Focus Sidepane'))
+	def focus_sidepane_key_toggle(self):
+		self.do_focus_sidepane_key_toggle()
+
+	def do_focus_sidepane_key_toggle(self, *a):
 		'''Switch focus between the textview and the page index.
 		Automatically opens the sidepane if it is closed
 		(but sets a property to automatically close it again).
@@ -551,14 +555,14 @@ class MainWindow(WindowBaseMixin, Window):
 			# see bug lp:620315)
 			group.connect( # <Alt><Space>
 				space, Gdk.ModifierType.MOD1_MASK, Gtk.AccelFlags.VISIBLE,
-				self.toggle_sidepane_focus)
+				self.do_focus_sidepane_key_toggle)
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['toggle_on_ctrlspace']:
 			group.connect( # <Primary><Space>
 				space, PRIMARY_MODIFIER_MASK, Gtk.AccelFlags.VISIBLE,
-				self.toggle_sidepane_focus)
+				self.do_focus_sidepane_key_toggle)
 
 		self.add_accel_group(group)
 		self._switch_focus_accelgroup = group
