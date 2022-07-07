@@ -381,7 +381,7 @@ class ImageGeneratorDialog(Dialog):
 			model.get_text(),
 			syntax
 		).run()
-		if result is not None:
+		if result is not None and result[0] is not None:
 			text, image_file = result
 			model.set_from_generator(text, image_file)
 		model.generator.cleanup()
