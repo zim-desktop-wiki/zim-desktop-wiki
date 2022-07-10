@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-01-07 06:55+0000\n"
+"PO-Revision-Date: 2022-07-11 05:16+0000\n"
 "Last-Translator: Maxime Leroy <lisacintosh@gmail.com>\n"
 "Language-Team: French <https://hosted.weblate.org/projects/zim/master/fr/>\n"
 "Language: fr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.13.1-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -782,27 +782,19 @@ msgstr "Transformer automatiquement les mots \"CamelCase\" en liens"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:182
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn wiki page names into links"
-msgstr ""
-"Transformer automatiquement les chemins vers le système de fichiers en liens"
+msgstr "Transformer automatiquement le nom des pages wiki en liens"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:185
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn identifiers starting with \"#\" into links"
 msgstr ""
-"Transformer automatiquement les chemins vers le système de fichiers en liens"
+"Transformer automatiquement les identifiants commençant par \"#\" en liens"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:188
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn interwiki names into links"
-msgstr ""
-"Transformer automatiquement les chemins vers le système de fichiers en liens"
+msgstr "Transforme automatiquement les noms interwiki en liens"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
@@ -3407,7 +3399,7 @@ msgstr "Pied de page d'inclusion commun"
 #. menu item
 #: zim/plugins/scoreeditor.py:68
 msgid "Musical Score"
-msgstr ""
+msgstr "Partition musicale"
 
 #. plugin name | 
 #. dialog title
