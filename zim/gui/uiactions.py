@@ -365,7 +365,7 @@ class UIActions(object):
 		'''
 		ZIM_APPLICATION.run('--server', '--gui', self.notebook.uri)
 
-	@action(_('View debug log'), menuhints='tools') # T: menu item
+	@action(_('View Debug Log'), menuhints='tools') # T: menu item
 	def show_debug_log(self):
 		from zim.newfs import LocalFile
 		file = LocalFile(zim.debug_log_file)
