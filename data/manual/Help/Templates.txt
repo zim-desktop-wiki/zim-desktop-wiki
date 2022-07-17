@@ -323,7 +323,7 @@ The following options are supported:
 
 **HTML**
 * ''options.line_breaks'': value should be either "''default''" or "''remove''", controls line breaks (''<br>'' elements) in paragraphs
-* ''options.empty_lines'': value should be either "defualt" or "remove", controls whether empty lines in the source should be inserted as ''<br>'' elements in the HTML output between top level elements like paragraphs, headings etc.
+* ''options.empty_lines'': value should be either "default" or "remove", controls whether empty lines in the source should be inserted as ''<br>'' elements in the HTML output between top level elements like paragraphs, headings etc.
 
 **Latex**
 * ''options.document_type'': one of "''report''", "''article''" or "''book''". Controls the heading type used.
