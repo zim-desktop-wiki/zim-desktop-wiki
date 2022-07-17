@@ -329,7 +329,11 @@ The following options are supported:
 * ''options.document_type'': one of "''report''", "''article''" or "''book''". Controls the heading type used.
 
 ===== Template Resources =====
-To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template.
+To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template. For example:
+
+'''
+<link rel="stylesheet" href="[% resource('style.css') %]">
+'''
 
 Zim always includes some images when exporting for the checkboxes used in checkbox lists. To customize these there should be template resources named "''checked-box.png''", "''unchecked-box.png''" and "''xchecked-box.png''" in this folder.
 
