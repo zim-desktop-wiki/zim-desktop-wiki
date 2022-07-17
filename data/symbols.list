@@ -337,7 +337,8 @@
 <=>	8660
 <==>	8660
 <==	8656
---	8212  # em dash aka &mdash; in HTML
+--	8211  # en dash aka &ndash; in HTML
+---	8212  # em dash aka &mdash; in HTML
 =/=	8800  # not equal to sign (may also use \neq)
 +-	177   # +- sign
 +_	177   # +- sign
