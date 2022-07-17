@@ -283,7 +283,7 @@ Open the folder with [[Help:Attachments|attachments]] for the current page in a 
 **Open Notebook Folder**
 Open the folder for the current notebook in a file browser.
 
-**View debug log**
+**View Debug Log**
 Open ''zim.log'' in the external editor (see [[Preferences]] to set the text editor).
 
 **Start Web Server**
