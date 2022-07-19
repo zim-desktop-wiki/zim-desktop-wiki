@@ -47,10 +47,10 @@ External links like <http://nongnu.org> and [foo@bar.org](mailto:foo@bar.org) ar
 
 
 ![](./foobar.png)
-![](./foobar.png)
-![Foo Bar](../my-image.png)
-![](my-image.png)
-![Foo Bar](../my-image.png)
+![](./foobar.png){ height=50px }
+![Foo Bar](../my-image.png){ width=600px }
+[![](my-image.png)](Foo)
+[![Foo Bar](../my-image.png){ width=600px }](:foo:bar)
 
 ![](./equation001.png) This equation has a source .tex file
 ![](./equation002.png) for this one it is missing
