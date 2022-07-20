@@ -48,7 +48,7 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
    or: zim --server [OPTIONS] [NOTEBOOK]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
    or: zim --search NOTEBOOK QUERY
-   or: zim --index  NOTEBOOK
+   or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --plugin PLUGIN [ARGUMENTS]
    or: zim --manual [OPTIONS] [PAGE]
    or: zim --help
