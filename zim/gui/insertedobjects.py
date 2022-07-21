@@ -220,7 +220,7 @@ class ImageFileWidget(InsertedObjectWidget):
 		if file.exists():
 			self.image = Gtk.Image.new_from_file(file.path)
 		else:
-			self.image = Gtk.Image()
+			self.image = Gtk.Image.new_from_stock(Gtk.STOCK_MISSING_IMAGE, Gtk.IconSize.DIALOG)
 		self.image.set_property('margin', 1) # seperate line and content
 		self.add(self.image)
 
@@ -231,10 +231,10 @@ class ImageFileWidget(InsertedObjectWidget):
 
 	def set_file(self, file):
 		self.file = file
-		if self.file.exists():
+		if self.file is not None and self.file.exists():
 			self.image.set_from_file(file.path)
 		else:
-			self.image.clear()
+			self.image.set_from_stock(Gtk.STOCK_MISSING_IMAGE, Gtk.IconSize.DIALOG)
 
 
 def _find_plugin(name):
