@@ -130,7 +130,7 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 	def collapse(self):
 		self.treeview.collapse_all()
 
-	@action(_('Reveal current page in Page Index'), accelerator=None, menuhints='view') # T: menu item
+	@action(_('Reveal Current Page in Page Index'), accelerator=None, menuhints='view') # T: menu item
 	def reveal(self):
 		model = self.treeview.get_model()
 		try:

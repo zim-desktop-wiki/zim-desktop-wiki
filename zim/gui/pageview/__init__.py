@@ -7466,7 +7466,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			return buffer.select_word()
 
-	@action(_('Move selected text...')) # T: Menu item
+	@action(_('Move Selected Text...')) # T: Menu item
 	def move_text(self):
 		buffer = self.textview.get_buffer()
 		MoveTextDialog(self, self.notebook, self.page, buffer, self.navigation).run()

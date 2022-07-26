@@ -269,7 +269,7 @@ Open a list with recently changed pages and the time stamps of the last modifica
 **Word Count**
 Show number of lines, words, characters if current page, paragraph and selection.
 
-**Move selected text**
+**Move Selected Text**
 Opens a dialog which allows moving the current text selection to another page and optionally leave a link to the destination page. Similar to cut-and-paste but as a direct action.
 
 **Check Spelling <F7>**
@@ -283,7 +283,7 @@ Open the folder with [[Help:Attachments|attachments]] for the current page in a 
 **Open Notebook Folder**
 Open the folder for the current notebook in a file browser.
 
-**View debug log**
+**View Debug Log**
 Open ''zim.log'' in the external editor (see [[Preferences]] to set the text editor).
 
 **Start Web Server**
