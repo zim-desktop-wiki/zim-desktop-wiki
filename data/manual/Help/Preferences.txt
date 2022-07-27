@@ -6,8 +6,6 @@ Wiki-Format: zim 0.4
 The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Preferences//". The following options can be configured:
 
 ===== Interface =====
-**Add 'tearoff' strips to the menu** adds a 'tearoff' strip to all menus in the menubar. This means that menus can be opened as small windows and stay open while editing a page.
-
 **Use <Ctrl><Space> to switch to the side pane** toggles the key binding for <Ctrl><Space>. The reason to toggle this binding 'off' is usually because it is also used for input methods when using non-western scripts.
 
 **Always use last cursor position when opening a page** toggles whether pages are always opened on their last cursor position or not. When this is disabled pages only open with a cursor position when they are opened be a history reference (e.g. the "Back" button or a link from the pathbar).
