@@ -3,16 +3,17 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2017-04-28 22:03+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
-"Language-Team: Simplified Chinese <zh_CN@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2022-08-21 15:17+0000\n"
+"Last-Translator: Marvin Elsen | 柳博慎 <development@marvin-elsen.com>\n"
+"Language-Team: Chinese (Traditional) <https://hosted.weblate.org/projects/"
+"zim/master/zh_Hant/>\n"
+"Language: zh_TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 4.14-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:86
@@ -96,13 +97,13 @@ msgstr "要建立文件夾？"
 
 #. Text in a question dialog for creating a folder, %s will be the folder base name
 #: zim/gui/applications.py:587
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "The folder \"%s\" does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"文件夾\"%s\"不存在\\n\n"
-"你想新增它嗎?"
+"資料夾「%s」不存在\n"
+"你想新增它嗎？"
 
 #. error when external application fails
 #: zim/gui/applications.py:654 zim/gui/applications.py:728
@@ -121,7 +122,7 @@ msgstr "正在編輯的文件:%s"
 msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
-msgstr "你正使用外部程式編輯檔案，當你完成編輯後再關閉對話視窗。"
+msgstr "你正使用外部程式編輯檔案，當你完成編輯後再關閉對話視窗"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1010
@@ -151,7 +152,9 @@ msgstr "設定用于打開“%s”連結的程式"
 msgid ""
 "Configure an application to open files\n"
 "of type \"%s\""
-msgstr "設定用于打開“%s”類型文件的程式"
+msgstr ""
+"設定用於打開「%s」\n"
+"類型檔案的程式"
 
 #. Dialog title
 #: zim/gui/applications.py:1090
@@ -215,7 +218,7 @@ msgid ""
 "in the tool menu and in the tool bar or context menus."
 msgstr ""
 "您可以自訂工具使其顯示於\n"
-"工具選單、工具列、和滑鼠右鍵選單中"
+"工具選單、工具列、和滑鼠右鍵選單中。"
 
 #. Dialog title
 #: zim/gui/customtools.py:647
@@ -408,7 +411,7 @@ msgstr "匯出檔案"
 #: zim/gui/exportdialog.py:415
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
-msgstr ""
+msgstr "出現了%(n_error)i個錯誤和%(n_warning)i個警告，請查看日誌"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:418
@@ -420,7 +423,7 @@ msgstr "遇到了 %i 個錯誤，請查看日誌"
 #: zim/gui/exportdialog.py:421
 #, python-format
 msgid "%i warnings occurred, see log"
-msgstr ""
+msgstr "出現了%i個警告，請查看日誌"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:426
@@ -453,7 +456,7 @@ msgstr ""
 #. label for inserted object
 #: zim/gui/insertedobjects.py:313
 msgid "Unkown Object"
-msgstr ""
+msgstr "未知物件"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:352
@@ -577,14 +580,8 @@ msgstr "選單列"
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:685 zim/gui/uiactions.py:502
-#, fuzzy
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
 msgid "File exists, do you want to import?"
-msgstr ""
-"已有此檔案\n"
-"是否覆蓋？"
+msgstr "已有此檔案，是否匯入？"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:686 zim/gui/uiactions.py:503
@@ -618,7 +615,7 @@ msgstr "回返(_B)"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:776
 msgid "Go back"
-msgstr ""
+msgstr "返回"
 
 #. Menu item | 
 #. Button label
@@ -669,12 +666,10 @@ msgstr ""
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:864
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i 個反向鏈結(_B)..."
+msgstr[0] "%i 個反向連結(_B)"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1001
@@ -727,7 +722,7 @@ msgstr "新增筆記本"
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:407
 msgid "Please select a name and a folder for the notebook."
-msgstr "請為您的筆記本選擇名字和文件夾"
+msgstr "請為您的筆記本選擇名字和資料夾。"
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:423
@@ -849,7 +844,7 @@ msgstr "包含附件文件模板的文件夾"
 #. tooltip for button in anchor popover
 #: zim/gui/pageview/__init__.py:4736
 msgid "Copy link to clipboard"
-msgstr ""
+msgstr "複製連結"
 
 #. tooltip label for image with href
 #: zim/gui/pageview/__init__.py:4978
@@ -1252,10 +1247,10 @@ msgid ""
 "does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"\"文件夾\\n\"\n"
-"\"%s\\n\"\n"
-"\"不存在。\\n\"\n"
-"\"您想新增它嗎？\""
+"資料夾\n"
+"%s\n"
+"不存在。\n"
+"您想新增它嗎？"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7253
@@ -2182,10 +2177,9 @@ msgstr ""
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:726
-#, fuzzy, python-format
-#| msgid "Move page \"%s\""
+#, python-format
 msgid "Move page \"%s\" to trash?"
-msgstr "搬移頁面 \"%s\""
+msgstr "移頁面「%s」至垃圾桶？"
 
 #. Text in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:728
@@ -2650,11 +2644,10 @@ msgstr "附件"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:182
-#, fuzzy, python-format
-#| msgid "Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
-msgstr[0] "附件"
+msgstr[0] "%i個附件"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -3963,7 +3956,7 @@ msgstr ""
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:69
 msgid "do not use"
-msgstr ""
+msgstr "不使用"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:70
@@ -4022,19 +4015,17 @@ msgstr ""
 #. Toolbar size small
 #: zim/plugins/toolbar.py:52
 msgid "Small"
-msgstr ""
+msgstr "小"
 
 #. Toolbar size large
 #: zim/plugins/toolbar.py:53
 msgid "Large"
-msgstr ""
+msgstr "大"
 
 #. plugin name
 #: zim/plugins/toolbar.py:63
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Tool Bar"
-msgstr "工具列(_T)"
+msgstr "工具列"
 
 #. plugin description
 #: zim/plugins/toolbar.py:64
@@ -4345,17 +4336,17 @@ msgstr "維基頁面：%s"
 #: zim/templates/__init__.py:120
 #, python-format
 msgid "Could not find template \"%s\""
-msgstr ""
+msgstr "無法找到「%s」範本"
 
 #: data/templates/wiki/Default.txt:2 data/templates/wiki/Journal.txt:22
 msgid "Created"
-msgstr ""
+msgstr "建立日期"
 
 #: data/templates/html/Default.html:46 data/templates/html/Default.html:48
 #: data/templates/html/Default_with_index.html:55
 #: data/templates/html/Default_with_index.html:57
 msgid "Prev"
-msgstr ""
+msgstr "上一個"
 
 #: data/templates/html/Default.html:52 data/templates/html/Default.html:54
 #: data/templates/html/Default_with_index.html:61
@@ -4367,17 +4358,17 @@ msgstr "索引"
 #: data/templates/html/Default_with_index.html:67
 #: data/templates/html/Default_with_index.html:69
 msgid "Next"
-msgstr ""
+msgstr "下一個"
 
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
 msgid "Backlinks:"
-msgstr ""
+msgstr "反向連結："
 
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
-msgstr ""
+msgstr "附件："
 
 #~ msgid "Remove links when deleting pages"
 #~ msgstr "刪除頁面時移除鏈接"
