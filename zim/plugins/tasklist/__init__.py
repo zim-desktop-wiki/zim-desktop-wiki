@@ -12,6 +12,7 @@
 # - force update, intialization
 
 
+from zim.main import GuiCommand
 from zim.plugins import PluginClass, find_extension
 from zim.actions import action
 from zim.config import StringAllowEmpty
@@ -230,3 +231,62 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 			# make it less blocking - now it is at least on idle
 		nb_ext = find_extension(self.pageview.notebook, TaskListNotebookExtension)
 		widget.connectto(nb_ext, 'tasklist-changed', callback)
+
+
+usagehelp = '''
+usage: zim --plugin tasklist [NOTEBOOK]
+
+Arguments:
+  NOTEBOOK:	The Notebook to open. Defaults to your default notebook
+
+Options:
+  --show: Shows the tasklist plugin
+  --help: Shows this help message
+'''
+# class TaskListCommand(NotebookCommand, GtkCommand):
+class TaskListCommand(GuiCommand):
+	arguments = ['[NOTEBOOK]']
+	options = (
+		('show', '', 'Show the tasklist window'),
+		('help', '', 'Display help')
+	)
+
+	def run_local(self):
+		if self.opts.get('help') or not self._validate_options():
+			self.help()
+			return True
+
+	def _validate_options(self):
+		action_options = ['help', 'show']
+		for action_option in action_options:
+			if self.opts.get(action_option):
+				return True
+
+		action_options_cli = map(lambda a: '--%s' % a, action_options)
+		print('ERROR: One of the following options must be provided: [%s]' % ','.join(action_options_cli))
+		return False
+
+	def run(self):
+		window = GuiCommand.run(self)
+
+		if self.opts.get('show'):
+			self.show_task_list(window)
+
+		return window
+
+	def help(self):
+		print(usagehelp)
+
+	def show_task_list(self, window):
+		notebook = window.notebook
+		properties = TaskListPlugin().notebook_properties(notebook)
+
+		window = TaskListWindow(
+			notebook=notebook,
+			index=notebook.index,
+			navigation=window.navigation,
+			show_inbox_next=False,
+			properties=properties,
+		)
+
+		window.show_all()
