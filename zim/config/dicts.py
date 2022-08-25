@@ -74,6 +74,13 @@ class ControlledDict(DefinitionOrderedDict, SignalEmitter, ConnectorMixin):
 			self.disconnect_from(v)
 		self.emit('changed')
 
+	def pop(self, key, default=None):
+		# Only emit changed once here
+		with self.block_signals('changed'):
+			v = DefinitionOrderedDict.pop(self, key, default)
+		self.emit('changed')
+		return v
+
 	def update(self, E=(), **F):
 		# Only emit changed once here
 		with self.block_signals('changed'):
