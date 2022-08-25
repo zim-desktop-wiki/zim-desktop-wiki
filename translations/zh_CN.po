@@ -2795,9 +2795,8 @@ msgid ""
 "The search dialog can be opened by pressing the keyboard shortcut Ctrl+Shift"
 "+P which can be customized via Zim's key bindings preferences."
 msgstr ""
-"这个插件可以打开一个搜索对话框，以便快速执行菜单条目。"
-"搜索对话框可以通过按键盘快捷键 Ctrl+Shift+P 来打开，可以通过 Zim "
-"的按键绑定偏好来定制。"
+"这个插件可以打开一个搜索对话框，以便快速执行菜单条目。搜索对话框可以通过按键"
+"盘快捷键 Ctrl+Shift+P 来打开，可以通过 Zim 的按键绑定偏好来定制。"
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
