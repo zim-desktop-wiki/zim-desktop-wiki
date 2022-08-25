@@ -136,6 +136,7 @@ if [[ ! "${__skip_msys_deps}" = true ]] && [[ "${MSYSTEM_CARCH:-}" ]]; then
       mingw-w64-"${MSYSTEM_CARCH}"-python-xdg \
       mingw-w64-"${MSYSTEM_CARCH}"-gtksourceview3 \
       mingw-w64-"${MSYSTEM_CARCH}"-python-pip \
+      mingw-w64-"${MSYSTEM_CARCH}"-python-wheel \
       mingw-w64-"${MSYSTEM_CARCH}"-nsis
 
 fi
@@ -155,7 +156,7 @@ __build_dir=${__dir}/build
 __venv_dir=${__build_dir}/venv
 
 rm -rf "${__venv_dir}"
-python3 -m venv --prompt Zim "${__venv_dir}"
+python3 -m venv --prompt Zim "${__venv_dir}" --system-site-packages
 
 info "Entering virtual environment ..."
 
@@ -165,7 +166,7 @@ source "${__venv_dir}/bin/activate"
 info "Initializing virtual environment ..."
 
 python -m pip install -U pip
-pip install PyGObject pyinstaller==3.6 # Fix pyinstaller version, latest has bug
+pip install --require-virtualenv pyinstaller
 
 info "Checking virtual environment ..."
 

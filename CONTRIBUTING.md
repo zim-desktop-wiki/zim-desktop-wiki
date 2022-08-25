@@ -149,7 +149,7 @@ application.
 ## Translations
 
 To contribute to translations online please go to
-https://hosted.weblate.org/projects/zim/master/
+https://hosted.weblate.org/projects/zim/develop/
 
 Or you can edit the template zim.pot with your favorite editor. In that case you should add you new .po file to the po/ directory.
 

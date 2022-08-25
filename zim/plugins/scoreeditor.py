@@ -69,7 +69,7 @@ This is a core plugin shipping with zim.
 class BackwardScoreImageObjectType(BackwardImageGeneratorObjectType):
 
 	name = 'image+score'
-	label = _('Score') # T: menu item
+	label = _('Musical Score') # T: menu item
 	syntax = None
 	scriptname = 'score.ly'
 
