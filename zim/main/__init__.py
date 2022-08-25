@@ -619,6 +619,8 @@ def build_command(args, pwd=None):
 				# Can't use following because log level not yet set:
 				# logger.debug('Error while loading: zim.plugins.%s.Command', cmd, exc_info=sys.exc_info())
 			raise UsageError('Could not load commandline command for plugin "%s"' % cmd)
+		if klass is None:
+			raise UsageError('Module %s has no commandline command' % cmd)
 	else:
 		if args and args[0].startswith('--') and args[0][2:] in commands:
 			cmd = args.pop(0)[2:]
