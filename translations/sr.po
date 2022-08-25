@@ -42,7 +42,7 @@ msgstr ""
 msgid "Failed running: %s"
 msgstr ""
 
-#. label for default webbrowser | 
+#. label for default webbrowser |
 #. label for default application
 #: zim/applications.py:383 zim/applications.py:426 zim/gui/applications.py:1100
 msgid "Default"
@@ -58,7 +58,7 @@ msgstr ""
 msgid "Looks like you found a bug"
 msgstr ""
 
-#. message for FileNotFoundError | 
+#. message for FileNotFoundError |
 #. Error message in template lookup
 #: zim/fs.py:276 zim/templates/__init__.py:124
 #, python-format
@@ -76,7 +76,7 @@ msgstr "Није могуће прочитати: %s"
 msgid "This usually means the file contains invalid characters"
 msgstr "То обично значи да датотека садржи неважеће знаке"
 
-#. label for detailed error | 
+#. label for detailed error |
 #. section for version details in "save version" dialog
 #: zim/fs.py:292 zim/newfs/base.py:68
 #: zim/plugins/versioncontrol/__init__.py:773
@@ -164,7 +164,7 @@ msgstr ""
 msgid "Configure Applications"
 msgstr ""
 
-#. Button for adding a new application to the 'open with' menu | 
+#. Button for adding a new application to the 'open with' menu |
 #. Dialog title
 #: zim/gui/applications.py:1104 zim/gui/applications.py:1212
 msgid "Add Application"
@@ -175,14 +175,14 @@ msgstr ""
 msgid "System Default"
 msgstr ""
 
-#. Field in 'custom command' dialog | 
-#. Input in "Edit Custom Tool" dialog | 
-#. input field in 'Add Notebook' dialog | 
-#. input for new file name | 
-#. Heading in plugins tab of preferences dialog | 
-#. label for properties dialog | 
-#. Input label for the new name when copying a template | 
-#. Input label in the 'rename page' dialog for the new name | 
+#. Field in 'custom command' dialog |
+#. Input in "Edit Custom Tool" dialog |
+#. input field in 'Add Notebook' dialog |
+#. input for new file name |
+#. Heading in plugins tab of preferences dialog |
+#. label for properties dialog |
+#. Input label for the new name when copying a template |
+#. Input label in the 'rename page' dialog for the new name |
 #. label for file name
 #: zim/gui/applications.py:1216 zim/gui/customtools.py:667
 #: zim/gui/notebookdialog.py:422 zim/gui/pageview/__init__.py:8579
@@ -192,7 +192,7 @@ msgstr ""
 msgid "Name"
 msgstr "Назив:"
 
-#. Field in 'custom command' dialog | 
+#. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/applications.py:1217 zim/gui/customtools.py:669
 msgid "Command"
@@ -228,13 +228,13 @@ msgstr ""
 msgid "Edit Custom Tool"
 msgstr "Уреди прилагођене алатке"
 
-#. Input in "Edit Custom Tool" dialog | 
+#. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/customtools.py:668 zim/gui/preferencesdialog.py:335
 msgid "Description"
 msgstr "Опис"
 
-#. Input in "Edit Custom Tool" dialog | 
+#. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
 #: zim/gui/customtools.py:683 zim/gui/propertiesdialog.py:19
 msgid "Icon"
@@ -316,7 +316,7 @@ msgstr ""
 msgid "Select the pages to export"
 msgstr "Изаберите странице за извоз"
 
-#. Option in export dialog to export complete notebook | 
+#. Option in export dialog to export complete notebook |
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:173 zim/plugins/versioncontrol/__init__.py:821
 msgid "Complete _notebook"
@@ -327,11 +327,11 @@ msgstr "Целокупна _бележница"
 msgid "Single _page"
 msgstr "Појединачна _страница"
 
-#. Input field in export dialog | 
-#. label in word count dialog | 
-#. Column header | 
-#. Column header search dialog | 
-#. Column header Task List dialog | 
+#. Input field in export dialog |
+#. label in word count dialog |
+#. Column header |
+#. Column header search dialog |
+#. Column header Task List dialog |
 #. page label
 #: zim/gui/exportdialog.py:181 zim/gui/pageview/__init__.py:8459
 #: zim/gui/recentchangesdialog.py:59 zim/gui/searchdialog.py:149
@@ -355,13 +355,13 @@ msgstr "Изаберите формат за извоз"
 msgid "Other..."
 msgstr "Остало..."
 
-#. Input label in the export dialog | 
+#. Input label in the export dialog |
 #. label in "insert date" dialog
 #: zim/gui/exportdialog.py:223 zim/gui/pageview/__init__.py:7574
 msgid "Format"
 msgstr "Формат"
 
-#. Input label in the export dialog | 
+#. Input label in the export dialog |
 #. Field in web server gui for webpage template
 #: zim/gui/exportdialog.py:224 zim/gui/server.py:106
 msgid "Template"
@@ -435,7 +435,7 @@ msgstr ""
 msgid "Export completed"
 msgstr ""
 
-#. button in export dialog | 
+#. button in export dialog |
 #. button in e.g. equation editor dialog
 #: zim/gui/exportdialog.py:429 zim/plugins/base/imagegenerator.py:358
 msgid "View _Log"
@@ -473,27 +473,27 @@ msgstr ""
 msgid "_File"
 msgstr "_Датотека"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:48 zim/gui/pageview/__init__.py:7595
 #: zim/gui/templateeditordialog.py:49 zim/plugins/insertsymbol.py:155
 msgid "_Edit"
 msgstr "_Уреди"
 
-#. Menu title | 
+#. Menu title |
 #. button label
 #: zim/gui/mainwindow.py:49 zim/gui/templateeditordialog.py:43
 msgid "_View"
 msgstr "_Приказ"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:50 zim/gui/pageview/__init__.py:7545
 #: zim/plugins/insertsymbol.py:131
 msgid "_Insert"
 msgstr "_Уметни"
 
-#. Menu title | 
+#. Menu title |
 #. input label
 #: zim/gui/mainwindow.py:51 zim/gui/searchdialog.py:34
 msgid "_Search"
@@ -514,7 +514,7 @@ msgstr "_Алатке"
 msgid "_Go"
 msgstr "_Иди"
 
-#. Menu title | 
+#. Menu title |
 #. Button label
 #: zim/gui/mainwindow.py:55 zim/gui/widgets.py:2939
 msgid "_Help"
@@ -572,7 +572,7 @@ msgstr ""
 msgid "_Side Panes"
 msgstr ""
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:495 zim/gui/widgets.py:2900
 msgid "_Close"
@@ -612,7 +612,7 @@ msgstr "само за читање"
 msgid "_Jump To..."
 msgstr "_Пређи на..."
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:774 zim/gui/widgets.py:3815
 msgid "_Back"
@@ -623,7 +623,7 @@ msgstr "_Назад"
 msgid "Go back"
 msgstr ""
 
-#. Menu item | 
+#. Menu item |
 #. Button label
 #: zim/gui/mainwindow.py:787 zim/gui/widgets.py:3819
 msgid "_Forward"
@@ -696,8 +696,8 @@ msgstr ""
 msgid "Jump to Page"
 msgstr "Скочи на страницу"
 
-#. Column heading in 'open notebook' dialog | 
-#. Field in web server gui | 
+#. Column heading in 'open notebook' dialog |
+#. Field in web server gui |
 #. Field to select Notebook from drop down list
 #: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:58
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:222
@@ -857,7 +857,7 @@ msgstr ""
 msgid "Link"
 msgstr "_Веза"
 
-#. tooltip label for image with anchor id | 
+#. tooltip label for image with anchor id |
 #. input label for object ID
 #: zim/gui/pageview/__init__.py:4980 zim/gui/pageview/__init__.py:7896
 #: zim/plugins/sourceview.py:379
@@ -919,25 +919,25 @@ msgstr "Заглавље _4"
 msgid "Heading _5"
 msgstr "Заглавље _5"
 
-#. Menu item | 
+#. Menu item |
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5784 zim/gui/pageview/__init__.py:5799
 msgid "_Strong"
 msgstr "_Јако"
 
-#. Menu item | 
+#. Menu item |
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5785 zim/gui/pageview/__init__.py:5800
 msgid "_Emphasis"
 msgstr "_Наглашавање"
 
-#. Menu item | 
+#. Menu item |
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5786 zim/gui/pageview/__init__.py:5801
 msgid "_Mark"
 msgstr "_Означи"
 
-#. Menu item | 
+#. Menu item |
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5787 zim/gui/pageview/__init__.py:5802
 msgid "_Strike"
@@ -953,7 +953,7 @@ msgstr "_Под-пис"
 msgid "_Superscript"
 msgstr "_Над-пис"
 
-#. Menu item | 
+#. Menu item |
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5790 zim/gui/pageview/__init__.py:5803
 msgid "_Verbatim"
@@ -1038,22 +1038,22 @@ msgstr "Умножи е-адресу"
 msgid "Open Folder"
 msgstr "Отвори фасциклу"
 
-#. menu item for sub menu with applications | 
+#. menu item for sub menu with applications |
 #. menu item
 #: zim/gui/pageview/__init__.py:6763 zim/gui/pageview/__init__.py:6774
 #: zim/plugins/attachmentbrowser/filebrowser.py:400
 msgid "Open With..."
 msgstr "Отвори помоћу..."
 
-#. menu item to open a link | 
+#. menu item to open a link |
 #. Menu item
 #: zim/gui/pageview/__init__.py:6784 zim/gui/uiactions.py:147
 #: zim/plugins/backlinkpane.py:129
 msgid "Open in New _Window"
 msgstr "Отвори у новом _прозору"
 
-#. menu item to open a link or file | 
-#. Button label | 
+#. menu item to open a link or file |
+#. Button label |
 #. menu item to open file or folder
 #: zim/gui/pageview/__init__.py:6794 zim/gui/widgets.py:3493
 #: zim/plugins/attachmentbrowser/filebrowser.py:407
@@ -1082,14 +1082,14 @@ msgstr ""
 msgid "Check Checkbox 'V'"
 msgstr ""
 
-#. popup menu menuitem | 
+#. popup menu menuitem |
 #. Menu item
 #: zim/gui/pageview/__init__.py:6813 zim/gui/pageview/__init__.py:6876
 msgid "Un-check Checkbox"
 msgstr ""
 
-#. Menu item | 
-#. Button label | 
+#. Menu item |
+#. Button label |
 #. button label
 #: zim/gui/pageview/__init__.py:6822 zim/gui/widgets.py:3495
 #: zim/plugins/versioncontrol/__init__.py:753
@@ -1116,8 +1116,8 @@ msgstr "_Понови"
 msgid "Cu_t"
 msgstr "И_сеци"
 
-#. Menu item | 
-#. Button label | 
+#. Menu item |
+#. Button label |
 #. menu label
 #: zim/gui/pageview/__init__.py:6861 zim/gui/templateeditordialog.py:46
 #: zim/plugins/tasklist/gui.py:773
@@ -1192,19 +1192,19 @@ msgstr "_Слика..."
 msgid "_Attachment..."
 msgstr "Прилози"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7038 zim/gui/pageview/__init__.py:7065
 msgid "Bulle_t List"
 msgstr ""
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7043 zim/gui/pageview/__init__.py:7070
 msgid "_Numbered List"
 msgstr "_Нумерисани списак"
 
-#. Menu item | 
+#. Menu item |
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7048 zim/gui/pageview/__init__.py:7075
 msgid "Checkbo_x List"
@@ -1304,8 +1304,8 @@ msgstr "_Уобичајена величина"
 msgid "Insert Date and Time"
 msgstr "Уметни датум и време"
 
-#. label in "insert date" dialog | 
-#. Column header Task List dialog | 
+#. label in "insert date" dialog |
+#. Column header Task List dialog |
 #. Column header versions dialog
 #: zim/gui/pageview/__init__.py:7560 zim/plugins/tasklist/gui.py:486
 #: zim/plugins/versioncontrol/__init__.py:1066
@@ -1383,13 +1383,13 @@ msgstr ""
 msgid "Edit Image"
 msgstr "Уреди слику"
 
-#. Input in 'edit image' dialog | 
+#. Input in 'edit image' dialog |
 #. Input label for the section to move a page to
 #: zim/gui/pageview/__init__.py:7892 zim/gui/uiactions.py:608
 msgid "Location"
 msgstr "Место"
 
-#. Input in 'edit image' dialog | 
+#. Input in 'edit image' dialog |
 #. Input in 'insert link' dialog
 #: zim/gui/pageview/__init__.py:7893 zim/gui/pageview/__init__.py:8064
 msgid "Link to"
@@ -1430,7 +1430,7 @@ msgstr "Убаци везу"
 msgid "_Link"
 msgstr "_Веза"
 
-#. Input in 'insert link' dialog | 
+#. Input in 'insert link' dialog |
 #. toolbar style
 #: zim/gui/pageview/__init__.py:8065 zim/plugins/toolbar.py:42
 msgid "Text"
@@ -1685,7 +1685,7 @@ msgstr "Није успело"
 msgid "Optional"
 msgstr "По избору"
 
-#. Heading in plugins tab of preferences dialog | 
+#. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
 #: zim/gui/preferencesdialog.py:356 zim/plugins/versioncontrol/__init__.py:1067
 msgid "Author"
@@ -1880,7 +1880,7 @@ msgstr "Послужитељ је покренут"
 msgid "Server stopped"
 msgstr "Послужитељ је заустављен"
 
-#. Dialog title | 
+#. Dialog title |
 #. Section in dialog
 #: zim/gui/templateeditordialog.py:22 zim/gui/templateeditordialog.py:27
 msgid "Templates"
@@ -1958,7 +1958,7 @@ msgstr ""
 msgid "Proper_ties"
 msgstr "Својс_тва"
 
-#. Menu item | 
+#. Menu item |
 #. menu item in tray icon menu
 #: zim/gui/uiactions.py:240 zim/plugins/trayicon.py:148
 msgid "_Quit"
@@ -2307,14 +2307,14 @@ msgstr "<Врх>"
 msgid "Bottom"
 msgstr ""
 
-#. position of widget in window | 
+#. position of widget in window |
 #. alignment option
 #: zim/gui/widgets.py:2067 zim/plugins/tableeditor.py:53
 #: zim/plugins/tableeditor.py:864
 msgid "Left"
 msgstr ""
 
-#. position of widget in window | 
+#. position of widget in window |
 #. alignment option
 #: zim/gui/widgets.py:2068 zim/plugins/tableeditor.py:55
 msgid "Right"
@@ -2585,7 +2585,7 @@ msgid ""
 "icon view at bottom pane.\n"
 msgstr ""
 
-#. option for plugin preferences | 
+#. option for plugin preferences |
 #. preferences option
 #: zim/plugins/attachmentbrowser/__init__.py:82 zim/plugins/backlinkpane.py:35
 #: zim/plugins/journal.py:116 zim/plugins/pageindex/__init__.py:61
@@ -2617,9 +2617,9 @@ msgstr "Прилози"
 #| msgid "Attachments"
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
-msgstr[0] "Прилози"
-msgstr[1] "Прилози"
-msgstr[2] "Прилози"
+msgstr[0] "%i Прилози"
+msgstr[1] "%i Прилози"
+msgstr[2] "%i Прилози"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2843,7 +2843,7 @@ msgstr ""
 msgid "Maximum page width"
 msgstr ""
 
-#. plugin preference | 
+#. plugin preference |
 #. preference option for sourceview plugin
 #: zim/plugins/distractionfree.py:38 zim/plugins/sourceview.py:99
 msgid "Border width"
@@ -2971,7 +2971,7 @@ msgstr "Није могуће анализирати израз"
 msgid "Evaluate _Math"
 msgstr ""
 
-#. plugin name | 
+#. plugin name |
 #. Dialog title
 #: zim/plugins/insertsymbol.py:25 zim/plugins/insertsymbol.py:130
 msgid "Insert Symbol"
@@ -3098,7 +3098,7 @@ msgstr ""
 msgid "_Remove Line"
 msgstr ""
 
-#. plugin name | 
+#. plugin name |
 #. menu item
 #: zim/plugins/linkmap.py:29 zim/plugins/linkmap.py:129
 msgid "Link Map"
@@ -3314,7 +3314,7 @@ msgstr ""
 msgid "Musical Score"
 msgstr ""
 
-#. plugin name | 
+#. plugin name |
 #. dialog title
 #: zim/plugins/screenshot.py:107 zim/plugins/screenshot.py:174
 msgid "Insert Screenshot"
@@ -3568,7 +3568,7 @@ msgstr ""
 msgid "Table"
 msgstr ""
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:459 zim/plugins/tableeditor.py:615
 msgid "Add row"
@@ -3579,25 +3579,25 @@ msgstr ""
 msgid "Remove row"
 msgstr ""
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:461 zim/plugins/tableeditor.py:617
 msgid "Clone row"
 msgstr ""
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:463 zim/plugins/tableeditor.py:621
 msgid "Row up"
 msgstr ""
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:464 zim/plugins/tableeditor.py:622
 msgid "Row down"
 msgstr ""
 
-#. tooltip on mouse hover | 
+#. tooltip on mouse hover |
 #. menu item
 #: zim/plugins/tableeditor.py:466 zim/plugins/tableeditor.py:624
 msgid "Change columns"
@@ -3740,7 +3740,7 @@ msgstr ""
 msgid "ToC"
 msgstr ""
 
-#. plugin name | 
+#. plugin name |
 #. Column header for tag list in Task List dialog
 #: zim/plugins/tags.py:37 zim/plugins/tasklist/gui.py:247
 msgid "Tags"
@@ -3788,14 +3788,14 @@ msgstr ""
 msgid "Tas_ks"
 msgstr ""
 
-#. label for filtering/searching tasks | 
+#. label for filtering/searching tasks |
 #. Input label
 #: zim/plugins/tasklist/gui.py:88 zim/plugins/tasklist/gui.py:156
 msgid "Filter"
 msgstr "Филтер"
 
-#. dialog title | 
-#. plugin name | 
+#. dialog title |
+#. plugin name |
 #. menu item
 #: zim/plugins/tasklist/gui.py:113 zim/plugins/tasklist/__init__.py:38
 #: zim/plugins/tasklist/__init__.py:161
@@ -4039,7 +4039,7 @@ msgstr "_Остало..."
 msgid "Notebooks"
 msgstr "Бележнице"
 
-#. tooltip for tray icon | 
+#. tooltip for tray icon |
 #. short description of zim
 #: zim/plugins/trayicon.py:257 zim/plugins/zeitgeist-logger.py:48
 msgid "Zim Desktop Wiki"
