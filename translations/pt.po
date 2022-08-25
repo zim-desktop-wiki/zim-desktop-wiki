@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-02-22 20:39+0100\n"
-"PO-Revision-Date: 2022-02-10 10:58+0000\n"
+"PO-Revision-Date: 2022-05-03 11:16+0000\n"
 "Last-Translator: SC <lalocas@protonmail.com>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/zim/master/pt/"
 ">\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.11-dev\n"
+"X-Generator: Weblate 4.12.1\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application failed, %s is the command
@@ -777,24 +777,19 @@ msgstr "Converter automaticamente as palavras \"CamelCase\" em ligações"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:182
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn wiki page names into links"
-msgstr "Converter automaticamente caminhos de ficheiro em ligações"
+msgstr "Converter automaticamente nomes de páginas wiki em ligações"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:185
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn identifiers starting with \"#\" into links"
-msgstr "Converter automaticamente caminhos de ficheiro em ligações"
+msgstr ""
+"Converter automaticamente identificadores que começam com \"#\" em ligações"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:188
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn interwiki names into links"
-msgstr "Converter automaticamente caminhos de ficheiro em ligações"
+msgstr "Converter automaticamente nomes interwiki em ligações"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
@@ -3376,7 +3371,7 @@ msgstr "Incluir rodapé usual"
 #. menu item
 #: zim/plugins/scoreeditor.py:68
 msgid "Musical Score"
-msgstr ""
+msgstr "Partitura"
 
 #. plugin name | 
 #. dialog title
