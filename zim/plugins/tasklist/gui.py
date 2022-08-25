@@ -1,5 +1,5 @@
 
-# Copyright 2009-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -15,13 +15,16 @@ from zim.utils import natural_sorted
 
 from zim.notebook import Path
 from zim.actions import get_actions, RadioActionMethod
+from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
+from zim.config import ConfigManager
+from zim.plugins import PluginManager, ExtensionBase, extendable
 from zim.gui.widgets import \
 	Dialog, WindowSidePaneWidget, InputEntry, \
 	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, StatusPage, \
 	encode_markup_text, decode_markup_text, widget_set_css
+from zim.gui.actionextension import ActionExtensionBase, populate_toolbar_with_actions
 from zim.gui.clipboard import Clipboard
-from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
-from zim.plugins import ExtensionBase, extendable
+
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
@@ -265,7 +268,7 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 		return True
 
 
-class TaskListWindowExtension(ExtensionBase):
+class TaskListWindowExtension(ActionExtensionBase):
 	'''Base class for window extensions
 	Actions can be defined using e.g. C{@action} decorator, see
 	L{zim.actions}, and will automatically be added to the window on
@@ -278,24 +281,10 @@ class TaskListWindowExtension(ExtensionBase):
 		ExtensionBase.__init__(self, plugin, window)
 		self.window = window
 		self.connectto(window, 'destroy')
-
-		for name, action in get_actions(self):
-			self.add_action(action)
+		self._add_headerbar_actions()
 
 	def on_destroy(self, dialog):
 		self.destroy()
-
-	def add_action(self, action):
-		if isinstance(action, RadioActionMethod):
-			raise NotImplementedError
-
-		if 'headerstart' in action.menuhints:
-			button = action.create_button()
-			headerbar = self.window.get_titlebar()
-			headerbar.pack_start(button)
-			button.show_all()
-		else:
-			raise NotImplementedError
 
 
 @extendable(TaskListWindowExtension)
@@ -324,10 +313,29 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 
 		TaskListWidgetMixin.__init__(self, index, self.uistate, properties)
 
-		headerbar = Gtk.HeaderBar()
-		headerbar.set_title(_('Tasks') + '  -  ' + notebook.name)
-		headerbar.set_show_close_button(True)
-		self.set_titlebar(headerbar)
+		vbox = Gtk.VBox()
+		self.add(vbox)
+
+		if_prefs = ConfigManager.preferences['GtkInterface']
+		# Normally would define the 'show_headerbar' pref here, but don't want
+		# to overrule the definition in mainwindow. Therefore just using `get()`
+		if if_prefs.get('show_headerbar', True):
+			self._headerbar = Gtk.HeaderBar()
+			self._headerbar.set_title(_('Tasks') + '  -  ' + notebook.name)
+			self._headerbar.set_show_close_button(True)
+			self.set_titlebar(self._headerbar)
+			self._toolbar = None
+		else:
+			self.set_title(_('Tasks') + '  -  ' + notebook.name)
+			self._headerbar = None
+			self._toolbar = Gtk.Toolbar()
+			vbox.pack_start(self._toolbar, False, False, 0)
+
+			def on_extensions_changed(o, obj):
+				if obj is self:
+					self._update_toolbar()
+
+			self.connectto(PluginManager, 'extensions-changed', on_extensions_changed)
 
 		self.hpane = HPaned()
 		self.uistate.setdefault('hpane_pos', 75)
@@ -336,7 +344,7 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		self.hpane.pack2(pane2_vbox, resize=True)
 
 		swindow = self._create_tasklisttreeview(navigation, properties)
-		self.add(self.hpane)
+		vbox.add(self.hpane)
 		pane2_vbox.pack_start(swindow, True, True, 0)
 
 		self.tasklisttreeview.view_columns['task'].set_min_width(400) # don't let this column get too small
@@ -346,13 +354,52 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 
 		self.hpane.pack1(self._create_selection_pane(properties, show_inbox_next, width=150), resize=False)
 
-		self._create_menu()
+		if self._headerbar:
+			popover = self._create_menu()
+			button = self._create_menu_button(popover)
+			self._headerbar.pack_end(button)
+		else:
+			self._update_toolbar()
 
-	def _create_menu(self):
+	def _update_toolbar(self):
+		for item in self._toolbar.get_children():
+			self._toolbar.remove(item)
+
+		populate_toolbar_with_actions(self._toolbar, self, include_headercontrols=True)
+
+		space = Gtk.SeparatorToolItem()
+		space.set_draw(False)
+		space.set_expand(True)
+		self._toolbar.insert(space, -1)
+
+		popover = self._create_menu()
+		button = self._create_menu_toolbutton(popover)
+		self._toolbar.insert(button, -1)
+
+		self._toolbar.show_all()
+
+	def _create_menu_button(self, popover):
 		button = Gtk.MenuButton()
 		button.set_direction(Gtk.ArrowType.NONE)
-		popover = Gtk.Popover()
 		button.set_popover(popover)
+		button.show_all()
+		return button
+
+	def _create_menu_toolbutton(self, popover):
+		button = Gtk.ToggleToolButton()
+		button.set_icon_name('open-menu-symbolic')
+		popover.set_relative_to(button)
+		def toggle_popover(button):
+			if button.get_active():
+				popover.popup()
+			else:
+				popover.popdown()
+		button.connect('toggled', toggle_popover)
+		popover.connect('closed', lambda o: button.set_active(False))
+		return button
+
+	def _create_menu(self):
+		popover = Gtk.Popover()
 
 		vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 		for key, label in (
@@ -368,11 +415,8 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 			vbox.add(checkbutton)
 
 		popover.add(vbox)
-		button.show_all()
 		vbox.show_all()
-
-		headerbar = self.get_titlebar()
-		headerbar.pack_end(button)
+		return popover
 
 	def on_status_checkbox_toggled(self, checkbox, key):
 		self.status = [s for s in self.status if s != key]

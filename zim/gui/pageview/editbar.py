@@ -1,10 +1,11 @@
-# Copyright 2020, 2021 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2020 - 2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
 from gi.repository import Pango
 from gi.repository import Gio
 
 from zim.plugins import PluginManager, list_actions
+from zim.signals import ConnectorMixin
 
 
 class EditActionMixin(object):
@@ -189,3 +190,60 @@ class EditBar(EditActionMixin, Gtk.ActionBar):
 	def on_textview_textstyle_changed(self, pageview, styles):
 		label = ", ".join([s.title() for s in styles if s]) if styles else ''
 		self.style_info_label.set_text(label)
+
+
+class ToolBarEditBarManager(EditActionMixin, ConnectorMixin):
+
+	def __init__(self, pageview, toolbar):
+		self.pageview = pageview
+		self.toolbar = toolbar
+		EditActionMixin.__init__(self, pageview)
+		toolbar.insert_action_group('pageview', pageview.get_action_group('pageview'))
+
+		self._formatting_items = []
+		self.on_readonly_changed(self.pageview, self.pageview.readonly)
+		self.connectto(self.pageview, 'readonly-changed')
+
+	def on_readonly_changed(self, pageview, readonly):
+		for item in self._formatting_items:
+			item.set_sensitive(not readonly)
+
+	def populate_toolbar(self, toolbar):
+		assert toolbar == self.toolbar
+
+		self._formatting_items = []
+
+		for action in self.edit_format_actions:
+			item = action.create_tool_button(connect_button=False)
+			item.set_action_name('pageview.' + action.name)
+			toolbar.insert(item, -1)
+			self._formatting_items.append(item)
+
+		for label, icon_name, menu in self.edit_menus:
+			button = self._create_menu_button(label, icon_name, menu)
+			button.set_is_important(True) # Ensure text is shown by default
+			toolbar.insert(button, -1)
+			self._formatting_items.append(button)
+
+		toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+	def _create_menu_button(self, label, icon_name, menu):
+		button = Gtk.ToggleToolButton()
+		button.set_label(label+'...')
+		button.set_use_underline(True)
+		button.set_tooltip_text(label.replace('_', '')+'...') # icon button should always have tooltip
+		button.set_icon_name(icon_name)
+
+		popover = Gtk.Popover()
+		popover.bind_model(menu)
+		popover.set_relative_to(button)
+		def toggle_popover(button):
+			if button.get_active():
+				popover.popup()
+			else:
+				popover.popdown()
+		button.connect('toggled', toggle_popover)
+		popover.connect('closed', lambda o: button.set_active(False))
+		popover.connect('closed', lambda o: self.pageview.grab_focus())
+
+		return button

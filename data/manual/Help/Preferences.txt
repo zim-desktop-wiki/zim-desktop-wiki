@@ -6,7 +6,8 @@ Wiki-Format: zim 0.4
 The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Preferences//". The following options can be configured:
 
 ===== Interface =====
-**Add 'tearoff' strips to the menu** adds a 'tearoff' strip to all menus in the menubar. This means that menus can be opened as small windows and stay open while editing a page.
+
+**Show controls in the window decoration** determines whether controls are show in the window border. This implies custom window decoration; this may break some platform semantics depending on your operating system. This option requires restart of the application.
 
 **Use <Ctrl><Space> to switch to the side pane** toggles the key binding for <Ctrl><Space>. The reason to toggle this binding 'off' is usually because it is also used for input methods when using non-western scripts.
 

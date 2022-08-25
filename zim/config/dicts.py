@@ -499,7 +499,7 @@ class ConfigDict(ControlledDict):
 		new._input.update(self._input)
 		return new
 
-	def update(self, E=None, **F):
+	def update(self, E=(), **F):
 		'''Like C{dict.update()}, copying values from C{E} or C{F}.
 		However if C{E} is also a C{ConfigDict}, also the definitions
 		are copied along.

@@ -198,6 +198,27 @@ class CustomToolManager(SignalEmitter):
 		# This is intended behavior to make all moves possible.
 		self._write_list()
 
+	def run_custom_tool(self, widget, tool):
+		'''Convenience wrapper for run a customtool from a widget
+		@param widget: a Gtk widget which is supposed to be in the same window
+		as the pageview for which the tool should run
+		@param tool: a custom tool, either by name or as object
+		'''
+		if isinstance(tool, str):
+			tool = self.get_tool(tool)
+
+		logger.info('Execute custom tool %s', tool.name)
+		try:
+			window = widget.get_toplevel()
+			pageview = window.pageview
+		except:
+			pageview = widget # fall back mostly for mock testing
+		notebook, page = pageview.notebook, pageview.page
+		try:
+			tool.run(notebook, page, pageview)
+		except:
+			zim.errors.exception_handler(
+				'Exception during action: %s' % tool.name)
 
 
 from zim.config import Choice
@@ -503,15 +524,7 @@ class CustomToolManagerUI(object):
 		)
 
 	def _action_handler(self, action):
-		tool = self._manager.get_tool(action.get_name())
-		logger.info('Execute custom tool %s', tool.name)
-		pageview = self.pageview
-		notebook, page = pageview.notebook, pageview.page
-		try:
-			tool.run(notebook, page, pageview)
-		except:
-			zim.errors.exception_handler(
-				'Exception during action: %s' % tool.name)
+		self._manager.run_custom_tool(self.pageview, action.get_name())
 
 
 class CustomToolManagerDialog(Dialog):

@@ -1,5 +1,5 @@
 
-# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
 import sys
@@ -13,7 +13,7 @@ logger = logging.getLogger('zim.gui')
 
 
 from zim.config import data_file, value_is_coord, ConfigDict, Boolean, ConfigManager
-from zim.signals import DelayedCallback
+from zim.signals import DelayedCallback, ConnectorMixin
 
 from zim.notebook import Path, Page, LINK_DIR_BACKWARD, PageNotAvailableError
 from zim.notebook.index import IndexNotFoundError
@@ -29,18 +29,20 @@ from zim.gui.widgets import \
 	ErrorDialog, FileDialog, ProgressDialog, MessageDialog, QuestionDialog, \
 	ScrolledTextView, \
 	gtk_popup_at_pointer, \
-	TOP
+	TOP, BOTTOM
 
 from zim.gui.navigation import NavigationModel
 from zim.gui.uiactions import UIActions
-from zim.gui.customtools import CustomToolManagerUI
+from zim.gui.customtools import CustomToolManager, CustomToolManagerUI
 from zim.gui.insertedobjects import InsertedObjectUI
 
 from zim.gui.pageview import PageView
+from zim.gui.pageview.editbar import ToolBarEditBarManager
 from zim.gui.notebookview import NotebookView
 
 from zim.plugins import ExtensionBase, extendable, PluginManager
-from zim.gui.actionextension import ActionExtensionBase
+from zim.gui.actionextension import ActionExtensionBase, \
+	populate_toolbar_with_actions, os_default_headerbar
 
 
 MENU_ACTIONS = (
@@ -63,6 +65,8 @@ if sys.platform == "darwin":
 #: Preferences for the user interface
 ui_preferences = (
 	# key, type, category, label, default
+	('show_headerbar', 'bool', 'Interface', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), os_default_headerbar),
+		# T: option for plugin preferences
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING + '<Space>'), False),
 		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 		# default value is False because this is mapped to switch between
@@ -125,7 +129,7 @@ class MainWindowExtension(ActionExtensionBase):
 		self.destroy()
 
 
-class WindowBaseMixin(object):
+class WindowBaseMixin(ConnectorMixin, object):
 	'''Common logic between MainWindow and PageWindow'''
 
 	def _init_fullscreen_headerbar(self):
@@ -152,6 +156,8 @@ class WindowBaseMixin(object):
 		self._fullscreen_eventbox.connect('leave-notify-event', self._on_fullscreen_eventbox_leave)
 
 	def _on_fullscreen_eventbox_enter(self, *a):
+		if self._headerbar is None and self._toolbar and self._toolbar.get_visible():
+			return # Do not show fullscreen headerbar if headerbar controls are in toolbar *and* visible
 		self._in_fullscreen_eventbox = True
 		self._update_fullscreen_revealer()
 
@@ -168,16 +174,91 @@ class WindowBaseMixin(object):
 
 	def _populate_headerbars(self):
 		for headerbar in (self._headerbar, self._fullscreen_headerbar):
-			self._populate_headerbar(headerbar)
-			headerbar.show_all()
+			if headerbar is not None:
+				self._populate_headerbar(headerbar)
+				headerbar.show_all()
 
 		for c in self._fullscreen_headerbar.get_children():
 			if isinstance(c, Gtk.MenuButton):
 				c.connect('toggled', self._update_fullscreen_revealer)
 
+	def _init_toolbar(self):
+		# One time setup of the toolbar widget
+		self._toolbar = Gtk.Toolbar()
+		self._toolbar_editbar_manager = ToolBarEditBarManager(self.pageview, self._toolbar)
+		self._show_edit_bar_controls_in_toolbar = self.pageview.preferences['show_edit_bar']
+
+		self.setup_toolbar()
+
+		def on_extensions_changed(o, obj):
+			if obj in (self, self.pageview):
+				self.update_toolbar()
+
+		self.connectto(PluginManager, 'extensions-changed', on_extensions_changed)
+
+		def on_changed_update(o, *a):
+			self.update_toolbar()
+
+		self.connectto(CustomToolManager(), 'changed', on_changed_update)
+		self.connectto(self.pageview.preferences, 'changed', on_changed_update)
+
+	def setup_toolbar(self, show=None, position=None, show_edit_bar_controls=None):
+		# Default setup for toolbar - can be called multiple times - also used by "toolbar" plugin
+		try:
+			self.remove(self._toolbar)
+		except ValueError:
+			pass
+
+		# Defaults
+		if show is None:
+			show = not self.preferences['show_headerbar']
+
+		position = TOP if position is None else position
+
+		if show_edit_bar_controls is None:
+			self._show_edit_bar_controls_in_toolbar = not self.pageview.preferences['show_edit_bar']
+			self.pageview.set_edit_bar_visible(None)
+		else:
+			self._show_edit_bar_controls_in_toolbar = show_edit_bar_controls
+			self.pageview.set_edit_bar_visible(not show_edit_bar_controls)
+
+		# Set toolbar in window
+		if show:
+			self.add_bar(self._toolbar, position=position)
+			if position in (TOP, BOTTOM):
+				self._toolbar.set_orientation(Gtk.Orientation.HORIZONTAL)
+			else: # LEFT, RIGHT
+				self._toolbar.set_orientation(Gtk.Orientation.VERTICAL)
+			self._toolbar.show()
+			self.update_toolbar()
+		else:
+			self._toolbar.hide()
+
+		return self._toolbar
+
+	def update_toolbar(self):
+		# This method updates the toolbar content. See setup_toolbar() to
+		# control placement and visibility.
+		if self._toolbar.get_visible():
+			for item in self._toolbar.get_children():
+				self._toolbar.remove(item)
+			self._populate_toolbar(self._toolbar)
+			self._toolbar.show_all()
+
+	def _populate_toolbar_inner(self, toolbar):
+		if self._show_edit_bar_controls_in_toolbar:
+			self._toolbar_editbar_manager.populate_toolbar(toolbar)
+
+		populate_toolbar_with_actions(
+			self._toolbar, self, self.pageview,
+			include_headercontrols=(not self.preferences['show_headerbar']),
+			include_customtools=True
+		)
+
 	def set_title(self, text):
 		Gtk.Window.set_title(self, text)
-		self._headerbar.set_title(text)
+		if self._headerbar is not None:
+			self._headerbar.set_title(text)
 		self._fullscreen_headerbar.set_title(text)
 
 	@toggle_action(_('_Fullscreen'), 'F11', icon='view-fullscreen-symbolic', init=False) # T: Menu item
@@ -212,8 +293,8 @@ class WindowBaseMixin(object):
 			pass
 		self.emit('readonly-changed', readonly)
 
-	def setup_toggle_editable_state(self, editable_uistate):
-		'''Setup sensitivity of the "toggle_editable" action
+	def set_toggle_editable_state(self, editable_uistate):
+		'''Set sensitivity of the "toggle_editable" action
 		@param editable_uistate: default state if control is sensitive
 		'''
 		if self.notebook.readonly or self.page.readonly:
@@ -333,10 +414,7 @@ class MainWindow(WindowBaseMixin, Window):
 		self.hideonclose = False
 
 		self.preferences = ConfigManager.preferences['GtkInterface']
-		self.preferences.define(
-			toggle_on_ctrlspace=Boolean(False),
-			always_use_last_cursor_pos=Boolean(True),
-		)
+		self.preferences.define({p[0]: Boolean(p[-1]) for p in ui_preferences})
 		self.preferences.connect('changed', self.do_preferences_changed)
 
 		self.maximized = False
@@ -430,12 +508,17 @@ class MainWindow(WindowBaseMixin, Window):
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
 
-		# header Bar
-		self._headerbar = Gtk.HeaderBar()
-		self._headerbar.set_show_close_button(True)
-		self.set_titlebar(self._headerbar)
+		# header & tool bars
+		if self.preferences['show_headerbar']:
+			self._headerbar = Gtk.HeaderBar()
+			self._headerbar.set_show_close_button(True)
+			self.set_titlebar(self._headerbar)
+		else:
+			self._headerbar = None
 
 		self._populate_headerbars()
+
+		self._init_toolbar()
 
 		# Do this last, else menu items show up in wrong place
 		self._customtools = CustomToolManagerUI(self.uimanager, self.pageview)
@@ -495,6 +578,34 @@ class MainWindow(WindowBaseMixin, Window):
 		button = self.toggle_editable.create_icon_button()
 		self._style_toggle_editable_button(button)
 		headerbar.pack_end(button)
+
+	def _populate_toolbar(self, toolbar):
+		# Add default controls
+		if not self.preferences['show_headerbar']:
+			for action in (
+				self.open_page_back,
+				self.open_page_home,
+				self.open_page_forward,
+			):
+				toolbar.insert(action.create_tool_button(), -1)
+			toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+			item = self.toggle_editable.create_tool_button(connect_button=False)
+			item.set_action_name('win.toggle_editable')
+			self._style_toggle_editable_button(item)
+			toolbar.insert(item, -1)
+			toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+			self._populate_toolbar_inner(toolbar)
+
+			space = Gtk.SeparatorToolItem()
+			space.set_draw(False)
+			space.set_expand(True)
+			toolbar.insert(space, -1)
+
+			toolbar.insert(self._uiactions.show_search.create_tool_button(), -1)
+		else:
+			self._populate_toolbar_inner(toolbar)
 
 	@action(_('_Close'), '<Primary>W') # T: Menu item
 	def close(self):
@@ -738,7 +849,7 @@ class MainWindow(WindowBaseMixin, Window):
 		self.update_buttons_history()
 		self.update_buttons_hierarchy()
 		self._update_window_title()
-		self.setup_toggle_editable_state(not self.uistate['readonly'])
+		self.set_toggle_editable_state(not self.uistate['readonly'])
 
 	def _update_window_title(self):
 		if self.notebook.readonly or (self.page and self.page.readonly):
@@ -901,9 +1012,17 @@ class PageWindow(WindowBaseMixin, Window):
 		self.navigation = navigation
 		self.notebook = notebook
 		self.page = notebook.get_page(page)
-		self._headerbar = Gtk.HeaderBar()
-		self._headerbar.set_show_close_button(True)
-		self.set_titlebar(self._headerbar)
+
+		self.preferences = ConfigManager.preferences['GtkInterface']
+		self.preferences.define({p[0]: Boolean(p[-1]) for p in ui_preferences})
+		#self.preferences.connect('changed', self.do_preferences_changed)
+
+		if self.preferences['show_headerbar']:
+			self._headerbar = Gtk.HeaderBar()
+			self._headerbar.set_show_close_button(True)
+			self.set_titlebar(self._headerbar)
+		else:
+			self._headerbar = None
 
 		self._init_fullscreen_headerbar()
 		self._populate_headerbars()
@@ -951,6 +1070,8 @@ class PageWindow(WindowBaseMixin, Window):
 		self.menubar = self.uimanager.get_widget('/menubar')
 		self.add_bar(self.menubar, position=TOP)
 
+		self._init_toolbar()
+
 		# Close window when page is moved or deleted
 		def on_notebook_change(o, path, *a):
 			if path == self.page or self.page.ischild(path):
@@ -962,7 +1083,7 @@ class PageWindow(WindowBaseMixin, Window):
 		notebook.connect('moved-page', on_notebook_change)
 
 		# setup state
-		self.setup_toggle_editable_state(editable)
+		self.set_toggle_editable_state(editable)
 
 		# on close window
 		def do_delete_event(*a):
@@ -983,6 +1104,29 @@ class PageWindow(WindowBaseMixin, Window):
 		button = self.toggle_editable.create_icon_button()
 		self._style_toggle_editable_button(button)
 		headerbar.pack_end(button)
+
+	def _populate_toolbar(self, toolbar):
+		# Add default controls
+		if not self.preferences['show_headerbar']:
+			item = self.toggle_editable.create_tool_button(connect_button=False)
+			item.set_action_name('win.toggle_editable')
+			self._style_toggle_editable_button(item)
+			toolbar.insert(item, -1)
+			toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+			self._populate_toolbar_inner(toolbar)
+
+			space = Gtk.SeparatorToolItem()
+			space.set_draw(False)
+			space.set_expand(True)
+			toolbar.insert(space, -1)
+
+			# FIXME: should go in menu popover
+			item = self.toggle_fullscreen.create_tool_button(connect_button=False)
+			item.set_action_name('win.toggle_fullscreen')
+			toolbar.insert(item, -1)
+		else:
+			self._populate_toolbar_inner(toolbar)
 
 	def save_uistate(self):
 		if not self.pageview._zim_extendable_registered:

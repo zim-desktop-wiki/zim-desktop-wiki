@@ -148,7 +148,7 @@ In short, this means that any class can define a number of signals that are
 emitted for various events. Objects that are interested in these events can
 register an event handler using the `connect()` method.
 
-Zim defines a `SignalConnectorMixin` class in `zim.signals` with some
+Zim defines a `ConnectorMixin` class in `zim.signals` with some
 convenience methods for classes that want to connect to signals.
 
 For classes that do not derive from GObject classes but do want to emit their
@@ -164,7 +164,7 @@ and is only broken when that object is being destroyed. So if you do
 then object_B will not be destroyed as long as object_A is alive. On the other
 hand, if object_A is destroyed, object_B simply doesn't get any signals anymore.
 
-The `SignalConnectorMixin` class keeps track of the connections it made, which
+The `ConnectorMixin` class keeps track of the connections it made, which
 helps in cleaning up.
 
 

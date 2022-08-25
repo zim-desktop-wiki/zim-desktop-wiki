@@ -34,33 +34,36 @@ import zim.errors
 
 from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.errors import Error
-from zim.config import String, Float, Integer, Boolean, Choice, ConfigManager
+from zim.config import ConfigDict, String, Float, Integer, Boolean, Choice, ConfigManager
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re
-from zim.formats import heading_to_anchor, get_format, increase_list_iter, \
+from zim.signals import callback
+from zim.formats import get_dumper, heading_to_anchor, get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, BackwardParseTreeBuilderWithCleanup, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, TRANSMIGRATED_BOX, MIGRATED_BOX, LINE, OBJECT, \
 	HEADING, LISTITEM, BLOCK_LEVEL, FORMATTEDTEXT
 from zim.formats.wiki import url_re, match_url
+from zim.formats.wiki import Dumper as WikiDumper
 from zim.actions import get_gtk_actiongroup, action, toggle_action, get_actions, \
 	ActionClassMethod, ToggleActionClassMethod, initialize_actiongroup
+from zim.plugins import PluginManager, ExtensionBase, extendable
+
 from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result, \
-	widget_set_css
+	widget_set_css, \
+	LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
+from zim.gui.actionextension import ActionExtensionBase, os_default_headerbar
 from zim.gui.applications import OpenWithMenu, open_url, open_file, open_folder_prompt_create, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.gui.insertedobjects import \
 	InsertedObjectWidget, UnknownInsertedObject, UnknownInsertedImageObject, \
 	POSITION_BEGIN, POSITION_END
-from zim.signals import callback
-from zim.formats import get_dumper
-from zim.formats.wiki import Dumper as WikiDumper
-from zim.plugins import PluginManager
+
 
 from .editbar import EditBar
 
@@ -167,7 +170,7 @@ COPY_FORMATS = zim.formats.list_formats(zim.formats.TEXT_FORMAT)
 ui_preferences = (
 	# key, type, category, label, default
 	('show_edit_bar', 'bool', 'Interface',
-		_('Show edit bar along bottom of editor'), True),
+		_('Show edit bar along bottom of editor'), os_default_headerbar),
 		# T: option in preferences dialog
 	('follow_on_enter', 'bool', 'Interface',
 		_('Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)'), True),
@@ -5672,12 +5675,6 @@ discarded, but you can restore the copy later.''')
 			ErrorDialog.run(self)
 
 
-from zim.plugins import ExtensionBase, extendable
-from zim.config import ConfigDict
-from zim.gui.actionextension import ActionExtensionBase
-from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
-
-
 class PageViewExtensionBase(ActionExtensionBase):
 	'''Base class for extensions that want to interact with the "page view",
 	which is the primary editor view of the application.
@@ -6206,9 +6203,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._overlay_label.hide()
 
 	def set_edit_bar_visible(self, visible):
-		self.preferences['show_edit_bar'] = visible
-			# Bit of a hack, but prevents preferences to overwrite setting from Toolbar plugin
-			# triggers _set_edit_bar_visible() via changed signal on preferences
+		# Bit of a hack, but prevents preferences to overwrite setting from Toolbar plugin
+		# triggers _set_edit_bar_visible() via changed signal on preferences
+		if visible is None:
+			self.preferences['show_edit_bar'] = not os_default_headerbar
+		else:
+			self.preferences['show_edit_bar'] = visible
 
 	def _set_edit_bar_visible(self, visible):
 		self._edit_bar_visible = visible

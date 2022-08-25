@@ -199,6 +199,7 @@ class ActionMethod(BoundActionMethod):
 		button.set_use_underline(True)
 		button.set_icon_name(icon_name)
 		button.set_tooltip_text(self.tooltip) # icon button should always have tooltip
+
 		if connect_button:
 			self.connect_button(button)
 		return button

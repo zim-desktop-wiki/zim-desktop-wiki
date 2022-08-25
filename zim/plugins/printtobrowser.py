@@ -72,7 +72,7 @@ class PrintToBrowserPageViewExtension(PageViewExtension):
 
 class PrintTaskListWindowExtension(TaskListWindowExtension):
 
-	@action(_('_Print'), menuhints='headerstart', tooltip=_('Print tasklist to browser'))
+	@action(_('_Print'), icon='document-print-symbolic', menuhints='headerbar:tools:is_important', tooltip=_('Print tasklist to browser'))
 	def print_tasklist(self):
 		html = self.window.tasklisttreeview.get_visible_data_as_html()
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
