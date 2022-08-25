@@ -37,7 +37,15 @@ else:
 # Hotfix for robustness of loading languages in gtkspellcheck
 # try to be robust for future versions breaking this or not needing it
 # See https://github.com/koehlma/pygtkspellcheck/issues/22
-if gtkspellcheck \
+#
+# gtkspellchecker 5 has removed "pylocales", so if not present the fix is no
+# longer working. Not sure if it is still needed with this release.
+try:
+	import pylocales
+except ImportError:
+	pylocales = None
+
+if gtkspellcheck and pylocales \
 and hasattr(gtkspellcheck.SpellChecker, '_LanguageList') \
 and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
 	from pylocales import code_to_name
