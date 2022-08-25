@@ -18,10 +18,10 @@ jobs:
 
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
@@ -55,7 +55,7 @@ jobs:
       GITLAB_CI_YAML: https://gitlab.com/dehesselle/zim_macos/-/raw/master/.gitlab-ci.yml
     name: Python 3.x on macos-10.15
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Configure git
         run: |
@@ -90,11 +90,11 @@ jobs:
     runs-on: windows-latest
     strategy:
       fail-fast: false
-    
+
     name: MSYS2 Python 3.x on windows-latest
     steps:
-      - uses: actions/checkout@v2
-    
+      - uses: actions/checkout@v3
+
       - name: Install MSYS2
         uses: msys2/setup-msys2@v2
 
