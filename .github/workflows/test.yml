@@ -51,7 +51,8 @@ jobs:
     env:
       # a fixed path is required to use precompiled dependencies
       WRK_DIR: /Users/Shared/work
-
+      # this contains a link to the job artifact we need
+      GITLAB_CI_YAML: https://gitlab.com/dehesselle/zim_macos/-/raw/master/.gitlab-ci.yml
     name: Python 3.x on macos-10.15
     steps:
       - uses: actions/checkout@v2
@@ -62,30 +63,26 @@ jobs:
           git config --global user.name "Your Name"
 
       # Install the latest version of the same dependencies that are used to
-      # create the app. Determine the canoncial path and store it in VER_DIR
-      # (e.g. "/Users/Shared/work/jhb-0.4"). Run a reconfiguration to adapt
-      # to the system this is running on (path to MacOSX.sdk).
+      # create the app.
+      #   - get URL for job artifact from a specific line in .gitlab-ci.yml
+      #   - download and extract the job artifact to WRK_DIR
+      #   - run configuration to adapt to the current system (e.g. path to SDK)
       - name: Install dependencies
-        id: dependencies
         run: |
-          ARCH=$(uname -m)
           mkdir $WRK_DIR
-          curl -L https://gitlab.com/dehesselle/zim_macos/-/jobs/artifacts/master/raw/jhb-zim_$ARCH.tar.xz?job=build_zim:$ARCH | tar -C $WRK_DIR -xpJ
-          VER_DIR=$(echo $WRK_DIR/jhb-*)
-          echo "::set-output name=VER_DIR::$VER_DIR"
-          source $VER_DIR/etc/jhb.conf.sh
-          source $VER_DIR/usr/src/jhb/jhbuild.sh
-          jhbuild_configure
+          JOB_ARTIFACT=$(curl -L $GITLAB_CI_YAML | grep file1 | awk '{ print $3 }')
+          curl -L $JOB_ARTIFACT | tar -C $WRK_DIR -xpJ
+          eval "$(echo $WRK_DIR/jhb-*/usr/bin/jhb configure)"
 
-      # Remove GraphViz ("dot") to skip testing "Diagram Editor" plugin (that
-      # test isn't run on any other platform and appears to be broken) and
-      # run the test suite.
+      # Run the test suite, but skip testing "Diagram Editor" plugin (that test
+      # isn't run on any other platform and appears to be broken) by removing
+      # the "dot" binary.
       - name: Test macOS
         run: |
-          rm $VER_DIR/bin/dot
-          $VER_DIR/usr/bin/jhb run python3 $(pwd)/test.py
+          eval "rm $(echo $WRK_DIR/jhb-*/bin/dot)"
+          eval "$(echo $WRK_DIR/jhb-*/usr/bin/jhb run python3 $(pwd)/test.py)"
         env:
-          VER_DIR: ${{ steps.dependencies.outputs.VER_DIR }}
+          # disable an internal test within the dependencies
           SYS_IGNORE_USR_LOCAL: true
 
 
