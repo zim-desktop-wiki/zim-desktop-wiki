@@ -20,7 +20,7 @@ from zim.formats.wiki import Parser as WikiParser
 from zim.notebook import *
 from zim.notebook.notebook import NotebookConfig, IndexNotUptodateError, PageExistsError
 from zim.notebook.index import Index
-from zim.notebook.layout import FilesLayout
+from zim.notebook.layout import FilesLayout, FILE_TYPE_PAGE_SOURCE, FILE_TYPE_ATTACHMENT
 
 
 class TestNotebookInfo(tests.TestCase):
@@ -1619,9 +1619,47 @@ class TestBackgroundSave(tests.TestCase):
 		self.assertEqual(signals['stored-page'], [(page,)]) # post handler happened as well
 
 
-class AttachmentsFolderIsinstance(tests.TestCase):
+class TestFilesLayout(tests.TestCase):
 
-	def runTest(self):
+	def _test_page_vs_not_a_page(self, folder, layout, pagefile, notapagefile):
+		self.assertTrue(layout.is_source_file(pagefile))
+		self.assertFalse(layout.is_source_file(notapagefile))
+
+		self.assertEqual(layout.map_file(pagefile), (Path('Page'), FILE_TYPE_PAGE_SOURCE))
+		self.assertEqual(layout.map_file(notapagefile), (Path(':'), FILE_TYPE_ATTACHMENT))
+		self.assertEqual(layout.map_filepath(pagefile.relpath(folder)), (Path('Page'), FILE_TYPE_PAGE_SOURCE))
+		self.assertEqual(layout.map_filepath(notapagefile.relpath(folder)), (Path(':'), FILE_TYPE_ATTACHMENT))
+
+		self.assertEqual(layout.index_list_children(Path(':')), [Path('Page')])
+
+	def testCheckFirstLineForTextFiles(self):
+		folder = self.setUpFolder()
+		pagefile = folder.file('Page.txt')
+		pagefile.write('Content-Type: text/x-zim-wiki\n\nFoo Bar\n')
+		notapagefile = folder.file('NotAPage.txt')
+		notapagefile.write('Foo Bar\n')
+		layout = FilesLayout(folder, default_extension='.txt')
+		self._test_page_vs_not_a_page(folder, layout, pagefile, notapagefile)
+
+	def testNoCheckFirstLineForNonTextFiles(self):
+		folder = self.setUpFolder()
+		pagefile = folder.file('Page.md')
+		pagefile.write('Foo Bar\n')
+		notapagefile = folder.file('NotAPage.txt')
+		notapagefile.write('Foo Bar\n')
+		layout = FilesLayout(folder, default_extension='.md')
+		self._test_page_vs_not_a_page(folder, layout, pagefile, notapagefile)
+
+	def testInValidFileNamesRejected(self):
+		folder = self.setUpFolder()
+		pagefile = folder.file('Page.txt')
+		pagefile.write('Content-Type: text/x-zim-wiki\n\nFoo Bar\n')
+		notapagefile = folder.file('Not A Page.txt')
+		notapagefile.write('Content-Type: text/x-zim-wiki\n\nFoo Bar\n')
+		layout = FilesLayout(folder, default_extension='.txt')
+		self._test_page_vs_not_a_page(folder, layout, pagefile, notapagefile)
+
+	def testAttachmentsFolderIsinstance(self):
 		folder = self.setUpFolder()
 		layout = FilesLayout(folder)
 		afolder = layout.get_attachments_folder(Path('Test'))

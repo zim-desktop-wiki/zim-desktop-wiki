@@ -87,6 +87,11 @@ class FilesLayout(NotebookLayout):
 
 	def is_source_file(self, file):
 		if file.path.endswith(self.default_extension):
+			name = file.basename
+			pname = decode_filename(name)
+			if encode_filename(pname) != name: # will reject e.g. whitespace in file name
+				return False
+
 			if self.default_extension == '.txt':
 				try:
 					line = file.readline(size=50) # max size to allow for some trailing whitespace and end-of-line
@@ -157,7 +162,7 @@ class FilesLayout(NotebookLayout):
 		if file.path.endswith(self.default_extension):
 			return self.default_format
 		else:
-			raise AssertionError('Unknown file type for page: %s' % file)
+			raise AssertionError('Unknown file type for page: %s' % file.basename)
 
 	def index_list_children(self, pagename):
 		# Convenience method - remove if no longer used by the index
