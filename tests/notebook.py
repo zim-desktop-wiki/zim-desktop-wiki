@@ -253,16 +253,21 @@ mount=%s %s
 			return dir
 
 		nbid = None
-		for uri, path in (
+		for uri, href in (
 			(self.notebookdir.uri, None), # first run triggers automount
 			(self.notebookdir.uri, None), # repeat to check automount & check uniqueness
 			(self.notebookdir.file('notebook.zim').uri, None),
-			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
+			(self.notebookdir.file('foo/bar.txt').uri, HRef.new_from_wiki_link('foo:bar')),
 		):
 			info = NotebookInfo(uri)
-			nb, p = build_notebook(info)
+			nb, pl = build_notebook(info)
 			self.assertEqual(nb.folder.path, self.notebookdir.path)
-			self.assertEqual(p, path)
+
+			if pl:
+				self.assertEqual(pl, href)
+			else:
+				self.assertIsNone(pl)
+
 			if nbid is None:
 				nbid = id(nb)
 			else:

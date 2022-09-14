@@ -346,6 +346,10 @@ class HRef():
 	__slots__ = ('rel', 'names', 'anchor')
 
 	@classmethod
+	def makeValidHRefString(klass, href: str) -> str:
+		return klass.new_from_wiki_link(href).to_wiki_link()
+
+	@classmethod
 	def new_from_wiki_link(klass, href: str) -> 'Href':
 		'''Constructor that constructs a L{HRef} object for a link as
 		written in zim's wiki syntax.
@@ -366,6 +370,7 @@ class HRef():
 		anchor = None
 		if '#' in href:
 			href, anchor = href.split('#', 1)
+			anchor = zim.formats.heading_to_anchor(anchor) # make valid achor string
 
 		names = Path.makeValidPageName(href.lstrip('+')) if href else ""
 
@@ -379,6 +384,9 @@ class HRef():
 	def __str__(self):
 		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
 		return '<%s: %s %s %s>' % (self.__class__.__name__, rel, self.names, self.anchor)
+
+	def __eq__(self, other):
+		return (self.__class__ is other.__class__) and (str(self) == str(other))
 
 	def parts(self) -> Union[List, List[str]]:
 		return self.names.split(':') if self.names else []
@@ -396,8 +404,10 @@ class HRef():
 			link = "+" + self.names
 		else:
 			link = self.names
+
 		if self.anchor:
 			link += "#" + self.anchor
+
 		return link
 
 

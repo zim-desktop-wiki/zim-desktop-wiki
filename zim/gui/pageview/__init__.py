@@ -6614,11 +6614,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			from zim.main import ZIM_APPLICATION
 
 			if link.startswith('zim+'):
-				uri, pagename = link[4:], None
+				uri, pagelink = link[4:], None
 				if '?' in uri:
-					uri, pagename = uri.split('?', 1)
+					uri, pagelink = uri.split('?', 1) # pagelink part can include # anchor
 
-				ZIM_APPLICATION.run('--gui', uri, pagename)
+				ZIM_APPLICATION.run('--gui', uri, pagelink)
 
 			else:
 				ZIM_APPLICATION.run('--gui', FilePath(link).uri)

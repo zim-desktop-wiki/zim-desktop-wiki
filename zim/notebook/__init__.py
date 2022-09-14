@@ -66,19 +66,23 @@ def build_notebook(location):
 	'''Create a L{Notebook} object for a file location
 	Tries to automount file locations first if needed
 	@param location: a L{FilePath} or a L{NotebookInfo}
-	@returns: a L{Notebook} object and a L{Path} object or C{None}
+	@returns: a L{Notebook} object and an (absolute) L{HRef} object or C{None}
 	@raises FileNotFoundError: if file location does not exist and could not be mounted
 	'''
 	uri = location.uri
-	page = None
+	href = None
 
 	# Decipher zim+file:// uris
 	if uri.startswith('zim+file://'):
 		uri = uri[4:]
 		if '?' in uri:
-			uri, page = uri.split('?', 1)
-			page = url_decode(page)
-			page = Path(page)
+			uri, localpart = uri.split('?', 1)
+			localpart = url_decode(localpart)
+			href = HRef.new_from_wiki_link(localpart)
+
+	if '#' in uri:
+		uri, anchor = uri.split('#', 1)
+		href = HRef.new_from_wiki_link('#' + anchor)
 
 	# Automount if needed
 	filepath = FilePath(uri)
@@ -112,11 +116,18 @@ def build_notebook(location):
 		if '.' in path:
 			path, _ = path.rsplit('.', 1) # remove extension
 		path = path.replace('\\', ':').replace('/', ':')
-		page = Path(path)
+		if href and not href.names:
+			# Anchor was given, add page name
+			href.names = Path.makeValidPageName(path)
+		else:
+			href = HRef.new_from_wiki_link(path)
+	elif href and not href.names:
+		# Anchor without page name - ignore silent
+		href = None
 
 	# And finally create the notebook
 	notebook = Notebook.new_from_dir(folder)
-	return notebook, page
+	return notebook, href
 
 
 def mount_notebook(filepath):

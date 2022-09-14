@@ -125,17 +125,17 @@ class UIActions(object):
 		from zim.gui.notebookdialog import NotebookDialog
 		NotebookDialog.unique(self, self.widget, callback=self.open_notebook).present()
 
-	def open_notebook(self, location, pagename=None):
+	def open_notebook(self, location, pagelink=None):
 		'''Open another notebook.
 		@param location: notebook location as uri or object with "uri" attribute
-		@param pagename: optional page name
+		@param pagelink: optional page name (including optional anchor ID) as string
 		'''
 		assert isinstance(location, str) or hasattr(location, 'uri')
-		assert pagename is None or isinstance(pagename, str)
+		assert pagelink is None or isinstance(pagelink, str)
 
 		uri = location.uri if hasattr(location, 'uri') else location
-		if pagename:
-			ZIM_APPLICATION.run('--gui', uri, pagename)
+		if pagelink:
+			ZIM_APPLICATION.run('--gui', uri, pagelink)
 		else:
 			ZIM_APPLICATION.run('--gui', uri)
 

@@ -28,7 +28,7 @@ from zim import __version__
 
 from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
-from zim.notebook import Notebook, Path, \
+from zim.notebook import Notebook, Path, HRef, \
 	get_notebook_list, resolve_notebook, build_notebook
 from zim.formats import get_format
 
@@ -44,14 +44,19 @@ class HelpCommand(Command):
 	'''Class implementing the C{--help} command'''
 
 	usagehelp = '''\
-usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
+usage: zim [OPTIONS] [NOTEBOOK [PAGE_LINK]]
+   or: zim --gui [OPTIONS] [NOTEBOOK [PAGE_LINK]]
    or: zim --server [OPTIONS] [NOTEBOOK]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
    or: zim --search NOTEBOOK QUERY
    or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --plugin PLUGIN [ARGUMENTS]
-   or: zim --manual [OPTIONS] [PAGE]
+   or: zim --manual [OPTIONS] [PAGE_LINK]
    or: zim --help
+
+NOTEBOOK can be a local file path, a local file URI or a notebook name
+PAGE is be a fully specified page name
+PAGE_LINK is a fully specified page name optionally extended with an anchor ID
 '''
 	optionhelp = '''\
 General Options:
@@ -138,7 +143,7 @@ class NotebookCommand(Command):
 	def get_notebook_argument(self):
 		'''Get the notebook and page arguments for this command
 		@returns: a 2-tuple of an L{NotebookInfo} object and an
-		optional L{Path} or C{(None, None)} if the notebook
+		optional L{HRef} or C{(None, None)} if the notebook
 		argument is optional and not given
 		@raises NotebookLookupError: if the notebook is mandatory and
 		not given, or if it is given but could not be resolved
@@ -160,10 +165,9 @@ class NotebookCommand(Command):
 				# T: error message
 
 		if len(self.arguments) > 1 \
-		and self.arguments[1] in ('PAGE', '[PAGE]') \
+		and self.arguments[1] in ('PAGE', '[PAGE]', 'PAGE_LINK', '[PAGE_LINK]') \
 		and args[1] is not None:
-			pagename = Path.makeValidPageName(args[1])
-			return notebookinfo, Path(pagename)
+			return notebookinfo, HRef.new_from_wiki_link(args[1])
 		else:
 			return notebookinfo, None
 
@@ -173,7 +177,7 @@ class NotebookCommand(Command):
 		@param ensure_uptodate: if C{True} index is updated when needed.
 		Only set to C{False} when index update is handled explicitly
 		(e.g. in the main gui).
-		@returns: a L{Notebook} object and a L{Path} object or C{None}
+		@returns: a L{Notebook} object and a C{HRef} object or C{None}
 		@raises NotebookLookupError: if the notebook could not be
 		resolved or is not given
 		@raises FileNotFoundError: if the notebook location does not
@@ -181,23 +185,23 @@ class NotebookCommand(Command):
 		'''
 		# Explicit page argument has priority over implicit from uri
 		# mounting is attempted by zim.notebook.build_notebook()
-		notebookinfo, page = self.get_notebook_argument() 	# can raise NotebookLookupError
+		notebookinfo, pagelink = self.get_notebook_argument() 	# can raise NotebookLookupError
 		if not notebookinfo:
 			raise NotebookLookupError(_('Please specify a notebook'))
-		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFoundError
+		notebook, uripagelink = build_notebook(notebookinfo) # can raise FileNotFoundError
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
 			for info in notebook.index.update_iter():
 				#logger.info('Indexing %s', info)
 				pass # TODO meaningful info for above message
 
-		return notebook, page or uripage
+		return notebook, pagelink or uripagelink
 
 
 class GuiCommand(NotebookCommand, GtkCommand):
 	'''Class implementing the C{--gui} command and run the gtk interface'''
 
-	arguments = ('[NOTEBOOK]', '[PAGE]')
+	arguments = ('[NOTEBOOK]', '[PAGE_LINK]')
 	options = (
 		('list', '', 'show the list with notebooks instead of\nopening the default notebook'),
 		('geometry=', '', 'window size and position as WxH+X+Y'),
@@ -224,7 +228,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		if self.opts.get('list'):
 			notebookinfo = prompt_notebook_list()
 		else:
-			notebookinfo, page = self.get_notebook_argument()
+			notebookinfo, pagelink = self.get_notebook_argument()
 
 			if notebookinfo is None:
 				notebookinfo = self.get_default_or_only_notebook()
@@ -237,14 +241,14 @@ class GuiCommand(NotebookCommand, GtkCommand):
 			return None, None # Cancelled prompt
 
 		try:
-			notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+			notebook, uripagelink = build_notebook(notebookinfo) # can raise FileNotFound
 		except FileNotFoundError:
 			if used_default:
 				# Default notebook went missing? Fallback to dialog to allow changing it
 				notebookinfo = prompt_notebook_list()
 				if notebookinfo is None:
 					return None, None # Cancelled prompt
-				notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+				notebook, uripagelink = build_notebook(notebookinfo) # can raise FileNotFound
 			else:
 				raise
 
@@ -253,7 +257,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				#logger.info('Indexing %s', info)
 				pass # TODO meaningful info for above message
 
-		return notebook, page or uripage
+		return notebook, pagelink or uripagelink
 
 	def run(self):
 		from gi.repository import Gtk
@@ -265,23 +269,23 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				if isinstance(w, MainWindow)
 		]
 
-		notebook, page = self.build_notebook()
+		notebook, pagelink = self.build_notebook()
 		if notebook is None:
 			logger.debug('NotebookDialog cancelled - exit')
 			return
 
 		for window in windows:
 			if window.notebook.uri == notebook.uri:
-				self._present_window(window, page)
+				self._present_window(window, pagelink)
 				return window
 		else:
-			return self._run_new_window(notebook, page)
+			return self._run_new_window(notebook, pagelink)
 
-	def _present_window(self, window, page):
+	def _present_window(self, window, pagelink):
 		window.present()
 
-		if page:
-			window.open_page(page)
+		if pagelink:
+			window.open_page(Path(pagelink.names), anchor=pagelink.anchor)
 
 		geometry = self.opts.get('geometry', None)
 		if geometry is not None:
@@ -290,7 +294,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		if self.opts.get('fullscreen', False):
 			window.toggle_fullscreen(True)
 
-	def _run_new_window(self, notebook, page):
+	def _run_new_window(self, notebook, pagelink):
 		from gi.repository import GObject
 
 		from zim.gui.mainwindow import MainWindow
@@ -319,12 +323,15 @@ class GuiCommand(NotebookCommand, GtkCommand):
 
 			preferences['plugins_list_version'] = '0.70'
 
+		page = Path(pagelink.names) if pagelink else None
 		window = MainWindow(
 			notebook,
 			page=page,
 			**self.get_options('geometry', 'fullscreen')
 		)
 		window.present()
+		if pagelink and pagelink.anchor:
+			window.open_page(Path(pagelink.names), anchor=pagelink.anchor)
 
 		if not window.notebook.index.is_uptodate:
 			window._uiactions.check_and_update_index(update_only=True) # XXX
@@ -342,13 +349,13 @@ class GuiCommand(NotebookCommand, GtkCommand):
 class ManualCommand(GuiCommand):
 	'''Like L{GuiCommand} but always opens the manual'''
 
-	arguments = ('[PAGE]',)
+	arguments = ('[PAGE_LINK]',)
 	options = tuple(t for t in GuiCommand.options if t[0] != 'list')
 		# exclude --list
 
 	def run(self):
 		from zim.config import data_dir
-		self.arguments = ('NOTEBOOK', '[PAGE]') # HACK
+		self.arguments = ('NOTEBOOK', '[PAGE_LINK]') # HACK
 		self.args.insert(0, data_dir('manual').path)
 		return GuiCommand.run(self)
 
@@ -372,7 +379,7 @@ class ServerCommand(NotebookCommand):
 
 		port = int(self.opts.get('port', 8080))
 		template = get_template('html', self.opts.get('template', 'Default'), pwd=self.pwd)
-		notebook, page = self.build_notebook()
+		notebook, x = self.build_notebook()
 		is_public = not self.opts.get('private', False)
 
 		self.server = httpd = zim.www.make_server(notebook, public=is_public, template=template, port=port)
@@ -399,7 +406,7 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 
 		port = int(self.opts.get('port', 8080))
 		template = get_template('html', self.opts.get('template', 'Default'), pwd=self.pwd)
-		notebookinfo, page = self.get_notebook_argument()
+		notebookinfo, x = self.get_notebook_argument()
 		if notebookinfo is None:
 			# Prefer default to be selected in drop down, user can still change
 			notebookinfo = self.get_default_or_only_notebook()
@@ -512,12 +519,14 @@ class ExportCommand(NotebookCommand):
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
 
-		notebook, page = self.build_notebook()
+		notebook, href = self.build_notebook()
 		notebook.index.check_and_update()
 
-		if page and self.opts.get('recursive'):
+		if href and self.opts.get('recursive'):
+			page = Path(href.names) # ignore anchor
 			selection = SubPages(notebook, page)
-		elif page:
+		elif href:
+			page = Path(href.names) # ignore anchor
 			selection = SinglePage(notebook, page)
 		else:
 			selection = AllPages(notebook)
@@ -535,7 +544,7 @@ class SearchCommand(NotebookCommand):
 	def run(self):
 		from zim.search import SearchSelection, Query
 
-		notebook, p = self.build_notebook()
+		notebook, x = self.build_notebook()
 		n, query = self.get_arguments()
 
 		if query and not query.isspace():
@@ -571,7 +580,7 @@ class IndexCommand(NotebookCommand):
 		mylogger.setLevel(logging.DEBUG)
 		mylogger.addFilter(elevate_index_logging)
 
-		notebook, p = self.build_notebook(ensure_uptodate=False)
+		notebook, x = self.build_notebook(ensure_uptodate=False)
 		if self.opts.get('flush'):
 			notebook.index.flush()
 			notebook.index.update()

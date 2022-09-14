@@ -445,7 +445,7 @@ class QuickNoteDialog(Dialog):
 
 	def _get_notebook(self):
 		uri = self.notebookcombobox.get_notebook()
-		notebook, p = build_notebook(LocalFolder(uri))
+		notebook, x = build_notebook(LocalFolder(uri))
 		return notebook
 
 	def create_new_page(self, notebook, path, text):

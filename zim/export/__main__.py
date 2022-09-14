@@ -20,7 +20,8 @@ if __name__ == '__main__':
 	outputpath = sys.argv[3]
 
 	info = zim.notebook.resolve_notebook(notebookpath)
-	notebook, page = zim.notebook.build_notebook(info)
+	notebook, href = zim.notebook.build_notebook(info)
+	page = zim.notebook.Path(href.names) if href else None
 	notebook.index.check_and_update()
 
 	if action == 'multi':
