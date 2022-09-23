@@ -5,6 +5,7 @@
 
 import re
 import ast
+import logging
 
 from gi.repository import Gtk
 
@@ -16,11 +17,15 @@ from zim.applications import Application
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, IconButton
 
+logger = logging.getLogger('zim.plugins')
+
 try:
 	import xdot
+	from xdot import DotWidget
 except ImportError:
 	xdot = None
-
+	class DotWidget:  # workaround
+		pass
 
 class LinkMapPlugin(PluginClass):
 
@@ -42,6 +47,12 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('button_in_headerbar', 'bool', _('Show linkmap button in headerbar'), True),
+			# T: preferences option
+		('zoom_fit', 'bool', _('Autozoom to fit map'), False),
+			# T: preferences option
+		('sticky', 'bool', _('Follow main window'), False),
+			# T: preferences option
+		('new_window', 'bool', _('Always open links in new windows'), False),
 			# T: preferences option
 	)
 
@@ -119,7 +130,8 @@ class LinkMapPageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, pageview):
 		PageViewExtension.__init__(self, plugin, pageview)
-		self.on_preferences_changed(plugin.preferences)
+		self.preferences = plugin.preferences
+		self.on_preferences_changed(self.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
@@ -127,25 +139,43 @@ class LinkMapPageViewExtension(PageViewExtension):
 
 	@action(_('Link Map'), icon='linkmap-symbolic', menuhints='view:headerbar') # T: menu item
 	def show_linkmap(self):
-		linkmap = LinkMap(self.pageview.notebook, self.pageview.page)
-		dialog = LinkMapDialog(self.pageview, linkmap, self.navigation)
+		dialog = LinkMapDialog(self.pageview, self.navigation, self.preferences)
 		dialog.show_all()
 
+class LinkMapWidget(DotWidget):
+	def on_click(self, element, event):
+		# override to add middle-click support
+		#logger.debug('on_click: %s, %s', element, event.button)
+		if element and event.button != 1:
+			try:
+				self.emit('clicked', element.url, event)
+				return True
+			except Exception:
+				return False
+		return False
 
 class LinkMapDialog(Dialog):
 
-	def __init__(self, parent, linkmap, navigation):
-		Dialog.__init__(self, parent, 'LinkMap',
+	def __init__(self, parent, navigation, preferences):
+		# LinkMap can't navigate across notebooks
+		self.title_ending = ' - ' + parent.notebook.name + ' - LinkMap'
+		Dialog.__init__(self, parent, parent.page.name + self.title_ending,
 			defaultwindowsize=(400, 400), buttons=Gtk.ButtonsType.CLOSE)
-		self.linkmap = linkmap
+		self.pageview = parent
+		self.page = parent.page
 		self.navigation = navigation
+		self.preferences = preferences
+
+		# TODO: optionally refresh linkmap on pageview navigation
+		# (makes navigating painfully slow)
+		#parent.connect('activate-link', self.refresh_xdotview)
 
 		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, True, True, 0)
 
-		self.xdotview = xdot.DotWidget()
+		self.xdotview = LinkMapWidget()
 		self.xdotview.set_filter('fdp')
-		self.xdotview.set_dotcode(linkmap.get_dotcode().encode('UTF-8'))
+		self.refresh_xdotview()
 		self.xdotview.connect('clicked', self.on_node_clicked)
 		hbox.add(self.xdotview)
 
@@ -156,13 +186,34 @@ class LinkMapDialog(Dialog):
 			(Gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
 			(Gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
 			(Gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),
+			(Gtk.STOCK_REFRESH, self.refresh_xdotview),
 		):
 			button = IconButton(stock)
 			button.connect('clicked', method)
 			vbox.pack_start(button, False, True, 0)
 
+	def set_dotcode(self, page):
+		logger.debug('Load dotcode for page %s', page.name)
+		self.set_title(page.name + self.title_ending)
+		self.xdotview.set_dotcode(
+			LinkMap(self.pageview.notebook, page).get_dotcode().encode('UTF-8'))
+		if self.preferences['zoom_fit']:
+			self.xdotview.on_zoom_fit(0)  # takes an action, doesn't use it
+
+	def refresh_xdotview(self, *a):
+		if self.preferences['sticky']:
+			self.set_dotcode(self.pageview.page)
+		else:
+			self.set_dotcode(self.page)
+
 	def on_node_clicked(self, widget, name, event):
 		if re.match('b\'.*?\'$', name):
 			# Bug in dotcode ? URLS come in as strings containing byte representation
 			name = ast.literal_eval(name).decode('UTF-8')
-		self.navigation.open_page(Path(name))
+
+		new_window = event.button == 2 or self.preferences['new_window']
+
+		self.navigation.open_page(Path(name), new_window=new_window)
+
+		if not new_window and self.preferences['sticky']:
+			self.refresh_xdotview()
