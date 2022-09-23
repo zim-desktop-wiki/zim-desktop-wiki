@@ -2356,7 +2356,7 @@ class TextBuffer(Gtk.TextBuffer):
 		level = self.get_indent(line)
 		return self.set_indent(line, level - 1, interactive)
 
-	def foreach_line_in_selection(self, func, *args, **kwarg):
+	def foreach_line_in_selection(self, func, *args, skip_empty_lines=False, **kwarg):
 		'''Convenience function to call a function for each line that
 		is currently selected
 
@@ -2365,6 +2365,8 @@ class TextBuffer(Gtk.TextBuffer):
 			func(line, *args, **kwargs)
 
 		where C{line} is the line number
+		@param skip_empty_lines: if C{True}, C{func} won't be called
+		for empty lines
 		@param args: additional argument for C{func}
 		@param kwarg: additional keyword argument for C{func}
 
@@ -2377,8 +2379,18 @@ class TextBuffer(Gtk.TextBuffer):
 				# exclude last line if selection ends at newline
 				# because line is not visually part of selection
 				end.backward_char()
-			for line in range(start.get_line(), end.get_line() + 1):
-				func(line, *args, **kwarg)
+			if skip_empty_lines:
+				all_lines_are_empty = True
+				for line in range(start.get_line(), end.get_line() + 1):
+					if not self.get_line_is_empty(line):
+						all_lines_are_empty = False
+						func(line, *args, **kwarg)
+				if all_lines_are_empty:
+					# the user wanted to do something to these empty lines, so we do
+					self.foreach_line_in_selection(func, *args, skip_empty_lines=False, **kwarg)
+			else:
+				for line in range(start.get_line(), end.get_line() + 1):
+					func(line, *args, **kwarg)
 			return True
 		else:
 			return False
@@ -4592,14 +4604,14 @@ class TextView(Gtk.TextView):
 			elif keyval in KEYVALS_ASTERISK + (KEYVAL_POUND,):
 				def toggle_bullet(line, newbullet):
 					bullet = buffer.get_bullet(line)
-					if not bullet and not buffer.get_line_is_empty(line):
+					if not bullet:
 						buffer.set_bullet(line, newbullet)
 					elif bullet == newbullet: # FIXME broken for numbered list
 						buffer.set_bullet(line, None)
 				if keyval == KEYVAL_POUND:
-					buffer.foreach_line_in_selection(toggle_bullet, NUMBER_BULLET)
+					buffer.foreach_line_in_selection(toggle_bullet, NUMBER_BULLET, skip_empty_lines=True)
 				else:
-					buffer.foreach_line_in_selection(toggle_bullet, BULLET)
+					buffer.foreach_line_in_selection(toggle_bullet, BULLET, skip_empty_lines=True)
 			elif keyval in KEYVALS_GT \
 			and multi_line_indent(start, end):
 				def email_quote(line):
@@ -7174,7 +7186,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			start_mark = buffer.create_mark(None, bounds[0], left_gravity=True)
 			end_mark = buffer.create_mark(None, bounds[1], left_gravity=False)
 			try:
-				buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
+				buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type, skip_empty_lines=True)
 			except:
 				raise
 			else:

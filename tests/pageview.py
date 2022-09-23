@@ -3629,6 +3629,15 @@ class TestPageViewActions(tests.TestCase):
 		pageview.apply_format_bullet_list()
 		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n'])
 
+	def testApplyBulletSkipsEmptyLines(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n\nabc\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(0)
+		end = buffer.get_iter_at_offset(14)
+		buffer.select_range(begin, end)
+		pageview.apply_format_bullet_list()
+		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n', '\n', '* abc\n'])
+
 	def testApplyNumberedList(self):
 		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
 		buffer = pageview.textview.get_buffer()
