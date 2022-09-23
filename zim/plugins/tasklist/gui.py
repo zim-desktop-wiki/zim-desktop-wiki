@@ -14,7 +14,7 @@ import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 
 from zim.notebook import Path
-from zim.actions import get_actions, RadioActionMethod
+from zim.actions import get_actions, RadioActionMethod, PRIMARY_MODIFIER_MASK
 from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
 from zim.config import ConfigManager
 from zim.plugins import PluginManager, ExtensionBase, extendable
@@ -349,8 +349,8 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 
 		self.tasklisttreeview.view_columns['task'].set_min_width(400) # don't let this column get too small
 
-		filter_entry = self._create_filter_entry()
-		pane2_vbox.pack_start(filter_entry, False, True, 0)
+		self._filter_entry = self._create_filter_entry()
+		pane2_vbox.pack_start(self._filter_entry, False, True, 0)
 
 		self.hpane.pack1(self._create_selection_pane(properties, show_inbox_next, width=150), resize=False)
 
@@ -360,6 +360,15 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 			self._headerbar.pack_end(button)
 		else:
 			self._update_toolbar()
+
+		# Hack to add <Ctrl>F keybinding for the filter
+		# in future should be handled by action / toolbar icon
+		# maybe move filter to top of window for consistent Gnome HiG look
+		group = Gtk.AccelGroup()
+		group.connect( # <Primary><F>
+			Gdk.unicode_to_keyval(ord('f')), PRIMARY_MODIFIER_MASK, Gtk.AccelFlags.VISIBLE,
+			lambda *a: self._filter_entry.grab_focus() )
+		self.add_accel_group(group)
 
 	def _update_toolbar(self):
 		for item in self._toolbar.get_children():
