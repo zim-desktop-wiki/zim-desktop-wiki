@@ -199,9 +199,11 @@ class TaskListWidgetMixin(object):
 		)
 
 	def reload_view(self):
+		state = self._get_selection_state()
 		for view in (self.tasklisttreeview, self.tag_list):
 			if view is not None:
 				view.refresh()
+		self._set_selection_state(state)
 
 	def on_selection_activated(self, listbox, boxrow):
 		label = boxrow.get_children()[0]
@@ -286,15 +288,29 @@ class TaskListWindowExtension(ActionExtensionBase):
 	def on_destroy(self, dialog):
 		self.destroy()
 
+from zim.config import value_is_coord
 
 @extendable(TaskListWindowExtension)
 class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 
-	def __init__(self, notebook, index, navigation, properties, show_inbox_next):
+	def __init__(self, notebook, index, navigation, properties, show_inbox_next, hide_on_close=True):
 		Gtk.Window.__init__(self)
 		self.uistate = notebook.state[self.__class__.__name__]
 		defaultwindowsize=(550, 400)
-		from zim.config import value_is_coord
+
+		# Catching this signal prevents the window to actually be destroyed
+		# when the user tries to close it. The action for close should either
+		# hide or destroy the window.
+		if hide_on_close:
+			def do_delete_event(self, *a):
+				logger.debug('Action: close tasklist window (delete-event)')
+				self.save_uistate()
+				self.hide()
+				return True # Do not destroy - let close() handle it
+
+			self.connect('delete-event', do_delete_event)
+		else:
+			self.connect('delete-event', self.save_uistate)
 
 		# note: _windowpos is defined with a leading "_" so it is not
 		# persistent across instances, this is intentional to avoid
@@ -308,8 +324,6 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		if self.uistate['windowsize'] is not None:
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
-
-		self.connect('delete-event', self.save_uistate)
 
 		TaskListWidgetMixin.__init__(self, index, self.uistate, properties)
 
@@ -434,6 +448,18 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		self.taskselection.set_status_included(*self.status)
 		self.tasklisttreeview.refresh()
 		self.tag_list.refresh()
+
+	def present(self):
+		Gtk.Window.present(self)
+		self.reload_view() # Might be out of date when we are hidden
+
+	def reload_view(self):
+		# Overloaded to only run what visible, force refresh on present() above
+		state = self._get_selection_state()
+		for view in (self.tasklisttreeview, self.tag_list):
+			if view is not None and view.is_visible():
+				view.refresh()
+		self._set_selection_state(state)
 
 	def save_uistate(self, *a):
 		self.uistate['hpane_pos'] = self.hpane.get_position()

@@ -169,16 +169,16 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 		# TODO: add check + dialog for index probably_up_to_date
 
 		if self._task_list_window is None:
-			self._task_list_window = self._show_task_window(selection_state=None)
+			self._task_list_window = self._show_task_window(selection_state=None, hide_on_close=True)
+		else:
+			self._task_list_window.present()
 
-		self._task_list_window.present()
-
-	def _show_task_window(self, selection_state):
+	def _show_task_window(self, selection_state, hide_on_close=False):
 			notebook = self.pageview.notebook
 			index = self.pageview.notebook.index
 			navigation = self.pageview.navigation
 			properties = self.plugin.notebook_properties(self.pageview.notebook)
-			window = TaskListWindow(notebook, index, navigation, properties, self.plugin.preferences['show_inbox_next'])
+			window = TaskListWindow(notebook, index, navigation, properties, self.plugin.preferences['show_inbox_next'], hide_on_close=True)
 			window.connect_after('destroy', self._drop_task_list_window_ref)
 			if selection_state:
 				window._set_selection_state(selection_state)
