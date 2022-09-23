@@ -184,7 +184,8 @@ Specific ones are:
 
 * zim-sidepane: for any side pane of the application window
 * zim-pageview: for the textview showing the page
-* zim-inserted-object: for objects that are inserted in the text; default is to render a small border line
+* zim-inserted-object-inline: for objects that are inserted in the text in the middle of a line
+* zim-inserted-object: for objects that are inserted in the text as a block; default is to render a small border line
 * zim-inserted-object-head: for the top bar of such an object; default is to render a small border line at the bottom
 
 More names are documented in the manual page of specific plugins.
