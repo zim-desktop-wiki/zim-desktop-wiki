@@ -31,5 +31,9 @@ On this page, you find some screenshots of **zim** in action.
 //Showing a journal page//
 
 
-{{/screenshots/zim-tasklist.png}}
+{{/screenshots/zim-tasklist-1.png}}
+//Showing tasks defined in a page//
+
+
+{{/screenshots/zim-tasklist-2.png}}
 //Showing the task list dialog//
