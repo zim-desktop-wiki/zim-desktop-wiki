@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-09-27 19:03+0000\n"
+"PO-Revision-Date: 2022-09-27 19:22+0000\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: Croatian <https://hosted.weblate.org/projects/zim/develop/hr/>"
 "\n"
@@ -139,8 +139,7 @@ msgstr ""
 
 #. Error message when external application could not be run in terminal, %s is the command
 #: zim/gui/applications.py:827
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find terminal emulator to run application: %s"
 msgstr "Neuspjelo pokretanje programa: %s"
 
@@ -628,7 +627,7 @@ msgstr "Traka izbornika"
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:800 zim/gui/uiactions.py:506
 msgid "File exists, do you want to import?"
-msgstr "Datoteka već postoji. Želiš li je prepisati?"
+msgstr "Datoteka postoji. Želiš li je uvesti?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:801 zim/gui/uiactions.py:507
@@ -1755,10 +1754,10 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
-"Tipkovnički prečaci mogu se promijeniti odabirom radnje u popisu i pritiskom "
-"na nov prečac.\n"
-"Za deaktiviranje prečaca, odaberi ga u popisu i pritisni tipku <tt>&lt;"
-"Backspace&gt;</tt>."
+"Tipkovnički prečaci se mogu promijeniti pritiskom na polje s tipkovničkim \n"
+"prečacem u popisu i zatim pritiskom na novi prečac.\n"
+"Za deaktiviranje prečaca, odaberi ga u popisu i pritisni tipku "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:566
@@ -3345,8 +3344,9 @@ msgid ""
 msgstr ""
 "Ovaj dodatak pruža rješenje za nedostajuću podršku za\n"
 "ispis u zimu. Trenutačnu stranicu izvozi u html i otvara\n"
-"preglednik. Pod pretpostavkom da preglednika podržava\n"
-"ispis, podaci se mogu ispisati u dva koraka.\n"
+"preglednik. Pod pretpostavkom da preglednika ne \n"
+"podržava ispis, tvoji će se podaci poslati printeru u \n"
+"dva koraka.\n"
 "\n"
 "Ovo je osnovni dodatak koji se isporučuje sa zimom.\n"
 
