@@ -8,24 +8,23 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-06-11 01:32+0000\n"
-"Last-Translator: David Peng <davidduzyn@outlook.com>\n"
+"PO-Revision-Date: 2022-09-29 13:19+0000\n"
+"Last-Translator: Eric <hamburger1024@mailbox.org>\n"
 "Language-Team: Chinese (Simplified) <https://hosted.weblate.org/projects/zim/"
-"master/zh_Hans/>\n"
+"develop/zh_Hans/>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.13-dev\n"
+"X-Generator: Weblate 4.14.1\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "无法找到 \"%s\" 模板"
+msgstr "无法找到程序：%s"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -138,10 +137,9 @@ msgstr "您正在外部程序中编辑文件。完成后你可以关闭此对话
 
 #. Error message when external application could not be run in terminal, %s is the command
 #: zim/gui/applications.py:827
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find terminal emulator to run application: %s"
-msgstr "应用程序运行失败: %s"
+msgstr "无法找到终端模拟器来运行程序：%s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1081
@@ -1045,10 +1043,8 @@ msgstr "复制链接(_L)"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6824
-#, fuzzy
-#| msgid "Edit Link"
 msgid "Cut Lin_k"
-msgstr "编辑链接"
+msgstr "剪切链接(_K)"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6837
@@ -1822,7 +1818,9 @@ msgstr "查找(_F)"
 msgid ""
 "For advanced search you can use operators like\n"
 "AND, OR and NOT. See the help page for more details."
-msgstr "你可以使用操作符 AND、OR 和 NOT 实现高级搜索功能。详细内容参见帮助页。"
+msgstr ""
+"你可以使用操作符 AND、OR 和 NOT 实现高级搜索功能。\n"
+"详细内容参见帮助页。"
 
 #. checkbox option in search dialog
 #: zim/gui/searchdialog.py:55
@@ -1831,10 +1829,8 @@ msgstr "只搜索该页面及其子页面(_L)"
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:68
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "搜索(_S)..."
+msgstr "搜索中…"
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
@@ -2045,8 +2041,6 @@ msgstr "启动Web服务器(_W)"
 
 #. menu item
 #: zim/gui/uiactions.py:368
-#, fuzzy
-#| msgid "View debug log"
 msgid "View Debug Log"
 msgstr "查看调试日志"
 
@@ -2653,10 +2647,8 @@ msgstr "附件(_C)"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:146
-#, fuzzy
-#| msgid "Attachments:"
 msgid "No attachments"
-msgstr "附件："
+msgstr "无附件"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:191
@@ -2700,10 +2692,8 @@ msgstr "反向链接"
 
 #. placeholder label in sidepane
 #: zim/plugins/backlinkpane.py:84
-#, fuzzy
-#| msgid "Backlinks:"
 msgid "No backlinks"
-msgstr "反向链接："
+msgstr "无反向链接"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
@@ -2863,8 +2853,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"此插件提供一个基于 GraphViz 的图形编辑器。\n"
-"这是 zim 的核心插件。\n"
+"这个插件提供了一个基于 GraphViz 的 zim 图表编辑器。\n"
+"\n"
+" 这是 zim 附带的核心插件。\n"
 
 #. menu item
 #: zim/plugins/diagrameditor.py:39
@@ -3208,17 +3199,13 @@ msgstr ""
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "窗口中的位置"
+msgstr "跟随主窗口"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "在新窗口中打开"
+msgstr "始终在新窗口中打开链接"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3267,10 +3254,8 @@ msgstr "使用工具提示"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:129
-#, fuzzy
-#| msgid "Page Index"
 msgid "Collapse Page Index"
-msgstr "页面索引"
+msgstr "收起页面索引"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:133
@@ -3344,10 +3329,13 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"此插件给 zim 提供了一个更好打印解决方案。\n"
-"他可以将当前页导出到 HTML 页面并用浏览器打开。\n"
-"如果浏览器支持打印，则可以很容易的将页面打印出来。\n"
-"此插件是随 zim 一同分发的核心插件。\n"
+"这个插件提供了一个解决方法，提供\n"
+" zim 打印支持。 它导出当前页面\n"
+" 到 html 并打开浏览器。 假设浏览器\n"
+" 支持打印，这会让你\n"
+" 只需两步便把数据发送到打印机。\n"
+"\n"
+"这是 zim 附带的核心插件。\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:63
@@ -3361,10 +3349,8 @@ msgstr "打印(_P)"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "打印至浏览器"
+msgstr "打印任务列表至浏览器"
 
 #. plugin name
 #: zim/plugins/quicknote.py:166 zim/plugins/quicknote.py:202
@@ -3425,7 +3411,10 @@ msgid ""
 "This plugin provides an score editor for zim based on GNU Lilypond.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
-msgstr "此插件为 zim 提供一基于 GNU Lilypond 的乐谱编辑器。\n"
+msgstr ""
+"此插件为 zim 提供基于 GNU Lilypond 的乐谱编辑器。\n"
+"\n"
+"这是 zim 附带的核心插件。\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:55
@@ -3626,7 +3615,10 @@ msgid ""
 "Adds spell checking support using gtkspell.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
-msgstr "使用 gtkspell 来增加拼写检查功能\n"
+msgstr ""
+"使用 gtkspell 增加拼写检查功能。\n"
+"\n"
+"这是 zim 附带的核心插件。\n"
 
 #. menu item
 #: zim/plugins/spell.py:136
@@ -3929,10 +3921,8 @@ msgstr "所有任务"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:65
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "操作"
+msgstr "活跃"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
@@ -3941,10 +3931,8 @@ msgstr ""
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
-#, fuzzy
-#| msgid "Action"
 msgid "Next Actions"
-msgstr "操作"
+msgstr "下一步操作"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:68
@@ -3953,10 +3941,8 @@ msgstr ""
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:69
-#, fuzzy
-#| msgid "Editing"
 msgid "Waiting"
-msgstr "编辑"
+msgstr "等待"
 
 #. placeholder label for sidepane
 #: zim/plugins/tasklist/gui.py:109
@@ -3965,17 +3951,13 @@ msgstr ""
 
 #. tooltip
 #: zim/plugins/tasklist/gui.py:135
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist window"
-msgstr "在侧窗格中显示任务列表"
+msgstr "显示任务列表窗口"
 
 #. label for filtering/searching tasks
 #: zim/plugins/tasklist/gui.py:180
-#, fuzzy
-#| msgid "Filter"
 msgid "Filter tasks"
-msgstr "过滤器"
+msgstr "筛选任务"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:243
@@ -3984,8 +3966,6 @@ msgstr "任务(_K)"
 
 #. Window title for tasklist
 #: zim/plugins/tasklist/gui.py:338 zim/plugins/tasklist/gui.py:343
-#, fuzzy
-#| msgid "Task"
 msgid "Tasks"
 msgstr "任务"
 
@@ -3996,10 +3976,8 @@ msgstr ""
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:430
-#, fuzzy
-#| msgid "Only Show Active Tasks"
 msgid "Show closed tasks"
-msgstr "仅显示活动任务"
+msgstr "显示已关闭任务"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:431
@@ -4091,17 +4069,13 @@ msgstr "在侧边栏显示到期日期"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:55
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show start date in sidepane"
-msgstr "在侧边栏显示到期日期"
+msgstr "在侧窗格显示开始日期"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:57
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show page column in the sidepane"
-msgstr "在侧窗格中显示任务列表"
+msgstr "在侧窗格中显示页面栏"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:63
@@ -4115,17 +4089,13 @@ msgstr "使用标签标注任务"
 
 #. label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
 #: zim/plugins/tasklist/__init__.py:67
-#, fuzzy
-#| msgid "Labels marking tasks"
 msgid "Labels for \"waiting\" tasks"
-msgstr "使用标签标注任务"
+msgstr "任务的标记（如 \"waiting\"）"
 
 #. label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 #: zim/plugins/tasklist/__init__.py:69
-#, fuzzy
-#| msgid "Tags for non-actionable tasks"
 msgid "Tags for \"waiting\" tasks"
-msgstr "尚无法执行的任务标签"
+msgstr "任务标签（如 \"@waiting\"）"
 
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:71
@@ -4159,10 +4129,8 @@ msgstr "要忽略的部分"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:83
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show page names in selection pane"
-msgstr "在侧边栏显示到期日期"
+msgstr "在选择窗格中显示页面名称"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:85
@@ -4201,10 +4169,8 @@ msgstr "工具栏"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40
-#, fuzzy
-#| msgid "This plugin adds the page index pane to the main window.\n"
 msgid "This plugin allows to customize the toolbar in the main window.\n"
-msgstr "此插件将页面索引窗格添加到主窗口。\n"
+msgstr "该插件允许自定义主窗口中的工具栏。\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:49
@@ -4241,8 +4207,10 @@ msgid ""
 "This is a core plugin shipping with zim.\n"
 msgstr ""
 "此插件会增加一个用以快速访问的托盘图标。\n"
-"这个插件依赖于 GTK+ 2.10以上版本。\n"
-"此插件是 zim 的核心插件。\n"
+"\n"
+"这个插件依赖于 GTK+ 2.10 或以上版本。\n"
+"\n"
+"这是 zim 附带的核心插件。\n"
 
 #. preferences option
 #: zim/plugins/trayicon.py:85
@@ -4294,8 +4262,10 @@ msgid ""
 "This is a core plugin shipping with zim.\n"
 msgstr ""
 "此插件为笔记本添加版本控制功能。\n"
+"\n"
 "此插件支持 Bazaar, Git 及 Mercurial 版本控制系统。\n"
-"这是 zim 自带的核心插件。\n"
+"\n"
+"这是 zim 附带的核心插件。\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:67
