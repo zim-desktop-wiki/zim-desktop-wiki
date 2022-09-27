@@ -5,6 +5,38 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.75.0 - Tue 27 Sep 2022
+* Upgrade Python version requirement to >= 3.6
+* Complete porting all modules to `zim.newfs` and deprecate `zim.fs`
+* Refactor APIs to deal with tokens instead of `etree` interface
+* Add framework for imagegenerators with inline data
+* Refactored ther user interface of the tasklist plugin
+* Make tasklist window persistent
+* Let tasklist window also show closed tasks
+* Let tasks inherit all modifiers from list heading
+* Let "Go to Today" use anchor id for current day
+* Update LinkMap with new options
+* Refactor preference for custom window decoration & toolbar plugin
+* Enables distinct shortcuts for en and em dashes in symbol list
+* Add unicode 8757 ("because") in symbol list
+* Move Selected Text: add preference for short links & save bounds
+* Extend ToC pane context menu
+* Score editor: add check for convert-ly
+* Source View plugin: Don't show hidden languages
+* Export code blocks in markdown as fenced blocks
+* Fix loading GIF images
+* Fix to let the "insert link" dialog allow anchors
+* Allow sidepane focus key to be configured
+* Added action to collapse and expand in PageIndex
+* Add action for "move text" to allow keybinding
+* Support closing an open 'find bar' by pressing ESC in the page view widget
+* Allow cancelling ImageGeneratorDialog using Escape key
+* Version control: fix fossil
+* Fix KDE drag-n-drop bug
+* Fix export with formatting in heading
+* Minimal support for "Terminal" option in desktop files
+* Add preference for not prompting on new folder
+
 ##  0.74.3 - Tue 07 Dec 2021
 * Fix issue with broken links on move page
 * Fix bug in copy-paste

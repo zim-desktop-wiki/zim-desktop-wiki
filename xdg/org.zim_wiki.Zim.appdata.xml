@@ -35,6 +35,42 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2022-09-27" version="0.75.0">
+      <description>
+        <ul>
+          <li>Upgrade Python version requirement to &gt;= 3.6</li>
+          <li>Complete porting all modules to `zim.newfs` and deprecate `zim.fs`</li>
+          <li>Refactor APIs to deal with tokens instead of `etree` interface</li>
+          <li>Add framework for imagegenerators with inline data</li>
+          <li>Refactored ther user interface of the tasklist plugin</li>
+          <li>Make tasklist window persistent</li>
+          <li>Let tasklist window also show closed tasks</li>
+          <li>Let tasks inherit all modifiers from list heading</li>
+          <li>Let "Go to Today" use anchor id for current day</li>
+          <li>Update LinkMap with new options</li>
+          <li>Refactor preference for custom window decoration &amp; toolbar plugin</li>
+          <li>Enables distinct shortcuts for en and em dashes in symbol list</li>
+          <li>Add unicode 8757 ("because") in symbol list</li>
+          <li>Move Selected Text: add preference for short links &amp; save bounds</li>
+          <li>Extend ToC pane context menu</li>
+          <li>Score editor: add check for convert-ly</li>
+          <li>Source View plugin: Don't show hidden languages</li>
+          <li>Export code blocks in markdown as fenced blocks</li>
+          <li>Fix loading GIF images</li>
+          <li>Fix to let the "insert link" dialog allow anchors</li>
+          <li>Allow sidepane focus key to be configured</li>
+          <li>Added action to collapse and expand in PageIndex</li>
+          <li>Add action for "move text" to allow keybinding</li>
+          <li>Support closing an open 'find bar' by pressing ESC in the page view widget</li>
+          <li>Allow cancelling ImageGeneratorDialog using Escape key</li>
+          <li>Version control: fix fossil</li>
+          <li>Fix KDE drag-n-drop bug</li>
+          <li>Fix export with formatting in heading</li>
+          <li>Minimal support for "Terminal" option in desktop files</li>
+          <li>Add preference for not prompting on new folder</li>
+        </ul>
+      </description>
+    </release>
     <release date="2021-12-07" version="0.74.3">
       <description>
         <ul>
