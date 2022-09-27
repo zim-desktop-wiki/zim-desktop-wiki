@@ -61,12 +61,12 @@ class TaskListWidgetMixin(object):
 	'''Common functions between side-pane widget and dialog'''
 
 	SELECTION_MAP = { # Define in class to make sure translations are intialized
-		SELECTION_ALL: (_('All Tasks'), AllTasks),
-		SELECTION_ACTIVE: (_('Active'), ActiveTasks),
-		SELECTION_INBOX: (' \u2012 ' + _('Inbox'), InboxTasks),
-		SELECTION_NEXT: (' \u2012 ' + _('Next Actions'), NextActionTasks),
-		SELECTION_PROJECTS: (' \u2012 ' + _('Projects'), OpenProjectsTasks),
-		SELECTION_WAITING: (_('Waiting'), WaitingTasks),
+		SELECTION_ALL: (_('All Tasks'), AllTasks), # T: list with tasks
+		SELECTION_ACTIVE: (_('Active'), ActiveTasks), # T: list with tasks
+		SELECTION_INBOX: (' \u2012 ' + _('Inbox'), InboxTasks), # T: list with tasks (GTD style category)
+		SELECTION_NEXT: (' \u2012 ' + _('Next Actions'), NextActionTasks), # T: list with tasks (GTD style category)
+		SELECTION_PROJECTS: (' \u2012 ' + _('Projects'), OpenProjectsTasks), # T: list with tasks (GTD style category)
+		SELECTION_WAITING: (_('Waiting'), WaitingTasks), # T: list with tasks (GTD style category)
 	}
 
 	def __init__(self, index, uistate, properties):
@@ -132,7 +132,7 @@ class TaskListWidgetMixin(object):
 		popout = Gtk.Button()
 		icon = Gtk.Image.new_from_icon_name('window-pop-out-symbolic', Gtk.IconSize.SMALL_TOOLBAR)
 		popout.add(icon)
-		popout.set_tooltip_text(_('Show tasklist window'))
+		popout.set_tooltip_text(_('Show tasklist window')) # T: tooltip
 		popout.set_alignment(0.5, 0.5)
 		popout.set_relief(Gtk.ReliefStyle.NONE)
 		popout.connect('clicked', lambda b: self._show_dialog_action(self._get_selection_state()))
@@ -335,12 +335,12 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		# to overrule the definition in mainwindow. Therefore just using `get()`
 		if if_prefs.get('show_headerbar', True):
 			self._headerbar = Gtk.HeaderBar()
-			self._headerbar.set_title(_('Tasks') + '  -  ' + notebook.name)
+			self._headerbar.set_title(_('Tasks') + '  -  ' + notebook.name) # T: Window title for tasklist
 			self._headerbar.set_show_close_button(True)
 			self.set_titlebar(self._headerbar)
 			self._toolbar = None
 		else:
-			self.set_title(_('Tasks') + '  -  ' + notebook.name)
+			self.set_title(_('Tasks') + '  -  ' + notebook.name) # T: Window title for tasklist
 			self._headerbar = None
 			self._toolbar = Gtk.Toolbar()
 			vbox.pack_start(self._toolbar, False, False, 0)
@@ -518,7 +518,7 @@ class ListSelectionView(Gtk.ListBox):
 		# Only set header once on first row
 		if before is None and not row.get_header():
 			label = Gtk.Label()
-			label.set_markup('<b>%s</b>' % _('Lists'))
+			label.set_markup('<b>%s</b>' % _('Lists')) # T: Header for list selection in tasklist window
 			row.set_header(label)
 
 	def _select(self, key):
@@ -609,7 +609,7 @@ class LabelAndTagView(Gtk.ListBox):
 		for tag in natural_sorted(tags.keys()):
 			count = tags[tag]
 			if tag == _NO_TAGS:
-				row = self._create_item(_('Untagged'), count, 'tag')
+				row = self._create_item(_('Untagged'), count, 'tag') # T: selection of tasks without tags
 				row._zim_label = _NO_TAGS
 				self.add(row)
 			else:

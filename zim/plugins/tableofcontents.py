@@ -554,7 +554,7 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 	def __init__(self, pageview):
 		GObject.GObject.__init__(self)
 
-		self.head = Gtk.Label(label=_('ToC'))
+		self.head = Gtk.Label(label=_('ToC')) # T: small label above Table Of Contents
 		self.head.set_padding(5, 1)
 
 		self.tocwidget = ToCWidget(pageview, ellipsis=False)

@@ -359,7 +359,7 @@ class WindowBaseMixin(ConnectorMixin, object):
 			# Sidepane open and should close automatically
 			self.toggle_panes(False)
 
-	@action(_('Focus Sidepane'))
+	@action(_('Focus Sidepane')) # T: menu item
 	def focus_sidepane_key_toggle(self):
 		self.do_focus_sidepane_key_toggle()
 
