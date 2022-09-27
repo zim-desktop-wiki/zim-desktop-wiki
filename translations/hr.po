@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-09-27 19:22+0000\n"
+"PO-Revision-Date: 2022-09-29 13:19+0000\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
 "Language-Team: Croatian <https://hosted.weblate.org/projects/zim/develop/hr/>"
 "\n"
@@ -100,6 +100,8 @@ msgid ""
 "Create missing directories automatically\n"
 "(If disabled you will be prompted)"
 msgstr ""
+"Stvori nedostajuće mape automatski\n"
+"(Ako je deaktivirano, otvorit će se prozor s upitom)"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/applications.py:595
@@ -611,7 +613,7 @@ msgstr "_Bočne ploče"
 #. menu item
 #: zim/gui/mainwindow.py:362
 msgid "Focus Sidepane"
-msgstr ""
+msgstr "Fokusiraj bočnu ploču"
 
 #. Menu item | 
 #. Button label
@@ -1055,10 +1057,8 @@ msgstr "Kopiraj po_veznicu"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6824
-#, fuzzy
-#| msgid "Edit Link"
 msgid "Cut Lin_k"
-msgstr "Uredi poveznicu"
+msgstr "_Izreži poveznicu"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6837
@@ -1845,15 +1845,13 @@ msgstr "_Ograniči pretragu na trenutačnu stranicu i podstranice"
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:68
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "_Traži …"
+msgstr "Pretraživanje …"
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
 msgid "No results"
-msgstr ""
+msgstr "Nema rezultata"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:171
@@ -2059,8 +2057,6 @@ msgstr "Pokreni _web poslužitelja"
 
 #. menu item
 #: zim/gui/uiactions.py:368
-#, fuzzy
-#| msgid "View debug log"
 msgid "View Debug Log"
 msgstr "Prikaži zapisnik otklanjanja grešaka"
 
@@ -2261,7 +2257,7 @@ msgstr "Desktop wiki"
 #. This string needs to be translated with names of the translators for this language
 #: zim/gui/uiactions.py:816
 msgid "translator-credits"
-msgstr "Milo Ivir <mail@milotype.de>, 2020."
+msgstr "Milo Ivir <mail@milotype.de>"
 
 #. dialog title
 #: zim/gui/widgets.py:541 zim/gui/widgets.py:1612
@@ -2644,10 +2640,8 @@ msgstr "_Prilozi"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:146
-#, fuzzy
-#| msgid "Attachments:"
 msgid "No attachments"
-msgstr "Prilozi:"
+msgstr "Bez priloga"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:191
@@ -2693,10 +2687,8 @@ msgstr "Povratne poveznice"
 
 #. placeholder label in sidepane
 #: zim/plugins/backlinkpane.py:84
-#, fuzzy
-#| msgid "Backlinks:"
 msgid "No backlinks"
-msgstr "Povratne poveznice:"
+msgstr "Bez povratnih poveznica"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
@@ -3202,21 +3194,17 @@ msgstr "Prikaži gumb karte poveznica i traci zaglavlja"
 #. preferences option
 #: zim/plugins/linkmap.py:51
 msgid "Autozoom to fit map"
-msgstr ""
+msgstr "Koristi automatsko uvećanje za prilagođavanje veličini karte"
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "Položaj u prozoru"
+msgstr "Prati glavni prozor"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "Otvori u novom prozoru"
+msgstr "Otvori poveznice uvijek u novom prozoru"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3265,15 +3253,13 @@ msgstr "Koristi opise alata"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:129
-#, fuzzy
-#| msgid "Page Index"
 msgid "Collapse Page Index"
-msgstr "Indeks stranice"
+msgstr "Sklopi indeks stranica"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:133
 msgid "Reveal Current Page in Page Index"
-msgstr ""
+msgstr "Otkrij trenutačnu stranicu u indeksu stranica"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:147
@@ -3329,7 +3315,7 @@ msgstr "_Hijerarhija stranica"
 #. plugin name
 #: zim/plugins/printtobrowser.py:30
 msgid "Print to Browser"
-msgstr "Ispiši putem web-preglednika"
+msgstr "Ispiši u web-preglednik"
 
 #. plugin description
 #: zim/plugins/printtobrowser.py:31
@@ -3353,7 +3339,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/printtobrowser.py:63
 msgid "_Print to Browser"
-msgstr "_Ispiši putem web-preglednika"
+msgstr "_Ispiši u web-preglednik"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
@@ -3362,10 +3348,8 @@ msgstr "_Ispiši"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "Ispiši putem web-preglednika"
+msgstr "Ispiši popis zadataka u web-preglednik"
 
 #. plugin name
 #: zim/plugins/quicknote.py:166 zim/plugins/quicknote.py:202
@@ -3890,7 +3874,7 @@ msgstr "Digni"
 #. widget label
 #: zim/plugins/tableofcontents.py:527
 msgid "T_oC"
-msgstr ""
+msgstr "_Sadržaj"
 
 #. small label above Table Of Contents
 #: zim/plugins/tableofcontents.py:557
@@ -3914,7 +3898,7 @@ msgstr ""
 #. title for sidepane tab
 #: zim/plugins/tags.py:98
 msgid "T_ags"
-msgstr ""
+msgstr "Ozn_ake"
 
 #. menu option
 #: zim/plugins/tags.py:148
@@ -3938,60 +3922,48 @@ msgstr "Svi zadaci"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:65
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "Radnja"
+msgstr "Aktivni"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
 msgid "Inbox"
-msgstr ""
+msgstr "Ulazni sandučić"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
-#, fuzzy
-#| msgid "Action"
 msgid "Next Actions"
-msgstr "Radnja"
+msgstr "Sljedeće radnje"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:68
 msgid "Projects"
-msgstr ""
+msgstr "Projekti"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:69
-#, fuzzy
-#| msgid "Editing"
 msgid "Waiting"
-msgstr "Uređivanje"
+msgstr "Čekaju"
 
 #. placeholder label for sidepane
 #: zim/plugins/tasklist/gui.py:109
-#, fuzzy
-#| msgid "Tasks"
 msgid "No tasks"
-msgstr "Zadaci"
+msgstr "Nema zadataka"
 
 #. tooltip
 #: zim/plugins/tasklist/gui.py:135
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist window"
-msgstr "Prikaži popis zadataka u bočnoj ploči"
+msgstr "Prikaži prozor popisa zadataka"
 
 #. label for filtering/searching tasks
 #: zim/plugins/tasklist/gui.py:180
-#, fuzzy
-#| msgid "Filter"
 msgid "Filter tasks"
-msgstr "Filtar"
+msgstr "Pretraži zadatke"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:243
 msgid "Tas_ks"
-msgstr ""
+msgstr "_Zadaci"
 
 #. Window title for tasklist
 #: zim/plugins/tasklist/gui.py:338 zim/plugins/tasklist/gui.py:343
@@ -4001,34 +3973,32 @@ msgstr "Zadaci"
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:429
 msgid "Show open tasks"
-msgstr ""
+msgstr "Prikaži otvorene zadatke"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:430
-#, fuzzy
-#| msgid "Only Show Active Tasks"
 msgid "Show closed tasks"
-msgstr "Prikaži samo aktivne zadatke"
+msgstr "Prikaži zatvorene zadatke"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:431
 msgid "Show cancelled tasks"
-msgstr ""
+msgstr "Prikaži prekinute zadatke"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:432
 msgid "Show migrated tasks"
-msgstr ""
+msgstr "Prikaži migrirane zadatke"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:433
 msgid "Show trans-migrated tasks"
-msgstr ""
+msgstr "Prikaži transmigrirane zadatke"
 
 #. Header for list selection in tasklist window
 #: zim/plugins/tasklist/gui.py:521
 msgid "Lists"
-msgstr ""
+msgstr "Popisi"
 
 #. selection of tasks without tags
 #: zim/plugins/tasklist/gui.py:612
@@ -4038,7 +4008,7 @@ msgstr "Bez oznaka"
 #. header in selection drop down
 #: zim/plugins/tasklist/gui.py:667
 msgid "Labels"
-msgstr ""
+msgstr "Etikete"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist/gui.py:800
@@ -4086,7 +4056,7 @@ msgstr "Prikaži gumb za popis zadataka u ploči zaglavlja"
 #. preferences option - "GTD" means "Getting Things Done" methodology
 #: zim/plugins/tasklist/__init__.py:47
 msgid "Show \"GTD-style\" inbox & next actions lists"
-msgstr ""
+msgstr "Prikaži „GTD-style” ulazni sandučić i popis sljedećih radnji"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:49
@@ -4100,17 +4070,13 @@ msgstr "Prikaži rok u bočnoj ploči"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:55
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show start date in sidepane"
-msgstr "Prikaži rok u bočnoj ploči"
+msgstr "Prikaži datum početka u bočnoj ploči"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:57
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show page column in the sidepane"
-msgstr "Prikaži popis zadataka u bočnoj ploči"
+msgstr "Prikaži stupac stranice u bočnoj ploči"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:63
@@ -4120,26 +4086,22 @@ msgstr "Interpretiraj sve potvrdne okvire kao zadatke"
 #. label for plugin preferences dialog - labels are e.g. "FIXME", "TODO"
 #: zim/plugins/tasklist/__init__.py:65
 msgid "Labels marking tasks"
-msgstr "Oznake za označivanje zadataka"
+msgstr "Etikete za označivanje zadataka"
 
 #. label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
 #: zim/plugins/tasklist/__init__.py:67
-#, fuzzy
-#| msgid "Labels marking tasks"
 msgid "Labels for \"waiting\" tasks"
-msgstr "Oznake za označivanje zadataka"
+msgstr "Etikete za zadatke koji „Čekaju”"
 
 #. label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 #: zim/plugins/tasklist/__init__.py:69
-#, fuzzy
-#| msgid "Tags for non-actionable tasks"
 msgid "Tags for \"waiting\" tasks"
-msgstr "Oznake za zadatke koji ne zahtijevaju radnju"
+msgstr "Oznake za zadatke koji „Čekaju”"
 
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:71
 msgid "Use date from journal pages"
-msgstr "Koristi datum iz stranica dnevnika"
+msgstr "Koristi datum od stranica dnevnika"
 
 #. choice for "Use date from journal pages"
 #: zim/plugins/tasklist/__init__.py:72
@@ -4168,15 +4130,13 @@ msgstr "Zanemari odjeljke"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:83
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show page names in selection pane"
-msgstr "Prikaži rok u bočnoj ploči"
+msgstr "Prikaži imena stranica u ploči odabira"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:85
 msgid "Don't count Saturday and Sunday as working days"
-msgstr ""
+msgstr "Ne računaj subotu i nedjelju kao radne dane"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:17
@@ -4210,10 +4170,9 @@ msgstr "Traka alata"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40
-#, fuzzy
-#| msgid "This plugin adds the page index pane to the main window.\n"
 msgid "This plugin allows to customize the toolbar in the main window.\n"
-msgstr "Ovaj dodatak dodaje ploču indeksa stranice u glavni prozor.\n"
+msgstr ""
+"Ovaj dodatak dozvoljava prilagođavanje alatne trake u glavnom prozoru.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:49
