@@ -529,6 +529,7 @@ class ExportCommand(NotebookCommand):
 			page = Path(href.names) # ignore anchor
 			selection = SinglePage(notebook, page)
 		else:
+			page = None
 			selection = AllPages(notebook)
 
 		exporter = self.get_exporter(page)
