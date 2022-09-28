@@ -8,23 +8,22 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-02-22 13:58+0000\n"
+"PO-Revision-Date: 2022-09-29 13:19+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
-"Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/master/he/>\n"
+"Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.11-dev\n"
+"X-Generator: Weblate 4.14.1\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "לא ניתן למצוא את התבנית „%s”"
+msgstr "לא ניתן למצוא את היישום: %s"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -100,6 +99,8 @@ msgid ""
 "Create missing directories automatically\n"
 "(If disabled you will be prompted)"
 msgstr ""
+"ליצור תיקיות חסרות אוטומטית\n"
+"(אם זה מושבת תופיע לך הצעה)"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/applications.py:595
@@ -137,10 +138,9 @@ msgstr "ערכת קובץ זה ביישום חיצוני. ניתן לסגור א
 
 #. Error message when external application could not be run in terminal, %s is the command
 #: zim/gui/applications.py:827
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find terminal emulator to run application: %s"
-msgstr "הפעלת היישום נכשלה: %s"
+msgstr "לא ניתן למצור את מדמה המסוף להרצת היישום: %s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1081
@@ -607,7 +607,7 @@ msgstr "לוחות _צד"
 #. menu item
 #: zim/gui/mainwindow.py:362
 msgid "Focus Sidepane"
-msgstr ""
+msgstr "התמקדות על לוח צד"
 
 #. Menu item | 
 #. Button label
