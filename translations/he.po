@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-09-29 13:19+0000\n"
+"PO-Revision-Date: 2022-10-04 01:53+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
@@ -803,24 +803,18 @@ msgstr "הפיכה אוטומטית של מילים בצורת \"CamelCase\" ל�
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:185
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn wiki page names into links"
-msgstr "הפיכת נתיבי קבצים לקישורים אוטומטית"
+msgstr "הפיכת שמות עמודי ויקי לקישורים אוטומטית"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:188
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn identifiers starting with \"#\" into links"
-msgstr "הפיכת נתיבי קבצים לקישורים אוטומטית"
+msgstr "הפיכת סימונים מזהים שמתחילים ב־„#” לקישורים אוטומטית"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn interwiki names into links"
-msgstr "הפיכת נתיבי קבצים לקישורים אוטומטית"
+msgstr "הפיכת שמות בינוויקי לקישורים אוטומטית"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:194
@@ -1015,10 +1009,8 @@ msgstr "ה_עתקה בתור…"
 
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6721
-#, fuzzy
-#| msgid "_Verbatim"
 msgid "Paste As _Verbatim"
-msgstr "_אחיד"
+msgstr "הדבקה כ_אחיד"
 
 #. Context menu item for pageview to move selected text to new/other page | 
 #. Menu item
@@ -1054,10 +1046,8 @@ msgstr "העתקת ה_קישור"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6824
-#, fuzzy
-#| msgid "Edit Link"
 msgid "Cut Lin_k"
-msgstr "עריכת קישור"
+msgstr "ג_זירת קישור"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6837
@@ -1839,15 +1829,13 @@ msgstr "ה_גבלת החיפוש לעמוד הנוכחי ולעמודי המשנ
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:68
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "_חיפוש..."
+msgstr "מתבצע חיפוש…"
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
 msgid "No results"
-msgstr ""
+msgstr "אין תוצאות"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:171
@@ -2053,10 +2041,8 @@ msgstr "ה_פעלת שרת אינטרנט"
 
 #. menu item
 #: zim/gui/uiactions.py:368
-#, fuzzy
-#| msgid "View debug log"
 msgid "View Debug Log"
-msgstr "הצ_גת רישום לניפוי שגיאות"
+msgstr "הצגת יומן לניפוי שגיאות"
 
 #. Menu item
 #: zim/gui/uiactions.py:382
@@ -2622,35 +2608,30 @@ msgstr "מיקום בחלון"
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:84
 msgid "Use thumbnails"
-msgstr ""
+msgstr "להשתמש בתמונות ממוזערות"
 
 #. option for plugin preferences
 #: zim/plugins/attachmentbrowser/__init__.py:86
 msgid "Support thumbnails for SVG"
-msgstr ""
+msgstr "תמיכה בתמונות ממוזערות ל־SVG"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
-#, fuzzy
-#| msgid "Attachments"
 msgid "Atta_chments"
-msgstr "מצורפים"
+msgstr "מ_צורפים"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:146
-#, fuzzy
-#| msgid "Attachments:"
 msgid "No attachments"
-msgstr "מצורפים:"
+msgstr "אין קבצים מצורפים"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:191
-#, fuzzy, python-format
-#| msgid "Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
-msgstr[0] "%i מצורפים"
-msgstr[1] "%i מצורפים"
+msgstr[0] "%i מ_צורף"
+msgstr[1] "%i מ_צורפים"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2673,14 +2654,12 @@ msgstr ""
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:37
 msgid "Show BackLink count in title"
-msgstr ""
+msgstr "הצגת מספר קישורים חוזרים בכותרת"
 
 #. option for plugin preferences
 #: zim/plugins/backlinkpane.py:39
-#, fuzzy
-#| msgid "Page Name"
 msgid "Show full Page Names"
-msgstr "שם העמוד"
+msgstr "הצגת שמות העמודים המלאים"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:71
@@ -2689,10 +2668,8 @@ msgstr "קישורים חוזרים"
 
 #. placeholder label in sidepane
 #: zim/plugins/backlinkpane.py:84
-#, fuzzy
-#| msgid "Backlinks:"
 msgid "No backlinks"
-msgstr "קישורים חוזרים:"
+msgstr "אין קישורים חוזרים"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
@@ -2969,7 +2946,7 @@ msgstr "תוסף זה מספק עורך גרפים מבוסס על תוכנת Gn
 #. menu item
 #: zim/plugins/gnuplot_ploteditor.py:49
 msgid "Gnuplot"
-msgstr "Gnuplot"
+msgstr "Gnuplot‎"
 
 #. plugin name
 #: zim/plugins/gnu_r_ploteditor.py:35
@@ -3122,11 +3099,6 @@ msgstr "מסדר השורות"
 
 #. plugin description
 #: zim/plugins/linesorter.py:27
-#, fuzzy
-#| msgid ""
-#| "This plugin sorts selected lines in alphabetical order.\n"
-#| "If the list is already sorted the order will be reversed\n"
-#| "(A-Z to Z-A).\n"
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3135,7 +3107,8 @@ msgid ""
 msgstr ""
 "תוסף זה מסדר את השורות הנבחרות בסדר אלפביתי.\n"
 "אם הרשימה כבר מסודרת אז הסדר יתהפך\n"
-"(מ־א–ת ל־ת–א או מ־A-Z ל־Z-A).\n"
+"(מ־א–ת ל־ת–א או מ־A-Z ל־Z-A). יכולות נוספות: להזיז שורות טקסט\n"
+"למעלה או למטה, לשכפל או להסיר שורות טקסט.\n"
 
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
@@ -4349,7 +4322,7 @@ msgstr "Git"
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:260
 msgid "Fossil"
-msgstr "Fossil"
+msgstr "‎Fossil"
 
 #. Question dialog
 #: zim/plugins/versioncontrol/__init__.py:720
