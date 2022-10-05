@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-10-04 01:53+0000\n"
+"PO-Revision-Date: 2022-10-07 04:45+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
 "Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/develop/hu/"
 ">\n"
@@ -23,10 +23,9 @@ msgstr ""
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "Nem található a \"%s\" sablon"
+msgstr "Nem található az alkalmazás: %s"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -144,10 +143,9 @@ msgstr ""
 
 #. Error message when external application could not be run in terminal, %s is the command
 #: zim/gui/applications.py:827
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find terminal emulator to run application: %s"
-msgstr "Nem sikerült elindítani a(z) \"%s\" alkalmazást"
+msgstr "Nem található a terminál emulátor az alkalmazás futtatásához: %s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1081
@@ -618,7 +616,7 @@ msgstr "_Oldalpanelek"
 #. menu item
 #: zim/gui/mainwindow.py:362
 msgid "Focus Sidepane"
-msgstr ""
+msgstr "Oldalpanel kiemelése"
 
 #. Menu item | 
 #. Button label
@@ -1057,10 +1055,8 @@ msgstr "_Hivatkozás másolása"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6824
-#, fuzzy
-#| msgid "Edit Link"
 msgid "Cut Lin_k"
-msgstr "Hivatkozás szerkesztése"
+msgstr "Hivatkozás törlése"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6837
@@ -1849,20 +1845,18 @@ msgstr "Keresés csak a jelenlegi oldalon és aloldalain"
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:68
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "Általáno_s keresés..."
+msgstr "Keresés..."
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
 msgid "No results"
-msgstr ""
+msgstr "Nincs találat"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:171
 msgid "Score"
-msgstr "Kotta"
+msgstr "Találat"
 
 #. Window title
 #: zim/gui/server.py:46
@@ -2063,8 +2057,6 @@ msgstr "_Web szerver indítása"
 
 #. menu item
 #: zim/gui/uiactions.py:368
-#, fuzzy
-#| msgid "View debug log"
 msgid "View Debug Log"
 msgstr "Hibakeresési nap_ló megtekintése"
 
@@ -2647,10 +2639,8 @@ msgstr "Mellékletek"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:146
-#, fuzzy
-#| msgid "Attachments:"
 msgid "No attachments"
-msgstr "Mellékletek:"
+msgstr "Nincs melléklet"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:191
@@ -2695,10 +2685,8 @@ msgstr "Visszacsatolások"
 
 #. placeholder label in sidepane
 #: zim/plugins/backlinkpane.py:84
-#, fuzzy
-#| msgid "Backlinks:"
 msgid "No backlinks"
-msgstr "Visszacsatolások:"
+msgstr "Nincs visszacsatolás"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
@@ -3203,21 +3191,17 @@ msgstr "Hivatkozástérkép-gomb megjelenítése a fejlécben"
 #. preferences option
 #: zim/plugins/linkmap.py:51
 msgid "Autozoom to fit map"
-msgstr ""
+msgstr "Automatikus zoom, hogy a térkép illeszkedjen az ablakba"
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "Ablakon belüli pozíció"
+msgstr "Kövesse a fő ablakot"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "Megnyitás új ablakban"
+msgstr "Mindig új ablakban nyissa meg a hivatkozásokat"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3267,15 +3251,13 @@ msgstr "Eszköztippek használata"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:129
-#, fuzzy
-#| msgid "Page Index"
 msgid "Collapse Page Index"
-msgstr "Oldalindex"
+msgstr "Oldalindex összecsukása"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:133
 msgid "Reveal Current Page in Page Index"
-msgstr ""
+msgstr "Jelenlegi oldal megjelenítése az oldalindexben"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:147
@@ -3364,10 +3346,8 @@ msgstr "_Nyomtatás"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "Megjelenítés a böngészőben"
+msgstr "Feladatlista nyomtatása a böngészőben"
 
 #. plugin name
 #: zim/plugins/quicknote.py:166 zim/plugins/quicknote.py:202
@@ -3945,55 +3925,43 @@ msgstr "Minden feladat"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:65
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "Művelet"
+msgstr "Aktív"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
 msgid "Inbox"
-msgstr ""
+msgstr "Bejövő"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
-#, fuzzy
-#| msgid "Action"
 msgid "Next Actions"
-msgstr "Művelet"
+msgstr "Következő lépések"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:68
 msgid "Projects"
-msgstr ""
+msgstr "Projektek"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:69
-#, fuzzy
-#| msgid "Editing"
 msgid "Waiting"
-msgstr "Szerkesztés"
+msgstr "Várakozó"
 
 #. placeholder label for sidepane
 #: zim/plugins/tasklist/gui.py:109
-#, fuzzy
-#| msgid "Tasks"
 msgid "No tasks"
-msgstr "Feladatok"
+msgstr "Nincsenek feladatok"
 
 #. tooltip
 #: zim/plugins/tasklist/gui.py:135
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist window"
-msgstr "Feladatlista mutatása oldalpanelként"
+msgstr "Feladatlista ablak megjelenítése"
 
 #. label for filtering/searching tasks
 #: zim/plugins/tasklist/gui.py:180
-#, fuzzy
-#| msgid "Filter"
 msgid "Filter tasks"
-msgstr "Szűrő"
+msgstr "Feladatok szűrése"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:243
@@ -4008,34 +3976,32 @@ msgstr "Feladatok"
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:429
 msgid "Show open tasks"
-msgstr ""
+msgstr "Nyitott feladatok megjelenítése"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:430
-#, fuzzy
-#| msgid "Only Show Active Tasks"
 msgid "Show closed tasks"
-msgstr "Csak az aktív feladatokat mutatja"
+msgstr "Lezárt feladatok megjelenítése"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:431
 msgid "Show cancelled tasks"
-msgstr ""
+msgstr "Törölt feladatok megjelenítése"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:432
 msgid "Show migrated tasks"
-msgstr ""
+msgstr "Elnapolt feladatok megjelenítése"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:433
 msgid "Show trans-migrated tasks"
-msgstr ""
+msgstr "Elhalasztott feladatok megjelenítése"
 
 #. Header for list selection in tasklist window
 #: zim/plugins/tasklist/gui.py:521
 msgid "Lists"
-msgstr ""
+msgstr "Listák"
 
 #. selection of tasks without tags
 #: zim/plugins/tasklist/gui.py:612
@@ -4045,7 +4011,7 @@ msgstr "Nincs címke"
 #. header in selection drop down
 #: zim/plugins/tasklist/gui.py:667
 msgid "Labels"
-msgstr ""
+msgstr "Címkék"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist/gui.py:800
@@ -4093,7 +4059,7 @@ msgstr "Feladatlista gomb megjelenítése a fejlécben"
 #. preferences option - "GTD" means "Getting Things Done" methodology
 #: zim/plugins/tasklist/__init__.py:47
 msgid "Show \"GTD-style\" inbox & next actions lists"
-msgstr ""
+msgstr "\"GTD-stílusú\" bejövő és következő műveletek listájának megjelenítése"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:49
@@ -4103,21 +4069,17 @@ msgstr "Feladatlista mutatása oldalpanelként"
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:53
 msgid "Show due date in sidepane"
-msgstr "Mutassa a határidőt az oldalpanelon"
+msgstr "Határidő megjelenítése az oldalpanelon"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:55
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show start date in sidepane"
-msgstr "Mutassa a határidőt az oldalpanelon"
+msgstr "Kezdő dátum megjelenítése az oldalpanelon"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:57
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show page column in the sidepane"
-msgstr "Feladatlista mutatása oldalpanelként"
+msgstr "Oldal oszlop megjelenítése az oldalpanelon"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:63
@@ -4131,17 +4093,13 @@ msgstr "A megjelölt feladatok címkéi"
 
 #. label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
 #: zim/plugins/tasklist/__init__.py:67
-#, fuzzy
-#| msgid "Labels marking tasks"
 msgid "Labels for \"waiting\" tasks"
-msgstr "A megjelölt feladatok címkéi"
+msgstr "A \"várakozó\" feladatok jelölői"
 
 #. label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 #: zim/plugins/tasklist/__init__.py:69
-#, fuzzy
-#| msgid "Tags for non-actionable tasks"
 msgid "Tags for \"waiting\" tasks"
-msgstr "Nem indítható feladatok címkéi"
+msgstr "A \"várakozó\" feladatok címkéi"
 
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:71
@@ -4175,15 +4133,13 @@ msgstr "Szakasz amit ki kell hagyni"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:83
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show page names in selection pane"
-msgstr "Mutassa a határidőt az oldalpanelon"
+msgstr "Oldalnevek megjelenítése a kiválasztási panelen"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:85
 msgid "Don't count Saturday and Sunday as working days"
-msgstr ""
+msgstr "A szombat és a vasárnap nem számít munkanapnak"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:17
@@ -4217,10 +4173,9 @@ msgstr "Eszköztár"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40
-#, fuzzy
-#| msgid "This plugin adds the page index pane to the main window.\n"
 msgid "This plugin allows to customize the toolbar in the main window.\n"
-msgstr "Ez a bővítmény hozzáadja az oldalindex panelt a főablakhoz.\n"
+msgstr ""
+"Ez a bővítmény lehetővé teszi az eszköztár testreszabását a főablakban.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:49
