@@ -161,7 +161,14 @@ class NotebookInfo(object):
 			self.userpath = f.userpath # set to None when uri is not a file uri
 			self.name = name or f.basename
 		self.icon_path = icon
-		self.icon = FilePath(icon).uri if icon else None
+		if icon:
+			try:
+				base = FilePath(self.uri)
+				self.icon = base.get_abspath(icon).uri
+			except ValueError:
+				logger.info("Not a valid path for notebook icon: %s" % icon)
+		else:
+			self.icon = None
 		self.mtime = mtime
 		self.interwiki = interwiki
 		self.active = None

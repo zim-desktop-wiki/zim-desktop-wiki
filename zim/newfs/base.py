@@ -234,7 +234,8 @@ class FilePath(object):
 	File paths should always be absolute paths and can e.g. not start
 	with "../" or "./". On windows they should always start with either
 	a drive letter or a share drive. On unix they should start at the
-	root of the filesystem.
+	root of the filesystem. To resolve relative filepaths, see e.g.
+	L{get_abspath()} and L{get_childpath()}.
 
 	Paths can be handled either as strings representing a local file
 	path ("/" or "\" separated), strings representing a file uri

@@ -25,7 +25,7 @@ from zim.notebook.layout import FilesLayout, FILE_TYPE_PAGE_SOURCE, FILE_TYPE_AT
 
 class TestNotebookInfo(tests.TestCase):
 
-	def runTest(self):
+	def testLocationToURI(self):
 		if os.name == 'nt':
 			test = [
 				(LocalFile('file:///C:/foo/bar'), 'file:///C:/foo/bar'),
@@ -44,6 +44,12 @@ class TestNotebookInfo(tests.TestCase):
 		for location, uri in test:
 			info = NotebookInfo(location)
 			self.assertEqual(info.uri, uri)
+
+	def testRelIconPath(self):
+		uri = 'file:///C:/foo/bar' if os.name == 'nt' else 'file:///foo/bar'
+		icon = './my_icon.png'
+		info = NotebookInfo(uri, icon=icon)
+		self.assertEqual(info.icon, uri + '/my_icon.png')
 
 
 @tests.slowTest
