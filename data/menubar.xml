@@ -92,9 +92,13 @@
 			<menuitem action='apply_format_h4'/>
 			<menuitem action='apply_format_h5'/>
 			<separator/>
+			<menuitem action='clear_heading_format'/>
+			<separator/>
 			<menuitem action='apply_format_bullet_list'/>
 			<menuitem action='apply_format_numbered_list'/>
 			<menuitem action='apply_format_checkbox_list'/>
+			<separator/>
+			<menuitem action='clear_list_format'/>
 			<separator/>
 			<menuitem action='apply_format_strong'/>
 			<menuitem action='apply_format_emphasis'/>

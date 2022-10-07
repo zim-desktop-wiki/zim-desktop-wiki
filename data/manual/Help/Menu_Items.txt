@@ -231,10 +231,16 @@ Prompt for a link and insert it in the current page. The selected text will be u
 **Heading 5 <Ctrl><5>**
 Toggles heading style while typing. Selected text can also be formatted. If the "auto select" [[Preferences|preference]] is set, toggling the will automatically select the current line and turn it in a heading.
 
+**Remove Heading <Ctrl><7>**
+Removes any heading from the current line
+
 **Bullet List**
 **Numbered List**
 **Checkbox List**
 Format selected text as list.
+
+**Remove List**
+Remove list formatting
 
 **Strong <Ctrl><B>**
 **Emphasis <Ctrl><I>**
@@ -248,7 +254,7 @@ Toggle text formatting while typing. Selected text can also be formatted. If the
 Format selected text as subscript or superscript, respectively. If the "auto select" [[Preferences|preference]] is set it will and the cursor is in the middle of a word it will automatically select the word and format it.
 
 **Clear Formatting <Ctrl><9>**
-Remove all formatting from the selected text.
+Remove all formatting from the selected text. This applies to "inline" formatting like "strong" and "emphasis", not block level formatting like headings and list style.
 
 
 ===== Search =====
