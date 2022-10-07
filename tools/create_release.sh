@@ -20,7 +20,7 @@ DATE=`date +"%a %d %b %Y"` # Thu 28 Mar 2019
 
 head CHANGELOG.md -n 7 > $TMP
 echo "##  $NEW - $DATE" >> $TMP
-git log --pretty=format:"* %s" --first-parent $OLD.. >> $TMP
+git log --pretty=format:"* %s" --first-parent $OLD.. | grep -vi '^* fixup' >> $TMP
 echo "" >> $TMP
 tail --lines=+7 CHANGELOG.md >> $TMP
 
