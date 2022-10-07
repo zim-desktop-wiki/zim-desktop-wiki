@@ -83,7 +83,7 @@ jobs:
           eval "$(echo $WRK_DIR/jhb-*/usr/bin/jhb run python3 $(pwd)/test.py)"
         env:
           # disable an internal test within the dependencies
-          SYS_IGNORE_USR_LOCAL: true
+          SYS_USRLOCAL_IGNORE: true
 
 
   test_windows:
