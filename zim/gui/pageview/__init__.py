@@ -3959,16 +3959,24 @@ class TextFinder(object):
 		# TODO we could connect to buffer signals to update highlighting
 		# when the buffer is modified.
 
-	def _update_highlight(self):
+	def _update_highlight(self, line=None):
 		# Clear highlighting
 		tag = self.highlight_tag
-		start, end = self.buffer.get_bounds()
+		if line is not None:
+			start = self.buffer.get_iter_at_line(line)
+			end = start.copy()
+			if not start.ends_line():
+				end.forward_to_line_end()
+			firstline, lastline = line, line
+		else:
+			start, end = self.buffer.get_bounds()
+			firstline, lastline = 0, end.get_line()
+
 		self.buffer.remove_tag(tag, start, end)
 
 		# Set highlighting
 		if self.highlight:
-			lastline = end.get_line()
-			for start, end, _ in self._check_range(0, lastline, 1):
+			for start, end, _ in self._check_range(firstline, lastline, 1):
 				self.buffer.apply_tag(tag, start, end)
 
 	def _check_range(self, firstline, lastline, step):
@@ -4029,11 +4037,11 @@ class TextFinder(object):
 				end = self.buffer.get_iter_at_offset(offset + len(string))
 				self.buffer.select_range(start, end)
 
+				self._update_highlight(line)
 				return True
 		else:
 			return False
 
-		self._update_highlight()
 
 	def replace_all(self, string):
 		'''Replace all matched
