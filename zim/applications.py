@@ -20,7 +20,7 @@ from gi.repository import GLib
 import zim.errors
 
 from zim.fs import adapt_from_oldfs
-from zim.newfs import SEP, is_abs_filepath, LocalFile, LocalFolder
+from zim.newfs import SEP, is_abs_filepath, FilePath, LocalFile
 from zim.parsing import is_uri_re, is_win32_path_re
 
 
@@ -511,13 +511,18 @@ class StartFile(Application):
 
 		for arg in args:
 			arg = adapt_from_oldfs(arg)
-			if isinstance(arg, (LocalFile, LocalFolder)):
+			if isinstance(arg, FilePath):
 				path = os.path.normpath(arg.path).replace('/', SEP) # msys can use '/' instead of '\\'
-			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
+			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg) and not arg.startswith('file://'):
 				# URL or e.g. mailto: or outlook: URI
 				path = str(arg)
 			else:
-				# must be file
+				# must be file as string
+				try:
+					arg = FilePath(arg).path
+				except ValueError:
+					pass
+
 				path = os.path.normpath(str(arg)).replace('/', SEP) # msys can use '/' instead of '\\'
 
 			logger.info('Opening with os.startfile: %s', path)
