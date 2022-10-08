@@ -98,6 +98,8 @@ class TestNotebookCommand(tests.TestCase):
 
 class TestGui(tests.TestCase):
 
+	## TODO: test default notebook logic when no argument
+
 	def setUp(self):
 		file = ConfigManager.get_config_file('notebooks.list')
 		file.remove()
@@ -136,9 +138,40 @@ class TestGui(tests.TestCase):
 		self.assertIs(window2, window)
 			# Ensure repeated calling gives unique window
 
-	# TODO
-	# Check default notebook
-	# Check dialog list prompt
+
+class TestGuiListCommand(tests.TestCase):
+
+	# NotebookDialog has it's own't test cases, which also cover the
+	# AddNotebookDialog and prompt_notebook, so here we can mock it and
+	# just test it is called properly from the command class
+
+	def setUp(self):
+		from zim.notebook import NotebookInfo
+
+		self.folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		self.folder.touch()
+
+		import zim.gui.notebookdialog
+		orig = zim.gui.notebookdialog.prompt_notebook
+		def restore():
+			zim.gui.notebookdialog.prompt_notebook = orig
+		self.addCleanup(restore)
+
+		def mock():
+			return NotebookInfo(self.folder.uri, name='Test')
+
+		zim.gui.notebookdialog.prompt_notebook = mock
+
+	def runTest(self):
+		from zim.gui.mainwindow import MainWindow
+
+		cmd = GuiCommand('gui')
+		cmd.parse_options('--list')
+
+		with tests.WindowContext(MainWindow):
+			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+				window = cmd.run()
+				self.addCleanup(window.destroy)
 
 
 class TestManual(tests.TestCase):

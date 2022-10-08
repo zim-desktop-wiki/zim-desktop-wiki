@@ -224,7 +224,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				# Can return None if dialog is cancelled
 
 		used_default = False
-		page = None
+		pagelink, uripagelink = None, None
 		if self.opts.get('list'):
 			notebookinfo = prompt_notebook_list()
 		else:
