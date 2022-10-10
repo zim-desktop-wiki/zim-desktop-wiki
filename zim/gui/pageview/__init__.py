@@ -7377,7 +7377,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		buffer.delete_mark(mark)
 
-	@action(_('_Remove Heading'), '<Ctrl>7', menuhints='edit') # T: Menu item
+	@action(_('_Remove Heading'), '<Primary>7', menuhints='edit') # T: Menu item
 	def clear_heading_format(self):
 		'''Menu item to remove heading'''
 		buffer = self.textview.get_buffer()

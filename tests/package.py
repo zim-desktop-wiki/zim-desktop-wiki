@@ -174,6 +174,11 @@ class TestCoding(tests.TestCase):
 			if 'logger.' in code:
 				assert 'logger = logging.getLogger(' in code, 'Forgot to define "logger" in %s' % file
 
+	def testKeys(self):
+		for file, code in self.list_code():
+			if file.startswith('zim'):
+				self.assertFalse('<Ctrl>' in code, '%s uses "<Ctrl>" - use "<Primary>" instead' % file)
+
 
 @tests.expectedFailure
 class TestDocumentation(tests.TestCase):

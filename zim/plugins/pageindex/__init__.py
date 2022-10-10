@@ -382,7 +382,7 @@ class PageTreeView(BrowserTreeView):
 	@signal: C{page-activated (path)}: emitted when a page is clicked
 	@signal: C{populate-popup (menu)}: hook to populate the context menu
 	@signal: C{copy ()}: copy the current selection to the clipboard
-	@signal: C{insert-link (path)}: called when the user pressed <Ctrl>L on page
+	@signal: C{insert-link (path)}: called when the user pressed Ctrl-L on page
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)

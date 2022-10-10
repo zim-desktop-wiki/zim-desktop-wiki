@@ -375,7 +375,7 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		else:
 			self._update_toolbar()
 
-		# Hack to add <Ctrl>F keybinding for the filter
+		# Hack to add Ctrl-F keybinding for the filter
 		# in future should be handled by action / toolbar icon
 		# maybe move filter to top of window for consistent Gnome HiG look
 		group = Gtk.AccelGroup()
