@@ -8,23 +8,22 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-05-19 09:20+0000\n"
+"PO-Revision-Date: 2022-10-10 18:19+0000\n"
 "Last-Translator: Andreas Klostermaier <andreas.klostermaier@appendx.de>\n"
-"Language-Team: German <https://hosted.weblate.org/projects/zim/master/de/>\n"
+"Language-Team: German <https://hosted.weblate.org/projects/zim/develop/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.13-dev\n"
+"X-Generator: Weblate 4.14.1\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "Konnte die Vorlage \"%s\" nicht finden"
+msgstr "Konnte die Anwendung \"%s\" nicht finden"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -100,6 +99,8 @@ msgid ""
 "Create missing directories automatically\n"
 "(If disabled you will be prompted)"
 msgstr ""
+"Fehlende Ordner automatisch erstellen\n"
+"(andernfalls werden Sie dazu aufgefordert)"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/applications.py:595
@@ -139,10 +140,9 @@ msgstr ""
 
 #. Error message when external application could not be run in terminal, %s is the command
 #: zim/gui/applications.py:827
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find terminal emulator to run application: %s"
-msgstr "Anwendung konnte nicht gestartet werden: %s"
+msgstr "Konnte kein Terminal-Programm finden um %s zu starten"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1081
@@ -611,7 +611,7 @@ msgstr "_Seitenleisten"
 #. menu item
 #: zim/gui/mainwindow.py:362
 msgid "Focus Sidepane"
-msgstr ""
+msgstr "Fokus-Seitenleiste"
 
 #. Menu item | 
 #. Button label
@@ -1056,10 +1056,8 @@ msgstr "_Verknüpfung kopieren"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6824
-#, fuzzy
-#| msgid "Edit Link"
 msgid "Cut Lin_k"
-msgstr "Verknüpfung bearbeiten"
+msgstr "Verknüpfung ausschneiden"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6837
@@ -1848,15 +1846,13 @@ msgstr "Suche auf die aktuelle Seite und Unterseite(n) einschränken"
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:68
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "Notizbuch durchsuchen..."
+msgstr "Suche..."
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
 msgid "No results"
-msgstr ""
+msgstr "Keine Treffer"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:171
@@ -2063,10 +2059,8 @@ msgstr "_Webserver starten..."
 
 #. menu item
 #: zim/gui/uiactions.py:368
-#, fuzzy
-#| msgid "View debug log"
 msgid "View Debug Log"
-msgstr "_Diagnose-Protokoll anzeigen..."
+msgstr "Diagnose-Protokoll anzeigen"
 
 #. Menu item
 #: zim/gui/uiactions.py:382
@@ -2459,7 +2453,7 @@ msgid ""
 msgstr ""
 "Die Datei kann nicht geschrieben werden. Vermutlich ist der\n"
 "Dateiname zu lang. Beschränken Sie den Namen\n"
-"auf max. 255 Zeichen."
+"auf max. 255 Zeichen"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
@@ -2476,7 +2470,7 @@ msgid ""
 msgstr ""
 "Die Datei kann nicht geschrieben werden. Vermutlich ist der\n"
 "Dateipfad zu lang. Beschränken Sie die Länge der Ordnerstruktur\n"
-"auf max. 4096 Zeichen."
+"auf max. 4096 Zeichen"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:60
@@ -2677,10 +2671,8 @@ msgstr "Dateianhänge"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:146
-#, fuzzy
-#| msgid "Attachments:"
 msgid "No attachments"
-msgstr "Anhänge:"
+msgstr "Keine Anhänge"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:191
@@ -2725,10 +2717,8 @@ msgstr "Rückverweise"
 
 #. placeholder label in sidepane
 #: zim/plugins/backlinkpane.py:84
-#, fuzzy
-#| msgid "Backlinks:"
 msgid "No backlinks"
-msgstr "Rückverweise:"
+msgstr "Keine Rückverweise"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
@@ -3240,21 +3230,17 @@ msgstr "Verweis-Struktur-Taste in der Kopfleiste anzeigen"
 #. preferences option
 #: zim/plugins/linkmap.py:51
 msgid "Autozoom to fit map"
-msgstr ""
+msgstr "Karte automatisch einpassen"
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "Position im Fenster"
+msgstr "Hauptfenster folgen"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "In neuem Fenster öffnen"
+msgstr "Verweise immer in einem neuem Fenster öffnen"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3303,15 +3289,13 @@ msgstr "Einblend-Hilfe verwenden"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:129
-#, fuzzy
-#| msgid "Page Index"
 msgid "Collapse Page Index"
-msgstr "Seitenverzeichnis"
+msgstr "Seitenverzeichnis zuklappen"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:133
 msgid "Reveal Current Page in Page Index"
-msgstr ""
+msgstr "Aktuelle Seite im Seiten-Index anzeigen"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:147
@@ -3399,10 +3383,8 @@ msgstr "_Drucken"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "Druck in HTML-Datei"
+msgstr "Aufgabenliste im Browser ausgeben"
 
 #. plugin name
 #: zim/plugins/quicknote.py:166 zim/plugins/quicknote.py:202
@@ -3979,55 +3961,43 @@ msgstr "Alle Aufgaben"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:65
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "Aktion"
+msgstr "Aktiv"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
 msgid "Inbox"
-msgstr ""
+msgstr "Eingang"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
-#, fuzzy
-#| msgid "Action"
 msgid "Next Actions"
-msgstr "Aktion"
+msgstr "Nächste Aktionen"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:68
 msgid "Projects"
-msgstr ""
+msgstr "Projekte"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:69
-#, fuzzy
-#| msgid "Editing"
 msgid "Waiting"
-msgstr "Bearbeiten"
+msgstr "Warte"
 
 #. placeholder label for sidepane
 #: zim/plugins/tasklist/gui.py:109
-#, fuzzy
-#| msgid "Tasks"
 msgid "No tasks"
-msgstr "Aufgaben"
+msgstr "Keine Aufgaben"
 
 #. tooltip
 #: zim/plugins/tasklist/gui.py:135
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist window"
-msgstr "Aufgabenliste in Seitenleiste anzeigen"
+msgstr "Aufgabenlisten-Fenster anzeigen"
 
 #. label for filtering/searching tasks
 #: zim/plugins/tasklist/gui.py:180
-#, fuzzy
-#| msgid "Filter"
 msgid "Filter tasks"
-msgstr "Filter"
+msgstr "Aufgaben-Filter"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:243
@@ -4042,34 +4012,32 @@ msgstr "Aufgaben"
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:429
 msgid "Show open tasks"
-msgstr ""
+msgstr "Offene Aufgaben anzeigen"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:430
-#, fuzzy
-#| msgid "Only Show Active Tasks"
 msgid "Show closed tasks"
-msgstr "Nur aktive Aufgaben anzeigen"
+msgstr "Abgeschlossene Aufgaben anzeigen"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:431
 msgid "Show cancelled tasks"
-msgstr ""
+msgstr "Stornierte Aufgaben anzeigen"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:432
 msgid "Show migrated tasks"
-msgstr ""
+msgstr "Verschobene Aufgaben anzeigen"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:433
 msgid "Show trans-migrated tasks"
-msgstr ""
+msgstr "Weggeschobene Aufgaben anzeigen"
 
 #. Header for list selection in tasklist window
 #: zim/plugins/tasklist/gui.py:521
 msgid "Lists"
-msgstr ""
+msgstr "Listen"
 
 #. selection of tasks without tags
 #: zim/plugins/tasklist/gui.py:612
@@ -4079,7 +4047,7 @@ msgstr "Ohne Tags"
 #. header in selection drop down
 #: zim/plugins/tasklist/gui.py:667
 msgid "Labels"
-msgstr ""
+msgstr "Etiketten"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist/gui.py:800
@@ -4127,7 +4095,7 @@ msgstr "Aufgabenliste in der Kopfleiste anzeigen"
 #. preferences option - "GTD" means "Getting Things Done" methodology
 #: zim/plugins/tasklist/__init__.py:47
 msgid "Show \"GTD-style\" inbox & next actions lists"
-msgstr ""
+msgstr "Zeige Eingang und Aufgabenlisten im \"GTD-Stil\""
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:49
@@ -4141,17 +4109,13 @@ msgstr "Termin in der Seitenleiste anzeigen"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:55
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show start date in sidepane"
-msgstr "Termin in der Seitenleiste anzeigen"
+msgstr "Start-Datum in der Seitenleiste anzeigen"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:57
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show page column in the sidepane"
-msgstr "Aufgabenliste in Seitenleiste anzeigen"
+msgstr "Seiten-Spalte in Seitenleiste anzeigen"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:63
@@ -4165,17 +4129,13 @@ msgstr "Kennzeichnungen für Aufgaben"
 
 #. label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
 #: zim/plugins/tasklist/__init__.py:67
-#, fuzzy
-#| msgid "Labels marking tasks"
 msgid "Labels for \"waiting\" tasks"
-msgstr "Kennzeichnungen für Aufgaben"
+msgstr "Etiketten für \"wartende\" Aufgaben"
 
 #. label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 #: zim/plugins/tasklist/__init__.py:69
-#, fuzzy
-#| msgid "Tags for non-actionable tasks"
 msgid "Tags for \"waiting\" tasks"
-msgstr "Tags für Aufgaben, die keine Aktion erfordern"
+msgstr "Tags für \"wartende\" Aufgaben"
 
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:71
@@ -4209,15 +4169,13 @@ msgstr "Abschnitte ignorieren"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:83
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show page names in selection pane"
-msgstr "Termin in der Seitenleiste anzeigen"
+msgstr "Seitennamen in der Auswahlleiste anzeigen"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:85
 msgid "Don't count Saturday and Sunday as working days"
-msgstr ""
+msgstr "Samstag und Sonntag nicht als Werktage zählen"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:17
@@ -4251,10 +4209,10 @@ msgstr "Werkzeugleiste"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40
-#, fuzzy
-#| msgid "This plugin adds the page index pane to the main window.\n"
 msgid "This plugin allows to customize the toolbar in the main window.\n"
-msgstr "Diese Erweiterung fügt dem Hauptfenster ein Seitenverzeichnis hinzu.\n"
+msgstr ""
+"Diese Erweiterung ermöglicht die Anpassung der Werkzeugleiste des "
+"Hauptfensters.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:49
