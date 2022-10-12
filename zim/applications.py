@@ -511,7 +511,7 @@ class StartFile(Application):
 
 		for arg in args:
 			arg = adapt_from_oldfs(arg)
-			if isinstance(arg, FilePath):
+			if hasattr(arg, 'path'):
 				path = os.path.normpath(arg.path).replace('/', SEP) # msys can use '/' instead of '\\'
 			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg) and not arg.startswith('file://'):
 				# URL or e.g. mailto: or outlook: URI
