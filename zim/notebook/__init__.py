@@ -105,10 +105,11 @@ def build_notebook(location):
 	else:
 		folder, file = fileorfolder.parent(), fileorfolder
 
-	for parent in folder.parents():
-		if parent.file('notebook.zim').exists():
-			folder = parent
-			break
+	if not folder.file('notebook.zim').exists():
+		for parent in folder.parents():
+			if parent.file('notebook.zim').exists():
+				folder = parent
+				break
 
 	# Resolve the page for a file
 	if file:

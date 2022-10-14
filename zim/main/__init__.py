@@ -1,15 +1,11 @@
 
-# Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module defines the L{main()} function for executing the zim
 application. It also defines a number of command classes that implement
 specific commandline commands and an singleton application object that
 takes core of the process life cycle.
 '''
-
-# TODO:
-# - implement weakvalue dict to ensure uniqueness of notebook objects
-
 
 import os
 import sys

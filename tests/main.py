@@ -1,9 +1,5 @@
 
-# Copyright 2012-2020 Jaap Karssenberg <jaap.karssenberg@gmail.com>
-
-'''Test cases for the base zim module.'''
-
-
+# Copyright 2012-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 import tests
@@ -21,6 +17,9 @@ from zim.main import *
 import zim
 import zim.main
 import zim.main.ipc
+
+
+from zim.notebook.info import NotebookInfo
 
 
 class capture_stdout:
@@ -77,26 +76,88 @@ class TestHelp(tests.TestCase):
 
 class TestNotebookCommand(tests.TestCase):
 
+	cmd_class = NotebookCommand
 
-	def runTest(self):
-		cmd = NotebookCommand('gui')
+	def get_cmd(self, *args):
+		cmd = self.cmd_class('gui')
 		cmd.arguments = ('NOTEBOOK', '[PAGE]')
-		cmd.parse_options('./Notes')
+		cmd.parse_options(*args)
+		return cmd
 
+	def testPWDhandling(self):
 		# check if PWD at "parse_options" is remembered after changing dir
-		from zim.notebook.info import NotebookInfo
+		cmd = self.get_cmd('./Notes')
+
 		pwd = os.getcwd()
 		self.addCleanup(os.chdir, pwd)
+		os.chdir('/')
 
 		myinfo = NotebookInfo(pwd + '/Notes')
-		os.chdir('/')
 		notebookinfo, page = cmd.get_notebook_argument()
-
 		self.assertEqual(notebookinfo, myinfo)
-		os.chdir(pwd)
+
+	#def testNotebookName(self):
+	#	pass
+
+	def testFile(self):
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('Foo.txt')
+		file.touch()
+
+		for arg in (file.path, file.uri):
+			cmd = self.get_cmd(arg)
+			myinfo = NotebookInfo(file.path)
+			notebookinfo, page = cmd.get_notebook_argument()
+			self.assertEqual(notebookinfo, myinfo)
+			notebook, href = cmd.build_notebook()
+			self.assertEqual(notebook.uri, folder.uri)
+			self.assertEqual(href.names, 'Foo')
+
+		# Test override by page argument
+		cmd = self.get_cmd(file.path, 'Bar')
+		notebook, href = cmd.build_notebook()
+		self.assertEqual(notebook.uri, folder.uri)
+		self.assertEqual(href.names, 'Bar')
+
+	def testNotebookZimFile(self):
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		config = folder.file('notebook.zim')
+		config.touch()
+
+		for arg in (config.path, config.uri):
+			cmd = self.get_cmd(arg)
+			myinfo = NotebookInfo(config.path)
+			notebookinfo, page = cmd.get_notebook_argument()
+			self.assertEqual(notebookinfo, myinfo)
+			notebook, href = cmd.build_notebook()
+			self.assertEqual(notebook.uri, folder.uri)
+			self.assertIsNone(href)
+
+	def testNestedNotebookZimFile(self):
+		# Test specific case where parent folder also is a notebook - as in bug #2189
+		parentfolder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		parentfolder.file('notebook.zim').touch()
+		folder = parentfolder.folder('MyNotebook')
+		config = folder.file('notebook.zim')
+		config.touch()
+
+		for arg in (config.path, config.uri):
+			cmd = self.get_cmd(arg)
+			myinfo = NotebookInfo(config.path)
+			notebookinfo, page = cmd.get_notebook_argument()
+			self.assertEqual(notebookinfo, myinfo)
+			notebook, href = cmd.build_notebook()
+			self.assertEqual(notebook.uri, folder.uri)
+			self.assertIsNone(href)
 
 
-class TestGui(tests.TestCase):
+
+class TestGuiCommand(TestNotebookCommand):
+
+	cmd_class = GuiCommand
+
+
+class TestGuiStart(tests.TestCase):
 
 	## TODO: test default notebook logic when no argument
 
