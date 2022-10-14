@@ -160,7 +160,10 @@ if os.name == "nt" and not os.environ.get('LANG') and _lang not in (None, 'C'):
 	os.environ['LANG'] = _lang + '.' + _enc if _enc else _lang
 
 
-_localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
+if os.path.isfile('/.flatpak-info'):
+	_localedir = os.path.join('/app/share/locale/')
+else:
+	_localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
 
 try:
 	if os.path.isdir(_localedir):
