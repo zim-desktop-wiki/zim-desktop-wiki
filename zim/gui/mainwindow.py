@@ -184,9 +184,10 @@ class WindowBaseMixin(ConnectorMixin, object):
 
 	def _init_toolbar(self):
 		# One time setup of the toolbar widget
+		assert self.pageview, 'Ensure pageview is initalized to let preferences be loaded'
+
 		self._toolbar = Gtk.Toolbar()
 		self._toolbar_editbar_manager = ToolBarEditBarManager(self.pageview, self._toolbar)
-		self._show_edit_bar_controls_in_toolbar = self.pageview.preferences['show_edit_bar']
 
 		self.setup_toolbar()
 
@@ -202,7 +203,7 @@ class WindowBaseMixin(ConnectorMixin, object):
 		self.connectto(CustomToolManager(), 'changed', on_changed_update)
 		self.connectto(self.pageview.preferences, 'changed', on_changed_update)
 
-	def setup_toolbar(self, show=None, position=None, show_edit_bar_controls=None):
+	def setup_toolbar(self, show=None, position=None):
 		# Default setup for toolbar - can be called multiple times - also used by "toolbar" plugin
 		try:
 			self.remove(self._toolbar)
@@ -214,13 +215,6 @@ class WindowBaseMixin(ConnectorMixin, object):
 			show = not self.preferences['show_headerbar']
 
 		position = TOP if position is None else position
-
-		if show_edit_bar_controls is None:
-			self._show_edit_bar_controls_in_toolbar = not self.pageview.preferences['show_edit_bar']
-			self.pageview.set_edit_bar_visible(None)
-		else:
-			self._show_edit_bar_controls_in_toolbar = show_edit_bar_controls
-			self.pageview.set_edit_bar_visible(not show_edit_bar_controls)
 
 		# Set toolbar in window
 		if show:
@@ -246,7 +240,7 @@ class WindowBaseMixin(ConnectorMixin, object):
 			self._toolbar.show_all()
 
 	def _populate_toolbar_inner(self, toolbar):
-		if self._show_edit_bar_controls_in_toolbar:
+		if not self.pageview.preferences['show_edit_bar']:
 			self._toolbar_editbar_manager.populate_toolbar(toolbar)
 
 		populate_toolbar_with_actions(

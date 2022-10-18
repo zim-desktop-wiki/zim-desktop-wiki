@@ -9,6 +9,7 @@ logger = logging.getLogger('zim.plugins.toolbar')
 from gi.repository import Gtk
 
 from zim.plugins import PluginClass
+from zim.signals import SignalHandler
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import TOP, POSITIONS
 
@@ -65,17 +66,27 @@ class ToolBarMainWindowExtension(PageViewExtension):
 		PageViewExtension.__init__(self, plugin, view)
 		self.connectto(self.plugin.preferences, 'changed', self.on_preferences_changed)
 		self.on_preferences_changed(self.plugin.preferences)
+		self.connectto(self.obj.preferences, 'changed', self.on_pageview_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
 		window = self.pageview.get_toplevel()
+		with self.on_pageview_preferences_changed.blocked():
+			self.obj.preferences['show_edit_bar'] = \
+				not preferences['include_formatting'] # Force these prefs to always be in sync
 		toolbar = window.setup_toolbar(
 			show=preferences['show_toolbar'],
 			position=preferences['position'],
-			show_edit_bar_controls=preferences['include_formatting'],
 		)
 		toolbar.set_style(_get_style(self.plugin.preferences['style']))
 		toolbar.set_icon_size(_get_size(self.plugin.preferences['size']))
 
+	@SignalHandler
+	def on_pageview_preferences_changed(self, preferences):
+		# Force these prefs to always be in sync
+		if self.plugin.preferences['include_formatting'] == preferences['show_edit_bar']:
+			self.plugin.preferences['include_formatting'] = not preferences['show_edit_bar']
+
 	def teardown(self):
 		window = self.pageview.get_toplevel()
 		window.setup_toolbar() # Restore default
+

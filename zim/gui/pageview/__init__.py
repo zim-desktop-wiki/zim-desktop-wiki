@@ -5961,7 +5961,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.preferences = ConfigManager.preferences['PageView']
 		self.preferences.define(
-			show_edit_bar=Boolean(True),
+			show_edit_bar=Boolean(os_default_headerbar),
 			follow_on_enter=Boolean(True),
 			read_only_cursor=Boolean(False),
 			autolink_camelcase=Boolean(True),
@@ -6103,6 +6103,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.preferences['read_only_cursor'] or not self.readonly)
 		self._set_edit_bar_visible(self.preferences['show_edit_bar'])
 
+	def _set_edit_bar_visible(self, visible):
+		self._edit_bar_visible = visible
+		if not visible:
+			self.edit_bar.hide()
+		elif self.find_bar.get_property('visible') or self.readonly:
+			self.edit_bar.hide()
+		else:
+			self.edit_bar.show()
+
 	def on_text_style_changed(self, *a):
 		'''(Re-)intializes properties for TextView, TextBuffer and
 		TextTags based on the properties in the style config.
@@ -6221,23 +6230,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def on_link_leave(self, view, link):
 		self._overlay_label.hide()
-
-	def set_edit_bar_visible(self, visible):
-		# Bit of a hack, but prevents preferences to overwrite setting from Toolbar plugin
-		# triggers _set_edit_bar_visible() via changed signal on preferences
-		if visible is None:
-			self.preferences['show_edit_bar'] = not os_default_headerbar
-		else:
-			self.preferences['show_edit_bar'] = visible
-
-	def _set_edit_bar_visible(self, visible):
-		self._edit_bar_visible = visible
-		if not visible:
-			self.edit_bar.hide()
-		elif self.find_bar.get_property('visible') or self.readonly:
-			self.edit_bar.hide()
-		else:
-			self.edit_bar.show()
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview
