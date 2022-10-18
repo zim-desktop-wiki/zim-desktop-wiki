@@ -20,7 +20,7 @@ import os
 import logging
 
 import zim.main
-from zim.newfs import FilePath, LocalFolder
+from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
 from zim.gui.widgets import Dialog, IconButton, encode_markup_text, ScrolledWindow, \
@@ -130,7 +130,7 @@ class NotebookTreeModel(Gtk.ListStore):
 				(encode_markup_text(info.name), encode_markup_text(path))
 				# T: Path label in 'open notebook' dialog
 
-		if info.icon and FilePath(info.icon).exists():
+		if info.icon and LocalFile(info.icon).exists():
 			w, h = strip_boolean_result(Gtk.icon_size_lookup(Gtk.IconSize.BUTTON))
 			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(FilePath(info.icon).path, w, h)
 		else:

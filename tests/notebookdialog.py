@@ -27,7 +27,7 @@ class TestNotebookComboBox(tests.TestCase):
 			pass
 
 		notebooklist = MyList([
-			NotebookInfo(U('file:///test/foo'), name='Foo'),
+			NotebookInfo(U('file:///test/foo'), name='Foo', icon='./foo.png'),
 			NotebookInfo(U('file:///test/bar'), name='Bar')
 		])
 		notebooklist.default = notebooklist[1]
