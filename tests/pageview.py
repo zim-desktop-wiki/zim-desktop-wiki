@@ -3046,6 +3046,7 @@ Baz
 
 	def testEditBarHiddenWhenFindBarShown(self):
 		pageview = setUpPageView(self.setUpNotebook())
+		pageview.preferences['show_edit_bar'] = True
 		self.assertTrue(pageview.edit_bar.get_property('visible'))
 		self.assertFalse(pageview.find_bar.get_property('visible'))
 
