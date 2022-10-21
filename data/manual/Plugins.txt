@@ -39,6 +39,7 @@ The following plugins are standard included with zim:
 * [[+ToolBar|ToolBar]]
 * [[+Tray Icon|Tray Icon]]
 * [[+Version Control|Version Control]]
+* [[+WindowTitleEditor|Window Title Editor]]
 
 Plugins can be enabled and configured in the [[Help:Preferences|preferences dialog]]. Several plugins have additional dependencies, like specific external programs, that are not required for the core functionality of zim. If one or more dependencies of a plugin are not fulfilled, these are marked red.
 
