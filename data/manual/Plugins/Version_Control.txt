@@ -24,7 +24,9 @@ You can browse the complete history of saved versions by selecting ''File -> Ver
 ==== The "Versions" dialog ====
 TODO: document details all buttons
 
-The button "**Side by Side**" is used to show two versions of the page side by side with an external program like [[http://meldmerge.org/|meld]]. It only works when you select a revision for a single page. If the button remains insensitive, probably no suitable application is found.
+The "**Restore Version**" button allows restoring a single page to a selected revision. All changes since the last saved version will be lost.
+
+The "**Side by Side**" button is used to show two versions of the page side by side with an external program like [[http://meldmerge.org/|meld]]. It only works when you select a revision for a single page. If the button remains insensitive, probably no suitable application is found.
 
 You can configure applications to use for side by side comparison by installing a ''.desktop'' file in the [[Help:Config Files|zim data folder]] under ''helpers/compare_files/''. The application should accept two file names as arguments.
 
