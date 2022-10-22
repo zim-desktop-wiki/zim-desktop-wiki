@@ -40,6 +40,10 @@ Technically speaking a local repository is created when enabling Version Control
 
 On startup, zim tries to detect the version control system used for a specific notebook, and use it if supported. So you can manually the initialize repository (e.g. by branching) and then open them with zim. No need to tell Zim that the notebook is managed explicitly.
 
+==== Known issues ====
+
+Global user settings might not get picked up on Windows, possibly due to Zim running in an MSYS2 environment. In practice, this means you'll need a local configuration for backends that require initial setup. In the case of Git, you can solve this issue by executing ''git config user.name "Your Name"'' and ''git config user.email "your.email@example.com"'' in the repository folder, ie. set up a local configuration by omitting the ''--global'' flag from the usual commands.
+
 ===== Manual Version Control =====
 This is for advanced users that have to use another Version Control System or have other reasons not to use the included plugin.
 
