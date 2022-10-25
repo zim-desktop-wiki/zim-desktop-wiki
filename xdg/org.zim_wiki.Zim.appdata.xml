@@ -35,6 +35,20 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2022-10-25" version="0.75.1">
+      <description>
+        <ul>
+          <li>Fix bug with relative path notebook icon</li>
+          <li>Fix bug with icons in notebookdialog</li>
+          <li>Fix bug with loading sub-notebooks via "notebook.zim"</li>
+          <li>Fix bug with "--list" commandline</li>
+          <li>Fix issue opening unicode attachements on win32</li>
+          <li>Fix saving preferences for edit bar</li>
+          <li>Fix link visibility in TableEditor</li>
+          <li>Use flatpak locale directory in flatpak</li>
+        </ul>
+      </description>
+    </release>
     <release date="2022-09-27" version="0.75.0">
       <description>
         <ul>

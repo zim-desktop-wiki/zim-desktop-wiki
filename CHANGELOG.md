@@ -5,6 +5,16 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.75.1 - Tue 25 Oct 2022
+* Fix bug with relative path notebook icon
+* Fix bug with icons in notebookdialog
+* Fix bug with loading sub-notebooks via "notebook.zim"
+* Fix bug with "--list" commandline
+* Fix issue opening unicode attachements on win32
+* Fix saving preferences for edit bar
+* Fix link visibility in TableEditor
+* Use flatpak locale directory in flatpak
+
 ##  0.75.0 - Tue 27 Sep 2022
 * Upgrade Python version requirement to >= 3.6
 * Complete porting all modules to `zim.newfs` and deprecate `zim.fs`
