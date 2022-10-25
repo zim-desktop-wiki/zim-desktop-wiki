@@ -156,10 +156,10 @@ class ImageGeneratorModel(ImageGeneratorModelBase):
 	def set_from_generator(self, text, image_file):
 		# Do not clean up the existing self.image_file - we don't know if
 		# any other object is using the same file
-		# TODO: use index table to keep track and clean up when ref count is zerp ?
+		# TODO: use index table to keep track and clean up when ref count is zero ?
 		self.data = text
 		self.image_file = self._new_image_file()
-		image_file.rename(self.image_file)
+		image_file.moveto(self.image_file)
 		self.emit('changed')
 
 
