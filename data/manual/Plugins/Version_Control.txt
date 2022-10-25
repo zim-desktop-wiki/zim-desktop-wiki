@@ -24,7 +24,9 @@ You can browse the complete history of saved versions by selecting ''File -> Ver
 ==== The "Versions" dialog ====
 TODO: document details all buttons
 
-The button "**Side by Side**" is used to show two versions of the page side by side with an external program like [[http://meldmerge.org/|meld]]. It only works when you select a revision for a single page. If the button remains insensitive, probably no suitable application is found.
+The "**Restore Version**" button allows restoring a single page to a selected revision. All changes since the last saved version will be lost.
+
+The "**Side by Side**" button is used to show two versions of the page side by side with an external program like [[http://meldmerge.org/|meld]]. It only works when you select a revision for a single page. If the button remains insensitive, probably no suitable application is found.
 
 You can configure applications to use for side by side comparison by installing a ''.desktop'' file in the [[Help:Config Files|zim data folder]] under ''helpers/compare_files/''. The application should accept two file names as arguments.
 
@@ -37,6 +39,10 @@ See the [[http://bazaar.canonical.com/|Bazaar]] user manual for various scenario
 Technically speaking a local repository is created when enabling Version Control, depending on the backend you choose, this repository is managed by  [[http://bazaar.canonical.com/|Bazaar]],  [[https://git-scm.com/|Git]], [[http://mercurial.selenic.com/|Mercurial]] or [[https://www.fossil-scm.org/|Fossil]]. Every time you save a version, another revision is checked in. Zim just uses standard version control systems as a backend, so you can always view and export your history using standard tools.
 
 On startup, zim tries to detect the version control system used for a specific notebook, and use it if supported. So you can manually the initialize repository (e.g. by branching) and then open them with zim. No need to tell Zim that the notebook is managed explicitly.
+
+==== Known issues ====
+
+Global user settings might not get picked up on Windows, possibly due to Zim running in an MSYS2 environment. In practice, this means you'll need a local configuration for backends that require initial setup. In the case of Git, you can solve this issue by executing ''git config user.name "Your Name"'' and ''git config user.email "your.email@example.com"'' in the repository folder, ie. set up a local configuration by omitting the ''--global'' flag from the usual commands.
 
 ===== Manual Version Control =====
 This is for advanced users that have to use another Version Control System or have other reasons not to use the included plugin.
