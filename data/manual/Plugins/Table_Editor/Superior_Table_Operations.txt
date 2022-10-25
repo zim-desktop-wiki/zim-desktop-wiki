@@ -23,12 +23,12 @@ After formatting: 	{{./cell_after_text_formatting.png}}
 ==== Links in a  cell ====
 '''
 [[http://www.python.org]]
+[[http://www.python.org\|Python homepage]]
 [[foo@bar.org]]
 [[foo]]		Internal Link
 '''
 
-Note:	Only **one link per cell** can be opened. The first one is taken.
-		You can not use a special link text. The link text must be a URL, a mail-address or the title of a linked page.
+Note: Only **one link per cell** can be opened. The first one is taken.
 A link can be accessed with:
 * ''RIGHT MOUSE-BUTTON-CLICK'' on cell with the link  and selection of the menu item //Open cell in content link//
 * ''CTRL + LEFT MOUSE-BUTTON-CLICK'' on a cell
