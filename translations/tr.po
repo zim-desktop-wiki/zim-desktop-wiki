@@ -8,23 +8,23 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2021-02-01 19:41+0000\n"
-"Last-Translator: Gunduzhan Gunduz <gunduzhan@gmail.com>\n"
-"Language-Team: Turkish <https://hosted.weblate.org/projects/zim/master/tr/>\n"
+"PO-Revision-Date: 2022-10-31 20:08+0000\n"
+"Last-Translator: Oğuz Ersen <oguz@ersen.moe>\n"
+"Language-Team: Turkish <https://hosted.weblate.org/projects/zim/develop/tr/>"
+"\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5-dev\n"
+"X-Generator: Weblate 4.14.2-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "Uygulama çalıştırırken hata: %s"
+msgstr "Uygulama bulunamadı: %s"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -100,6 +100,8 @@ msgid ""
 "Create missing directories automatically\n"
 "(If disabled you will be prompted)"
 msgstr ""
+"Eksik dizinleri otomatik olarak oluştur\n"
+"(Devre dışı bırakılmışsa sizden istenecektir)"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/applications.py:595
@@ -139,10 +141,9 @@ msgstr ""
 
 #. Error message when external application could not be run in terminal, %s is the command
 #: zim/gui/applications.py:827
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find terminal emulator to run application: %s"
-msgstr "Uygulama çalıştırırken hata: %s"
+msgstr "Uygulamayı çalıştırmak için terminal öykünücüsü bulunamadı: %s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1081
@@ -370,7 +371,7 @@ msgstr "Sayfa"
 #. Input field in export dialog
 #: zim/gui/exportdialog.py:182
 msgid "Include subpages"
-msgstr ""
+msgstr "Alt sayfaları dahil et"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:209
@@ -418,12 +419,12 @@ msgstr "Çıktı dosyasını veya dizinini seçiniz"
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:316
 msgid "Export each page to a separate file"
-msgstr ""
+msgstr "Her sayfayı ayrı bir dosyaya aktar"
 
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:318
 msgid "Export all pages to a single file"
-msgstr ""
+msgstr "Tüm sayfaları tek bir dosyaya aktar"
 
 #. Label for folder selection in export dialog
 #: zim/gui/exportdialog.py:321
@@ -444,24 +445,24 @@ msgstr "Çıktı dosyası"
 #: zim/gui/exportdialog.py:415
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
-msgstr ""
+msgstr "%(n_error)i hata ve %(n_warning)i uyarı oluştu, günlüğe bakın"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:418
 #, python-format
 msgid "%i errors occurred, see log"
-msgstr ""
+msgstr "%i hata oluştu, günlüğe bakın"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:421
 #, python-format
 msgid "%i warnings occurred, see log"
-msgstr ""
+msgstr "%i uyarı oluştu, günlüğe bakın"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:426
 msgid "Export completed"
-msgstr ""
+msgstr "Dışa aktarma tamamlandı"
 
 #. button in export dialog | 
 #. button in e.g. equation editor dialog
@@ -473,28 +474,28 @@ msgstr "_Kayıtları Göster"
 #: zim/gui/insertedobjects.py:268
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "%s türündeki nesneleri görüntüleyecek eklenti yok"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:276
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "Bu nesneyi görüntülemek için \"%s\" eklentisi gerekiyor"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:280
 msgid "Enable plugin"
-msgstr ""
+msgstr "Eklentiyi etkinleştir"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:313
 msgid "Unkown Object"
-msgstr ""
+msgstr "Bilinmeyen Nesne"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:354
 msgid "Unkown Image type"
-msgstr ""
+msgstr "Bilinmeyen görüntü türü"
 
 #. Menu title
 #: zim/gui/mainwindow.py:49
@@ -556,18 +557,18 @@ msgstr ""
 #. option for plugin preferences
 #: zim/gui/mainwindow.py:68
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "Pencere süslemesinde denetimleri göster"
 
 #. option for plugin preferences
 #: zim/gui/mainwindow.py:68
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "Bu seçenek uygulamanın yeniden başlatılmasını gerektirir"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 #: zim/gui/mainwindow.py:70
 #, python-format
 msgid "Use %s to switch to the side pane"
-msgstr ""
+msgstr "Yan bölmeye geçmek için %s kullanın"
 
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:74
@@ -576,10 +577,8 @@ msgstr "Sayfa açılışında her zaman imlecin son pozisyonunu kullan."
 
 #. button label for fullscreen window header
 #: zim/gui/mainwindow.py:148
-#, fuzzy
-#| msgid "_Fullscreen"
 msgid "Leave Fullscreen"
-msgstr "_Tam Ekran"
+msgstr "Tam Ekrandan Çık"
 
 #. Menu item
 #: zim/gui/mainwindow.py:264
@@ -603,7 +602,7 @@ msgstr "_Düzenlenebilir Defter"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:303
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "Sayfa salt okunurdur ve düzenlenemez"
 
 #. Menu item
 #: zim/gui/mainwindow.py:337
@@ -624,31 +623,22 @@ msgstr "_Kapat"
 #. label for View->Menubar menu item
 #: zim/gui/mainwindow.py:681
 msgid "Menubar"
-msgstr ""
+msgstr "Menü çubuğu"
 
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:800 zim/gui/uiactions.py:506
-#, fuzzy
-#| msgid ""
-#| "This file already exists.\n"
-#| "Do you want to overwrite it?"
 msgid "File exists, do you want to import?"
-msgstr ""
-"Bu dosya zaten var.\n"
-"Üzerine yazmak istiyor musunuz?"
+msgstr "Dosya var, içe aktarmak istiyor musunuz?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:801 zim/gui/uiactions.py:507
-#, fuzzy, python-format
-#| msgid ""
-#| "The folder \"%s\" does not yet exist.\n"
-#| "Do you want to create it now?"
+#, python-format
 msgid ""
 "The file \"%s\" exists but is not a wiki page.\n"
 "Do you want to import it?"
 msgstr ""
-"%s isimli klasör şu an yok.\n"
-"Oluşturmak ister misiniz?"
+"\"%s\" dosyası var ama bir wiki sayfası değil.\n"
+"İçe aktarmak istiyor musunuz?"
 
 #. page status for title bar
 #: zim/gui/mainwindow.py:856 zim/gui/mainwindow.py:1031
@@ -669,7 +659,7 @@ msgstr "_Geri"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:891
 msgid "Go back"
-msgstr ""
+msgstr "Geri git"
 
 #. Menu item | 
 #. Button label
@@ -679,10 +669,8 @@ msgstr "_İleri"
 
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:904
-#, fuzzy
-#| msgid "_Forward"
 msgid "Go forward"
-msgstr "_İleri"
+msgstr "İleri git"
 
 #. Menu item
 #: zim/gui/mainwindow.py:914
@@ -696,15 +684,11 @@ msgstr "_Çocuk"
 
 #. Menu item
 #: zim/gui/mainwindow.py:939
-#, fuzzy
-#| msgid "_Previous in index"
 msgid "_Previous in Index"
 msgstr "İndekste _önceki"
 
 #. Menu item
 #: zim/gui/mainwindow.py:948
-#, fuzzy
-#| msgid "_Next in index"
 msgid "_Next in Index"
 msgstr "İndexte _sonraki"
 
@@ -716,17 +700,15 @@ msgstr "_Anasayfa"
 #. Menu item
 #: zim/gui/mainwindow.py:957
 msgid "Go to home page"
-msgstr ""
+msgstr "Ana sayfaya git"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:979
-#, fuzzy, python-format
-#| msgid "%i _Backlink..."
-#| msgid_plural "%i _Backlinks..."
+#, python-format
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
-msgstr[0] "%i_Geri bağlantı..."
-msgstr[1] "%i_Geri bağlantı..."
+msgstr[0] "%i _Geri bağlantı"
+msgstr[1] "%i _Geri bağlantı"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1146
@@ -759,12 +741,12 @@ msgstr "Defter Aç"
 #. Button label
 #: zim/gui/notebookdialog.py:328
 msgid "_Add"
-msgstr ""
+msgstr "_Ekle"
 
 #. Button label
 #: zim/gui/notebookdialog.py:332 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "_Kaldır"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:348
@@ -792,11 +774,13 @@ msgid ""
 "To create a new notebook you need to select an empty folder.\n"
 "Of course you can also select an existing zim notebook folder.\n"
 msgstr ""
+"Yeni bir not defteri oluşturmak için boş bir klasör seçmeniz gerekir.\n"
+"Elbette mevcut bir zim not defteri klasörünü de seçebilirsiniz.\n"
 
 #. Menu title
 #: zim/gui/pageview/__init__.py:165
 msgid "New _Attachment"
-msgstr ""
+msgstr "Yeni _Ek"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
