@@ -457,7 +457,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 					INNER JOIN tagsources ON pages.id = tagsources.source
 					WHERE tagsources.tag %s
 					GROUP BY source HAVING count(tag) = ?
-					ORDER BY sortkey, LENGTH(name), name LIMIT 20 OFFSET ?
+					ORDER BY name ASC LIMIT 20 OFFSET ?
 				''' % self._tagquery,
 				(len(self._tagids), offset,)
 			)):
@@ -675,7 +675,7 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 					SELECT DISTINCT pages.* FROM pages
 					INNER JOIN tagsources ON pages.id = tagsources.source
 					WHERE tagsources.tag = ?
-					ORDER BY sortkey, LENGTH(name), name LIMIT 20 OFFSET ?
+					ORDER BY name ASC LIMIT 20 OFFSET ?
 				''',
 				(tag_iter.row['id'], offset,)
 			)):
