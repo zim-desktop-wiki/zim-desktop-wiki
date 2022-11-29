@@ -23,6 +23,7 @@ from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Pango
 
+import os
 import re
 import string
 import weakref
