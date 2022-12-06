@@ -653,8 +653,8 @@ class ParseTree(object):
 def split_heading_from_parsetree(parsetree, keep_head_token=True):
 	'''Helper function to split the header from a L{ParseTree}
 	Looks for a header at the start of a page and strips empty lines after it.
-	Returns two L{ParseTree} objects: one for the header (can be C{None}) and
-	one for the main body of the content.
+	Returns two L{ParseTree} objects: one for the header and one for the main
+	body of the content - both can be C{None} if they are empty.
 	'''
 	from zim.tokenparser import collect_until_end_token
 
@@ -687,17 +687,17 @@ def split_heading_from_parsetree(parsetree, keep_head_token=True):
 	if body[-1] == (END, FORMATTEDTEXT):
 		body.pop()
 
-	if heading:
-		if not keep_head_token:
-			heading = heading[1:-1]
-			if heading[-1][0] == TEXT:
-				if heading[-1][1] == '\n':
-					heading.pop()
-				elif heading[-1][1].endswith('\n'):
-					heading[-1] = (TEXT, heading[-1][1][:-1])
-		return (ParseTree.new_from_tokens(heading), ParseTree.new_from_tokens(body))
-	else:
-		return (None, ParseTree.new_from_tokens(body))
+	if heading and not keep_head_token:
+		heading = heading[1:-1]
+		if heading[-1][0] == TEXT:
+			if heading[-1][1] == '\n':
+				heading.pop()
+			elif heading[-1][1].endswith('\n'):
+				heading[-1] = (TEXT, heading[-1][1][:-1])
+
+	heading_tree = ParseTree.new_from_tokens(heading) if heading else None
+	body_tree = ParseTree.new_from_tokens(body) if body else None
+	return heading_tree, body_tree
 
 
 class ParseTreeBuilder(Builder):

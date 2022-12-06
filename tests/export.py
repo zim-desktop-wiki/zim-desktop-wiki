@@ -350,6 +350,29 @@ Some content here
 		self.assertTrue(proxy.content.startswith('<h1>'))
 
 
+class TestPageProxyWithEmptyPage(tests.TestCase):
+
+	# Note: specifically test there are no exceptions here ...
+
+	CONTENT = {
+		'test': ''
+	}
+
+	def runTest(self):
+		from zim.formats import StubLinker
+		notebook = self.setUpNotebook(content=self.CONTENT)
+		page = notebook.get_page(Path('test'))
+		dumper = get_format('html').Dumper()
+		linker = StubLinker()
+		proxy = PageProxy(notebook, page, dumper, linker)
+
+		self.assertEqual(proxy.title, 'test')
+		self.assertEqual(proxy.heading, '')
+		self.assertIsInstance(proxy.body, str)
+		self.assertIsInstance(proxy.content, str)
+
+
+
 class TestPageSelections(tests.TestCase):
 
 	def _test_iface(self, selection):
