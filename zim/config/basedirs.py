@@ -20,7 +20,7 @@ def _split_environ_dir_list(value, default=()):
 		paths = value.split(os.pathsep)
 	else:
 		paths = default
-	return [LocalFolder(p) for p in paths]
+	return [LocalFolder(p) for p in paths if p]
 
 
 ## Initialize config paths
