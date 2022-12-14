@@ -8,7 +8,7 @@ between zim instances.
 It provides low level functions to:
 
   1. Dispatching a list of commandline arguments to a socket
-  2. Listening to a socket for commandline arguments. If recieved,
+  2. Listening to a socket for commandline arguments. If received,
 	 a callback is invoked to handle those arguments.
 
 '''
@@ -142,7 +142,7 @@ def dispatch(*args):
 def start_listening(handler):
 	'''Start listening to socket or named pipe for new commandline
 	calls. Also sets current process to be the main process.
-	@param handler: the method to call when new commands are recieveds
+	@param handler: the method to call when new commands are received
 	'''
 	set_in_main_process(True)
 
@@ -182,7 +182,7 @@ def _do_accept(listener, handler, *a):
 	try:
 		conn = listener.accept()
 		args = conn.recv()
-		logger.debug('Recieved remote call: %r', args)
+		logger.debug('Received remote call: %r', args)
 
 		if args == 'CLOSE':
 			conn.send('OK')

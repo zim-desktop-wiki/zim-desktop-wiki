@@ -90,7 +90,7 @@ class OSXMenuBarMainWindowExtension(MainWindowExtension):
 	# This object is created once for each "main window", this means once for
 	# each notebook opened in zim. If this is the first window, also do
 	# global intialization, else just capture the menubar and keep it ourselves.
-	# We hook to the signal that a window has recieved focus and on that signal
+	# We hook to the signal that a window has received focus and on that signal
 	# insert the menubar for that window. So may change often when switching
 	# windows.
 
