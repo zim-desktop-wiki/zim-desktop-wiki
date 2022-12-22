@@ -458,8 +458,8 @@ class QuickNoteDialog(Dialog):
 		page.parse('wiki', text, append=True) # FIXME format hard coded
 		notebook.store_page(page)
 
-	def import_attachments(self, notebook, path, dir):
-		dir = adapt_from_oldfs(fir)
+	def import_attachments(self, notebook, path, from_dir):
+		from_dir = adapt_from_oldfs(from_dir)
 		attachments = notebook.get_attachments_dir(path)
-		for name in dir.list_files():
+		for file in from_dir.list_files():
 			file.copyto(attachments)
