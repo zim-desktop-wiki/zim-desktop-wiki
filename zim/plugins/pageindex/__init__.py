@@ -559,7 +559,7 @@ class PageTreeView(BrowserTreeView):
 	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, time):
 		assert selectiondata.get_target().name() == PAGELIST_TARGET_NAME
 		data = selectiondata.get_data()
-		logger.debug('Drag data recieved: %r', data)
+		logger.debug('Drag data received: %r', data)
 		if data is None or len(data) == 0:
 			data = zim.gui.clipboard._internal_selection_data # HACK issue #390
 			zim.gui.clipboard._internal_selection_data = None
