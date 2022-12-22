@@ -6568,6 +6568,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.actiongroup.get_action('edit_object').set_sensitive(False)
 			self.actiongroup.get_action('remove_link').set_sensitive(False)
 
+		self.actiongroup.get_action('move_text').set_sensitive(buffer.get_has_selection())
+
 		# Emit signal if passing through a link
 		link = buffer.get_link_data(iter)
 		if link:
