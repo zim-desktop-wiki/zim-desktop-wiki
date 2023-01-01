@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-10-04 01:53+0000\n"
+"PO-Revision-Date: 2023-01-02 13:50+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 4.15.1-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -1742,6 +1742,10 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"אפשר להחליף איגודי מקשים על ידי לחיצה על שדה עם צירוף מקשים\n"
+"שברשימה ואז ללחוץ על איגוד מקשים חדש.\n"
+"כדי להשבית איגוד מקשים, יש לבחור אותו ברשימה ולהשתמש במקש "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:566
@@ -2595,6 +2599,8 @@ msgid ""
 "This plugin shows the attachments folder of the current page as an\n"
 "icon view at bottom pane.\n"
 msgstr ""
+"תוסף זה מציג את תיקיית הקבצים המצורפים של העמוד הנוכחי\n"
+"כתצוגת סמלים בחלונית התחתונה.\n"
 
 #. option for plugin preferences | 
 #. preferences option
@@ -2673,9 +2679,7 @@ msgstr "אין קישורים חוזרים"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
-#, fuzzy, python-format
-#| msgid "%i _Backlink"
-#| msgid_plural "%i _Backlinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
 msgstr[0] "קישור מ_פנה אחד"
@@ -2683,21 +2687,19 @@ msgstr[1] "%i קישורים מ_פנים"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:128
-#, fuzzy
-#| msgid "BackLinks"
 msgid "_BackLinks"
-msgstr "קישורים חוזרים"
+msgstr "קישורים מ_פנים"
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:361
 msgid "_Edit..."
-msgstr ""
+msgstr "_עריכה…"
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:390
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "עריכת %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:415
@@ -2716,7 +2718,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/bookmarksbar.py:36
 msgid "BookmarksBar"
-msgstr ""
+msgstr "סרגל סימניות"
 
 #. plugin description
 #: zim/plugins/bookmarksbar.py:37
@@ -2724,31 +2726,33 @@ msgid ""
 "\t\tThis plugin provides bar for bookmarks.\n"
 "\t\t"
 msgstr ""
+"\t\tתוסף זה מספק סרגל לסימניות.\n"
+"\t\t"
 
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:45
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "מספר הסימניות המרבי"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:46
 msgid "Save bookmarks"
-msgstr ""
+msgstr "שמירת סימניות"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:47
 msgid "Add new bookmarks to the beginning of the bar"
-msgstr ""
+msgstr "להוסיף סימנייה חדשה לתחילת הסרגל"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:99 zim/plugins/bookmarksbar.py:160
 msgid "Add Bookmark"
-msgstr ""
+msgstr "הוספת סימנייה"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:149
 msgid "Bookmarks"
-msgstr ""
+msgstr "סימניות"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:184
