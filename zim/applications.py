@@ -371,7 +371,7 @@ class Application(object):
 			#~ raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)
 		#~ elif stderr:
 		if stderr:
-			logger.warn(_decode(stderr))
+			logger.warning(_decode(stderr))
 			# TODO: allow user to get this error as well - e.g. for logging image generator cmd
 
 		text = _decode(stdout).replace('\r\n', '\n').splitlines(keepends=True)

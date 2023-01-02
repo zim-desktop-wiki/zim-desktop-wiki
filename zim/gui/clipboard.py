@@ -651,10 +651,10 @@ class ClipboardManager(object):
 			if selectiondata:
 				return parsetree_from_selectiondata(selectiondata, notebook, path, text_format)
 			else:
-				logger.warn('Did not get requested data from clipboard')
+				logger.warning('Did not get requested data from clipboard')
 				return None
 		else:
-			logger.warn('Could not paste - no compatible data types on clipboard')
+			logger.warning('Could not paste - no compatible data types on clipboard')
 			return None
 
 	def set_pagelink(self, notebook, path, anchor=None, text=None):

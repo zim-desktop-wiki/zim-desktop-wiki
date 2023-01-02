@@ -198,7 +198,7 @@ class ExportLinker(BaseLinker):
 		if href and href != link:
 			return self.link(href) # recurs
 		else:
-			logger.warn('No URL found for interwiki link "%s"', link)
+			logger.warning('No URL found for interwiki link "%s"', link)
 			return None
 
 	def _link_notebook(self, link):

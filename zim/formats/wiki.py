@@ -338,7 +338,7 @@ class WikiParser(object):
 			# Special case to ensure backward compatibility for versions where
 			# tables could be stored as objects
 			if param.strip() != '':
-				logger.warn('Table object had unexpected parameters: %s', param.strip())
+				logger.warning('Table object had unexpected parameters: %s', param.strip())
 			lines = body.splitlines(True)
 			headerrow = lines[0]
 			alignstyle = lines[1]

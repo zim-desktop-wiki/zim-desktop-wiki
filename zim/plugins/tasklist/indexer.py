@@ -88,7 +88,7 @@ def _parse_page_list(input):
 		try:
 			paths.append(Path(Path.makeValidPageName(name.strip())))
 		except ValueError:
-			logger.warn('Could not parse page name: "%s"', name)
+			logger.warning('Could not parse page name: "%s"', name)
 	return paths
 
 
@@ -722,12 +722,12 @@ class TaskParser(object):
 
 					next_token = next(token_iter)
 					if not next_token == (END, LISTITEM):
-						logger.warn('Unexpected token in list: %r', next_token)
+						logger.warning('Unexpected token in list: %r', next_token)
 
 			elif t[0] == END and t[1] in (BULLETLIST, NUMBEREDLIST):
 				break
 			else:
-				logger.warn('Unexpected token in list: %r', t)
+				logger.warning('Unexpected token in list: %r', t)
 
 		return tasks
 
@@ -776,9 +776,9 @@ class TaskParser(object):
 				elif string.startswith('<'):
 					due = parse_date(string[1:]).last_day.isoformat()
 				else:
-					logger.warn('False positive matching date: %s', string)
+					logger.warning('False positive matching date: %s', string)
 			except ValueError:
-				logger.warn('Invalid date format in task: %s', string)
+				logger.warning('Invalid date format in task: %s', string)
 
 		return [status, prio, waiting, start, due, tags, str(text.strip())]
 			# 0:status, 1:prio, 2:waiting, 3:start, 4:due, 5:tags, 6:desc

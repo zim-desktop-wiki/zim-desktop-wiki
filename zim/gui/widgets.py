@@ -169,7 +169,7 @@ def gtk_window_set_default_icon():
 
 
 	if len(iconlist) < 3:
-		logger.warn('Could not find all icon sizes for the application icon')
+		logger.warning('Could not find all icon sizes for the application icon')
 	Gtk.Window.set_default_icon_list(iconlist)
 
 
@@ -1806,7 +1806,7 @@ class PageEntry(InputEntry):
 					name = Path.makeValidPageName(name)
 					path = Path(name)
 			except ValueError:
-				logger.warn('Invalid path name: %s', name)
+				logger.warning('Invalid path name: %s', name)
 				self.set_input_valid(False)
 				return None
 			else:

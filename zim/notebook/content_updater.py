@@ -124,7 +124,7 @@ def _replace_links_to_interwiki_and_copy_images(src_interwiki, notebook, new_pat
 				#       should be improved - e.g. path:./file style links like in docuwiki
 				new_href = abs_href
 			else:
-				logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
+				logger.warning('Could not update link of type "%s": %s', my_type, abs_href)
 				return node
 
 			if node.content == [(TEXT, node.attrib['href'])]: # *not* abs_href
@@ -161,7 +161,7 @@ def _replace_links_to_page_and_copy_images(notebook, old_folder, new_path, node)
 						node.content[:] = [(TEXT, new_href)]
 					node.attrib['href'] = new_href
 			else:
-				logger.warn('Could not update link of type "%s": %s', my_type, abs_href)
+				logger.warning('Could not update link of type "%s": %s', my_type, abs_href)
 	elif node.tag == IMAGE:
 		# Only copy direct attachments - else the image already was a link
 		# to a file outside of the attachment folder

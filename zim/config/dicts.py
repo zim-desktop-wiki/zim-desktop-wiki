@@ -595,7 +595,7 @@ class ConfigDict(ControlledDict):
 		try:
 			value = self.definitions[key].check(value)
 		except ValueError as error:
-			logger.warn(
+			logger.warning(
 				'Invalid config value for %s: "%s" - %s',
 					key, value, error.args[0]
 			)
@@ -805,12 +805,12 @@ class INIConfigFile(SectionedConfigDict):
 				section = self[name]
 			elif '=' in line:
 				if section is None:
-					logger.warn('Parameter outside section: %s', line)
+					logger.warning('Parameter outside section: %s', line)
 				else:
 					key, string = line.split('=', 1)
 					values.append((str(key.rstrip()), string.lstrip())) # key is not unicode
 			else:
-				logger.warn('Could not parse line: %s', line)
+				logger.warning('Could not parse line: %s', line)
 		else:
 			if values:
 				section.input(values)

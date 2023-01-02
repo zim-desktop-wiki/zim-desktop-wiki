@@ -519,7 +519,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		if self.select_heading(path):
 			self.pageview.toggle_format('h' + str(level))
 		else:
-			logger.warn('Failed to select heading for path: %', path)
+			logger.warning('Failed to select heading for path: %', path)
 
 
 class SidePaneToC(ToCWidget, WindowSidePaneWidget):
