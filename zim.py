@@ -9,10 +9,14 @@ import os
 import re
 
 # Check if we run the correct python version
-try:
-	assert sys.version_info >= (3, 6)
-except:
-	print('zim needs python >= 3.6', file=sys.stderr)
+REQUIRED_MINIMUM_PYTHON_VERSION = (3, 6)
+USED_PYTHON_VERSION = sys.version_info
+if USED_PYTHON_VERSION < REQUIRED_MINIMUM_PYTHON_VERSION:
+	error_message = 'zim needs python >= {major}.{minor}'.format(
+		major=REQUIRED_MINIMUM_PYTHON_VERSION[0],
+		minor=REQUIRED_MINIMUM_PYTHON_VERSION[1],
+	)
+	sys.stderr.write(error_message)
 	sys.exit(1)
 
 
