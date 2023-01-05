@@ -139,14 +139,14 @@ getcontext().prec = 100
 
 
 def safe_eval(expression):
-	'''Safe evaluation of a python expression'''
-	GLOBALS = {'__builtins__': None} # Don't allow open() etc.
-	try:
-		re = eval(expression, GLOBALS, {'Decimal': Decimal})
-	except Exception as e:
-		raise
+    '''Safe evaluation of a python expression'''
+    GLOBALS = {'__builtins__': None} # Don't allow open() etc.
+    try:
+        re = eval(expression, GLOBALS, {'Decimal': Decimal})
+    except Exception as e:
+        raise
 
-	return re
+    return re
 
 
 def evaluate(expression_text, UseDigitGrouping = True, variables = {}, functions = {}):

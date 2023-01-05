@@ -1785,12 +1785,12 @@ class PageEntry(InputEntry):
 		'''
 		name = self.get_text().strip()
 		if not name or name == ':':
-		   if self._allow_select_root:
-			   self.set_input_valid(True)
-			   return Path(':')
-		   else:
-			   self.set_input_valid(False)
-			   return None
+			if self._allow_select_root:
+				self.set_input_valid(True)
+				return Path(':')
+			else:
+				self.set_input_valid(False)
+				return None
 		else:
 			if self.subpaths_only and name[0] not in ('+', ':'):
 				name = '+' + name
@@ -3745,7 +3745,7 @@ class ProgressDialog(Gtk.Dialog):
 		else:
 			self.progressbar.set_fraction(frac)
 			self.progressbar.set_text(_('{count} of {total}').format(count=i, total=total))
-			 	# T: lable in progressbar giving number of items and total
+				# T: lable in progressbar giving number of items and total
 
 		if msg is None:
 			self.msg_label.set_text('')

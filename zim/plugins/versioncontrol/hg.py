@@ -32,7 +32,7 @@ class HGApplicationBackend(VCSApplicationBase):
 
 	def get_mandatory_params(self):
 		return ['--noninteractive'] # force hg to run in non-interactive mode
-		                            # which will force user name to be auto-setup
+									# which will force user name to be auto-setup
 
 	def build_revision_arguments(self, versions):
 		"""Build a list including required string/int for running an VCS command
