@@ -133,6 +133,7 @@ class WindowBaseMixin(ConnectorMixin, object):
 	'''Common logic between MainWindow and PageWindow'''
 
 	def _init_fullscreen_headerbar(self):
+		# Create eventbox for headerbar
 		self._in_fullscreen_eventbox = False
 		self._fullscreen_eventbox = Gtk.EventBox()
 		self._fullscreen_eventbox.set_valign(Gtk.Align.START)
@@ -155,9 +156,34 @@ class WindowBaseMixin(ConnectorMixin, object):
 		self._fullscreen_eventbox.connect('enter-notify-event', self._on_fullscreen_eventbox_enter)
 		self._fullscreen_eventbox.connect('leave-notify-event', self._on_fullscreen_eventbox_leave)
 
+		# Generic state for fullscreen
+		self.maximized = False
+		self.isfullscreen = False
+		self.connect_after('window-state-event', self.__class__.on_window_state_event)
+
+	def on_window_state_event(self, event):
+		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
+			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)
+			schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
+
+		if bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
+			self.isfullscreen = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
+			self.toggle_fullscreen.set_active(self.isfullscreen)
+			schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
+
+			if self.isfullscreen:
+				self._fullscreen_eventbox.show()
+			else:
+				self._fullscreen_eventbox.hide()
+
+			self.update_toolbar()
+
 	def _on_fullscreen_eventbox_enter(self, *a):
 		if self._headerbar is None and self._toolbar and self._toolbar.get_visible():
-			return # Do not show fullscreen headerbar if headerbar controls are in toolbar *and* visible
+			# Do not show fullscreen headerbar if headerbar controls are in toolbar *and* visible
+			# because headerbar will be redundant. If toolbar is not visible, we need at least "exit fullscreen"
+			return
+
 		self._in_fullscreen_eventbox = True
 		self._update_fullscreen_revealer()
 
@@ -237,6 +263,14 @@ class WindowBaseMixin(ConnectorMixin, object):
 			for item in self._toolbar.get_children():
 				self._toolbar.remove(item)
 			self._populate_toolbar(self._toolbar)
+
+			if self.isfullscreen and not self.preferences['show_headerbar']:
+				close_button = Gtk.ToolButton()
+				close_button.set_icon_name('view-restore-symbolic')
+				close_button.set_tooltip_text(_('Leave Fullscreen')) # T: button label for fullscreen window header
+				close_button.connect('clicked', lambda o: self.toggle_fullscreen(False))
+				self._toolbar.insert(close_button, -1)
+
 			self._toolbar.show_all()
 
 	def _populate_toolbar_inner(self, toolbar):
@@ -260,9 +294,7 @@ class WindowBaseMixin(ConnectorMixin, object):
 		'''Menu action to toggle the fullscreen state of the window'''
 		if show:
 			self.fullscreen()
-			self._fullscreen_eventbox.show()
 		else:
-			self._fullscreen_eventbox.hide()
 			self.unfullscreen()
 
 	@toggle_action(_('Toggle _Editable'), icon='document-edit-symbolic', init=True, tooltip=_('Toggle editable')) # T: menu item
@@ -411,11 +443,6 @@ class MainWindow(WindowBaseMixin, Window):
 		self.preferences.define({p[0]: Boolean(p[-1]) for p in ui_preferences})
 		self.preferences.connect('changed', self.do_preferences_changed)
 
-		self.maximized = False
-		self.isfullscreen = False
-		self._init_fullscreen_headerbar()
-		self.connect_after('window-state-event', self.__class__.on_window_state_event)
-
 		# Hidden setting to force the gtk bell off. Otherwise it
 		# can bell every time you reach the begin or end of the text
 		# buffer. Especially specific gtk version on windows.
@@ -510,8 +537,8 @@ class MainWindow(WindowBaseMixin, Window):
 		else:
 			self._headerbar = None
 
+		self._init_fullscreen_headerbar()
 		self._populate_headerbars()
-
 		self._init_toolbar()
 
 		# Do this last, else menu items show up in wrong place
@@ -633,18 +660,6 @@ class MainWindow(WindowBaseMixin, Window):
 			op.wait()
 
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
-
-	def on_window_state_event(self, event):
-		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
-			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)
-
-		if bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
-			self.isfullscreen = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
-			self.toggle_fullscreen.set_active(self.isfullscreen)
-
-		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED) \
-			or bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
-				schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
@@ -1092,8 +1107,8 @@ class PageWindow(WindowBaseMixin, Window):
 		self.pageview.grab_focus()
 
 	def _populate_headerbar(self, headerbar):
-		if headerbar is self._headerbar:
-			headerbar.pack_end(self.toggle_fullscreen.create_icon_button()) # FIXME: should go in menu popover
+		#if headerbar is self._headerbar:
+		#	headerbar.pack_end(self.toggle_fullscreen.create_icon_button()) # FIXME: should go in menu popover
 
 		button = self.toggle_editable.create_icon_button()
 		self._style_toggle_editable_button(button)
@@ -1116,9 +1131,9 @@ class PageWindow(WindowBaseMixin, Window):
 			toolbar.insert(space, -1)
 
 			# FIXME: should go in menu popover
-			item = self.toggle_fullscreen.create_tool_button(connect_button=False)
-			item.set_action_name('win.toggle_fullscreen')
-			toolbar.insert(item, -1)
+			#item = self.toggle_fullscreen.create_tool_button(connect_button=False)
+			#item.set_action_name('win.toggle_fullscreen')
+			#toolbar.insert(item, -1)
 		else:
 			self._populate_toolbar_inner(toolbar)
 
