@@ -386,7 +386,7 @@ class Parser:
                                         variables=variables, functions=functions))
                             self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                         except:
-                            logger.warn('eval error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
+                            logger.warning('eval error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
                     elif tipoLeft == 'n' and tipoRight in 'ifav':
                         if valorLeft not in functions:     # variable on the left
                             if tipoRight != 'v':    # assign to variable
@@ -395,7 +395,7 @@ class Parser:
                                                             variables=variables, functions=functions))
 
                                 except:
-                                    logger.warn('exec error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
+                                    logger.warning('exec error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
                                     raise
                             else:                   # evaluate a variable
                                 if valorLeft in variables:
@@ -410,7 +410,7 @@ class Parser:
                                                 variables=variables, functions=functions))
                                     self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                                 except:
-                                    logger.warn('eval error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
+                                    logger.warning('eval error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
                             else:                   # recurrence relation
                                 if valorLeft not in variables:            # initial value
                                   if valorRight != '':

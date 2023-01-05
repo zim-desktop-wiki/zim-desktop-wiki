@@ -571,7 +571,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 			new_n_links = self.links.n_list_links_section(newpath, LINK_DIR_BACKWARD)
 			if new_n_links != n_links:
-				logger.warn('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
+				logger.warning('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
 			else:
 				logger.debug('Number of links after move does match number before move (%i)', new_n_links)
 

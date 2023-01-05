@@ -1238,7 +1238,7 @@ class File(FilePath):
 					raise
 
 			if not self._mtime == mtime:
-				logger.warn('mtime check failed for %s, trying md5', self.path)
+				logger.warning('mtime check failed for %s, trying md5', self.path)
 				if self._md5 != _md5(self._read()):
 					raise FileWriteError(_('File changed on disk: %s') % self.path)
 						# T: error message

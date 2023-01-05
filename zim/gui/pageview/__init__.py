@@ -988,7 +988,7 @@ class TextBuffer(Gtk.TextBuffer):
 				# Check existing indent - may have bullet type while we have not
 				tags = list(filter(_is_indent_tag, self.iter_get_zim_tags(iter)))
 				if len(tags) > 1:
-					logger.warn('BUG: overlapping indent tags')
+					logger.warning('BUG: overlapping indent tags')
 				if tags and int(tags[0].zim_attrib['indent']) == level:
 					self._editmode_tags.append(tags[0])
 					return  # Re-use tag
@@ -1485,7 +1485,7 @@ class TextBuffer(Gtk.TextBuffer):
 			pixbuf = image_file_load_pixels(file, int(attrib.get('width', -1)), int(attrib.get('height', -1)))
 		except:
 			#~ logger.exception('Could not load image: %s', file)
-			logger.warn('No such image: %s', file)
+			logger.warning('No such image: %s', file)
 			widget = Gtk.HBox() # Need *some* widget here...
 			pixbuf = widget.render_icon(Gtk.STOCK_MISSING_IMAGE, Gtk.IconSize.DIALOG)
 			pixbuf = pixbuf.copy() # need unique instance to set zim_attrib
@@ -1716,7 +1716,7 @@ class TextBuffer(Gtk.TextBuffer):
 				widget = Gtk.HBox() # Need *some* widget here...
 				pixbuf = widget.render_icon(stock, self.bullet_icon_size)
 				if pixbuf is None:
-					logger.warn('Could not find icon: %s', stock)
+					logger.warning('Could not find icon: %s', stock)
 					pixbuf = widget.render_icon(Gtk.STOCK_MISSING_IMAGE, self.bullet_icon_size)
 				pixbuf.zim_type = 'icon'
 				pixbuf.zim_attrib = {'stock': stock}
@@ -2166,7 +2166,7 @@ class TextBuffer(Gtk.TextBuffer):
 		tags = list(filter(_is_indent_tag, iter.get_tags()))
 		if tags:
 			if len(tags) > 1:
-				logger.warn('BUG: overlapping indent tags')
+				logger.warning('BUG: overlapping indent tags')
 			return int(tags[0].zim_attrib['indent'])
 		else:
 			return 0
@@ -2882,7 +2882,7 @@ class TextBuffer(Gtk.TextBuffer):
 					continue
 
 				if pixbuf.zim_type == 'icon':
-					logger.warn('BUG: Checkbox outside of indent ?')
+					logger.warning('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
 					builder.start('img', attrib or {})
@@ -5471,7 +5471,7 @@ class UndoStackManager:
 					self.buffer.delete(iter, bound)
 					self.buffer._raw_delete_ongoing = False # XXX
 				if tree.tostring() != data.tostring():
-					logger.warn('Mismatch in undo stack\n%s\n%s\n', tree.tostring(), data.tostring())
+					logger.warning('Mismatch in undo stack\n%s\n%s\n', tree.tostring(), data.tostring())
 			elif action == self.ACTION_APPLY_TAG:
 				#~ print('APPLYING', data)
 				self.buffer.apply_tag(data, iter, bound)
@@ -6324,7 +6324,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def on_modified_changed(self, buffer):
 		if buffer.get_modified():
 			if self.readonly:
-				logger.warn('Buffer edited while textview read-only - potential bug')
+				logger.warning('Buffer edited while textview read-only - potential bug')
 			else:
 				if not (self._undo_history_queue and self._undo_history_queue[-1] is self.page):
 					if self.page in self._undo_history_queue:
@@ -8064,7 +8064,7 @@ class EditImageDialog(Dialog):
 				raise AssertionError
 			w, h = image_file_get_dimensions(file.path) # can raise
 		except:
-			logger.warn('Could not get size for image: %s', file.path)
+			logger.warning('Could not get size for image: %s', file.path)
 			width.set_sensitive(False)
 			height.set_sensitive(False)
 		else:

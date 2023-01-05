@@ -167,7 +167,7 @@ class LinksIndexer(IndexerBase):
 			SELECT DISTINCT pages.* FROM pages INNER JOIN links ON pages.id=links.source
 			WHERE pages.source_file IS NULL
 		''').fetchall():
-			logger.warn('Found ghost links from: %s', row['name'])
+			logger.warning('Found ghost links from: %s', row['name'])
 			self.on_page_row_deleted(None, row)
 			yield
 

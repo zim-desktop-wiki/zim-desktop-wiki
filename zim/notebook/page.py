@@ -517,7 +517,7 @@ class Page(Path, SignalEmitter):
 		# for saving and is reset after save was done
 		if buffer.get_modified():
 			if self.readonly:
-				logger.warn('Buffer edited while page read-only - potential bug')
+				logger.warning('Buffer edited while page read-only - potential bug')
 			self.set_modified(True)
 
 	def _store(self):

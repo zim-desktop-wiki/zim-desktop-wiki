@@ -100,7 +100,7 @@ try:
 	from gi.repository import Pango
 except:
 	Pango = None
-	logger.warn('Could not load pango - RTL scripts may look bad')
+	logger.warning('Could not load pango - RTL scripts may look bad')
 
 import xml.etree.ElementTree # needed to compile with cElementTree
 try:
@@ -722,7 +722,7 @@ class ParseTreeBuilder(Builder):
 		self.stack.append(tag)
 		if tag in BLOCK_LEVEL:
 			if self._last_char and self._last_char != '\n':
-				logger.warn('Missing "\\n" before new block (%s)' % tag)
+				logger.warning('Missing "\\n" before new block (%s)' % tag)
 			self._last_char = None
 
 	def text(self, text):
@@ -910,7 +910,7 @@ class ParserClass(object):
 			attrib = {'src': url[:i]}
 			for option in url[i + 1:].split('&'):
 				if option.find('=') == -1:
-					logger.warn('Mal-formed options in "%s"', url)
+					logger.warning('Mal-formed options in "%s"', url)
 					break
 
 				k, v = option.split('=', 1)
@@ -919,7 +919,7 @@ class ParserClass(object):
 						value = url_decode(v, mode=URL_ENCODE_DATA)
 						attrib[str(k)] = value # str to avoid unicode key
 				else:
-					logger.warn('Unknown attribute "%s" in "%s"', k, url)
+					logger.warning('Unknown attribute "%s" in "%s"', k, url)
 			return attrib
 		else:
 			return {'src': url}

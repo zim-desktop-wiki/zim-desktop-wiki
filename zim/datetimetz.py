@@ -102,7 +102,7 @@ def init_first_day_of_week():
 		elif t[-1] == '1':
 			FIRST_DAY_OF_WEEK = MONDAY
 		else:
-			logger.warn("Whoever translated 'calendar:week_start:0' did so wrongly.")
+			logger.warning("Whoever translated 'calendar:week_start:0' did so wrongly.")
 			FIRST_DAY_OF_WEEK = SUNDAY
 
 

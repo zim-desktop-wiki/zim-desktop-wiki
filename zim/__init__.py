@@ -141,7 +141,7 @@ except locale.Error:
 
 _pref_enc = locale.getpreferredencoding()
 if _pref_enc in ('ascii', 'us-ascii', 'ANSI_X3.4-1968'):
-	logger.warn(
+	logger.warning(
 		'Your system encoding is set to %s, if you want support for special characters\n'
 		'or see errors due to encoding, please ensure to configure your system to use "UTF-8"' % _pref_enc
 	)

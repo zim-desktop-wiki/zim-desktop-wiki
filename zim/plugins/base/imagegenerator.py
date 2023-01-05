@@ -85,7 +85,7 @@ class BackwardImageGeneratorObjectType(ImageGeneratorObjectType):
 
 	def format(self, format, dumper, attrib, data):
 		if data:
-			logger.warn('Unexpected data in %s object: %r', attrib['type'], data)
+			logger.warning('Unexpected data in %s object: %r', attrib['type'], data)
 
 		try:
 			return ImageGeneratorObjectType.format(self, format, dumper, attrib, data)

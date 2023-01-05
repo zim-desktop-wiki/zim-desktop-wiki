@@ -76,7 +76,7 @@ else:
 		tmpdir = tempfile.gettempdir()
 		userstring = url_encode(os.environ['USER'], URL_ENCODE_READABLE)
 		runtime_dir = tmpdir + '/zim-' + userstring
-		logger.warn('XDG_RUNTIME_DIR is not set, using %s as a fallback' % runtime_dir)
+		logger.warning('XDG_RUNTIME_DIR is not set, using %s as a fallback' % runtime_dir)
 
 	try:
 		os.mkdir(runtime_dir, mode=0o700)
