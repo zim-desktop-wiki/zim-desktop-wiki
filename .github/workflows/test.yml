@@ -13,8 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.6", "3.10"]
+        # Test oldest and latest supported python version
+        # Python 3.6 not supported in test environment after ubuntu-20.04
+        python-version: ["3.6", "3.11"]
+        include:
+          - python-version: "3.6"
+            os: ubuntu-20.04
+          - python-version: "3.11"
+            os: ubuntu-latest
 
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     steps:
