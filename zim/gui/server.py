@@ -79,7 +79,7 @@ class ServerWindow(Gtk.Window):
 		self.templatecombobox = Gtk.ComboBoxText.new()
 		template_names = [name for name, _ in list_templates('html')]
 		for name in template_names:
-		    self.templatecombobox.append_text(name)
+			self.templatecombobox.append_text(name)
 		self.templatecombobox.set_active(template_names.index('Default'))
 
 		self.auth_checkbox = Gtk.CheckButton.new_with_mnemonic(_('Require authentication'))
@@ -103,7 +103,7 @@ class ServerWindow(Gtk.Window):
 				# T: Field in web server gui
 			(_('Port'), self.portentry),
 				# T: Field in web server gui for HTTP port (e.g. port 80)
-            (_('Template'), self.templatecombobox),
+			(_('Template'), self.templatecombobox),
 				# T: Field in web server gui for webpage template
 			self.public_checkbox,
 			self.auth_checkbox,

@@ -249,7 +249,7 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 
 		icon_theme = Gtk.IconTheme.get_default()
 		if icon_theme.has_icon('zim-panel'):
-		    self.set_from_icon_name('zim-panel')
+			self.set_from_icon_name('zim-panel')
 		else:
 			icon = data_file('zim.png').path
 			self.set_from_file(icon)

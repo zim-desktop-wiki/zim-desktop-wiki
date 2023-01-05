@@ -413,10 +413,10 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		self.assertPagesDBEquals(db, [])
 		self.assertEqual(signals['page-row-inserted'], [])
 		self.assertEqual(set(signals['page-row-changed']), {'foo'})
-						 # "foo" has source that is deleted before children
+						# "foo" has source that is deleted before children
 		self.assertEqual(set(signals['page-row-deleted']), set(self.PAGES))
 		self.assertEqual(signals['page-changed'], ['foo'])
-						 # "foo" has source that is deleted before children
+						# "foo" has source that is deleted before children
 
 
 class TestPageNameConflict(tests.TestCase):
