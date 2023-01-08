@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2023-01-02 13:50+0000\n"
+"PO-Revision-Date: 2023-01-09 15:47+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
@@ -2757,64 +2757,62 @@ msgstr "סימניות"
 #. button label
 #: zim/plugins/bookmarksbar.py:184
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "הוספת סימנייה/הצגת הגדרות"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:294
 msgid "Do you want to delete all bookmarks?"
-msgstr ""
+msgstr "למחוק את כל הסימניות?"
 
 #. menu item for context menu
 #: zim/plugins/bookmarksbar.py:375
 msgid "Show full Page Name"
-msgstr ""
+msgstr "להציג את השם המלא של העמוד"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:397
 msgid "Set New Name"
-msgstr ""
+msgstr "הגדרת שם חדש"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:399
 msgid "Back to Original Name"
-msgstr ""
+msgstr "חזרה לשם המקורי"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:404
 msgid "Remove"
-msgstr ""
+msgstr "הסרה"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:405
 msgid "Remove All"
-msgstr ""
+msgstr "הסרה של הכול"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "העתקה"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "הדבקה"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
 msgid "Open in New Window"
-msgstr ""
+msgstr "פתיחה בחלון חדש"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:413
 msgid "Set to Current Page"
-msgstr ""
+msgstr "הגדרה לעמוד הנוכחי"
 
 #. plugin name
 #: zim/plugins/commandpalette.py:43 zim/plugins/commandpalette.py:115
-#, fuzzy
-#| msgid "Command"
 msgid "Command Palette"
-msgstr "פקודה"
+msgstr "לוח פקודות"
 
 #. plugin description
 #: zim/plugins/commandpalette.py:44
@@ -2843,12 +2841,12 @@ msgstr ""
 #. menu item
 #: zim/plugins/diagrameditor.py:39
 msgid "Diagram"
-msgstr ""
+msgstr "תרשים"
 
 #. plugin name
 #: zim/plugins/distractionfree.py:25
 msgid "Distraction Free Editing"
-msgstr ""
+msgstr "עריכה בלי הסחות דעת"
 
 #. plugin description
 #: zim/plugins/distractionfree.py:27
@@ -2856,37 +2854,39 @@ msgid ""
 "This plugin adds settings that help using zim\n"
 "as a distraction free editor.\n"
 msgstr ""
+"תוסף זה מוסיף הגדרות שעוזרות להשתמש ב־zim\n"
+"כעורך נטול הסחות דעת.\n"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:36
 msgid "Hide menubar in fullscreen mode"
-msgstr ""
+msgstr "הסתרת סרגל תפריטים במצב מסך מלא"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:37
 msgid "Maximum page width"
-msgstr ""
+msgstr "רוחב העמוד המרבי"
 
 #. plugin preference | 
 #. preference option for sourceview plugin
 #: zim/plugins/distractionfree.py:38 zim/plugins/sourceview.py:99
 msgid "Border width"
-msgstr ""
+msgstr "עובי מסגרת"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:39
 msgid "Text background color"
-msgstr ""
+msgstr "צבע רקע טקסט"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Text foreground color"
-msgstr ""
+msgstr "צבע חזית טקסט"
 
 #. plugin name
 #: zim/plugins/ditaaeditor.py:28
 msgid "Insert Ditaa"
-msgstr ""
+msgstr "הוספת Ditaa"
 
 #. plugin description
 #: zim/plugins/ditaaeditor.py:29
@@ -2895,11 +2895,14 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"תוסף זה מספק עורך תרשימים ל־zim על בסיס Ditaa.\n"
+"\n"
+"זהו תוסף ליבה שמושק יחד עם zim.\n"
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
 msgid "Ascii graph (Ditaa)"
-msgstr ""
+msgstr "תרשים ASCII ‏(Ditaa)"
 
 #. plugin name
 #: zim/plugins/equationeditor.py:21
@@ -2940,12 +2943,12 @@ msgstr ""
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
 msgid "Insert Gnuplot"
-msgstr "השתל Gnuplot‏"
+msgstr "השתלת Gnuplot‏"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:33
 msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
-msgstr "תוסף זה מספק עורך גרפים מבוסס על תוכנת Gnuplot.‏\n"
+msgstr "תוסף זה מספק עורך תרשימים על בסיס Gnuplot.‏\n"
 
 #. menu item
 #: zim/plugins/gnuplot_ploteditor.py:49
@@ -3086,10 +3089,8 @@ msgstr "ה_יום"
 
 #. side pane title
 #: zim/plugins/journal.py:335
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
-msgstr "יומן"
+msgstr "יומ_ן"
 
 #. strftime format for current date label
 #: zim/plugins/journal.py:396
@@ -3178,10 +3179,8 @@ msgstr ""
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "מיקום בחלון"
+msgstr "מעקב אחר החלון הראשי"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
@@ -3414,7 +3413,7 @@ msgstr "כותרת תחתית משותף"
 #. menu item
 #: zim/plugins/scoreeditor.py:72
 msgid "Musical Score"
-msgstr ""
+msgstr "דירוג מוזיקלי"
 
 #. plugin name | 
 #. dialog title
