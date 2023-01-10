@@ -120,20 +120,17 @@ def main():
 		sys.exit(1)
 
 	# Run the application and handle some exceptions
+	exit_code = 1
 	try:
-		exitcode = zim.main.main(*sys.argv)
-		sys.exit(exitcode)
+		exit_code = zim.main.main(*sys.argv)
 	except zim.main.GetoptError as err:
 		print(sys.argv[0] + ':', err, file=sys.stderr)
-		sys.exit(1)
 	except zim.main.UsageError as err:
 		print(err.msg, file=sys.stderr)
-		sys.exit(1)
 	except KeyboardInterrupt: # e.g. <Ctrl>C while --server
 		print('Interrupt', file=sys.stderr)
-		sys.exit(1)
-	else:
-		sys.exit(0)
+	finally:
+		sys.exit(exit_code)
 
 
 if __name__ == '__main__':
