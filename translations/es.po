@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-12-26 14:50+0000\n"
+"PO-Revision-Date: 2023-01-23 19:50+0000\n"
 "Last-Translator: gallegonovato <fran-carro@hotmail.es>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/zim/develop/es/>"
 "\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.15.1-dev\n"
+"X-Generator: Weblate 4.16-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -1882,7 +1882,7 @@ msgstr "Permitir acceso público"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr "Exigir autenticación"
+msgstr "Requierir una autenticación"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -4546,7 +4546,7 @@ msgstr "Enlazado por:"
 #: data/templates/html/Default.html:90
 #: data/templates/html/Default_with_index.html:105
 msgid "Attachments:"
-msgstr "Adjuntos"
+msgstr "Adjuntos:"
 
 #, python-format
 #~ msgid "No such file: %s"
