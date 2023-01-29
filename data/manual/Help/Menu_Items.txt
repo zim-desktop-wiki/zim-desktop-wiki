@@ -110,7 +110,10 @@ Prompt a dialog to edit the properties of a link or other object. This also show
 Remove a link at the cursor.
 
 **Copy Line <Shift><Ctrl><C>**
-Copy the whole line an put it on the clipboard.
+Copy the whole line and put it on the clipboard.
+
+**Cut Line <Shift><Ctrl><X>**
+Cut the whole line and put it on the clipboard. If there is a selection that spans multiple lines, the entire contents of the lines will be cut and added to the clipboard.
 
 **Copy Location <Shift><Ctrl><L>**
 Copy the page name for the current page on the clipboard.
