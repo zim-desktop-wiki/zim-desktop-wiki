@@ -7092,7 +7092,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def cut_current_line(self):
 		'''Menu action to cut the current line to the clipboard'''
 		buffer = self.textview.get_buffer()
-		buffer.select_line()
+		buffer.select_lines_for_selection()
 		bounds = buffer.get_selection_bounds()
 		tree = buffer.get_parsetree(bounds)
 		Clipboard.set_parsetree(self.notebook, self.page, tree)
