@@ -103,6 +103,9 @@ F12		Toggle checkbox item to 'OK'
 , all the usual keybindings apply for the gtk text edit widget, thus bindings like
 ''<Ctrl>C'', ''<Ctrl>X'', ''<Ctrl>V'', ''<Ctrl>A'' etc. work as expected.
 
+==== Customize Key Bindings ====
+Go to "Preference" and then "Key bindings". Supported since 0.72.0.
+
 ==== Side pane tree ====
 The following key bindings works when the tree in the side pane is focussed:
 
