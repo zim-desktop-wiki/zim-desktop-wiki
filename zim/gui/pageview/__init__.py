@@ -4857,11 +4857,12 @@ class TextView(Gtk.TextView):
 	def do_end_of_word(self, start, end, word, char, editmode):
 		# Default handler with built-in auto-formatting options
 		buffer = self.get_buffer()
+		non_nesting_tags = buffer.range_has_tags(_is_non_nesting_tag, start, end)
 		handled = False
 		#print('WORD >>%s<< CHAR >>%s<<' % (word, char))
 		def apply_anchor(match):
 			#print("ANCHOR >>%s<<" % word)
-			if buffer.range_has_tags(_is_non_nesting_tag, start, end):
+			if non_nesting_tags:
 				return False
 			name = match[2:]
 			buffer.delete(start, end)
@@ -4873,7 +4874,7 @@ class TextView(Gtk.TextView):
 			start = end.copy()
 			if not start.backward_chars(len(match)):
 				return False
-			elif buffer.range_has_tags(_is_non_nesting_tag, start, end):
+			elif non_nesting_tags:
 				return False
 			else:
 				tag = buffer._create_tag_tag(match)
@@ -4915,6 +4916,7 @@ class TextView(Gtk.TextView):
 				return False
 		word_is_numbered_bullet = is_numbered_bullet_re.match(word)
 		if (char == ' ' or char == '\t') \
+		and not non_nesting_tags \
 		and allow_bullet(start, word_is_numbered_bullet) \
 		and (word in autoformat_bullets or word_is_numbered_bullet):
 			if buffer.range_has_tags(_is_heading_tag, start, end):
