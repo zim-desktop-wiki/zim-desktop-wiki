@@ -3811,6 +3811,41 @@ class TestPageViewActions(tests.TestCase):
 		with tests.LoggingFilter('zim.gui.clipboard'):
 			self.assertIsNone(Clipboard.get_parsetree())
 
+	def testCutCurrentLine(self):
+		# Check that the current line, where the cursor is located, is cut and
+		# can be copied from one page to another via the cut current line feature.
+		pageView1Text = 'test 123\ntest 456\ntest 789\n'
+		pageview1 = setUpPageView(self.setUpNotebook(), pageView1Text)
+		pageview2 = setUpPageView(self.setUpNotebook())
+
+		buffer1 = pageview1.textview.get_buffer()
+		buffer2 = pageview2.textview.get_buffer()
+		self.assertEqual(get_text(buffer2), '')
+
+		buffer1.place_cursor(buffer1.get_iter_at_offset(12))
+		pageview1.cut_current_line()
+		pageview2.paste()
+
+		self.assertEqual(get_text(buffer1), 'test 123\ntest 789\n')
+		self.assertEqual(get_text(buffer2), 'test 456\n')
+
+	def testCutCurrentLines(self):
+		# Check that the multiple lines within the selection bounds are cut and
+		# can be copied from one page to another via the cut current line feature.
+		pageView1Text = 'test 123\ntest 456\ntest 789\n'
+		pageview1 = setUpPageView(self.setUpNotebook(), pageView1Text)
+		pageview2 = setUpPageView(self.setUpNotebook())
+
+		buffer1 = pageview1.textview.get_buffer()
+		buffer2 = pageview2.textview.get_buffer()
+		self.assertEqual(get_text(buffer2), '')
+
+		buffer1.select_range(buffer1.get_iter_at_offset(3), buffer1.get_iter_at_offset(12))
+		pageview1.cut_current_line()
+		pageview2.paste()
+
+		self.assertEqual(get_text(buffer1), 'test 789\n')
+		self.assertEqual(get_text(buffer2), 'test 123\ntest 456\n')
 
 class TestPageviewDialogs(tests.TestCase):
 

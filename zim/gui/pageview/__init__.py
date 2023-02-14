@@ -7090,6 +7090,19 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		buffer.delete_mark(mark)
 
+	@action(_('Cut Line'), accelerator='<Primary><Shift>X', menuhints='edit') # T: menu item to cut current line to clipboard
+	def cut_current_line(self):
+		'''Menu action to cut the current line to the clipboard'''
+		buffer = self.textview.get_buffer()
+		buffer.select_lines_for_selection()
+		bounds = buffer.get_selection_bounds()
+		tree = buffer.get_parsetree(bounds)
+		Clipboard.set_parsetree(self.notebook, self.page, tree)
+		start, end = bounds
+		buffer.delete(start, end)
+		buffer.set_modified(True)
+		buffer.update_editmode()
+
 	@action(_('Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
