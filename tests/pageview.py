@@ -2165,23 +2165,6 @@ foo
 		#~ tree = buffer.get_parsetree(raw=True)
 		#~ self.assertEqual(tree.tostring(), wanted)
 
-		# Test autoformatting of bullets when verbatim format is selected (#1957)
-		press(view, '\n')
-		buffer.toggle_format_tag_by_name('code')
-		press(view, '* test')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><div indent="0">
-</div><code>* test</code>
-<li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
-</li>
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
 		# TODO more unindenting ?
 		# TODO checkboxes
 		# TODO Auto formatting of various link types
@@ -2873,6 +2856,10 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.set_buffer(self.buffer, '<h level="1">test\n</h>')
 		self.buffer.place_cursor(self.buffer.get_iter_at_offset(0))
 		self.assertTyping('* Test ', '<h level="1">* Test test\n</h>')
+
+	def testNoAutoFormatBullerInVerbatim(self):
+		self.buffer.toggle_format_tag_by_name('code')
+		self.assertTyping('* Test ', '<code>* Test </code>')
 
 	#def testUnicodeCamelCase(self):
 	#	self.assertTyping('ВаняИванов', '<link href="">ВаняИванов</link>')
