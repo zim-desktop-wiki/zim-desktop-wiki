@@ -8,24 +8,23 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2021-04-16 14:26+0000\n"
-"Last-Translator: Wataru Onuki <bettawat@yahoo.co.jp>\n"
-"Language-Team: Japanese <https://hosted.weblate.org/projects/zim/master/ja/"
-">\n"
+"PO-Revision-Date: 2023-02-25 11:35+0000\n"
+"Last-Translator: Humiaki M <fumi032456@gmail.com>\n"
+"Language-Team: Japanese <https://hosted.weblate.org/projects/zim/develop/ja/>"
+"\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.6-dev\n"
+"X-Generator: Weblate 4.16-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "テンプレート\"%s\"が見つかりません"
+msgstr "アプリケーション\"%s\"が見つかりません"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -4321,10 +4320,8 @@ msgstr ""
 
 #. plugin name
 #: zim/plugins/toolbar.py:39
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Tool Bar"
-msgstr "ツールバー(_T)"
+msgstr "ツールバー"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40
