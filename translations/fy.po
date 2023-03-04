@@ -8,86 +8,92 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2023-03-06 00:48+0000\n"
+"Last-Translator: Peter Hans van den Muijzenberg <mysha@online.nl>\n"
+"Language-Team: Frisian <https://hosted.weblate.org/projects/zim/develop/fy/>"
+"\n"
 "Language: fy\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.16.2-dev\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
 #, python-format
 msgid "Cound not find application: %s"
-msgstr ""
+msgstr "Kin tapassing net fine: %s"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
 #, python-format
 msgid "Failed to run application: %s"
-msgstr ""
+msgstr "Kin tapassing net begjinne: %s"
 
 #. Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
 #: zim/applications.py:153
-#, python-format
+#, fuzzy, python-format
 msgid ""
 "%(cmd)s\n"
 "returned non-zero exit status %(code)i"
 msgstr ""
+"%(cmd)s\n"
+"jout net-nul einkoade %(code)i"
 
 #. error when application failed to start
 #: zim/applications.py:426
 #, python-format
 msgid "Failed running: %s"
-msgstr ""
+msgstr "Wol net rinne: %s"
 
 #. label for default webbrowser | 
 #. label for default application
 #: zim/applications.py:447 zim/applications.py:490 zim/gui/applications.py:1171
 msgid "Default"
-msgstr ""
+msgstr "Ferstek"
 
 #. Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
 #: zim/datetimetz.py:98
 msgid "calendar:week_start:0"
-msgstr ""
+msgstr "calendar:week_start:1"
 
 #. generic error dialog
 #: zim/errors.py:46
+#, fuzzy
 msgid "Looks like you found a bug"
-msgstr ""
+msgstr "Hast in brek fûn"
 
 #. message for FileUnicodeError (%s is the file name)
 #: zim/fs.py:275 zim/newfs/base.py:64
-#, python-format
+#, fuzzy, python-format
 msgid "Could not read: %s"
-msgstr ""
+msgstr "Koe net lêze: %s"
 
 #. message for FileUnicodeError
 #: zim/fs.py:277 zim/newfs/base.py:66
 msgid "This usually means the file contains invalid characters"
-msgstr ""
+msgstr "Dit betsjut ornaris dat de triem ûnjildige tekens hat"
 
 #. label for detailed error | 
 #. section for version details in "save version" dialog
 #: zim/fs.py:279 zim/newfs/base.py:68
 #: zim/plugins/versioncontrol/__init__.py:772
+#, fuzzy
 msgid "Details"
-msgstr ""
+msgstr "Lytsguod"
 
 #. Error message
 #: zim/fs.py:1171
-#, python-format
+#, fuzzy, python-format
 msgid "File is not writable: %s"
-msgstr ""
+msgstr "Unskriuwber"
 
 #. error message
 #: zim/fs.py:1243
-#, python-format
+#, fuzzy, python-format
 msgid "File changed on disk: %s"
-msgstr ""
+msgstr "Triem oanpast op skiif: %s"
 
 #. option in preferences dialog
 #: zim/gui/applications.py:46
