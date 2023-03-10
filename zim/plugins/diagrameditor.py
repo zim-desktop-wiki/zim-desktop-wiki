@@ -10,8 +10,8 @@ from zim.config import data_file
 from zim.applications import Application, ApplicationError
 
 
-# TODO put these commands in preferences
-dotcmd = ('dot', '-Tpng', '-o')
+def get_cmd(fmt):
+	return ('dot', f'-T{fmt}', '-o')
 
 
 class InsertDiagramPlugin(PluginClass):
@@ -27,9 +27,18 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 	}
 
+	@property
+	def plugin_preferences(self):
+		return (
+			'prefer_svg',
+			'bool',
+			_('Generate diagrams in SVG format'),
+			self.supports_image_format('svg'),
+		),
+
 	@classmethod
 	def check_dependencies(klass):
-		has_dotcmd = Application(dotcmd).tryexec()
+		has_dotcmd = Application(get_cmd('png')).tryexec()
 		return has_dotcmd, [("GraphViz", has_dotcmd, True)]
 
 
@@ -43,13 +52,23 @@ class BackwardDiagramImageObjectType(BackwardImageGeneratorObjectType):
 
 class DiagramGenerator(ImageGeneratorClass):
 
-	imagefile_extension = '.png'
+	@property
+	def _pref_format(self):
+		return 'svg' if self.plugin.preferences['prefer_svg'] else 'png'
+
+	@property
+	def imagefile_extension(self):
+		return '.' + self._pref_format
+
+	@property
+	def dotcmd(self):
+		return get_cmd(self._pref_format)
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.dotfile = TmpFile('diagram.dot')
 		self.dotfile.touch()
-		self.pngfile = LocalFile(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
+		self.imgfile = LocalFile(self.dotfile.path[:-4] + self.imagefile_extension) # len('.dot') == 4
 
 	def generate_image(self, text):
 		# Write to tmp file
@@ -57,13 +76,13 @@ class DiagramGenerator(ImageGeneratorClass):
 
 		# Call GraphViz
 		try:
-			dot = Application(dotcmd)
-			dot.run((self.pngfile, self.dotfile))
+			dot = Application(self.dotcmd)
+			dot.run((self.imgfile, self.dotfile))
 		except ApplicationError:
 			return None, None # Sorry, no log
 		else:
-			if self.pngfile.exists():
-				return self.pngfile, None
+			if self.imgfile.exists():
+				return self.imgfile, None
 			else:
 				# When supplying a dot file with a syntax error, the dot command
 				# doesn't return an error code (so we don't raise
@@ -73,4 +92,4 @@ class DiagramGenerator(ImageGeneratorClass):
 
 	def cleanup(self):
 		self.dotfile.remove()
-		self.pngfile.remove()
+		self.imgfile.remove()
