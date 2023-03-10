@@ -11,7 +11,7 @@ from zim.applications import Application, ApplicationError
 
 
 # TODO put these commands in preferences
-diagcmd = ('seqdiag', '-o')
+diagcmd = ('seqdiag', '-T', 'svg', '-o')
 
 
 class InsertSequenceDiagramPlugin(PluginClass):
@@ -42,13 +42,13 @@ class BackwardSequenceDiagramImageObjectType(BackwardImageGeneratorObjectType):
 
 class SequenceDiagramGenerator(ImageGeneratorClass):
 
-	imagefile_extension = '.png'
+	imagefile_extension = '.svg'
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.diagfile = TmpFile('seqdiagram.diag')
 		self.diagfile.touch()
-		self.pngfile = LocalFile(self.diagfile.path[:-5] + '.png') # len('.diag') == 5
+		self.imgfile = LocalFile(self.diagfile.path[:-5] + self.imagefile_extension) # len('.diag') == 5
 
 	def generate_image(self, text):
 		# Write to tmp file
@@ -57,12 +57,12 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 		# Call seqdiag
 		try:
 			diag = Application(diagcmd)
-			diag.run((self.pngfile, self.diagfile))
+			diag.run((self.imgfile, self.diagfile))
 		except ApplicationError:
 			return None, None # Sorry, no log
 		else:
-			return self.pngfile, None
+			return self.imgfile, None
 
 	def cleanup(self):
 		self.diagfile.remove()
-		self.pngfile.remove()
+		self.imgfile.remove()
