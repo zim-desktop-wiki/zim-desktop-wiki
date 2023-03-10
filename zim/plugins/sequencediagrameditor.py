@@ -2,6 +2,7 @@
 # Copyright 2011 Greg Warner <gdwarner@gmail.com>
 # (Pretty much copied from diagrameditor.py)
 
+import logging
 
 from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import ImageGeneratorClass, BackwardImageGeneratorObjectType
@@ -9,6 +10,7 @@ from zim.plugins.base.imagegenerator import ImageGeneratorClass, BackwardImageGe
 from zim.newfs import LocalFile, TmpFile
 from zim.applications import Application, ApplicationError
 
+logger = logging.getLogger('zim.plugins.sequencediagrameditor')
 
 # TODO put these commands in preferences
 diagcmd = ('seqdiag', '-o')
@@ -68,6 +70,7 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 		# Write to tmp file
 		self.diagfile.write(text)
 		self.imgfile = LocalFile(self.diagfile.path[:-5] + self.imagefile_extension) # len('.diag') == 5
+		logger.debug('Writing diagram to temp file: %s', self.imgfile)
 
 		# Call seqdiag
 		try:
@@ -79,5 +82,8 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 			return self.imgfile, None
 
 	def cleanup(self):
-		self.diagfile.remove()
-		self.imgfile.remove()
+		try:
+			self.diagfile.remove()
+			self.imgfile.remove()
+		except AttributeError:
+			logger.debug('Closed dialog before generating image, nothing to remove')
