@@ -1,14 +1,16 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+import logging
+
 from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import \
 	ImageGeneratorClass, BackwardImageGeneratorObjectType
 
 from zim.newfs import LocalFile, TmpFile
-from zim.config import data_file
 from zim.applications import Application, ApplicationError
 
+logger = logging.getLogger('zim.plugins.diagrameditor')
 
 def get_cmd(fmt):
 	return ('dot', f'-T{fmt}', '-o')
@@ -29,6 +31,7 @@ This is a core plugin shipping with zim.
 
 	@property
 	def plugin_preferences(self):
+		# key, type, label, default
 		return (
 			'prefer_svg',
 			'bool',
@@ -68,11 +71,12 @@ class DiagramGenerator(ImageGeneratorClass):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.dotfile = TmpFile('diagram.dot')
 		self.dotfile.touch()
-		self.imgfile = LocalFile(self.dotfile.path[:-4] + self.imagefile_extension) # len('.dot') == 4
 
 	def generate_image(self, text):
 		# Write to tmp file
 		self.dotfile.write(text)
+		self.imgfile = LocalFile(self.dotfile.path[:-4] + self.imagefile_extension) # len('.dot') == 4
+		logger.debug('Writing diagram to temp file: %s', self.imgfile)
 
 		# Call GraphViz
 		try:
@@ -92,4 +96,7 @@ class DiagramGenerator(ImageGeneratorClass):
 
 	def cleanup(self):
 		self.dotfile.remove()
-		self.imgfile.remove()
+		try:
+			self.imgfile.remove()
+		except AttributeError:
+			logger.debug('Closed dialog before generating image, nothing to remove')

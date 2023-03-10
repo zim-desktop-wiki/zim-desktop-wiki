@@ -5,16 +5,16 @@
 import logging
 
 from zim.plugins import PluginClass
-from zim.plugins.base.imagegenerator import ImageGeneratorClass, BackwardImageGeneratorObjectType
+from zim.plugins.base.imagegenerator import \
+	ImageGeneratorClass, BackwardImageGeneratorObjectType
 
 from zim.newfs import LocalFile, TmpFile
 from zim.applications import Application, ApplicationError
 
 logger = logging.getLogger('zim.plugins.sequencediagrameditor')
 
-# TODO put these commands in preferences
-diagcmd = ('seqdiag', '-o')
-diagcmd_svg = ('seqdiag', '-T', 'svg', '-o')
+def get_cmd(fmt):
+	return ('seqdiag', '-T', fmt, '-o')
 
 
 class InsertSequenceDiagramPlugin(PluginClass):
@@ -29,14 +29,19 @@ It allows easy editing of sequence diagrams.
 		'author': 'Greg Warner',
 	}
 
-	plugin_preferences = (
+	@property
+	def plugin_preferences(self):
 		# key, type, label, default
-		('prefer_svg', 'bool', _('Generate diagrams in SVG format'), False),
-	)
+		return (
+			'prefer_svg',
+			'bool',
+			_('Generate diagrams in SVG format'),
+			self.supports_image_format('svg'),
+		),
 
 	@classmethod
 	def check_dependencies(klass):
-		has_diagcmd = Application(diagcmd).tryexec()
+		has_diagcmd = Application(get_cmd('png')).tryexec()
 		return has_diagcmd, [("seqdiag", has_diagcmd, True)]
 
 
@@ -50,16 +55,16 @@ class BackwardSequenceDiagramImageObjectType(BackwardImageGeneratorObjectType):
 
 class SequenceDiagramGenerator(ImageGeneratorClass):
 	@property
-	def _prefer_svg(self):
-		return self.plugin.preferences['prefer_svg']
+	def _pref_format(self):
+		return 'svg' if self.plugin.preferences['prefer_svg'] else 'png'
 
 	@property
 	def imagefile_extension(self):
-		return '.svg' if self._prefer_svg else '.png'
+		return '.' + self._pref_format
 
 	@property
 	def diagcmd(self):
-		return diagcmd_svg if self._prefer_svg else diagcmd
+		return get_cmd(self._pref_format)
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
@@ -82,8 +87,8 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 			return self.imgfile, None
 
 	def cleanup(self):
+		self.diagfile.remove()
 		try:
-			self.diagfile.remove()
 			self.imgfile.remove()
 		except AttributeError:
 			logger.debug('Closed dialog before generating image, nothing to remove')
