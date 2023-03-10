@@ -30,7 +30,7 @@ to let plugins extend specific application objects.
 '''
 
 
-from gi.repository import GObject
+from gi.repository import GdkPixbuf, GObject
 import types
 import os
 import sys
@@ -735,6 +735,12 @@ class PluginClass(ConnectorMixin):
 					pass
 
 		return properties
+
+	def supports_image_format(self, fmt):
+		'''
+		Check if an image format is supported by GDK.
+		'''
+		return fmt in (f.name for f in GdkPixbuf.Pixbuf.get_formats())
 
 	@classmethod
 	def lookup_subclass(pluginklass, klass):
