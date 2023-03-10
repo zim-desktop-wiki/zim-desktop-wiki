@@ -11,7 +11,8 @@ from zim.applications import Application, ApplicationError
 
 
 # TODO put these commands in preferences
-diagcmd = ('seqdiag', '-T', 'svg', '-o')
+diagcmd = ('seqdiag', '-o')
+diagcmd_svg = ('seqdiag', '-T', 'svg', '-o')
 
 
 class InsertSequenceDiagramPlugin(PluginClass):
@@ -25,6 +26,11 @@ It allows easy editing of sequence diagrams.
 		'help': 'Plugins:Sequence Diagram Editor',
 		'author': 'Greg Warner',
 	}
+
+	plugin_preferences = (
+		# key, type, label, default
+		('prefer_svg', 'bool', _('Generate diagrams in SVG format'), False),
+	)
 
 	@classmethod
 	def check_dependencies(klass):
@@ -41,22 +47,31 @@ class BackwardSequenceDiagramImageObjectType(BackwardImageGeneratorObjectType):
 
 
 class SequenceDiagramGenerator(ImageGeneratorClass):
+	@property
+	def _prefer_svg(self):
+		return self.plugin.preferences['prefer_svg']
 
-	imagefile_extension = '.svg'
+	@property
+	def imagefile_extension(self):
+		return '.svg' if self._prefer_svg else '.png'
+
+	@property
+	def diagcmd(self):
+		return diagcmd_svg if self._prefer_svg else diagcmd
 
 	def __init__(self, plugin, notebook, page):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.diagfile = TmpFile('seqdiagram.diag')
 		self.diagfile.touch()
-		self.imgfile = LocalFile(self.diagfile.path[:-5] + self.imagefile_extension) # len('.diag') == 5
 
 	def generate_image(self, text):
 		# Write to tmp file
 		self.diagfile.write(text)
+		self.imgfile = LocalFile(self.diagfile.path[:-5] + self.imagefile_extension) # len('.diag') == 5
 
 		# Call seqdiag
 		try:
-			diag = Application(diagcmd)
+			diag = Application(self.diagcmd)
 			diag.run((self.imgfile, self.diagfile))
 		except ApplicationError:
 			return None, None # Sorry, no log
