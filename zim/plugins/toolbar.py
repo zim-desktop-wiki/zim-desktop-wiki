@@ -11,6 +11,7 @@ from gi.repository import Gtk
 from zim.plugins import PluginClass
 from zim.signals import SignalHandler
 from zim.gui.pageview import PageViewExtension
+from zim.plugins.tasklist.gui import TaskListWindowExtension
 from zim.gui.widgets import TOP, POSITIONS
 
 
@@ -90,3 +91,16 @@ class ToolBarMainWindowExtension(PageViewExtension):
 		window = self.pageview.get_toplevel()
 		window.setup_toolbar() # Restore default
 
+
+class ToolbarTaskListWindowExtension(TaskListWindowExtension):
+	# FIXME - should be extension of generic Window base class
+
+	def __init__(self, plugin, window):
+		TaskListWindowExtension.__init__(self, plugin, window)
+		self.connectto(self.plugin.preferences, 'changed', self.on_preferences_changed)
+		self.on_preferences_changed(self.plugin.preferences)
+
+	def on_preferences_changed(self, preferences):
+		if self.window._toolbar:
+			self.window._toolbar.set_style(_get_style(self.plugin.preferences['style']))
+			self.window._toolbar.set_icon_size(_get_size(self.plugin.preferences['size']))

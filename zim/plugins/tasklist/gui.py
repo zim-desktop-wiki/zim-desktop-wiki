@@ -14,7 +14,7 @@ import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 
 from zim.notebook import Path
-from zim.actions import get_actions, RadioActionMethod, PRIMARY_MODIFIER_MASK
+from zim.actions import toggle_action, initialize_actiongroup, PRIMARY_MODIFIER_MASK
 from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
 from zim.config import ConfigManager
 from zim.plugins import PluginManager, ExtensionBase, extendable
@@ -277,6 +277,7 @@ class TaskListWindowExtension(ActionExtensionBase):
 	initialization.
 	'''
 
+	# TODO - should be generic base class for extending windows
 	# TODO - remove actions on teardown !!!
 
 	def __init__(self, plugin, window):
@@ -288,7 +289,9 @@ class TaskListWindowExtension(ActionExtensionBase):
 	def on_destroy(self, dialog):
 		self.destroy()
 
+
 from zim.config import value_is_coord
+
 
 @extendable(TaskListWindowExtension)
 class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
@@ -357,14 +360,23 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		pane2_vbox = Gtk.VBox()
 		self.hpane.pack2(pane2_vbox, resize=True)
 
-		swindow = self._create_tasklisttreeview(navigation, properties)
 		vbox.add(self.hpane)
+
+		self._search_bar = Gtk.SearchBar()
+		pane2_vbox.pack_start(self._search_bar, False, True, 0)
+		self._filter_entry = self._create_filter_entry()
+		self._filter_entry.set_size_request(400, -1) # FIXME, scale as percentage of window size / pane size ?
+		self._search_bar.add(self._filter_entry)
+		self._search_bar.connect_entry(self._filter_entry)
+		self._filter_entry.show_all()
+		self.connect('key-press-event', lambda o, e: self._search_bar.handle_event(e))
+		self._search_bar.connect('notify::search-mode-enabled', lambda *a: self.show_search(active=self._search_bar.get_search_mode()))
+			# make toggle button consistent when e.g. closing bar with <Escape> key binding
+
+		swindow = self._create_tasklisttreeview(navigation, properties)
 		pane2_vbox.pack_start(swindow, True, True, 0)
 
 		self.tasklisttreeview.view_columns['task'].set_min_width(400) # don't let this column get too small
-
-		self._filter_entry = self._create_filter_entry()
-		pane2_vbox.pack_start(self._filter_entry, False, True, 0)
 
 		self.hpane.pack1(self._create_selection_pane(properties, show_inbox_next, width=150), resize=False)
 
@@ -372,16 +384,21 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 			popover = self._create_menu()
 			button = self._create_menu_button(popover)
 			self._headerbar.pack_end(button)
+
+			self._headerbar.pack_end(self.show_search.create_icon_button())
 		else:
+			assert self._toolbar is not None
 			self._update_toolbar()
 
+		# Initialze actions
+		initialize_actiongroup(self, 'win')
+
 		# Hack to add Ctrl-F keybinding for the filter
-		# in future should be handled by action / toolbar icon
-		# maybe move filter to top of window for consistent Gnome HiG look
+		# FIXME: would prefer Window base class to handle actions out of the box
 		group = Gtk.AccelGroup()
 		group.connect( # <Primary><F>
 			Gdk.unicode_to_keyval(ord('f')), PRIMARY_MODIFIER_MASK, Gtk.AccelFlags.VISIBLE,
-			lambda *a: self._filter_entry.grab_focus() )
+			lambda *a: self.show_search() )
 		self.add_accel_group(group)
 
 	def _update_toolbar(self):
@@ -394,6 +411,10 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		space.set_draw(False)
 		space.set_expand(True)
 		self._toolbar.insert(space, -1)
+
+		item = self.show_search.create_tool_button(connect_button=False)
+		item.set_action_name('win.show_search')
+		self._toolbar.insert(item, -1)
 
 		popover = self._create_menu()
 		button = self._create_menu_toolbutton(popover)
@@ -481,6 +502,11 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 			self.uistate['windowsize'] = (w, h)
 		except:
 			logger.exception('Exception in save_uistate')
+
+	@toggle_action(_('_Search'), '<Primary>F', verb_icon='edit-find-symbolic') # T: Menu item
+	def show_search(self, show):
+		self._search_bar.set_search_mode(show)
+
 
 
 class ListSelectionView(Gtk.ListBox):
