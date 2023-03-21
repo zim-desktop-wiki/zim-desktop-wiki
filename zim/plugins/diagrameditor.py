@@ -9,6 +9,7 @@ from zim.plugins.base.imagegenerator import \
 
 from zim.newfs import LocalFile, TmpFile
 from zim.applications import Application, ApplicationError
+from zim.gui.widgets import supports_image_format
 
 logger = logging.getLogger('zim.plugins.diagrameditor')
 
@@ -29,15 +30,15 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 	}
 
-	@property
-	def plugin_preferences(self):
+	plugin_preferences = (
 		# key, type, label, default
-		return (
+		(
 			'prefer_svg',
 			'bool',
 			_('Generate diagrams in SVG format'),
-			self.supports_image_format('svg'),
+			supports_image_format('svg')
 		),
+	)
 
 	@classmethod
 	def check_dependencies(klass):

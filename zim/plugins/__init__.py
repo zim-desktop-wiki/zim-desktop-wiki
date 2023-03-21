@@ -736,12 +736,6 @@ class PluginClass(ConnectorMixin):
 
 		return properties
 
-	def supports_image_format(self, fmt):
-		'''
-		Check if an image format is supported by GDK.
-		'''
-		return fmt in (f.name for f in GdkPixbuf.Pixbuf.get_formats())
-
 	@classmethod
 	def lookup_subclass(pluginklass, klass):
 		'''Returns first subclass of C{klass} found in the module of
