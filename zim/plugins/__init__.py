@@ -30,7 +30,7 @@ to let plugins extend specific application objects.
 '''
 
 
-from gi.repository import GdkPixbuf, GObject
+from gi.repository import GObject
 import types
 import os
 import sys
