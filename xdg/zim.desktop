@@ -4,6 +4,7 @@ Type=Application
 Exec=zim %f
 Icon=zim
 StartupNotify=true
+StartupWMClass=zim
 Terminal=false
 Categories=Utility;TextEditor;GTK;
 MimeType=application/x-zim-notebook;text/x-zim-wiki;
