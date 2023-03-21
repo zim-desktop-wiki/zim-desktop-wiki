@@ -353,8 +353,13 @@ class Application(object):
 		if TEST_MODE:
 			return TEST_MODE_RUN_CB(argv)
 
+		startupinfo = None
+		if os.name == 'nt':
+			startupinfo = subprocess.STARTUPINFO()
+			startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+			startupinfo.wShowWindow = subprocess.SW_HIDE
 		try:
-			p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
 		except OSError:
 			if _CAN_CALL_FLATPAK_HOST_COMMAND:
 				p = subprocess.Popen(_FLATPAK_HOSTCOMMAND_PREFIX + argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
