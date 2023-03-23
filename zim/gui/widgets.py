@@ -364,7 +364,7 @@ def rotate_pixbuf(pixbuf):
 def supports_image_format(fmt):
 	'''Check if an image format is supported by GDK.
 	'''
-	return fmt in (f.name for f in GdkPixbuf.Pixbuf.get_formats())
+	return fmt in (f.get_name() for f in GdkPixbuf.Pixbuf.get_formats())
 
 def help_text_factory(text):
 	'''Create a label with an "info" icon in front of it. Intended for
