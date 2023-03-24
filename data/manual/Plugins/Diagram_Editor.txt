@@ -25,3 +25,9 @@ digraph G {
 
 For full documentation of the script language see: http://www.graphviz.org/
 
+===== Options =====
+
+This plugin has the following options:
+
+* The option **Generate diagrams in SVG format** determines whether the diagrams will be generated in the SVG format. This is only enabled by default if your system supports it.
+
