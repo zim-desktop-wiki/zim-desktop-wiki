@@ -16,6 +16,13 @@ To install the "seqdiag" tool, use ''easy_install'' or ''pip'':
 	''$ sudo pip seqdiag''
 
 
+===== Options =====
+
+This plugin has the following options:
+
+* The option **Generate diagrams in SVG format** determines whether the diagrams will be generated in the SVG format. This is only enabled by default if your system supports it.
+
+
 ===== Example =====
 
 For example a diagram like:
