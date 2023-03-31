@@ -111,7 +111,8 @@ class MergerPageViewExtension(PageViewExtension):
            logger.debug('Reset poll timer')
            self._autoload_timer = GObject.timeout_add(
                    timeout*1000, # s -> ms
-                   self.try_save_pagewrap
+                   #self.try_save_pagewrap
+                   self.do_try_save_pagewrap
            )
 
     def on_file_changed(self,*args, **kwargs):
