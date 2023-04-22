@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2023-03-01 09:42+0000\n"
-"Last-Translator: Walter Paulo <polo@tictips.net>\n"
+"PO-Revision-Date: 2023-04-23 13:52+0000\n"
+"Last-Translator: joel MKO <joelmko90@outlook.com>\n"
 "Language-Team: French <https://hosted.weblate.org/projects/zim/develop/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.16-rc\n"
+"X-Generator: Weblate 4.18-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -3240,7 +3240,7 @@ msgstr "Afficher le bouton pour la carte du lien dans la barre du haut"
 #. preferences option
 #: zim/plugins/linkmap.py:51
 msgid "Autozoom to fit map"
-msgstr ""
+msgstr "Zoom automatique pour ajuster la carte"
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
@@ -3251,10 +3251,8 @@ msgstr "Position dans la fenêtre"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "Ouvrir dans une nouvelle fenêtre"
+msgstr "Toujours ouvrir les liens dans de nouvelles fenêtres"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3987,7 +3985,7 @@ msgstr "Actif"
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
 msgid "Inbox"
-msgstr ""
+msgstr "Boîte de réception"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
