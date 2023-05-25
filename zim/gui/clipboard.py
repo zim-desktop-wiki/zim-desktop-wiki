@@ -283,6 +283,7 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 
 def _link_tree(links, notebook, path):
 	# Convert a list of links (of any type) into a parsetree
+	# To be used on the recieving end of a copy-paste, arguments are the target notebook and path
 	#~ print('LINKS: ', links)
 	#~ print('NOTEBOOK and PATH:', notebook, path)
 	builder = ParseTreeBuilder()
@@ -434,15 +435,27 @@ class InterWikiLinkData(UriData):
 	targets = (PARSETREE_TARGET,) + UriData.targets
 
 	def __init__(self, href, url):
-		UriData.__init__(self, url)
 		self.interwiki_href = href
+		self.interwiki_url = url
+		if self.interwiki_url is not None:
+			UriData.__init__(self, url)
+		else:
+			pass # interwiki may be undefined, resulting in url being None
 
 	def get_data_as(self, targetid):
 		if targetid == PARSETREE_TARGET_ID:
-			parsetree = _link_tree((self.interwiki_href,), None, None)
+			builder = ParseTreeBuilder()
+			builder.start(FORMATTEDTEXT)
+			builder.append(LINK, {'href': self.interwiki_href}, self.interwiki_href)
+			builder.end(FORMATTEDTEXT)
+			parsetree = builder.get_parsetree()
+			parsetree._set_root_attrib('notebook', '-') # force resolve on paste
+			parsetree._set_root_attrib('page', '-')
 			return parsetree.tostring()
-		else:
+		elif self.interwiki_url is not None:
 			return UriData.get_data_as(self, targetid)
+		else:
+			return self.interwiki_href
 
 
 class ParseTreeData(ClipboardData):
