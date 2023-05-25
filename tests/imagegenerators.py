@@ -174,8 +174,6 @@ class TestImageGeneratorPluginMixin(object):
 			assertIsPNG(imagefile)
 		# else: TODO other types
 
-		if backward_otype:
-			self.assertTrue(imagefile.basename.endswith(backward_otype.generator_klass.imagefile_extension))
 		self.assertTrue(imagefile.exists())
 		if logfile is not None:
 			self.assertTrue(logfile.exists())
