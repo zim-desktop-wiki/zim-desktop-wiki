@@ -1241,7 +1241,8 @@ class TextBuffer(Gtk.TextBuffer):
 				else:
 					# Copy text content as href
 					start, end = self.get_tag_bounds(iter, tag)
-					link['href'] = start.get_text(end)
+					link['href'] = start.get_text(end).strip()
+						# assume starting or trailing whitespace is an editing artefact
 			return link
 		else:
 			return None

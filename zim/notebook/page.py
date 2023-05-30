@@ -360,6 +360,8 @@ class HRef():
 		@note: This method HRef class assumes the logic of our wiki links.
 		For other formats, a separate constructor may be needed.
 		'''
+		href = href.strip()
+
 		if href.startswith(':'):
 			rel = HREF_REL_ABSOLUTE
 		elif href.startswith('+'):
