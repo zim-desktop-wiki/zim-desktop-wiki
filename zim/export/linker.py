@@ -150,17 +150,20 @@ class ExportLinker(BaseLinker):
 	## Methods below are internal, not used by format or template ##
 
 	def _link_page(self, link):
+		href = HRef.new_from_wiki_link(link)
+		if not href.names:
+			return '#' + href.anchor if href.anchor else ''
+
 		try:
 			if self.source:
-				path = self.notebook.pages.resolve_link(
-					self.source, HRef.new_from_wiki_link(link)
-				)
+				path = self.notebook.pages.resolve_link(self.source, href)
 			else:
 				path = self.notebook.pages.lookup_from_user_input(link)
 		except ValueError:
 			return ''
 		else:
-			return self.page_object(path)
+			url = self.page_object(path)
+			return url + '#' + href.anchor if href.anchor else url
 
 	def _link_file(self, link):
 		try:
