@@ -380,12 +380,15 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 
 		self.hpane.pack1(self._create_selection_pane(properties, show_inbox_next, width=150), resize=False)
 
+		self._init_count_label()
+		self.tasklisttreeview.connect('view-changed', self._update_count_label)
+
 		if self._headerbar:
 			popover = self._create_menu()
 			button = self._create_menu_button(popover)
 			self._headerbar.pack_end(button)
-
 			self._headerbar.pack_end(self.show_search.create_icon_button())
+			self._headerbar.pack_end(self._count_label)
 		else:
 			assert self._toolbar is not None
 			self._update_toolbar()
@@ -401,6 +404,19 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 			lambda *a: self.show_search() )
 		self.add_accel_group(group)
 
+	def _init_count_label(self):
+		self._count_label = Gtk.Label()
+		self._count_label.set_margin_start(12)
+		self._count_label.set_margin_end(12)
+		#context = self._count_label.get_style_context()
+		#context.add_class(Gtk.STYLE_CLASS_SUBTITLE)
+		model = self.tasklisttreeview.get_model()
+		count = len(model) if model else 0
+		self._update_count_label(None, count)
+
+	def _update_count_label(self, view, count):
+		self._count_label.set_text(_('%s shown') % str(count)) # T: number of tasks shown in tasklist window
+
 	def _update_toolbar(self):
 		for item in self._toolbar.get_children():
 			self._toolbar.remove(item)
@@ -411,6 +427,10 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		space.set_draw(False)
 		space.set_expand(True)
 		self._toolbar.insert(space, -1)
+
+		item = Gtk.ToolItem()
+		item.add(self._count_label)
+		self._toolbar.insert(item, -1)
 
 		item = self.show_search.create_tool_button(connect_button=False)
 		item.set_action_name('win.show_search')
