@@ -162,7 +162,7 @@ After adding the .po file(s) you can compile the translation using:
 
 > A few remarks for Italian contributors. Please notice that these choices were
 made earlier and we should respect them in order to assure consistency. It
-doesn't mean that they're better than others. It's a just matter of stop
+doesn't mean that they're better than others. It's just a matter of stopping
 discussing and choosing one option instead of another. :)
 -- *Mailing list post by  Marco Cevoli, Aug 29, 2012*
 
