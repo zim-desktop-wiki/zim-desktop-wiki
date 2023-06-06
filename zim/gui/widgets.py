@@ -2040,7 +2040,10 @@ class uistate_property(object):
 			return obj.uistate[self.key]
 
 	def __set__(self, obj, value):
-		obj.uistate[self.key] = value
+		if obj:
+			if not self.key in obj.uistate:
+				obj.uistate.setdefault(self.key, *self.default)
+			obj.uistate[self.key] = value
 
 
 # Some constants used to position widgets in the window panes

@@ -16,12 +16,13 @@ from zim.utils import natural_sorted
 from zim.notebook import Path
 from zim.actions import toggle_action, initialize_actiongroup, PRIMARY_MODIFIER_MASK
 from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
-from zim.config import ConfigManager
+from zim.config import ConfigManager, ConfigDefinition
 from zim.plugins import PluginManager, ExtensionBase, extendable
 from zim.gui.widgets import \
 	Dialog, WindowSidePaneWidget, InputEntry, \
 	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, StatusPage, \
-	encode_markup_text, decode_markup_text, widget_set_css
+	encode_markup_text, decode_markup_text, widget_set_css, \
+	uistate_property
 from zim.gui.actionextension import ActionExtensionBase, populate_toolbar_with_actions
 from zim.gui.clipboard import Clipboard
 
@@ -57,6 +58,30 @@ STATUS_COL = 11
 STATUS_ICON_NAME_COL = 12
 
 
+class TaskStatusUIState(ConfigDefinition):
+	'''Data type for selected task status list in uistate'''
+
+	def check(self, value):
+		# Valid data is sequence of integers for the TASK_STATUS_* constants
+		if isinstance(value, str):
+			try:
+				value = [int(s) for s in value.split(',')]
+			except:
+				raise ValueError
+		else:
+			if not (
+				isinstance(value, (list, tuple))
+				and all(isinstance(v, int) for v in value)
+			):
+				raise ValueError
+
+		if not all((v >= 0 and v <= 4) for v in value):
+			# In range of TASK_STATUS_OPEN to TASK_STATUS_TRANSMIGRATED
+			raise ValueError
+
+		return value
+
+
 class TaskListWidgetMixin(object):
 	'''Common functions between side-pane widget and dialog'''
 
@@ -69,13 +94,11 @@ class TaskListWidgetMixin(object):
 		SELECTION_WAITING: (_('Waiting'), WaitingTasks), # T: list with tasks (GTD style category)
 	}
 
+	taskselection_type = uistate_property('task_list', SELECTION_ALL, tuple(SELECTION_MAP.keys()))
+	status = uistate_property('task_status', [TASK_STATUS_OPEN], TaskStatusUIState)
+
 	def __init__(self, index, uistate, properties):
 		self.index = index
-		self.taskselection_type = SELECTION_ALL
-		self.taskselection = AllTasks.new_from_index(index)
-		self.status = [TASK_STATUS_OPEN]
-		self.label_tag_filter = (None, None, None)
-
 		self.tasklisttreeview = None
 		self.selection_list = None
 		self.tag_list = None
@@ -85,7 +108,15 @@ class TaskListWidgetMixin(object):
 		self.uistate.setdefault('sort_column', 0)
 		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
+		self.taskselection = self.SELECTION_MAP[self.taskselection_type][1].new_from_index(index)
+		self.label_tag_filter = (None, None, None) # NOTE: Not taken from uistate since encoding&validation would be non-trivial
+
 		self.connectto(properties, 'changed', self.on_properties_changed)
+
+	def _init_selection_state(self):
+		# Ensure widgets reflect selection
+		state = self._get_selection_state()
+		self._set_selection_state(state)
 
 	def _get_selection_state(self):
 		return (self.taskselection_type, self.status[:], self.label_tag_filter)
@@ -259,6 +290,8 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 		filter_entry = self._create_filter_entry()
 		self.pack_end(filter_entry, False, True, 0)
 
+		self._init_selection_state()
+
 	def set_embeded_closebutton(self, button):
 		if self._close_button:
 			self._header_hbox.remove(self._close_button)
@@ -392,6 +425,8 @@ class TaskListWindow(TaskListWidgetMixin, ConnectorMixin, Gtk.Window):
 		else:
 			assert self._toolbar is not None
 			self._update_toolbar()
+
+		self._init_selection_state()
 
 		# Initialze actions
 		initialize_actiongroup(self, 'win')

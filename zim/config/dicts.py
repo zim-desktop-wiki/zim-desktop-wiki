@@ -595,10 +595,16 @@ class ConfigDict(ControlledDict):
 		try:
 			value = self.definitions[key].check(value)
 		except ValueError as error:
-			logger.warning(
-				'Invalid config value for %s: "%s" - %s',
-					key, value, error.args[0]
-			)
+			if error.args:
+				logger.warning(
+					'Invalid config value for %s: "%s" - %s',
+						key, value, error.args[0]
+				)
+			else:
+				logger.warning(
+					'Invalid config value for %s: "%s"',
+						key, value
+				)
 			value = self.definitions[key].default
 
 		with self.block_signals('changed'):
