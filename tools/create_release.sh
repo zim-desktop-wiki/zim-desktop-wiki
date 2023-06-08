@@ -17,6 +17,7 @@ echo "Updating CHANGELOG.md"
 
 TMP="/tmp/changelog.md"
 DATE=`date +"%a %d %b %Y"` # Thu 28 Mar 2019
+YEAR=`date +"%Y"`
 
 head CHANGELOG.md -n 7 > $TMP
 echo "##  $NEW - $DATE" >> $TMP
@@ -29,8 +30,9 @@ cp $TMP CHANGELOG.md
 
 # Update version numbers
 
-echo "Updating zim/__init__.py"
+echo "Updating zim/__init__.py to version $NEW copyright $YEAR"
 sed -i "s/^__version__ =.*\$/__version__ = '$NEW'/" zim/__init__.py
+sed -i "s/^__copyright__ =.*\$/__copyright__ = 'Copyright 2008 - $YEAR Jaap Karssenberg <jaap.karssenberg@gmail.com>'/" zim/__init__.py
 
 echo "Updating website/pages/downloads.txt"
 MONTH=`date +"%b %Y"`
