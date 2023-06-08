@@ -11,7 +11,7 @@ logger = logging.getLogger('zim.plugins.spell')
 
 
 from zim.plugins import PluginClass
-from zim.signals import SIGNAL_AFTER
+from zim.signals import SIGNAL_AFTER, ConnectorMixin
 from zim.actions import toggle_action
 
 from zim.gui.pageview import PageViewExtension
@@ -154,7 +154,8 @@ class SpellPageViewExtension(PageViewExtension):
 		textview = pageview.textview
 		checker = getattr(textview, '_gtkspell', None)
 		if checker:
-			checker.on_new_buffer()
+			# A new buffer may be initialized, but it could also be an existing buffer linked to page
+			checker.check_buffer_initialized()
 
 	def setup(self):
 		textview = self.pageview.textview
@@ -180,18 +181,28 @@ class SpellPageViewExtension(PageViewExtension):
 			textview._gtkspell = None
 
 
-class GtkspellcheckAdapter(object):
+class AdapterBase(ConnectorMixin, object):
+
+	def on_begin_insert_tree(self, o, *a):
+		self._checker.disable()
+
+	def on_end_insert_tree(self, o, *a):
+		self._checker.enable()
+
+
+class GtkspellcheckAdapter(AdapterBase):
 
 	def __init__(self, textview, lang):
 		self._lang = lang
 		self._textview = textview
+		self._textbuffer = None
 		self._checker = None
 		self._active = False
 
 		self.enable()
 
-	def on_new_buffer(self):
-		if self._checker:
+	def check_buffer_initialized(self):
+		if self._checker and not self._check_tag_table():
 			self._checker.buffer_initialize()
 
 	def enable(self):
@@ -200,36 +211,48 @@ class GtkspellcheckAdapter(object):
 		else:
 			self._clean_tag_table()
 			self._checker = gtkspellcheck.SpellChecker(self._textview, self._lang)
+
+		self._textbuffer = self._textview.get_buffer()
+		self.connectto_all(self._textbuffer, ('begin-insert-tree', 'end-insert-tree'))
 		self._active = True
 
 	def disable(self):
 		if self._checker:
 			self._checker.disable()
+			self.disconnect_from(self._textbuffer)
+			self._textbuffer = None
+
 		self._active = False
 
 	def detach(self):
 		if self._checker:
-			self._checker.disable()
+			self.disable()
 			self._clean_tag_table()
 			self._checker = None
-		self._active = False
+
+	def _check_tag_table(self):
+		tags = []
+
+		def filter_spell_tags(t):
+			name = t.get_property('name')
+			if name and name.startswith('gtkspellchecker'):
+				tags.append(t)
+
+		table = self._textview.get_buffer().get_tag_table()
+		table.foreach(filter_spell_tags)
+		return tags
 
 	def _clean_tag_table(self):
 		## cleanup tag table - else next loading will fail
-		prefix = 'gtkspellchecker'
 		table = self._textview.get_buffer().get_tag_table()
-		tags = []
-		table.foreach(lambda tag: tags.append(tag))
-		for tag in tags:
-			name = tag.get_property('name')
-			if name and name.startswith(prefix):
-				table.remove(tag)
+		for tag in self._check_tag_table():
+			table.remove(tag)
 
 
 class OldGtkspellcheckAdapter(GtkspellcheckAdapter):
 
-	def on_new_buffer(self):
-		if self._checker:
+	def check_buffer_initialized(self):
+		if self._checker and not self._check_tag_table():
 			# wanted to use checker.buffer_initialize() here,
 			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
 			if self._active:
@@ -239,15 +262,16 @@ class OldGtkspellcheckAdapter(GtkspellcheckAdapter):
 				self.detach()
 
 
-class GtkspellAdapter(object):
+class GtkspellAdapter(AdapterBase):
 
 	def __init__(self, textview, lang):
 		self._lang = lang
 		self._textview = textview
+		self._textbuffer = None
 		self._checker = None
 		self.enable()
 
-	def on_new_buffer(self):
+	def check_buffer_initialized(self):
 		pass
 
 	def enable(self):
@@ -255,11 +279,15 @@ class GtkspellAdapter(object):
 			self._checker = gtkspell.Checker()
 			self._checker.set_language(self._lang)
 			self._checker.attach(self._textview)
+			self._textbuffer = self._textview.get_buffer()
+			self.connectto_all(self._textbuffer, ('begin-insert-tree', 'end-insert-tree'))
 
 	def disable(self):
 		self.detach()
 
 	def detach(self):
 		if self._checker:
+			self.disconnect_from(self._textbuffer)
+			self._textbuffer = None
 			self._checker.detach()
 			self._checker = None
