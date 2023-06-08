@@ -31,6 +31,8 @@ XDG_DATA_DIRS = None #: list of L{LocalFolder} objects for XDG data dirs path
 XDG_CONFIG_HOME = None #: L{LocalFolder} for XDG config home
 XDG_CONFIG_DIRS = None #: list of L{LocalFolder} objects for XDG config dirs path
 XDG_CACHE_HOME = None #: L{LocalFolder} for XDG cache home
+XDG_TEMPLATES_DIR = None #: L{LocalFolder} for XDG templates dir
+
 
 def set_basedirs(_ignore_test=False):
 	'''This method sets the global configuration paths for according to the
@@ -44,6 +46,7 @@ def set_basedirs(_ignore_test=False):
 	global XDG_CONFIG_HOME
 	global XDG_CONFIG_DIRS
 	global XDG_CACHE_HOME
+	global XDG_TEMPLATES_DIR
 
 	# Cast string to folder
 	import zim
@@ -68,6 +71,9 @@ def set_basedirs(_ignore_test=False):
 
 		XDG_CACHE_HOME = LocalFolder(
 			os.environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache').strip())
+
+		XDG_TEMPLATES_DIR = LocalFolder(
+			os.environ.get('XDG_TEMPLATES_DIR', APPDATA + r'\zim\file_templates').strip())
 	else:
 		XDG_DATA_HOME = LocalFolder(
 			os.environ.get('XDG_DATA_HOME', '~/.local/share/').strip())
@@ -83,6 +89,10 @@ def set_basedirs(_ignore_test=False):
 
 		XDG_CACHE_HOME = LocalFolder(
 			os.environ.get('XDG_CACHE_HOME', '~/.cache').strip())
+
+		XDG_TEMPLATES_DIR = LocalFolder(
+			os.environ.get('XDG_TEMPLATES_DIR', '~/Templates').strip())
+			# TODO: we should try to query xdg-user-dirs to get this value, for now at least allow customization via the environment
 
 		if os.environ.get('ZIM_TEST_RUNNING') and not _ignore_test:
 			# See tests/__init__.py, we load more folders then we really want

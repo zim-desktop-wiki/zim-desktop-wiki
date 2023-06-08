@@ -35,7 +35,7 @@ import zim.errors
 
 from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.errors import Error
-from zim.config import ConfigDict, String, Float, Integer, Boolean, Choice, ConfigManager
+from zim.config import ConfigDict, String, Float, Integer, Boolean, Choice, ConfigManager, XDG_TEMPLATES_DIR
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re
@@ -216,7 +216,7 @@ ui_preferences = (
 		_('Default format for copying text to the clipboard'), 'Text', COPY_FORMATS),
 		# T: option in preferences dialog
 	('file_templates_folder', 'dir', 'Editing',
-		_('Folder with templates for attachment files'), '~/Templates'),
+		_('Folder with templates for attachment files'), XDG_TEMPLATES_DIR),
 		# T: option in preferences dialog
 )
 
