@@ -683,14 +683,31 @@ class PageTreeView(BrowserTreeView):
 				path.up()
 		return path
 
+	def get_any_children_expanded(self, path):
+		'''Returns True if any children of C{path} have been expanded'''
+		model = self.get_model()
+		iter = model.iter_children(model.get_iter(path))
+		while iter:
+			if self.row_expanded(model.get_path(iter)):
+				return True
+
+			iter = model.iter_next(iter)
+		else:
+			return False
+
 	def restore_autoexpanded_path(self):
 		if self._autoexpanded:
 			ref1, ref2 = self._autoexpanded
 			if ref1.valid() and (ref2 is None or ref2.valid()):
 				prev_treepath = ref1.get_path()
 				prev_expanded_path = ref2.get_path() if ref2 else None
-				self._restore_expanded_path(prev_treepath, prev_expanded_path)
-				self._autoexpanded = None
+				if not self.get_any_children_expanded(prev_treepath):
+					self._restore_expanded_path(prev_treepath, prev_expanded_path)
+				else:
+					# since auto-expanding child paths have been expanded which overrules the auto-expanding
+					pass
+
+		self._autoexpanded = None
 
 	def _store_expanded_path(self, path):
 		expanded_path = self.get_expanded_path(path)
