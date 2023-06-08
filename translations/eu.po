@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2023-03-06 00:48+0000\n"
-"Last-Translator: Alex Gabilondo <alexgabi@disroot.org>\n"
+"PO-Revision-Date: 2023-06-09 08:16+0000\n"
+"Last-Translator: Alexander Gabilondo <alexgabi@openmailbox.org>\n"
 "Language-Team: Basque <https://hosted.weblate.org/projects/zim/develop/eu/>\n"
 "Language: eu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.16.2-dev\n"
+"X-Generator: Weblate 4.18-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -707,7 +707,7 @@ msgstr "Joan hasierako orrira"
 msgid "%i _Backlink"
 msgid_plural "%i _Backlinks"
 msgstr[0] "%i_Bueltako esteka..."
-msgstr[1] "%i_Bueltako esteka..."
+msgstr[1] "%i_Bueltako estekak..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:1146
