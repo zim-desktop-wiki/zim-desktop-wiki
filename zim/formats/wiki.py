@@ -101,7 +101,7 @@ url_re = re.compile(
 	re.VERBOSE
 )
 
-url_trailing_punctuation = ('?', '!', '.', ',', ':', '*', '_', '~', "'", '"')
+url_trailing_punctuation = ('?', '!', '.', ',', ':', '*', '~', "'", '"')
 	# do not add ";" here, it is handled separatedly in the function
 
 
