@@ -22,7 +22,8 @@ logger = logging.getLogger('zim.plugins')
 try:
 	import xdot
 	from xdot import DotWidget
-except ImportError:
+except ImportError as errorMessage:
+	logger.error("ImportError with plugin linkmap: %s", errorMessage)
 	xdot = None
 	class DotWidget:  # workaround
 		pass
