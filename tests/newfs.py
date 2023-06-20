@@ -923,9 +923,9 @@ class TestLocalFS(tests.TestCase, TestFS):
 
 class TestTmpFile(tests.TestCase):
 
-	def runTest(self):
+	def testPersistent(self):
 		dir = get_tmpdir()
-		file = TmpFile('foo.txt')
+		file = TmpFile('tmp.txt')
 		file.write('test 123\n')
 		self.assertTrue(file.ischild(dir))
 
@@ -933,6 +933,29 @@ class TestTmpFile(tests.TestCase):
 		self.assertTrue(os.path.isfile(path))
 		del file
 		self.assertFalse(os.path.isfile(path)) # not persistent
+
+	def testNotPersistent(self):
+		dir = get_tmpdir()
+		file = TmpFile('tmp.txt', persistent=True)
+		file.write('test 123\n')
+		self.assertTrue(file.ischild(dir))
+
+		path = file.path
+		self.assertTrue(os.path.isfile(path))
+		del file
+		self.assertTrue(os.path.isfile(path)) # persistent
+		os.remove(path) # cleanup
+
+	def testMoveToRegularFile(self):
+		file = TmpFile('tmp.txt', persistent=True)
+		file.write('test 123\n')
+
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		dest = folder.file('tmp.txt')
+
+		file.moveto(dest)
+		self.assertFalse(os.path.isfile(file.path))
+		self.assertTrue(os.path.isfile(dest.path))
 
 
 class TestFunc(tests.TestCase):
