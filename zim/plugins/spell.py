@@ -17,15 +17,16 @@ from zim.actions import toggle_action
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import ErrorDialog
 
+import gi
 
 # Try which of the two bindings is available
 try:
+	gi.require_version('Gtk','3.0') # see issue #2301
 	import gtkspellcheck
 except ImportError:
 	gtkspellcheck = None
 
 	try:
-		import gi
 		gi.require_version('GtkSpell', '3.0')
 		from gi.repository import GtkSpell as gtkspell
 	except:
