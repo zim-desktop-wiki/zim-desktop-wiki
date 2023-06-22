@@ -4947,7 +4947,9 @@ class TextView(Gtk.TextView):
 		elif self.preferences['autolink_page'] and \
 				(link_to_page_re.match(word) or (link_to_anchor_re.match(word) and not word.startswith('#'))):
 					# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
-					if twoletter_re.search(word):
+					# these can still be linked with the InsertLinkDialog functionality
+					parts = word.split(':')
+					if parts and twoletter_re.search(parts[0]):
 						handled = apply_link(word)
 					else:
 						handled = False

@@ -15,12 +15,18 @@ You can either link pages or URLs. URLs are recognized because they start with e
 
 You can make any text into a link, thus the link you see and what it links to do not have to be the same. You can use the "//Edit//->//Link//" menu item to modify a link.
 
+Links can also be auto-formatted when typing, see [[Auto Formatting]] for more details
+
+
 ==== Relative links ====
 All links to other pages are relative to the current page unless they start with an ":" character. Zim first looks in the same section as the current page and if the name is not found, it searches all the parent sections. The rule is that it will check all pages that share a common parent with the current page bottom-up and match the first page with the right name. If you want to link to a child of a page that has a common parent you can link it using a relative path from the top page that does have a shared parent.
 
 For example, you have a page "''Zim:Examples:Linking:Relative''" now you just use "''Absolute''" to link to "''Zim:Examples:Linking:Absolute''", but you also use "''Examples:Calendar''" to link to "''Zim:Examples:Calendar''". This link works because the first part of the link ("''Examples''") is resolved relatively in the tree above the current page.
 
 To create relative links to a sub-page of the current page, start the link with an "''+''".
+
+Note that when inserting the link by [[Auto Formatting]] the link must have at least 2 letters in the first part of the link to avoid linking strings like e.g. "10:20PM". Also see [[Pages]] for more information on page names.
+
 
 ==== Link to a heading or object ====
 To link to a heading or an object you can use "''#heading-id''" within the same page or "''pagename#heading-id''" from another page.
