@@ -122,7 +122,6 @@ class LocalFSObjectBase(FSObjectBase):
 		if not FS_CASE_SENSITIVE \
 		and self.path.lower() == other.path.lower():
 			# Rename to other case - need in between step
-			other = self.__class__(other, watcher=self.watcher)
 			tmp = self.parent().new_file(self.basename)
 			shutil.move(self.path, tmp.path)
 			shutil.move(tmp.path, other.path)
@@ -130,7 +129,6 @@ class LocalFSObjectBase(FSObjectBase):
 			raise FileExistsError(other)
 		else:
 			# normal case
-			other = self.__class__(other, watcher=self.watcher)
 			other.parent().touch()
 			shutil.move(self.path, other.path)
 
@@ -492,3 +490,4 @@ class TmpFile(LocalFile):
 	def __del__(self):
 		if not self.persistent:
 			self.remove(cleanup=False)
+

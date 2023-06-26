@@ -213,7 +213,7 @@ class InsertScreenshotDialog(Dialog):
 				name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
 				imgdir = self.notebook.get_attachments_dir(self.page)
 				imgfile = imgdir.new_file(name)
-				tmpfile.rename(imgfile)
+				tmpfile.moveto(imgfile)
 				pageview = self.pageview
 				pageview.insert_image(imgfile)
 			else:

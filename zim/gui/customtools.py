@@ -24,7 +24,7 @@ from zim.signals import SignalEmitter, SIGNAL_NORMAL, SignalHandler
 
 from zim.applications import split_quoted_strings
 from zim.gui.applications import Application, DesktopEntryDict, String, Boolean
-from zim.gui.widgets import Dialog, IconButton, IconChooserButton
+from zim.gui.widgets import Dialog, IconButton, IconChooserButton, ScrolledWindow
 
 import zim.errors
 
@@ -543,7 +543,7 @@ class CustomToolManagerDialog(Dialog):
 		self.vbox.pack_start(hbox, True, True, 0)
 
 		self.listview = CustomToolList(self.manager)
-		hbox.pack_start(self.listview, True, True, 0)
+		hbox.pack_start(ScrolledWindow(self.listview), True, True, 0)
 
 		vbox = Gtk.VBox(spacing=5)
 		hbox.pack_start(vbox, False, True, 0)

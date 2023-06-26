@@ -65,7 +65,11 @@ The default config file is ''$XDG_CONFIG_HOME/zim/preferences.conf''.
 
 The config file is written automatically when you close zim. So if you want to change it manually you need to close all instances of zim first.
 
-There is a hidden option here called "''autosave_timeout''" which gives the interval for autosaving in seconds, the default is 10.
+There are hidden options which you can added directly in the file but are not shown in the preferences dialog:
+* "''autosave_timeout''" which gives the interval for autosaving in seconds, the default is 10
+* "''gtk_bell''" which can be ''True'' or ''False'', if ''False'' it overrides Gtk settings to turn off the bell in the editor, default is ''False''
+
+
 
 ==== Interwiki URL list ====
 The file ''$XDG_DATA/zim/urls.list'' gives a list of urls which are used for the [[Links|interwiki]] function. All files in the ''$XDG_DATA'' path are read when looking for a URL, so you can use $XDG_DATA_HOME to override the installation defaults.

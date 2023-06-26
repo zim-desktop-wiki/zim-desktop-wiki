@@ -2737,8 +2737,14 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 	def testAutoFormatSubPageLinkWithAnchor(self):
 		self.assertTyping('+Foo#anchor ', '<link href="">+Foo#anchor</link> ')
 
-	def testNoAutoFormatTimeAsPageLink(self):
+	def testNoAutoFormatTimeAsPageLink1(self):
 		self.assertTyping('10:20 ', '10:20 ')
+
+	def testNoAutoFormatTimeAsPageLink2(self):
+		self.assertTyping('10:20PM ', '10:20PM ')
+
+	def testNoAutoFormatTimeAsPageLink3(self):
+		self.assertTyping('10:20 +0200 ', '10:20 +0200 ')
 
 	def testEndOfWordBreaksLink(self):
 		self.set_buffer(self.buffer, '<link href="">Foo</link>')
