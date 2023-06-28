@@ -1685,19 +1685,6 @@ class FolderEntry(FSPathEntry):
 	set_folder = FSPathEntry.set_path
 	get_folder = FSPathEntry.get_path
 
-
-def gtk_entry_completion_match_func(completion, key, iter, column):
-	if key is None:
-		return False
-
-	model = completion.get_model()
-	text = to_utf8_normalized_casefolded(model.get_value(iter, column))
-	if text is not None:
-		return key in text
-	else:
-		return False
-
-
 def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 	if key is None:
 		return False
@@ -1923,10 +1910,27 @@ class PageEntry(InputEntry):
 
 
 	def _fill_completion_any(self, path, text):
-		#print("COMPLETE ANY", path, text)
 		# Complete all matches of "text"
 		# start with children and peers, than peers of parents, than rest of tree
+
 		completion = self.get_completion()
+
+		# determine if a row should or should not be in the completion list.
+		def gtk_entry_completion_match_func(_completion, _input, _iter, column):
+			if _input is None:
+				return False
+
+			_model = _completion.get_model()
+			_page_name = to_utf8_normalized_casefolded(_model.get_value(_iter, column))
+
+			if _page_name is not None and _input in _page_name:
+				return True
+
+			if _page_name is not None and any(_keywords in _page_name for _keywords in _input.split()):
+				return True
+
+			return False
+
 		completion.set_match_func(gtk_entry_completion_match_func, 1)
 
 		# TODO: use SQL to list all at once instead of walking and filter on "text"
@@ -1940,22 +1944,31 @@ class PageEntry(InputEntry):
 				href = self.notebook.pages.create_link(path, target)
 				return href.to_wiki_link()
 
-		model = completion.get_model()
+		completion_set = set()
+
 		searchpath = list(path.parents())
 		searchpath.insert(1, path) # children after peers but before parents
 		for namespace in searchpath:
 			for p in self.notebook.pages.match_pages(namespace, text):
 				link = relative_link(p)
-				model.append((link, p.basename))
+				completion_set.add((link, p.basename))
 
-			if len(model) > 10:
+			if len(completion_set) > 20:
 				break
-		else:
-			for p in self.notebook.pages.match_all_pages(text, limit=20):
-				if p.parent not in searchpath:
-					link = relative_link(p)
-					model.append((link, p.basename))
 
+		if len(completion_set) < 20:
+			for p in self.notebook.pages.match_all_pages(text, limit=20):
+				link = relative_link(p)
+				completion_set.add((link, p.basename))
+
+		if len(completion_set) < 20:
+			for p in self.notebook.pages.match_all_locations(text.split(), limit=20):
+				link = relative_link(p)
+				completion_set.add((link, p.basename))
+
+		model = completion.get_model()
+		for i in completion_set:
+			model.append(i)
 
 class NamespaceEntry(PageEntry):
 	'''Widget to select a zim page path as a namespace

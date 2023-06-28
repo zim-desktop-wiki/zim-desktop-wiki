@@ -585,6 +585,29 @@ class PagesView(IndexView):
 		):
 			yield PageIndexRecord(row)
 
+
+	def match_all_locations(self, keywords: list, limit: int = 10) -> Generator[PageIndexRecord, None, None]:
+		'''Like C{match_all_pages()}, except it performs a fuzzy search'''
+
+		query_fragments = []
+		query_parameters = []
+
+		query_fragments.append('SELECT * FROM pages')
+
+		query_fragments.append('WHERE 1')
+
+		for text in keywords:
+			query_fragments.append("AND name LIKE ?")
+			query_parameters.append("%%%s%%" % text.lower())
+
+		query_fragments.append('ORDER BY length(name), sortkey, name')
+
+		query_fragments.append('LIMIT ?')
+		query_parameters.append(limit)
+
+		for row in self.db.execute(" ".join(query_fragments), query_parameters):
+			yield PageIndexRecord(row)
+
 	def walk(self, path: Optional[Path] = None) -> Generator[PageIndexRecord, None, None]:
 		'''Generator function to yield all pages in the index, depth
 		first
