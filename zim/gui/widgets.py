@@ -1686,14 +1686,14 @@ class FolderEntry(FSPathEntry):
 	get_folder = FSPathEntry.get_path
 
 
-def gtk_entry_completion_match_func(completion, key, iter, column):
+def gtk_entry_completion_match_func_words(completion, key, iter, column):
 	if key is None:
 		return False
 
 	model = completion.get_model()
 	text = to_utf8_normalized_casefolded(model.get_value(iter, column))
 	if text is not None:
-		return key in text
+		return (key in text) or any(w in text for w in key.split())
 	else:
 		return False
 
@@ -1909,6 +1909,7 @@ class PageEntry(InputEntry):
 	def _fill_completion_for_anchor(self, path, prefix, text):
 		#print "COMPLETE ANCHOR", path, prefix, text
 		# Complete a single namespace based on the prefix
+		#
 		# TODO: allow filter on "text" directly in SQL call
 		completion = self.get_completion()
 		completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
@@ -1923,14 +1924,18 @@ class PageEntry(InputEntry):
 
 
 	def _fill_completion_any(self, path, text):
-		#print("COMPLETE ANY", path, text)
 		# Complete all matches of "text"
 		# start with children and peers, than peers of parents, than rest of tree
-		completion = self.get_completion()
-		completion.set_match_func(gtk_entry_completion_match_func, 1)
-
+		# and also look for matches where input is split in words,
+		# which can match at different offsets
+		#
 		# TODO: use SQL to list all at once instead of walking and filter on "text"
 		#       do better sorting as well ?
+
+		MAX = 20
+
+		completion = self.get_completion()
+		completion.set_match_func(gtk_entry_completion_match_func_words, 1)
 
 		if path.isroot:
 			def relative_link(target):
@@ -1940,21 +1945,31 @@ class PageEntry(InputEntry):
 				href = self.notebook.pages.create_link(path, target)
 				return href.to_wiki_link()
 
-		model = completion.get_model()
+		completion_set = set()
+
 		searchpath = list(path.parents())
 		searchpath.insert(1, path) # children after peers but before parents
 		for namespace in searchpath:
-			for p in self.notebook.pages.match_pages(namespace, text):
+			for p in self.notebook.pages.match_pages(namespace, text, limit=MAX):
 				link = relative_link(p)
-				model.append((link, p.basename))
+				completion_set.add((link, p.basename))
 
-			if len(model) > 10:
+			if len(completion_set) > MAX:
 				break
-		else:
-			for p in self.notebook.pages.match_all_pages(text, limit=20):
-				if p.parent not in searchpath:
-					link = relative_link(p)
-					model.append((link, p.basename))
+
+		if len(completion_set) < MAX:
+			for p in self.notebook.pages.match_all_pages(text, limit=MAX):
+				link = relative_link(p)
+				completion_set.add((link, p.basename))
+
+		if len(completion_set) < MAX:
+			for p in self.notebook.pages.match_all_pages_by_words(text.split(), limit=MAX):
+				link = relative_link(p)
+				completion_set.add((link, p.basename))
+
+		model = completion.get_model()
+		for i in completion_set:
+			model.append(i)
 
 
 class NamespaceEntry(PageEntry):

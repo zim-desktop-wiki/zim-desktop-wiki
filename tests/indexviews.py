@@ -112,6 +112,7 @@ from zim.notebook.index.pages import PagesIndexer, PagesView, \
 	#get_treepath_for_indexpath_factory, get_indexpath_for_treepath_factory, \
 	#get_treepaths_for_indexpath_flatlist_factory, get_indexpath_for_treepath_flatlist_factory, \
 
+
 class TestPagesView(tests.TestCase):
 
 	def testBasics(self):
@@ -275,6 +276,32 @@ class TestPagesView(tests.TestCase):
 		p = model.get_mytreeiter((1, 2, 3, 4, 5))
 		self.assertIsNone(p)
 		self.assertRaises(IndexNotFoundError, model.find, Path('non-existing-page'))
+
+	def testMatchPages(self):
+		db = new_test_database()
+		pages = PagesView(db)
+		self.assertEqual([p.name for p in pages.match_pages(Path(':'), 'ild')], [])
+		self.assertEqual([p.name for p in pages.match_pages(Path('Foo'), 'ild')], ['Foo:Child1', 'Foo:Child2', 'Foo:Child3'])
+		self.assertEqual([p.name for p in pages.match_pages(Path('Foo:Child1'), 'ild')], ['Foo:Child1:GrandChild1', 'Foo:Child1:GrandChild2'])
+		self.assertEqual([p.name for p in pages.match_pages(Path('Foo'), 'xyz')], [])
+
+	def testMatchAllPages(self):
+		db = new_test_database()
+		pages = PagesView(db)
+		self.assertEqual([p.name for p in pages.match_all_pages('xyz')], [])
+		self.assertEqual([p.name for p in pages.match_all_pages('ild')],
+			['Foo:Child1', 'Foo:Child2', 'Foo:Child3', 'Foo:Child1:GrandChild1', 'Foo:Child1:GrandChild2'])
+
+	def testMatchAllPagesByWords(self):
+		db = new_test_database()
+		pages = PagesView(db)
+		self.assertEqual([p.name for p in pages.match_all_pages_by_words(['xyz'])], [])
+		self.assertEqual([p.name for p in pages.match_all_pages_by_words(['ild'])],
+			['Foo:Child1', 'Foo:Child2', 'Foo:Child3', 'Foo:Child1:GrandChild1', 'Foo:Child1:GrandChild2'])
+		self.assertEqual([p.name for p in pages.match_all_pages_by_words(['ild', 'and'])],
+			['Foo:Child1:GrandChild1', 'Foo:Child1:GrandChild2'])
+		self.assertEqual([p.name for p in pages.match_all_pages_by_words(['and', 'ild'])],
+			['Foo:Child1:GrandChild1', 'Foo:Child1:GrandChild2'])
 
 
 from zim.notebook.index.tags import TagsIndexer, TagsView, IndexTag, \

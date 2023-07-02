@@ -585,6 +585,23 @@ class PagesView(IndexView):
 		):
 			yield PageIndexRecord(row)
 
+
+	def match_all_pages_by_words(self, words: list, limit: int = 10) -> Generator[PageIndexRecord, None, None]:
+		'''Like C{match_all_pages()}, except it performs a search based on multiple words'''
+
+		query_fragments = ['SELECT * FROM pages WHERE 1']
+		query_parameters = []
+
+		for w in words:
+			query_fragments.append("AND name LIKE ?")
+			query_parameters.append("%%%s%%" % w.lower())
+
+		query_fragments.append('ORDER BY length(name), sortkey, name LIMIT ?')
+		query_parameters.append(limit)
+
+		for row in self.db.execute(" ".join(query_fragments), query_parameters):
+			yield PageIndexRecord(row)
+
 	def walk(self, path: Optional[Path] = None) -> Generator[PageIndexRecord, None, None]:
 		'''Generator function to yield all pages in the index, depth
 		first
