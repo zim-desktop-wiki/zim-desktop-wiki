@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-10-07 04:45+0000\n"
+"PO-Revision-Date: 2023-07-04 08:50+0000\n"
 "Last-Translator: Mukli Krisztián <weblate@rejtettmail.eu.org>\n"
 "Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/develop/hu/"
 ">\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.0-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
@@ -130,7 +130,7 @@ msgstr "%s nem nyitható meg"
 #: zim/gui/applications.py:729
 #, python-format
 msgid "Editing file: %s"
-msgstr "%s szerkesztése"
+msgstr "%s fájl szerkesztése"
 
 #. description for dialog for editing external files
 #: zim/gui/applications.py:731
