@@ -12,7 +12,7 @@ logger = logging.getLogger('zim.plugins')
 
 from gi.repository import Gtk
 
-import hashlib
+import hashlib, itertools
 
 from zim.fs import adapt_from_oldfs
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
@@ -24,7 +24,7 @@ from zim.formats import IMAGE
 
 from zim.gui.widgets import \
 	Dialog, ImageView, QuestionDialog, LogFileDialog, \
-	ScrolledWindow, ScrolledTextView, ScrolledSourceView, VPaned, \
+	ScrolledWindow, ScrolledTextView, ScrolledSourceView, VPaned, HPaned, \
 	populate_popup_add_separator
 from zim.gui.insertedobjects import ImageFileWidget
 
@@ -386,50 +386,62 @@ class ImageGeneratorDialog(Dialog):
 			model.set_from_generator(text, image_file)
 		model.generator.cleanup()
 
-	def __init__(self, widget, label, generator, image_file=None, text='', syntax=None):
+	def __init__(self, widget, label, generator, image_file=None, source_content='', syntax=None):
 		title = _('Edit %s') % label # T: dialog title, %s is the object name like "Equation"
 		Dialog.__init__(self, widget, title, defaultwindowsize=(450, 300))
 		self.generator = generator
 		self.log_file = None
+		self.syntax = syntax
 		self.image_file = image_file
+		self.source_content = source_content
 		self.result = None, None
 
-		self.vpane = VPaned()
-		self.vpane.set_position(150)
-		self.vbox.pack_start(self.vpane, True, True, 0)
+		# [Image Viewer]
 
 		self.imageview = ImageView(bgcolor='#FFF')
-		swin = ScrolledWindow(self.imageview)
-		swin.set_size_request(200, 50)
-		self.vpane.pack1(swin, resize=True)
+		self.image_window = ScrolledWindow(self.imageview)
+		self.image_window.set_size_request(600, 300)
+		self.imageview.set_file(self.image_file) # if None sets broken image
 		# TODO scrolled window and option to zoom in / real size
 
-		window, textview = ScrolledSourceView(syntax=syntax)
-		self.textview = textview
+		# [Source Editor]
+
+		self.source_window, self.textview = ScrolledSourceView(syntax=self.syntax)
+		self.source_window.set_size_request(600, 300)
 		self.textview.set_editable(True)
-		self.vpane.pack2(window, resize=False)
+		self.set_text(self.source_content)
+		self.textview.grab_focus()
+		self.textview.get_buffer().connect('modified-changed', lambda b: self.previewbutton.set_sensitive(b.get_modified()))
 
-		hbox = Gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False, True, 0)
+		# [Functional Buttons]
 
-		self.previewbutton = Gtk.Button.new_with_mnemonic(_('_Preview'))
-			# T: button in e.g. equation editor dialog
+		self.function_window = Gtk.HBox(spacing=5)
+
+		self.previewbutton = Gtk.Button.new_with_mnemonic(_('_Preview')) # T: button in e.g. equation editor dialog
 		self.previewbutton.set_sensitive(False)
 		self.previewbutton.connect('clicked', lambda o: self.update_image())
-		hbox.pack_start(self.previewbutton, False, True, 0)
+		self.function_window.pack_start(self.previewbutton, False, True, 0)
 
-		self.textview.get_buffer().connect('modified-changed',
-			lambda b: self.previewbutton.set_sensitive(b.get_modified()))
-
-		self.logbutton = Gtk.Button.new_with_mnemonic(_('View _Log'))
-			# T: button in e.g. equation editor dialog
+		self.logbutton = Gtk.Button.new_with_mnemonic(_('View _Log')) # T: button in e.g. equation editor dialog
 		self.logbutton.set_sensitive(False)
 		self.logbutton.connect('clicked', lambda o: self.show_log())
-		hbox.pack_start(self.logbutton, False, True, 0)
+		self.function_window.pack_start(self.logbutton, False, True, 0)
 
-		self.set_text(text)
-		self.imageview.set_file(self.image_file) # if None sets broken image
-		self.textview.grab_focus()
+		self.rotate_button = Gtk.Button.new_with_mnemonic(_('_Rotate Layout'))
+		self.rotate_button.set_sensitive(True)
+		self.rotate_button.connect('clicked', lambda o: self.reasonable_editor_layout())
+		self.function_window.pack_start(self.rotate_button, False, True, 0)
+
+		# doing the layout
+
+		self.editor_box = None
+		self.editor_layout_generator = itertools.cycle([
+			(VPaned, self.image_window, self.source_window, self.function_window),
+			(HPaned, self.image_window, self.source_window, self.function_window),
+			(VPaned, self.source_window, self.image_window, self.function_window),
+			(HPaned, self.source_window, self.image_window, self.function_window)
+		])
+		self._layout_dialog(*(next(self.editor_layout_generator)))
 
 	def set_text(self, text):
 		buffer = self.textview.get_buffer()
@@ -459,6 +471,9 @@ class ImageGeneratorDialog(Dialog):
 		assert self.log_file, 'BUG: no log_file set (yet)'
 		LogFileDialog(self, self.log_file).run()
 
+	def reasonable_editor_layout(self):
+		self._layout_dialog(*(next(self.editor_layout_generator)))
+
 	def do_response_ok(self):
 		buffer = self.textview.get_buffer()
 		if buffer.get_modified():
@@ -474,3 +489,26 @@ class ImageGeneratorDialog(Dialog):
 		self.result = (self.get_text(), self.image_file)
 
 		return True
+
+	def _layout_dialog(self, paned_type, pack1, pack2, function_window):
+
+		# detach from parent, if exist
+
+		if self.editor_box and pack1.get_parent() and pack2.get_parent() and function_window.get_parent():
+			pack1.get_parent().remove(pack1)
+			pack2.get_parent().remove(pack2)
+			self.editor_box.destroy()
+			function_window.get_parent().remove(function_window)
+
+		# doing the layout
+		# TODO determine the default value of width/height for pack1/pack2
+
+		self.editor_box = paned_type()
+		self.editor_box.set_position(150)
+		self.editor_box.pack1(pack1, resize=True)
+		self.editor_box.pack2(pack2, resize=True)
+		self.editor_box.show_all() # https://stackoverflow.com/questions/47030729/how-to-dynamically-add-remove-widgets-from-gtk-3-window
+
+		self.vbox.pack_start(self.editor_box, True, True, 0)
+
+		self.vbox.pack_start(function_window, False, True, 0)
