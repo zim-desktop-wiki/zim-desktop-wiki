@@ -5,6 +5,26 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+
+##  0.75.2 - Thu 06 Jul 2023
+* Add pagename completion by words in "Jump to"
+* Let tasklist window remember selection state
+* Let tasklist window use a search bar
+* Add count in tasklist window
+* Fix auto-collapse in page index for child nodes
+* Fix import of gtkspellcheck
+* Make spellcheck more robust for page reload
+* Fix bug in insert screenshot
+* Add scrollbar to custom tool window
+* Fix config dirs for portable install
+* Use environment variable for `XDG_TEMPLATES_DIR`
+* Fix links to anchors on export
+* Fix bug in copy-paste of interwiki links
+* Updated diagrameditor and sequencediagrameditor plugins to generate SVG
+* Add keybinding for cutting the current line(s)
+* Fix fullscreen headerbar visibility
+
+
 ##  0.75.1 - Tue 25 Oct 2022
 * Fix bug with relative path notebook icon
 * Fix bug with icons in notebookdialog

@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.75.1 - Oct 2022 =====
+===== Latest release: 0.75.2 - Jul 2023 =====
 
 **This program depends on a number of prerequisites.** Most Linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier than compiling them manually.
 
