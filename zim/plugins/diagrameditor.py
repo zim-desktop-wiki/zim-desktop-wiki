@@ -35,7 +35,7 @@ This is a core plugin shipping with zim.
 		(
 			'prefer_svg',
 			'bool',
-			_('Generate diagrams in SVG format'),
+            _('Generate diagrams in SVG format'), # T: plugin preference
 			supports_image_format('svg')
 		),
 	)

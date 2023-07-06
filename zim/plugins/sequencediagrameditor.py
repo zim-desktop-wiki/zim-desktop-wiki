@@ -35,7 +35,7 @@ It allows easy editing of sequence diagrams.
 		(
 			'prefer_svg',
 			'bool',
-			_('Generate diagrams in SVG format'),
+            _('Generate diagrams in SVG format'), # T: plugin preference
 			supports_image_format('svg')
 		),
 	)
