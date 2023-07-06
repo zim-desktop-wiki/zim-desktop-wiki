@@ -8,23 +8,22 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-10-17 00:12+0000\n"
-"Last-Translator: Alex Gabilondo <alexgabi@disroot.org>\n"
+"PO-Revision-Date: 2023-06-09 08:16+0000\n"
+"Last-Translator: Alexander Gabilondo <alexgabi@openmailbox.org>\n"
 "Language-Team: Basque <https://hosted.weblate.org/projects/zim/develop/eu/>\n"
 "Language: eu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.15-dev\n"
+"X-Generator: Weblate 4.18-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "Ezin da \"%s\" txantiloia aurkitu"
+msgstr "Ezin da \"%s\" aplikazioa aurkitu"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -142,10 +141,9 @@ msgstr ""
 
 #. Error message when external application could not be run in terminal, %s is the command
 #: zim/gui/applications.py:827
-#, fuzzy, python-format
-#| msgid "Failed to run application: %s"
+#, python-format
 msgid "Cound not find terminal emulator to run application: %s"
-msgstr "Huts egin du aplikazioa exekutatzeak: %s"
+msgstr "Ezin izan da aurkitu aplikazioa exekutatzeko terminal-emuladorea: %s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:1081
@@ -613,7 +611,7 @@ msgstr "_Alboko panelak"
 #. menu item
 #: zim/gui/mainwindow.py:362
 msgid "Focus Sidepane"
-msgstr ""
+msgstr "Fokuratzeko alboko panela"
 
 #. Menu item | 
 #. Button label
@@ -629,9 +627,7 @@ msgstr "Menu-barra"
 #. short question on open-page if file exists
 #: zim/gui/mainwindow.py:800 zim/gui/uiactions.py:506
 msgid "File exists, do you want to import?"
-msgstr ""
-"Fitxategia badago.\n"
-"Inportatu nahi duzu?"
+msgstr "Fitxategia badago, inportatu nahi duzu?"
 
 #. longer question on open-page if file exists
 #: zim/gui/mainwindow.py:801 zim/gui/uiactions.py:507
@@ -811,24 +807,18 @@ msgstr "Bihurtu \"CamelCase\" hitzak esteka automatikoki"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:185
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn wiki page names into links"
-msgstr "Bihurtu fitxategien bide-izenak esteka automatikoki"
+msgstr "Bihurtu wiki orrien izenak esteka automatikoki"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:188
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn identifiers starting with \"#\" into links"
-msgstr "Bihurtu fitxategien bide-izenak esteka automatikoki"
+msgstr "Bihurtu automatikoki \"#\"-z hasten diren identifikatzaileak esteka"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:191
-#, fuzzy
-#| msgid "Automatically turn file paths into links"
 msgid "Automatically turn interwiki names into links"
-msgstr "Bihurtu fitxategien bide-izenak esteka automatikoki"
+msgstr "Bihurtu interwiki izenak esteka automatikoki"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:194
@@ -1064,10 +1054,8 @@ msgstr "Kopiatu _esteka"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6824
-#, fuzzy
-#| msgid "Edit Link"
 msgid "Cut Lin_k"
-msgstr "Editatu esteka"
+msgstr "Moztu esteka"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6837
@@ -1766,7 +1754,7 @@ msgid ""
 msgstr ""
 "Laster-teklak alda daitezke, horretarako tekla konbinazioa dagoen eremuan\n"
 "sakatu laster-tekla berria.\n"
-"Laster-tekla desgaitzeko, hautatu zerrendan eta erabili  <tt>&lt;Atzera-"
+"Laster-tekla desgaitzeko, hautatu zerrendan eta erabili <tt>&lt;Atzera-"
 "tekla&gt;</tt>."
 
 #. Column header for keybinding list
@@ -1855,10 +1843,8 @@ msgstr "_Mugatu bilaketa uneko orrira eta azpi-orrietara"
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:68
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "_Bilatu..."
+msgstr "_Bilatzen..."
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
@@ -2070,10 +2056,8 @@ msgstr "Abiarazi _web-zerbitzaria"
 
 #. menu item
 #: zim/gui/uiactions.py:368
-#, fuzzy
-#| msgid "View debug log"
 msgid "View Debug Log"
-msgstr "Ikusi arazketa erregistroa"
+msgstr "Ikusi Arazketa erregistroa"
 
 #. Menu item
 #: zim/gui/uiactions.py:382
@@ -2270,11 +2254,11 @@ msgstr "Mahaigaineko wikia"
 #: zim/gui/uiactions.py:816
 msgid "translator-credits"
 msgstr ""
-"Launchpad Contributions:\n"
+"Itzultzaile-kredituak:\n"
 "  3ARRANO.com https://launchpad.net/~3arrano-3arrano\n"
 "  Alexander Gabilondo https://launchpad.net/~alexgabi\n"
 "  Ibai Oihanguren Sala https://launchpad.net/~ibai-oihanguren\n"
-"  gorkaazk https://launchpad.net/~gorkaazkarate"
+"  Gorka Azkarate https://launchpad.net/~gorkaazkarate"
 
 #. dialog title
 #: zim/gui/widgets.py:541 zim/gui/widgets.py:1612
@@ -2443,7 +2427,7 @@ msgid ""
 msgstr ""
 "Ezin da idatzi fitxategi hau. Seguru aski arrazoia fitxategiaren\n"
 "izenaren luzera da, saiatu 255 baino karaktere gutxiagoko\n"
-"izen bat erabiltzen."
+"izen bat erabiltzen"
 
 #. error message for filesystem limitations
 #: zim/newfs/local.py:49
@@ -2654,27 +2638,21 @@ msgstr "SVGrako koadro txikiak onartu"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
-#, fuzzy
-#| msgid "Attachments"
 msgid "Atta_chments"
-msgstr "Eranskinak"
+msgstr "Erans_kinak"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:146
-#, fuzzy
-#| msgid "Attachments:"
 msgid "No attachments"
-msgstr "Eranskinak:"
+msgstr "Eranskinik ez"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:191
-#, fuzzy, python-format
-#| msgid "%i Attachment"
-#| msgid_plural "%i Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
-msgstr[0] "%i eranskina"
-msgstr[1] "%i eranskinak"
+msgstr[0] "Eranskin %i"
+msgstr[1] "%i eranskin"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2711,10 +2689,8 @@ msgstr "Bueltako estekak"
 
 #. placeholder label in sidepane
 #: zim/plugins/backlinkpane.py:84
-#, fuzzy
-#| msgid "Backlinks:"
 msgid "No backlinks"
-msgstr "Bueltako estekak:"
+msgstr "Bueltako estekarik ez"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
@@ -2851,7 +2827,7 @@ msgstr "Ezarri uneko orrialdera"
 #. plugin name
 #: zim/plugins/commandpalette.py:43 zim/plugins/commandpalette.py:115
 msgid "Command Palette"
-msgstr "Command Palette"
+msgstr "Komando-paleta"
 
 #. plugin description
 #: zim/plugins/commandpalette.py:44
@@ -2877,8 +2853,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Plugin honen zim-entzako GraphViz-en oinarritutako diagrama editorea "
+"Plugin honek GraphViz-en oinarritutako zim-erako diagrama-editore bat "
 "eskaintzen du.\n"
+"\n"
+"Hau zim-ekin batera hornitzen den oinarrizko plugina da.\n"
 
 #. menu item
 #: zim/plugins/diagrameditor.py:39
@@ -3136,10 +3114,8 @@ msgstr "Gaur"
 
 #. side pane title
 #: zim/plugins/journal.py:335
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
-msgstr "Egunkaria"
+msgstr "_Egunkaria"
 
 #. strftime format for current date label
 #: zim/plugins/journal.py:396
@@ -3230,17 +3206,13 @@ msgstr "Zoom automatikoa mapa egokitzeko"
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "Kokalekua leihoan"
+msgstr "Jarraitu leiho nagusia"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "Ireki leiho berrian"
+msgstr "Ireki beti estekak leiho berrietan"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3289,10 +3261,8 @@ msgstr "Erabili aholkuak"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:129
-#, fuzzy
-#| msgid "Page Index"
 msgid "Collapse Page Index"
-msgstr "Orrien aurkibidea"
+msgstr "Tolestu orrien aurkibidea"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:133
@@ -3301,10 +3271,8 @@ msgstr "Erakutsi uneko orria orrien aurkibidean"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:147
-#, fuzzy
-#| msgid "Index"
 msgid "Inde_x"
-msgstr "Aurkibidea"
+msgstr "Aur_kibidea"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
@@ -3372,6 +3340,9 @@ msgstr ""
 "soluzio bat ematen du. Uneko orria html formatura\n"
 "esportatu eta nabigatzailean irekitzen du. Suposatzen\n"
 "da nabigatzaileak inprimatzeko gaitasuna duela.\n"
+"Honen bidez inprimaketa bi urratsetan egiten da.\n"
+"\n"
+"Hau zim-ekin batera hornitzen den oinarrizko plugina da.\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:63
@@ -3385,10 +3356,8 @@ msgstr "_Inprimatu"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "Inprimatu nabigatzailearen bidez"
+msgstr "Inprimatu zereginen zerrenda nabigatzailean"
 
 #. plugin name
 #: zim/plugins/quicknote.py:166 zim/plugins/quicknote.py:202
@@ -3452,6 +3421,8 @@ msgid ""
 msgstr ""
 "Plugin honek zim-entzat GNU Lilypond-en oinarritutako puntuazio editorea "
 "eskaintzen du.\n"
+"\n"
+"Hau zim-ekin batera hornitzen den  oinarrizko plugina da.\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:55
@@ -3654,7 +3625,10 @@ msgid ""
 "Adds spell checking support using gtkspell.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
-msgstr "Gtkspell bidezko zuzenketa ortografikoa gehitzen du.\n"
+msgstr ""
+"Gtkspell bidezko zuzenketa ortografikoa gehitzen du.\n"
+"\n"
+"Hau zim-ekin batera hornitzen den oinarrizko plugina da.\n"
 
 #. menu item
 #: zim/plugins/spell.py:136
@@ -3961,10 +3935,8 @@ msgstr "Zeregin guztiak"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:65
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "Ekintza"
+msgstr "Aktiboa"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
@@ -3973,10 +3945,8 @@ msgstr "Sarrera-ontzia"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
-#, fuzzy
-#| msgid "Action"
 msgid "Next Actions"
-msgstr "Ekintza"
+msgstr "Hurrengo ekintzak"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:68
@@ -3985,31 +3955,23 @@ msgstr "Proiektuak"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:69
-#, fuzzy
-#| msgid "Editing"
 msgid "Waiting"
-msgstr "Edizioa"
+msgstr "Zain"
 
 #. placeholder label for sidepane
 #: zim/plugins/tasklist/gui.py:109
-#, fuzzy
-#| msgid "Tasks"
 msgid "No tasks"
-msgstr "Zereginak"
+msgstr "Zereginik ez"
 
 #. tooltip
 #: zim/plugins/tasklist/gui.py:135
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist window"
-msgstr "Erakutsi zereginen zerrenda alboko panelean"
+msgstr "Erakutsi zereginen zerrendaren leihoa"
 
 #. label for filtering/searching tasks
 #: zim/plugins/tasklist/gui.py:180
-#, fuzzy
-#| msgid "Filter"
 msgid "Filter tasks"
-msgstr "Iragazkia"
+msgstr "Iragazi zereginak"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:243
@@ -4028,10 +3990,8 @@ msgstr "Erakutsi zeregin irekiak"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:430
-#, fuzzy
-#| msgid "Only Show Active Tasks"
 msgid "Show closed tasks"
-msgstr "Erakutsi bakarrik zeregin aktiboak"
+msgstr "Erakutsi burututako zereginak"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:431
@@ -4103,8 +4063,6 @@ msgstr ""
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:45
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist button in headerbar"
 msgstr "Erakutsi zereginen zerrendaren botoia goiburuko barran"
 
@@ -4126,17 +4084,13 @@ msgstr "Erakutsi epemuga alboko panelean"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:55
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show start date in sidepane"
-msgstr "Erakutsi epemuga alboko panelean"
+msgstr "Erakutsi hasiera-data alboko panelean"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:57
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show page column in the sidepane"
-msgstr "Erakutsi zereginen zerrenda alboko panelean"
+msgstr "Erakutsi orriaren zutabea alboko panelean"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:63
@@ -4150,17 +4104,13 @@ msgstr "Zereginak markatzeko etiketak"
 
 #. label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
 #: zim/plugins/tasklist/__init__.py:67
-#, fuzzy
-#| msgid "Labels marking tasks"
 msgid "Labels for \"waiting\" tasks"
-msgstr "Zereginak markatzeko etiketak"
+msgstr "\"Zain\" dauden zereginen etiketak"
 
 #. label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 #: zim/plugins/tasklist/__init__.py:69
-#, fuzzy
-#| msgid "Tags for non-actionable tasks"
 msgid "Tags for \"waiting\" tasks"
-msgstr "Exekutagarriak ez diren egitekoentzako etiketak"
+msgstr "\"Zain\" dauden zereginen etiketak"
 
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:71
@@ -4194,10 +4144,8 @@ msgstr "Baztertu beharreko sekzioa(k)"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:83
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show page names in selection pane"
-msgstr "Erakutsi epemuga alboko panelean"
+msgstr "Erakutsi orrien izenak hautapen panelean"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:85
@@ -4236,10 +4184,10 @@ msgstr "Tresna barra"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40
-#, fuzzy
-#| msgid "This plugin adds the page index pane to the main window.\n"
 msgid "This plugin allows to customize the toolbar in the main window.\n"
-msgstr "Plugin honek leiho nagusiari orrien atalen panela gehitzen dio.\n"
+msgstr ""
+"Plugin honek leiho nagusiko tresna-barra pertsonalizatzeko aukera ematen du."
+"\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:49
@@ -4277,7 +4225,10 @@ msgid ""
 msgstr ""
 "Plugin honek sistemaren erretiluan ikono bat gehitzen du aplikazioa azkar "
 "irekitzeko.\n"
+"\n"
 "Plugin honek Gtk+ 2.10 bertsioa edo berriagoa behar du.\n"
+"\n"
+"Hau zim-ekin batera hornitzen den oinarrizko plugina da.\n"
 
 #. preferences option
 #: zim/plugins/trayicon.py:85
@@ -4331,6 +4282,8 @@ msgstr ""
 "Plugin honek koadernorako bertsio kontrola gehitzen du.\n"
 "\n"
 "Plugin honek Bazaar, Git eta Mercurial bertsio kontrolak onartzen ditu.\n"
+"\n"
+"Hau zim-ekin batera hornitzen den oinarrizko plugina da.\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:67
@@ -4515,9 +4468,8 @@ msgstr "Egin aldaketen egunkaria Zeitgeist-en bidez"
 
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:34
-#, fuzzy
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr "Eraman aldaketak Zeitgeist-en demoniora."
+msgstr "Gertaerak Zeitgeist daemonera bultzatzen ditu."
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:64

@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2020-09-24 20:40+0000\n"
-"Last-Translator: vlastimilott <admin@wp-admin.cz>\n"
-"Language-Team: Czech <https://hosted.weblate.org/projects/zim/master/cs/>\n"
+"PO-Revision-Date: 2022-12-07 21:47+0000\n"
+"Last-Translator: Stanislav Horáček <stanislav.horacek@gmail.com>\n"
+"Language-Team: Czech <https://hosted.weblate.org/projects/zim/develop/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.3-dev\n"
+"X-Generator: Weblate 4.15-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -1132,10 +1132,8 @@ msgstr "_Otevřít"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6907
-#, fuzzy
-#| msgid "Check Checkbox '>'"
 msgid "Check Checkbox '<'"
-msgstr "Zatrhnout přepínač '>'"
+msgstr "Zatrhnout přepínač '<'"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6908
@@ -1207,43 +1205,37 @@ msgstr "_Smazat"
 #. Menu item
 #: zim/gui/pageview/__init__.py:6980
 msgid "Toggle Checkbox 'V'"
-msgstr "Zatrhnout přepínač kladně"
+msgstr "Zatrhnout přepínač 'V'"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6989
 msgid "Toggle Checkbox 'X'"
-msgstr "Zatrhnout přepínač záporně"
+msgstr "Zatrhnout přepínač 'X'"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:6998
 msgid "Toggle Checkbox '>'"
-msgstr "Změnit stav přepínače '>'"
+msgstr "Zatrhnout přepínač '>'"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7007
-#, fuzzy
-#| msgid "Toggle Checkbox 'V'"
 msgid "Toggle Checkbox '<'"
-msgstr "Zatrhnout přepínač kladně"
+msgstr "Zatrhnout přepínač '<'"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7016
 msgid "_Edit Link or Object..."
-msgstr "_Upravit odkaz nebo objekt"
+msgstr "_Upravit odkaz nebo objekt..."
 
 #. menu item to copy current line to clipboard
 #: zim/gui/pageview/__init__.py:7072
-#, fuzzy
-#| msgid "Copy _Link"
 msgid "Copy Line"
-msgstr "Kopírovat _odkaz"
+msgstr "Kopírovat řá_dek"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7088
-#, fuzzy
-#| msgid "_Date and Time..."
 msgid "Date and Time..."
-msgstr "_Datum a čas"
+msgstr "_Datum a čas..."
 
 #. Menu item for Insert menu
 #: zim/gui/pageview/__init__.py:7103
@@ -1257,10 +1249,8 @@ msgstr "_Obrázek..."
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7119
-#, fuzzy
-#| msgid "Attachments"
 msgid "_Attachment..."
-msgstr "Přílohy"
+msgstr "Přílo_ha..."
 
 #. Menu item | 
 #. Menu item,
@@ -1282,20 +1272,18 @@ msgstr "Zašk_rtávací seznam"
 
 #. Menu item,
 #: zim/gui/pageview/__init__.py:7176
-#, fuzzy
-#| msgid "_Remove Link"
 msgid "_Remove List"
-msgstr "Odst_ranit odkaz"
+msgstr "_Odstranit seznam"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7204
 msgid "Text From _File..."
-msgstr "Text ze _souboru"
+msgstr "Text ze _souboru..."
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7251
 msgid "_Link..."
-msgstr "_Odkaz"
+msgstr "_Odkaz..."
 
 #. message when no file templates are found in ~/Templates
 #: zim/gui/pageview/__init__.py:7278
@@ -1305,7 +1293,7 @@ msgstr "Nenainstalovány žádné šablony"
 #. Menu item in "Insert > New File Attachment" submenu
 #: zim/gui/pageview/__init__.py:7327
 msgid "File _Templates..."
-msgstr "Šablony _souborů"
+msgstr "Šablony _souborů..."
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7335
@@ -1314,10 +1302,8 @@ msgstr "_Vymazat formátování"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7372
-#, fuzzy
-#| msgid "_Remove Link"
 msgid "_Remove Heading"
-msgstr "Odst_ranit odkaz"
+msgstr "_Odstranit nadpis"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7497
@@ -1660,10 +1646,8 @@ msgstr "Nastavení"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:115
-#, fuzzy
-#| msgid "_Keybindings"
 msgid "Key bindings"
-msgstr "_Klávesové zkratky"
+msgstr "Klávesové zkratky"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:120
@@ -1790,10 +1774,8 @@ msgstr "Nastavit výchozí textový editor"
 
 #. button in preferences dialog to change default browser
 #: zim/gui/preferencesdialog.py:511
-#, fuzzy
-#| msgid "Set default text editor"
 msgid "Set default browser"
-msgstr "Nastavit výchozí textový editor"
+msgstr "Nastavit výchozí prohlížeč"
 
 #. help text in preferences dialog for modifying keybindings
 #: zim/gui/preferencesdialog.py:545
@@ -1803,6 +1785,11 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"Klávesovou zkratku lze změnit kliknutím do seznamu na pole s kombinací "
+"kláves\n"
+"a následným stisknutím nové zkratky.\n"
+"Klávesovou zkratku zrušíte tím, že ji v seznamu vyberete a použijete "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:566
@@ -2018,10 +2005,8 @@ msgstr "Odesla_t..."
 
 #. Menu item
 #: zim/gui/uiactions.py:190
-#, fuzzy
-#| msgid "_Rename Page..."
 msgid "_Rename or Move Page..."
-msgstr "Pře_jmenovat stránku...."
+msgstr "Pře_jmenovat nebo přesunout stránku..."
 
 #. Menu item
 #: zim/gui/uiactions.py:199
@@ -2123,10 +2108,8 @@ msgstr "Zobrazit _záznam"
 
 #. Menu item
 #: zim/gui/uiactions.py:382
-#, fuzzy
-#| msgid "Update Index"
 msgid "Check and Update Index"
-msgstr "Aktualizovat index"
+msgstr "Zkontrolovat a aktualizovat index"
 
 #. Menu item
 #: zim/gui/uiactions.py:415
@@ -2205,10 +2188,8 @@ msgstr "Uložit kopii"
 
 #. Dialog title
 #: zim/gui/uiactions.py:589
-#, fuzzy
-#| msgid "Rename Page"
 msgid "Rename or Move Page"
-msgstr "Přejmenovat stránku"
+msgstr "Přejmenovat nebo přesunout stránku"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/uiactions.py:594

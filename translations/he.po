@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-10-04 01:53+0000\n"
+"PO-Revision-Date: 2023-01-12 08:50+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 4.15.1-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -1742,6 +1742,10 @@ msgid ""
 "To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;"
 "</tt>."
 msgstr ""
+"אפשר להחליף איגודי מקשים על ידי לחיצה על שדה עם צירוף מקשים\n"
+"שברשימה ואז ללחוץ על איגוד מקשים חדש.\n"
+"כדי להשבית איגוד מקשים, יש לבחור אותו ברשימה ולהשתמש במקש "
+"<tt>&lt;Backspace&gt;</tt>."
 
 #. Column header for keybinding list
 #: zim/gui/preferencesdialog.py:566
@@ -2595,6 +2599,8 @@ msgid ""
 "This plugin shows the attachments folder of the current page as an\n"
 "icon view at bottom pane.\n"
 msgstr ""
+"תוסף זה מציג את תיקיית הקבצים המצורפים של העמוד הנוכחי\n"
+"כתצוגת סמלים בחלונית התחתונה.\n"
 
 #. option for plugin preferences | 
 #. preferences option
@@ -2673,9 +2679,7 @@ msgstr "אין קישורים חוזרים"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
-#, fuzzy, python-format
-#| msgid "%i _Backlink"
-#| msgid_plural "%i _Backlinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
 msgstr[0] "קישור מ_פנה אחד"
@@ -2683,21 +2687,19 @@ msgstr[1] "%i קישורים מ_פנים"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:128
-#, fuzzy
-#| msgid "BackLinks"
 msgid "_BackLinks"
-msgstr "קישורים חוזרים"
+msgstr "קישורים מ_פנים"
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:361
 msgid "_Edit..."
-msgstr ""
+msgstr "_עריכה…"
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:390
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "עריכת %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:415
@@ -2716,7 +2718,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/bookmarksbar.py:36
 msgid "BookmarksBar"
-msgstr ""
+msgstr "סרגל סימניות"
 
 #. plugin description
 #: zim/plugins/bookmarksbar.py:37
@@ -2724,93 +2726,93 @@ msgid ""
 "\t\tThis plugin provides bar for bookmarks.\n"
 "\t\t"
 msgstr ""
+"\t\tתוסף זה מספק סרגל לסימניות.\n"
+"\t\t"
 
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:45
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "מספר הסימניות המרבי"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:46
 msgid "Save bookmarks"
-msgstr ""
+msgstr "שמירת סימניות"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:47
 msgid "Add new bookmarks to the beginning of the bar"
-msgstr ""
+msgstr "להוסיף סימנייה חדשה לתחילת הסרגל"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:99 zim/plugins/bookmarksbar.py:160
 msgid "Add Bookmark"
-msgstr ""
+msgstr "הוספת סימנייה"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:149
 msgid "Bookmarks"
-msgstr ""
+msgstr "סימניות"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:184
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "הוספת סימנייה/הצגת הגדרות"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:294
 msgid "Do you want to delete all bookmarks?"
-msgstr ""
+msgstr "למחוק את כל הסימניות?"
 
 #. menu item for context menu
 #: zim/plugins/bookmarksbar.py:375
 msgid "Show full Page Name"
-msgstr ""
+msgstr "להציג את השם המלא של העמוד"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:397
 msgid "Set New Name"
-msgstr ""
+msgstr "הגדרת שם חדש"
 
 #. button label
 #: zim/plugins/bookmarksbar.py:399
 msgid "Back to Original Name"
-msgstr ""
+msgstr "חזרה לשם המקורי"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:404
 msgid "Remove"
-msgstr ""
+msgstr "הסרה"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:405
 msgid "Remove All"
-msgstr ""
+msgstr "הסרה של הכול"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "העתקה"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "הדבקה"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
 msgid "Open in New Window"
-msgstr ""
+msgstr "פתיחה בחלון חדש"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:413
 msgid "Set to Current Page"
-msgstr ""
+msgstr "הגדרה לעמוד הנוכחי"
 
 #. plugin name
 #: zim/plugins/commandpalette.py:43 zim/plugins/commandpalette.py:115
-#, fuzzy
-#| msgid "Command"
 msgid "Command Palette"
-msgstr "פקודה"
+msgstr "לוח פקודות"
 
 #. plugin description
 #: zim/plugins/commandpalette.py:44
@@ -2819,6 +2821,9 @@ msgid ""
 "The search dialog can be opened by pressing the keyboard shortcut Ctrl+Shift"
 "+P which can be customized via Zim's key bindings preferences."
 msgstr ""
+"תוסף זה פותח חלונית חיפוש שמאפשרת להפעיל רשומות מהתפריט במהירות. ניתן לפתוח "
+"את חלונית החיפוש בלחיצה על צירוף המקשים Ctrl+Shift+P, אותו ניתן להגדיר "
+"בהעדפות איגוד המקשים של Zim."
 
 #. plugin name
 #: zim/plugins/diagrameditor.py:20
@@ -2834,17 +2839,17 @@ msgid ""
 msgstr ""
 "תוסף זה מהווה עורך תרשימים ל־GraphViz מבוסס zim.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. menu item
 #: zim/plugins/diagrameditor.py:39
 msgid "Diagram"
-msgstr ""
+msgstr "תרשים"
 
 #. plugin name
 #: zim/plugins/distractionfree.py:25
 msgid "Distraction Free Editing"
-msgstr ""
+msgstr "עריכה בלי הסחות דעת"
 
 #. plugin description
 #: zim/plugins/distractionfree.py:27
@@ -2852,37 +2857,39 @@ msgid ""
 "This plugin adds settings that help using zim\n"
 "as a distraction free editor.\n"
 msgstr ""
+"תוסף זה מוסיף הגדרות שעוזרות להשתמש ב־zim\n"
+"כעורך נטול הסחות דעת.\n"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:36
 msgid "Hide menubar in fullscreen mode"
-msgstr ""
+msgstr "הסתרת סרגל תפריטים במצב מסך מלא"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:37
 msgid "Maximum page width"
-msgstr ""
+msgstr "רוחב העמוד המרבי"
 
 #. plugin preference | 
 #. preference option for sourceview plugin
 #: zim/plugins/distractionfree.py:38 zim/plugins/sourceview.py:99
 msgid "Border width"
-msgstr ""
+msgstr "עובי מסגרת"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:39
 msgid "Text background color"
-msgstr ""
+msgstr "צבע רקע טקסט"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Text foreground color"
-msgstr ""
+msgstr "צבע חזית טקסט"
 
 #. plugin name
 #: zim/plugins/ditaaeditor.py:28
 msgid "Insert Ditaa"
-msgstr ""
+msgstr "הוספת Ditaa"
 
 #. plugin description
 #: zim/plugins/ditaaeditor.py:29
@@ -2891,11 +2898,14 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"תוסף זה מספק עורך תרשימים ל־zim על בסיס Ditaa.\n"
+"\n"
+"זהו תוסף ליבה שמושק יחד עם zim.\n"
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
 msgid "Ascii graph (Ditaa)"
-msgstr ""
+msgstr "תרשים ASCII ‏(Ditaa)"
 
 #. plugin name
 #: zim/plugins/equationeditor.py:21
@@ -2911,37 +2921,37 @@ msgid ""
 msgstr ""
 "תוסף זה מספק עורך משוואות עבור zim על בסיס latex.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:33
 msgid "Use font color for dark theme"
-msgstr ""
+msgstr "להשתמש בצבע גופן לערכת עיצוב כהה"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:34
 msgid "Font size"
-msgstr ""
+msgstr "גודל גופן"
 
 #. plugin preference
 #: zim/plugins/equationeditor.py:35
 msgid "Equation image DPI"
-msgstr ""
+msgstr "נק׳ לאינטש של תמונות משוואה"
 
 #. menu item
 #: zim/plugins/equationeditor.py:49
 msgid "Equation"
-msgstr ""
+msgstr "משוואה"
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
 msgid "Insert Gnuplot"
-msgstr "השתל Gnuplot‏"
+msgstr "השתלת Gnuplot‏"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:33
 msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
-msgstr "תוסף זה מספק עורך גרפים מבוסס על תוכנת Gnuplot.‏\n"
+msgstr "תוסף זה מספק עורך תרשימים על בסיס Gnuplot.‏\n"
 
 #. menu item
 #: zim/plugins/gnuplot_ploteditor.py:49
@@ -2961,7 +2971,7 @@ msgstr "תוסף זה מספק עורך שרטוטים עבור zim המבוסס
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:52
 msgid "GNU R Plot"
-msgstr ""
+msgstr "שרטוט של GNU R"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -3082,10 +3092,8 @@ msgstr "ה_יום"
 
 #. side pane title
 #: zim/plugins/journal.py:335
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
-msgstr "יומן"
+msgstr "יומ_ן"
 
 #. strftime format for current date label
 #: zim/plugins/journal.py:396
@@ -3113,7 +3121,7 @@ msgstr ""
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:41
 msgid "Please select more than one line of text"
-msgstr ""
+msgstr "נא לבחור ביותר משורה אחת של טקסט"
 
 #. menu item
 #: zim/plugins/linesorter.py:71
@@ -3123,22 +3131,22 @@ msgstr "_סידור השורות"
 #. Menu item
 #: zim/plugins/linesorter.py:175
 msgid "_Move Line Up"
-msgstr ""
+msgstr "העלאת השורה למ_עלה"
 
 #. Menu item
 #: zim/plugins/linesorter.py:181
 msgid "_Move Line Down"
-msgstr ""
+msgstr "הורדת השורה למ_טה"
 
 #. Menu item
 #: zim/plugins/linesorter.py:187
 msgid "_Duplicate Line"
-msgstr ""
+msgstr "_שכפול שורה"
 
 #. Menu item
 #: zim/plugins/linesorter.py:197
 msgid "_Remove Line"
-msgstr ""
+msgstr "ה_סרת שורה"
 
 #. plugin name | 
 #. menu item
@@ -3165,24 +3173,22 @@ msgstr ""
 #. preferences option
 #: zim/plugins/linkmap.py:49
 msgid "Show linkmap button in headerbar"
-msgstr ""
+msgstr "הצגת כפתור מפת קישורים בסרגל הכותרת"
 
 #. preferences option
 #: zim/plugins/linkmap.py:51
 msgid "Autozoom to fit map"
-msgstr ""
+msgstr "לכוון את התקריב אוטומטית כך שיתאים למפה"
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "מיקום בחלון"
+msgstr "מעקב אחר החלון הראשי"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
 msgid "Always open links in new windows"
-msgstr ""
+msgstr "תמיד לפתוח קישורים בחלונות חדשים"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3231,15 +3237,13 @@ msgstr "להשתמש בחלוניות עצה"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:129
-#, fuzzy
-#| msgid "Page Index"
 msgid "Collapse Page Index"
-msgstr "רשימת עמודים"
+msgstr "צמצום רשימת עמודים"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:133
 msgid "Reveal Current Page in Page Index"
-msgstr ""
+msgstr "לחשוף את העמוד הנוכחי למפתח העמודים"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:147
@@ -3314,7 +3318,7 @@ msgstr ""
 "בהדפסה פעולה זו תעביר את הנתונים שלך אל\n"
 "המדפסת בשני שלבים.\n"
 "\n"
-"זהו תוסף המהווה חלק מהליבה של zim.\n"
+"תוסף זה הוא חלק מהליבה של zim.\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:63
@@ -3328,10 +3332,8 @@ msgstr "ה_דפסה"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "הדפסה לדפדפן"
+msgstr "הדפסת רשימת המשימות לדפדפן"
 
 #. plugin name
 #: zim/plugins/quicknote.py:166 zim/plugins/quicknote.py:202
@@ -3410,7 +3412,7 @@ msgstr "כותרת תחתית משותף"
 #. menu item
 #: zim/plugins/scoreeditor.py:72
 msgid "Musical Score"
-msgstr ""
+msgstr "דירוג מוזיקלי"
 
 #. plugin name | 
 #. dialog title
@@ -3533,27 +3535,27 @@ msgstr "מקש בית חכם"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:91
 msgid "Highlight current line"
-msgstr ""
+msgstr "הדגשת השורה הנוכחית"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:93
 msgid "Show right margin"
-msgstr ""
+msgstr "הצגת שול ימני"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:95
 msgid "Right margin position"
-msgstr ""
+msgstr "מיקום שול ימני"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:97
 msgid "Tab width"
-msgstr ""
+msgstr "רוחב טאב"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:101
 msgid "Text wrap mode"
-msgstr ""
+msgstr "מצב גלישת טקסט"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:103
@@ -3643,6 +3645,9 @@ msgid ""
 "Exporting them to various formats (i.e. HTML/LaTeX) completes the feature "
 "set.\n"
 msgstr ""
+"עם תוסף זה אפשר להטמיע ‚טבלה’ לעמוד הוויקי. טבלאות תופענה בתור וידג׳טים מסוג "
+"GTK TreeView.\n"
+"הייצוא שלהם למגוון סוגי קבצים (למשל: HTML/LaTeX) משלים את מכלול היכולות.\n"
 
 #. option value
 #: zim/plugins/tableeditor.py:93
@@ -3900,51 +3905,43 @@ msgstr "כל המשימות"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:65
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "פעולה"
+msgstr "פעיל"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
 msgid "Inbox"
-msgstr ""
+msgstr "דואר נכנס"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
-#, fuzzy
-#| msgid "Action"
 msgid "Next Actions"
-msgstr "פעולה"
+msgstr "הפעולות הבאות"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:68
 msgid "Projects"
-msgstr ""
+msgstr "מיזמים"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:69
-#, fuzzy
-#| msgid "Editing"
 msgid "Waiting"
-msgstr "עריכה"
+msgstr "בהמתנה"
 
 #. placeholder label for sidepane
 #: zim/plugins/tasklist/gui.py:109
 msgid "No tasks"
-msgstr ""
+msgstr "אין משימות"
 
 #. tooltip
 #: zim/plugins/tasklist/gui.py:135
 msgid "Show tasklist window"
-msgstr ""
+msgstr "הצגת חלון רשימת משימות"
 
 #. label for filtering/searching tasks
 #: zim/plugins/tasklist/gui.py:180
-#, fuzzy
-#| msgid "Filter"
 msgid "Filter tasks"
-msgstr "מסנן"
+msgstr "סינון משימות"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:243
@@ -3953,42 +3950,38 @@ msgstr "מ_שימות"
 
 #. Window title for tasklist
 #: zim/plugins/tasklist/gui.py:338 zim/plugins/tasklist/gui.py:343
-#, fuzzy
-#| msgid "Task"
 msgid "Tasks"
-msgstr "משימה"
+msgstr "משימות"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:429
 msgid "Show open tasks"
-msgstr ""
+msgstr "להציג משימות פתוחות"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:430
-#, fuzzy
-#| msgid "Only Show Active Tasks"
 msgid "Show closed tasks"
-msgstr "להציג משימות פעילות בלבד"
+msgstr "להציג משימות סגורות"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:431
 msgid "Show cancelled tasks"
-msgstr ""
+msgstr "להציג משימות שבוטלו"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:432
 msgid "Show migrated tasks"
-msgstr ""
+msgstr "להציג משימות שיובאו"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:433
 msgid "Show trans-migrated tasks"
-msgstr ""
+msgstr "להציג משימות שיובאו למחצה"
 
 #. Header for list selection in tasklist window
 #: zim/plugins/tasklist/gui.py:521
 msgid "Lists"
-msgstr ""
+msgstr "רשימות"
 
 #. selection of tasks without tags
 #: zim/plugins/tasklist/gui.py:612
@@ -3998,7 +3991,7 @@ msgstr "ללא תגית"
 #. header in selection drop down
 #: zim/plugins/tasklist/gui.py:667
 msgid "Labels"
-msgstr ""
+msgstr "תוויות"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist/gui.py:800
@@ -4009,13 +4002,13 @@ msgstr "משימה"
 #. due date for task
 #: zim/plugins/tasklist/gui.py:851 zim/plugins/tasklist/gui.py:1137
 msgid "Due"
-msgstr ""
+msgstr "תום תפוגה"
 
 #. Column header Task List dialog | 
 #. start date for task
 #: zim/plugins/tasklist/gui.py:852 zim/plugins/tasklist/gui.py:1135
 msgid "Start"
-msgstr ""
+msgstr "התחלה"
 
 #. plugin name | 
 #. menu item
@@ -4041,36 +4034,32 @@ msgstr ""
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:45
 msgid "Show tasklist button in headerbar"
-msgstr ""
+msgstr "להציג רשימת משימות בסרגל הכותרת"
 
 #. preferences option - "GTD" means "Getting Things Done" methodology
 #: zim/plugins/tasklist/__init__.py:47
 msgid "Show \"GTD-style\" inbox & next actions lists"
-msgstr ""
+msgstr "להציג תיבת דואר ואת רשימת המשימות הבאות בסגנון תכל׳ס"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:49
 msgid "Show tasklist in sidepane"
-msgstr ""
+msgstr "להציג את רשימת המשימות בחלונית הצד"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:53
 msgid "Show due date in sidepane"
-msgstr ""
+msgstr "להציג את תאריך התפוגה בחלונית הצד"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:55
-#, fuzzy
-#| msgid "Show ToC as floating widget instead of in sidepane"
 msgid "Show start date in sidepane"
-msgstr "הראה תוכן העניינים בחלון נפרד במקום בתוך מסגרת שוליים"
+msgstr "להציג את תאריך ההתחלה בחלונית הצד"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:57
-#, fuzzy
-#| msgid "Show controls in the window decoration"
 msgid "Show page column in the sidepane"
-msgstr "הצגת פקדים בעיטור החלון"
+msgstr "להציג את עמודות הדף בחלונית הצד"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:63
@@ -4084,17 +4073,13 @@ msgstr "תוויות לסימון משימות"
 
 #. label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
 #: zim/plugins/tasklist/__init__.py:67
-#, fuzzy
-#| msgid "Labels marking tasks"
 msgid "Labels for \"waiting\" tasks"
-msgstr "תוויות לסימון משימות"
+msgstr "תוויות למשימות „בהמתנה”"
 
 #. label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 #: zim/plugins/tasklist/__init__.py:69
-#, fuzzy
-#| msgid "Tags for non-actionable tasks"
 msgid "Tags for \"waiting\" tasks"
-msgstr "תגיות למטלות שאינן לביצוע"
+msgstr "תגיות למשימות „בהמתנה”"
 
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:71
@@ -4119,7 +4104,7 @@ msgstr "כתאריך סוף ביצוע למשימות"
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:76
 msgid "Section(s) to index"
-msgstr ""
+msgstr "סעיפים להוספה למפתח"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:78
@@ -4129,12 +4114,12 @@ msgstr "סעיפים להתעלמות"
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:83
 msgid "Show page names in selection pane"
-msgstr ""
+msgstr "להציג את שמות העמודים בלוח הבחירה"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:85
 msgid "Don't count Saturday and Sunday as working days"
-msgstr ""
+msgstr "לא למנות את שבת ואת ראשון כימי עבודה"
 
 #. toolbar style
 #: zim/plugins/toolbar.py:17
@@ -4168,10 +4153,8 @@ msgstr "סרגל כלים"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40
-#, fuzzy
-#| msgid "This plugin adds the page index pane to the main window.\n"
 msgid "This plugin allows to customize the toolbar in the main window.\n"
-msgstr "תוסף זה מוסיף את חלונית רשימת הדפים לחלון הראשי.\n"
+msgstr "תוסף זה מאפשר לך להתאים את סרגל הכלים בחלון הראשי.\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:49
@@ -4262,11 +4245,16 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"התוסף הזה מוסיף בקרת גרסאות למחברות.\n"
+"\n"
+"התוסף תומך במערכות בקראת הגרסאות Bazaar,‏ Git ו־Mercurial.\n"
+"\n"
+"זהו תוסף ליבה שמושק יחד עם zim.\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:67
 msgid "Autosave version when the notebook is closed"
-msgstr ""
+msgstr "לשמור את הגרסה אוטומטית עם סגירת המחברת"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:68

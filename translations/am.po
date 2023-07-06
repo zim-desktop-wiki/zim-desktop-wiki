@@ -8,23 +8,23 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2019-06-01 17:12+0000\n"
-"Last-Translator: samson <Unknown>\n"
-"Language-Team: Amharic <am@li.org>\n"
+"PO-Revision-Date: 2023-02-05 18:40+0000\n"
+"Last-Translator: samson <sambelet@yahoo.com>\n"
+"Language-Team: Amharic <https://hosted.weblate.org/projects/zim/develop/am/>"
+"\n"
 "Language: am\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.16-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
-"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "ቴምፕሌት ማግኘት አልተቻለም \"%s\""
+msgstr "መተግበሪያውን ማግኘት አልተቻለም: \"%s\""
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -479,7 +479,7 @@ msgstr "ይህን የ እቃ አይነት ለ ማሳየት ተሰኪው ዝግ�
 #: zim/gui/insertedobjects.py:276
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr "ህ ተሰኪ \"%s\" ያስፈልጋል ይህን እቃ ለ ማሳየት:"
+msgstr "ተሰኪ \"%s\" ያስፈልጋል ይህን እቃ ለ ማሳየት:"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:280
@@ -556,12 +556,12 @@ msgstr "_ምልክት ማድረጊያ ሳጥን"
 #. option for plugin preferences
 #: zim/gui/mainwindow.py:68
 msgid "Show controls in the window decoration"
-msgstr ""
+msgstr "በ መስኮት ማስጌጫ ውስጥ መቆጣጠሪያ ማሳያ"
 
 #. option for plugin preferences
 #: zim/gui/mainwindow.py:68
 msgid "This option requires restart of the application"
-msgstr ""
+msgstr "ይህ ምርጫ መተግበሪያውን እንደገና ማስጀመር ይፈልጋል"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 #: zim/gui/mainwindow.py:70
@@ -603,7 +603,7 @@ msgstr "_ሊታረም የሚችል ማስታወሻ ደብተር"
 #. message in toggle editable tooltip
 #: zim/gui/mainwindow.py:303
 msgid "Page is read-only and cannot be edited"
-msgstr ""
+msgstr "ይህ ገጽ ለ ንባብ-ብቻ ነው ማረም አይቻልም"
 
 #. Menu item
 #: zim/gui/mainwindow.py:337
@@ -669,7 +669,7 @@ msgstr "_ወደ ኋላ"
 #. tooltip for navigation button
 #: zim/gui/mainwindow.py:891
 msgid "Go back"
-msgstr ""
+msgstr "ወደ ኋላ"
 
 #. Menu item | 
 #. Button label
@@ -716,7 +716,7 @@ msgstr "_ቤት"
 #. Menu item
 #: zim/gui/mainwindow.py:957
 msgid "Go to home page"
-msgstr ""
+msgstr "ወደ ዋናው ገጽ መሄጃ"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:979
@@ -803,7 +803,7 @@ msgstr "አዲስ _ማያያዣ"
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:173
 msgid "Show edit bar along bottom of editor"
-msgstr ""
+msgstr "የ ማረሚያ እቃ መደርደሪያ ከ ታች በኩል ማሳያ"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:176
@@ -1024,8 +1024,6 @@ msgstr "በ ትንንሽ ፊደል _ከፍ ብሎ መጻፊያ"
 
 #. menu item for formatting
 #: zim/gui/pageview/__init__.py:5879
-#, fuzzy
-#| msgid "_Subscript"
 msgid "Su_bscript"
 msgstr "በ ትንንሽ ፊደል _ዝቅ ብሎ መጻፊያ"
 
@@ -1039,7 +1037,7 @@ msgstr "እንዲህ ያለ ዊኪ አልተገለጸም: %s"
 #: zim/gui/pageview/__init__.py:6656
 #, python-format
 msgid "Id \"%s\" not found on the current page"
-msgstr ""
+msgstr "Id \"%s\" በ አሁኑ ገጽ ውስጥ አልተገኘም"
 
 #. menu item for context menu of editor
 #: zim/gui/pageview/__init__.py:6715
@@ -1129,10 +1127,8 @@ msgstr "_መክፈቻ"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6907
-#, fuzzy
-#| msgid "Check Checkbox '>'"
 msgid "Check Checkbox '<'"
-msgstr "ምልክት ማድረጊያ ሳጥን ውስጥ '>'"
+msgstr "ምልክት ማድረጊያ ሳጥን ውስጥ '<'"
 
 #. popup menu menuitem
 #: zim/gui/pageview/__init__.py:6908
@@ -1307,7 +1303,7 @@ msgstr "ፋይል _ቴምፕሌቶች..."
 #. Menu item
 #: zim/gui/pageview/__init__.py:7335
 msgid "_Clear Formatting"
-msgstr "አቀራረብ ማጽጃ"
+msgstr "አቀራረብ _ማጽጃ"
 
 #. Menu item
 #: zim/gui/pageview/__init__.py:7372
@@ -1623,7 +1619,7 @@ msgstr "አዲስ ገጽ መክፈቻ"
 #. error message in "move selected text" action
 #: zim/gui/pageview/__init__.py:8672
 msgid "No text selected"
-msgstr ""
+msgstr "ምንም ጽሁፍ አልተመረጠም"
 
 #. Dialog title
 #: zim/gui/pageview/__init__.py:8712
@@ -1903,7 +1899,7 @@ msgstr "_መፈለጊያ..."
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
 msgid "No results"
-msgstr ""
+msgstr "ምንም ውጤት አልተገኘም"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:171
@@ -1928,7 +1924,7 @@ msgstr "ለ ሁሉም መድረሻ ፍቃድ መፍቀጃ"
 #. checkbox in dialog for starting webserver
 #: zim/gui/server.py:85
 msgid "Require authentication"
-msgstr ""
+msgstr "ማረጋገጫ ያስፈልጋል"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:104
@@ -1945,7 +1941,7 @@ msgstr "የ ፋይል ስም"
 #. Field in web server gui
 #: zim/gui/server.py:112
 msgid "Password"
-msgstr ""
+msgstr "የ መግቢያ ቃል"
 
 #. Status in web server gui
 #: zim/gui/server.py:187
@@ -2235,12 +2231,12 @@ msgstr "አገናኝ በ ማሻሻል ላይ"
 #: zim/gui/uiactions.py:685
 #, python-format
 msgid "Remove links to %s"
-msgstr ""
+msgstr "አገናኝ ማጥፊያ ወደ %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:729
 msgid "Trash Page"
-msgstr ""
+msgstr "ገጽ ማጥፊያ"
 
 #. Heading in 'trash page' dialog - %s is the page name
 #: zim/gui/uiactions.py:730
@@ -2600,7 +2596,7 @@ msgstr "_ሒሳብ"
 #: zim/plugins/attachmentbrowser/filebrowser.py:61
 #, python-format
 msgid "Are you sure you want to delete the file '%s'?"
-msgstr ""
+msgstr "እርስዎ በ እርግጥ ይህን ፋይል ማጥፋት ይፈልጋሉ '%s'?"
 
 #. menu item to delete file
 #: zim/plugins/attachmentbrowser/filebrowser.py:361
@@ -2654,7 +2650,7 @@ msgstr "መሰረዣ"
 #. dialog title
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:18
 msgid "Rename file"
-msgstr ""
+msgstr "ፋይል እንደገና መሰየሚያ"
 
 #. Error message
 #: zim/plugins/attachmentbrowser/filerenamedialog.py:69
@@ -4303,10 +4299,8 @@ msgstr ""
 
 #. plugin name
 #: zim/plugins/toolbar.py:39
-#, fuzzy
-#| msgid "_Toolbar"
 msgid "Tool Bar"
-msgstr "_እቃ መደርደሪያ"
+msgstr "እቃ መደርደሪያ"
 
 #. plugin description
 #: zim/plugins/toolbar.py:40

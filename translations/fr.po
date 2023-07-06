@@ -8,23 +8,22 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-27 20:16+0200\n"
-"PO-Revision-Date: 2022-07-11 05:16+0000\n"
-"Last-Translator: Maxime Leroy <lisacintosh@gmail.com>\n"
-"Language-Team: French <https://hosted.weblate.org/projects/zim/master/fr/>\n"
+"PO-Revision-Date: 2023-04-23 13:52+0000\n"
+"Last-Translator: joel MKO <joelmko90@outlook.com>\n"
+"Language-Team: French <https://hosted.weblate.org/projects/zim/develop/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.13.1-dev\n"
+"X-Generator: Weblate 4.18-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
-#, fuzzy, python-format
-#| msgid "Could not find template \"%s\""
+#, python-format
 msgid "Cound not find application: %s"
-msgstr "Impossible de trouver le modèle \"%s\""
+msgstr "Impossible de trouver l'application : \"%s\""
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:150
@@ -101,6 +100,8 @@ msgid ""
 "Create missing directories automatically\n"
 "(If disabled you will be prompted)"
 msgstr ""
+"Créer les répertoires qui manquent automatiquement\n"
+"(si désactivé, vous serez invité à les créer)"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/applications.py:595
@@ -121,7 +122,7 @@ msgstr ""
 #: zim/gui/applications.py:664 zim/gui/applications.py:738
 #, python-format
 msgid "Could not open: %s"
-msgstr "Ne peut pas ouvrir : %s"
+msgstr "Impossible d'ouvrir %s"
 
 #. main text for dialog for editing external files
 #: zim/gui/applications.py:729
@@ -1060,10 +1061,8 @@ msgstr "Copier le _lien"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6824
-#, fuzzy
-#| msgid "Edit Link"
 msgid "Cut Lin_k"
-msgstr "Modifier le lien"
+msgstr "Couper le Lie_n"
 
 #. context menu item
 #: zim/gui/pageview/__init__.py:6837
@@ -1853,15 +1852,13 @@ msgstr "_Limiter la recherche à cette page et ses sous-pages"
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:68
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "_Rechercher..."
+msgstr "Recherche..."
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:69
 msgid "No results"
-msgstr ""
+msgstr "Aucun résultat"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:171
@@ -2692,10 +2689,8 @@ msgstr "Piè_ces jointes"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:146
-#, fuzzy
-#| msgid "Attachments:"
 msgid "No attachments"
-msgstr "Fichiers liés"
+msgstr "Pas de fichiers liés"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:191
@@ -2740,10 +2735,8 @@ msgstr "Rétroliens"
 
 #. placeholder label in sidepane
 #: zim/plugins/backlinkpane.py:84
-#, fuzzy
-#| msgid "Backlinks:"
 msgid "No backlinks"
-msgstr "Rétroliens"
+msgstr "Pas de rétroliens"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
@@ -3247,7 +3240,7 @@ msgstr "Afficher le bouton pour la carte du lien dans la barre du haut"
 #. preferences option
 #: zim/plugins/linkmap.py:51
 msgid "Autozoom to fit map"
-msgstr ""
+msgstr "Zoom automatique pour ajuster la carte"
 
 #. preferences option
 #: zim/plugins/linkmap.py:53
@@ -3258,10 +3251,8 @@ msgstr "Position dans la fenêtre"
 
 #. preferences option
 #: zim/plugins/linkmap.py:55
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "Ouvrir dans une nouvelle fenêtre"
+msgstr "Toujours ouvrir les liens dans de nouvelles fenêtres"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3408,10 +3399,8 @@ msgstr "_Imprimer"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "Imprimer vers le navigateur"
+msgstr "Imprimer la liste des tâches dans le navigateur"
 
 #. plugin name
 #: zim/plugins/quicknote.py:166 zim/plugins/quicknote.py:202
@@ -3990,15 +3979,13 @@ msgstr "Toutes les tâches"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:65
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "Action"
+msgstr "Actif"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:66
 msgid "Inbox"
-msgstr ""
+msgstr "Boîte de réception"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:67
