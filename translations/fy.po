@@ -87,7 +87,7 @@ msgstr "Lytsguod"
 #: zim/fs.py:1171
 #, fuzzy, python-format
 msgid "File is not writable: %s"
-msgstr "Unskriuwber"
+msgstr "Unskriuwber: %s"
 
 #. error message
 #: zim/fs.py:1243

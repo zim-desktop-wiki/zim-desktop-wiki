@@ -8,6 +8,10 @@ man/
 html/
 xdg/hicolor/
 debian/pycompat
+debian/.debhelper
+debian/files
+debian/zim
+debian/zim.*
 windows/build/
 windows/version-and-date.nsi
 MANIFEST
