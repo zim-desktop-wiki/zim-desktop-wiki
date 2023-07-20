@@ -165,7 +165,7 @@ def normalize_file_uris(path):
 
 
 def normalize_win32_share(path):
-	'''Translates paths for windows shares in the platform specific
+	r'''Translates paths for windows shares in the platform specific
 	form. So on windows it translates C{smb://} URLs to C{\\host\share}
 	form, and vice versa on all other platforms.
 	Just returns the original path if it was already in the right form,

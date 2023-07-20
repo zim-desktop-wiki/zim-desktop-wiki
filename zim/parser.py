@@ -1,7 +1,7 @@
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Generic parser for wiki formats
+r'''Generic parser for wiki formats
 
 This parser for wiki text (and similar formats) consists of two classes:
 the L{Rule} class which defines objects which specify a single parser
