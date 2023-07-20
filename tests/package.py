@@ -145,7 +145,7 @@ class TestCoding(tests.TestCase):
 				self.assertFalse('Gtk.Clipboard(' in code, '%s uses Gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)
 
 			if not file.endswith('config.py'):
-				self.assertFalse('os.environ\[' in code, '%s uses os.environ - use zim.config.get_environ() instead' % file)
+				self.assertFalse('os.environ\\[' in code, '%s uses os.environ - use zim.config.get_environ() instead' % file)
 
 	def testIndenting(self):
 		# FIXME need real parser to be more robust for comments, multi-line strings etc.

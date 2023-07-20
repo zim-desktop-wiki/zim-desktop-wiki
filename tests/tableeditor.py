@@ -35,7 +35,7 @@ TABLE_WIKI_TEXT = '''\
 |:----------------:|--------------:|:-----------------------|
 |    Column A1     |     Column A2 | a \\\\name               |
 | a very long cell | **bold text** | two\\nlines             |
-|    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
+|    hyperlinks    |   [[wp?wiki]] | [[http://x.org\\|Xorg]] |
 
 '''
 

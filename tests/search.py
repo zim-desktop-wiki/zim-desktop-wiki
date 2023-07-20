@@ -23,7 +23,7 @@ class TestSearchRegex(tests.TestCase):
 			#print '>>', word, regex
 			self.assertEqual(regex_func(word).pattern, re.compile(regex, re.I | re.U).pattern)
 
-		self.assertIn(regex_func('汉字').pattern, ('汉字', '\汉\字'))
+		self.assertIn(regex_func('汉字').pattern, ('汉字', r'\汉\字'))
 			# re.escape add extra "\" prior to python3.7, but not later
 			# goal of this check is to see no "\b" surrounding chines characters
 

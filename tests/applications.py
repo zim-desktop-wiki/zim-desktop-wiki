@@ -56,8 +56,8 @@ class TestApplications(tests.TestCase):
 				['foo bar', '"foooo bar"', 'dusss', 'ja', '\'foo\'']),
 			("If you don't mind me' asking", # don't use single quote escapes
 				["If", "you", "don't", "mind", "me'", "asking"]),
-			("C:\some\path here",
-				["C:\some\path", "here"]), # Don't touch \ in this path!
+			("C:\\some\\path here",
+				["C:\\some\\path", "here"]), # Don't touch \ in this path!
 			("Some stray quote \"here", # invalid, handle gracefully
 				["Some", "stray", "quote", "\"here"]),
 		):

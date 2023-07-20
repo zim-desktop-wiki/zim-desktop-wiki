@@ -52,7 +52,7 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = [
 		# key, type, label, default
-		('include_header', 'string', _('Common include header'), '\include "predefined-guitar-fretboards.ly"'), # T: plugin preference
+		('include_header', 'string', _('Common include header'), '\\include "predefined-guitar-fretboards.ly"'), # T: plugin preference
 		('include_footer', 'string', _('Common include footer'), ''), # T: plugin preference
 	]
 

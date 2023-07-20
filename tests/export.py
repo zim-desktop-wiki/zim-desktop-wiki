@@ -474,7 +474,7 @@ class TestTemplateOptions(tests.TestCase):
 			exporter.export(selection)
 		result = file.read()
 		#~ print result
-		self.assertIn('\section{Head1}', result) # this implies that document_type "article" was indeed used
+		self.assertIn('\\section{Head1}', result) # this implies that document_type "article" was indeed used
 
 
 class TestExportFormat(object):
