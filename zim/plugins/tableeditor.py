@@ -62,8 +62,8 @@ def reg_replace(string):
 	:param string: target pattern
 	:return:source pattern
 	'''
-	string = string.replace('*', '\*').replace('[', '\[').replace(']', '\]') \
-		.replace(r'\1', '(.+?)', 1).replace(r'\2', '(.+?)', 1).replace('|', '\|')
+	string = string.replace('*', r'\*').replace('[', r'\[').replace(']', r'\]') \
+		.replace(r'\1', '(.+?)', 1).replace(r'\2', '(.+?)', 1).replace('|', r'\|')
 	return re.compile(string)
 
 # Regex compiled search patterns

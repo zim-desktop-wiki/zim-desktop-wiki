@@ -1669,7 +1669,7 @@ FooBaz Foo Bar
 </zim-tree>''')
 		buffer.set_parsetree(tree)
 
-		finder.find('Foo(\w*)', FIND_REGEX) # not case sensitive!
+		finder.find(r'Foo(\w*)', FIND_REGEX) # not case sensitive!
 		finder.find_next()
 		self.assertSelection(buffer, 0, 4, 'FooBar')
 

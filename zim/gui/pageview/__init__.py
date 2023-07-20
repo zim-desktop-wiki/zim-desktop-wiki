@@ -131,7 +131,7 @@ BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANS
 CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANSMIGRATED_BOX)
 
 NUMBER_BULLET = '#.' # Special case for autonumbering
-is_numbered_bullet_re = re.compile('^(\d+|\w|#)\.$')
+is_numbered_bullet_re = re.compile(r'^(\d+|\w|#)\.$')
 	#: This regular expression is used to test whether a bullet belongs to a numbered list or not
 
 # Check the (undocumented) list of constants in Gtk.keysyms to see all names
@@ -5799,7 +5799,7 @@ class InsertedObjectPageviewManager(object):
 
 	@staticmethod
 	def _action_name(key):
-		return 'insert_' + re.sub('\W', '_', key)
+		return 'insert_' + re.sub(r'\W', '_', key)
 
 	def on_changed(self, o):
 		insertedobjects = PluginManager.insertedobjects

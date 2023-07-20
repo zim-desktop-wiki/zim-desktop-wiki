@@ -62,7 +62,7 @@ class TranslationMessage(object):
 		assert self.msgstr, 'No msgstr found'
 
 
-	_format_string_re = re.compile('%(?:\(\w+\))?\w')
+	_format_string_re = re.compile(r'%(?:\(\w+\))?\w')
 		# match "%s", "%d" etc. but also "%(foo)s" - but not just "%"
 
 	def check_nplural(self, nplural):

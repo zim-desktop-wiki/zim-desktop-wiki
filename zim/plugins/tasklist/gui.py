@@ -1056,7 +1056,7 @@ class TaskListTreeView(BrowserTreeView):
 
 			# Format description
 			desc = _date_re.sub('', row['description'])
-			desc = re.sub('\s*!+\s*', ' ', desc) # get rid of exclamation marks
+			desc = re.sub(r'\s*!+\s*', ' ', desc) # get rid of exclamation marks
 			desc = encode_markup_text(desc)
 			if actionable:
 				desc = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', desc) # highlight tags - same color as used in pageview

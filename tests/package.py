@@ -254,7 +254,7 @@ class TestDocumentation(tests.TestCase):
 		if 'signal' in fields:
 			for spec in fields['signal']:
 				# e.g.  "C{signal-name (L{Page}, L{Path})}: Emitted when opening"
-				if not re.match('^C{[\w-]+ \(.*?\)\}:', spec):
+				if not re.match(r'^C{[\w-]+ \(.*?\)\}:', spec):
 					self.fail('Signal description in %s does not follow templates\n'
 					'Is: %s\nShould be like "C{signal-name (arg1, arg2)}: description"'
 					% (name, spec)
@@ -282,7 +282,7 @@ class TestDocumentation(tests.TestCase):
 		# Parse files same as epydoc - and check them on the fly
 		fields = {}
 		for line in doc.splitlines():
-			m = re.match('@(\w+)\s*(.*?):', line)
+			m = re.match(r'@(\w+)\s*(.*?):', line)
 			if m:
 				line = line[m.end():].strip()
 				field, arg = m.group(1), m.group(2)
@@ -306,7 +306,7 @@ class TestDocumentation(tests.TestCase):
 						fields[field] = line
 				else:
 					self.fail('Doc for %s has unknown field @%s' % (name, field))
-			elif re.match('@(\w+)', line):
+			elif re.match(r'@(\w+)', line):
 				self.fail('Syntax error in docs for %s\nMissing \':\' in "%s"' % (name, line))
 			else:
 				pass

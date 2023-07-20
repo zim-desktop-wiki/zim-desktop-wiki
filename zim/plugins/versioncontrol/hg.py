@@ -139,7 +139,7 @@ class HGApplicationBackend(VCSApplicationBase):
 		@returns: nothing
 		"""
 		self.init()
-		self.ignore('\.zim*$\n')
+		self.ignore(r'\.zim*$\n')
 		self.add('.') # add all existing files
 
 	def repo_exists(self):
