@@ -4,7 +4,7 @@
 
 
 import time
-from platform import os
+import platform
 
 from gi.repository import Gtk
 
@@ -17,7 +17,7 @@ from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ErrorDialog
 
 
-PLATFORM = os.name
+PLATFORM = platform.system()
 
 """
 TESTED:
@@ -28,8 +28,9 @@ UNTESTED:
 """
 COMMAND = 'import'
 SUPPORTED_COMMANDS_BY_PLATFORM = dict([
-	('posix', ('import', 'scrot', 'gnome-screenshot')),
-	('nt', ('boxcutter',)),
+	('Linux', ('import', 'scrot', 'gnome-screenshot')),
+	('Windows', ('boxcutter',)),
+	('Darwin', ('screencapture',)),
 ])
 SUPPORTED_COMMANDS = SUPPORTED_COMMANDS_BY_PLATFORM[PLATFORM]
 if len(SUPPORTED_COMMANDS):
@@ -61,6 +62,12 @@ class ScreenshotPicker(object):
 			'full': ('--window',),
 			'delay': '--delay',
 			'file': '-f',
+		}),
+		('screencapture', {
+			'select': ('-i',),
+			'full': ('-T0',),
+			'delay': '-T',
+			'file': None,
 		}),
 	])
 	cmd_default = COMMAND

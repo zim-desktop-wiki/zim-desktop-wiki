@@ -16,6 +16,9 @@ Linux / unix:
 Windows:
 * boxcutter
 
+macOS:
+* screencapture
+
 ===== Preferences =====
 
 The preference **Screenshot Command** allows you to select the tool to use.
