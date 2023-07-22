@@ -71,7 +71,7 @@ class ScreenshotPicker(object):
 		}),
 		('gnome-screenshot', {
 			'select': ('--area',),
-			'full': ('--window',),
+			'full': (),
 			'delay': '--delay',
 			'file': '-f',
 		}),
