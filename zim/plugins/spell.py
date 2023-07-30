@@ -120,17 +120,7 @@ class SpellPageViewExtension(PageViewExtension):
 
 	def _choose_adapter_cls(self):
 		if gtkspellcheck:
-			version = tuple(
-				map(int, re.findall('\d+', gtkspellcheck.__version__))
-			)
-			if version >= (4, 0, 3):
-				return GtkspellcheckAdapter
-			else:
-				logger.warning(
-					'Using gtkspellcheck %s. Versions before 4.0.3 might cause memory leak.',
-					gtkspellcheck.__version__
-				)
-				return OldGtkspellcheckAdapter
+			return GtkspellcheckAdapter
 		else:
 			return GtkspellAdapter
 
@@ -248,19 +238,6 @@ class GtkspellcheckAdapter(AdapterBase):
 		table = self._textview.get_buffer().get_tag_table()
 		for tag in self._check_tag_table():
 			table.remove(tag)
-
-
-class OldGtkspellcheckAdapter(GtkspellcheckAdapter):
-
-	def check_buffer_initialized(self):
-		if self._checker and not self._check_tag_table():
-			# wanted to use checker.buffer_initialize() here,
-			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
-			if self._active:
-				self.detach()
-				self.enable()
-			else:
-				self.detach()
 
 
 class GtkspellAdapter(AdapterBase):
