@@ -29,7 +29,7 @@
       <li>Do brainstorming</li>
     </ul>
   </description>
-  <launchable type="desktop-id">zim.desktop</launchable>
+  <launchable type="desktop-id">org.zim_wiki.Zim.desktop</launchable>
   <url type="homepage">http://zim-wiki.org/</url>
   <screenshots>
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>

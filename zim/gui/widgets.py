@@ -147,7 +147,7 @@ def gtk_window_set_default_icon():
 		for dir in [XDG_DATA_HOME] + XDG_DATA_DIRS:
 			found = False
 			for size in sizes:
-				file = dir.file('icons/hicolor/%s/apps/zim.png' % size)
+				file = dir.file('icons/hicolor/%s/apps/org.zim_wiki.Zim.png' % size)
 				if file.exists():
 					found = True
 					pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)

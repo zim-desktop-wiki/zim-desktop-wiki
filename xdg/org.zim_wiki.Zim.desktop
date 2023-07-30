@@ -2,7 +2,7 @@
 Version=1.0
 Type=Application
 Exec=zim %f
-Icon=zim
+Icon=org.zim_wiki.Zim
 StartupNotify=true
 StartupWMClass=zim
 Terminal=false

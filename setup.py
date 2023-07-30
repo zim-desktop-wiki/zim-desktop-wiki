@@ -78,8 +78,8 @@ def collect_data_files():
 	# Search for data files to be installed in share/
 	data_files = [
 		('share/man/man1', ['man/zim.1']),
-		('share/applications', ['xdg/zim.desktop']),
-		('share/mime/packages', ['xdg/zim.xml']),
+		('share/applications', ['xdg/org.zim_wiki.Zim.desktop']),
+		('share/mime/packages', ['xdg/org.zim_wiki.Zim.xml']),
 		('share/metainfo', ['xdg/org.zim_wiki.Zim.appdata.xml']),
 	]
 
@@ -131,14 +131,14 @@ def fix_dist():
 	# Paths for mimeicons taken from xdg-icon-resource
 	# xdg-icon-resource installs:
 	# /usr/local/share/icons/hicolor/.../mimetypes/application-x-zim-notebook.png
-	# /usr/local/share/icons/hicolor/.../apps/zim.png
+	# /usr/local/share/icons/hicolor/.../apps/org.zim_wiki.Zim.png
 
 	if os.path.exists('xdg/hicolor'):
 		shutil.rmtree('xdg/hicolor')
 	os.makedirs('xdg/hicolor/scalable/apps')
 	os.makedirs('xdg/hicolor/scalable/mimetypes')
 	for name in (
-		'apps/zim.svg',
+		'apps/org.zim_wiki.Zim.svg',
 		'mimetypes/application-x-zim-notebook.svg'
 	):
 		shutil.copy('icons/zim48.svg', 'xdg/hicolor/scalable/' + name)
@@ -147,7 +147,7 @@ def fix_dist():
 		os.makedirs('xdg/hicolor/%s/apps' % dir)
 		os.makedirs('xdg/hicolor/%s/mimetypes' % dir)
 		for name in (
-			'apps/zim.png',
+			'apps/org.zim_wiki.Zim.png',
 			'mimetypes/application-x-zim-notebook.png'
 		):
 			shutil.copy('icons/zim%s.png' % size, 'xdg/hicolor/' + dir + '/' + name)
