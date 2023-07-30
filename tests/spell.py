@@ -8,10 +8,10 @@ import tests
 
 try:
 	import gi
-	gi.require_version('GtkSpell', '3.0')
-	from gi.repository import GtkSpell as gtkspell
+	gi.require_version('Gspell', '1')
+	from gi.repository import Gspell
 except:
-	gtkspell = None
+	Gspell = None
 
 try:
 	import gtkspellcheck
@@ -32,12 +32,12 @@ class TestSpell(object):
 
 	def setUp(self):
 		self._restore = (
-			zim.plugins.spell.gtkspell,
+			zim.plugins.spell.gspell,
 			zim.plugins.spell.gtkspellcheck
 		)
 
 	def tearDown(self):
-		zim.plugins.spell.gtkspell, zim.plugins.spell.gtkspellcheck = \
+		zim.plugins.spell.gspell, zim.plugins.spell.gtkspellcheck = \
 			self._restore
 
 	def runTest(self, adapterclass):
@@ -64,20 +64,20 @@ class TestSpell(object):
 			# TODO check it actually shows on screen ...
 
 
-@tests.skipIf(gtkspell is None, 'gtkspell not installed')
-class TestGtkspell(TestSpell, tests.TestCase):
+@tests.skipIf(Gspell is None, 'Gspell not installed')
+class TestGspell(TestSpell, tests.TestCase):
 
 	def runTest(self):
-		zim.plugins.spell.gtkspell = gtkspell
+		zim.plugins.spell.gspell = Gspell
 		zim.plugins.spell.gtkspellcheck = None
-		TestSpell.runTest(self, zim.plugins.spell.GtkspellAdapter)
+		TestSpell.runTest(self, zim.plugins.spell.GspellAdapter)
 
 
 @tests.skipIf(gtkspellcheck is None, 'gtkspellcheck not installed')
 class TestGtkspellchecker(TestSpell, tests.TestCase):
 
 	def runTest(self):
-		zim.plugins.spell.gtkspell = None
+		zim.plugins.spell.gspell = None
 		zim.plugins.spell.gtkspellcheck = gtkspellcheck
 		TestSpell.runTest(self, zim.plugins.spell.GtkspellcheckAdapter)
 
