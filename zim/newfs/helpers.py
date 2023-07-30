@@ -3,12 +3,9 @@
 
 '''Helper classes for file system related functions'''
 
-try:
-	from gi.repository import Gio
-	from gi.repository import GObject
-	from gi.repository import GLib
-except ImportError:
-	Gio = None
+from gi.repository import Gio
+from gi.repository import GObject
+from gi.repository import GLib
 
 
 import os
@@ -67,9 +64,7 @@ class TrashHelper(object):
 		@raises TrashCancelledError: if trashing was cancelled by the
 		user
 		'''
-		if not Gio:
-			raise TrashNotSupportedError('Gio not imported')
-		elif not isinstance(file, LocalFSObjectBase):
+		if not isinstance(file, LocalFSObjectBase):
 			raise TrashNotSupportedError('cannot trash a non-local file or folder')
 
 		if file.exists():
@@ -112,8 +107,7 @@ class FSObjectMonitor(SignalEmitter):
 
 	def _setup_signal(self, signal):
 		if signal == 'changed' \
-		and self._gio_file_monitor is None \
-		and Gio:
+		and self._gio_file_monitor is None:
 			try:
 				file = Gio.File.new_for_uri(self.path.uri)
 				self._gio_file_monitor = file.monitor(0, None)

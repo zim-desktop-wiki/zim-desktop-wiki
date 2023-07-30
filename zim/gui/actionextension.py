@@ -10,10 +10,7 @@ from zim.plugins import ExtensionBase, list_actions
 from zim.actions import get_actions, get_gtk_actiongroup, RadioActionMethod
 from zim.gui.customtools import CustomToolManager
 
-try:
-	from gi.repository import Gtk
-except ImportError:
-	Gtk = None
+from gi.repository import Gtk
 
 
 if sys.platform == "darwin" or os.name == 'nt':

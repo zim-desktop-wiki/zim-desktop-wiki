@@ -22,12 +22,9 @@ logger = logging.getLogger('tests')
 from functools import partial
 
 
-try:
-	import gi
-	gi.require_version('Gtk', '3.0')
-	from gi.repository import Gtk
-except ImportError:
-	Gtk = None
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 
 import unittest
@@ -251,8 +248,7 @@ class TestCase(unittest.TestCase):
 
 	@classmethod
 	def tearDownClass(cls):
-		if Gtk is not None:
-			gtk_process_events() # flush any pending events / warnings
+		gtk_process_events() # flush any pending events / warnings
 
 		zim.config.manager.resetConfigManager()
 		zim.plugins.resetPluginManager()
@@ -860,7 +856,6 @@ class MaskedObject(object):
 
 def gtk_process_events(*a):
 	'''Method to simulate a few iterations of the gtk main loop'''
-	assert Gtk is not None
 	while Gtk.events_pending():
 		Gtk.main_iteration()
 	return True # continue

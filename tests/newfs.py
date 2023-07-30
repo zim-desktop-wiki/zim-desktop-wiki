@@ -976,15 +976,11 @@ class TestFunc(tests.TestCase):
 		)
 
 
-try:
-	from gi.repository import Gio
-except ImportError:
-	Gio = None
+from gi.repository import Gio
 
 from zim.newfs.helpers import TrashHelper
 
 @tests.slowTest
-@tests.skipUnless(Gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
 
 	def runTest(self):

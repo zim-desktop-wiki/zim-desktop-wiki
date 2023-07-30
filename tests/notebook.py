@@ -1564,13 +1564,7 @@ class TestPageChangeFile(tests.TestCase):
 		self.assertEqual(page3.dump('wiki'), ['Test 5 6 7 8\n'])
 
 
-try:
-	from gi.repository import Gio
-except ImportError:
-	Gio = None
-
 @tests.slowTest
-@tests.skipUnless(Gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
 
 	def runTest(self):

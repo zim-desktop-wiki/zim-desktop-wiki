@@ -136,18 +136,12 @@ def get_mimetype(obj):
 			return "x-scheme-handler/%s" % scheme
 
 
-try:
-	from gi.repository import Gio
-except ImportError:
-	Gio = None
+from gi.repository import Gio
 
 _last_warning_missing_icon = None
 	# used to surpress redundant logging
 
 def get_mime_icon(file, size):
-	if not Gio:
-		return None
-
 	try:
 		f = Gio.File.new_for_uri(file.uri)
 		info = f.query_info('standard::*', Gio.FileQueryInfoFlags.NONE, None)

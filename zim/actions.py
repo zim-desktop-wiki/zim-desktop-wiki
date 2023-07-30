@@ -53,19 +53,13 @@ from zim.signals import SignalHandler
 
 logger = logging.getLogger('zim')
 
-try:
-	import gi
-	gi.require_version('Gtk', '3.0')
-	from gi.repository import Gtk
-	from gi.repository import Gio
-	from gi.repository import GLib
-except:
-	Gtk = None
-	Gio = None
-	GLib = None
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import Gio
+from gi.repository import GLib
 
 def _get_modifier_mask():
-	assert Gtk
 	x, mod = Gtk.accelerator_parse('<Primary>')
 	return mod
 
@@ -146,7 +140,6 @@ class BoundActionMethod(object):
 
 	def get_gaction(self):
 		if self._gaction is None:
-			assert Gio is not None
 			self._gaction = Gio.SimpleAction.new(self.name)
 			self._gaction.set_enabled(self._sensitive)
 			self._gaction.connect('activate', self._on_activate)
@@ -169,18 +162,16 @@ class BoundActionMethod(object):
 
 class ActionMethod(BoundActionMethod):
 
-	_button_class = Gtk.Button if Gtk is not None else None
-	_tool_button_class = Gtk.ToolButton if Gtk is not None else None
+	_button_class = Gtk.Button
+	_tool_button_class = Gtk.ToolButton
 
 	def create_button(self):
-		assert Gtk is not None
 		button = self._button_class.new_with_mnemonic(self.label)
 		button.set_tooltip_text(self.tooltip)
 		self.connect_button(button)
 		return button
 
 	def create_icon_button(self, fallback_icon=None):
-		assert Gtk is not None
 		icon_name = self.verb_icon or self.icon or fallback_icon
 		assert icon_name, 'No icon or verb_icon defined for action "%s"' % self.name
 		icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
@@ -191,7 +182,6 @@ class ActionMethod(BoundActionMethod):
 		return button
 
 	def create_tool_button(self, fallback_icon=None, connect_button=True):
-		assert Gtk is not None
 		icon_name = self.verb_icon or self.icon or fallback_icon
 		assert icon_name, 'No icon or verb_icon defined for action "%s"' % self.name
 		button = self._tool_button_class()
@@ -278,8 +268,8 @@ def toggle_action(label, accelerator='', icon=None, verb_icon=None, init=False, 
 
 class ToggleActionMethod(ActionMethod):
 
-	_button_class = Gtk.ToggleButton if Gtk is not None else None
-	_tool_button_class = Gtk.ToggleToolButton if Gtk is not None else None
+	_button_class = Gtk.ToggleButton
+	_tool_button_class = Gtk.ToggleToolButton
 
 	def __init__(self, instance, action):
 		ActionMethod.__init__(self, instance, action)
@@ -347,7 +337,6 @@ class ToggleActionMethod(ActionMethod):
 
 	def get_gaction(self):
 		if self._gaction is None:
-			assert Gio is not None
 			self._gaction = Gio.SimpleAction.new_stateful(self.name, None, GLib.Variant.new_boolean(self._state))
 			self._gaction.set_enabled(self._sensitive)
 			self._gaction.connect('activate', self._on_activate)
@@ -475,8 +464,6 @@ def get_gtk_actiongroup(obj):
 
 	This method can only be used when gtk is available
 	'''
-	assert Gtk is not None
-
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:
 		return obj.actiongroup
@@ -497,8 +484,6 @@ def get_gtk_actiongroup(obj):
 
 
 def _gtk_add_action_with_accel(obj, actiongroup, action, attr, accel):
-	assert Gtk is not None
-
 	if isinstance(action, ToggleActionMethod):
 		gtkaction = Gtk.ToggleAction(*attr)
 	else:
@@ -512,7 +497,6 @@ def _gtk_add_action_with_accel(obj, actiongroup, action, attr, accel):
 
 
 def initialize_actiongroup(obj, prefix):
-	assert Gio is not None
 	actiongroup = Gio.SimpleActionGroup()
 	for name, action in get_actions(obj):
 		gaction = action.get_gaction()

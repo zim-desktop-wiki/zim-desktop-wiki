@@ -56,14 +56,7 @@ def adapt_from_oldfs(file):
 		return file
 
 
-try:
-	from gi.repository import Gio
-except ImportError:
-	Gio = None
-
-if not Gio:
-	logger.info('No file monitor support - changes will go undetected')
-
+from gi.repository import Gio
 
 xdgmime = None
 mimetypes = None
@@ -1420,8 +1413,7 @@ class FSObjectMonitor(SignalEmitter):
 
 	def _setup_signal(self, signal):
 		if signal == 'changed' \
-		and self._gio_file_monitor is None \
-		and Gio:
+		and self._gio_file_monitor is None:
 			try:
 				file = Gio.File.new_for_uri(self.path.uri)
 				self._gio_file_monitor = file.monitor()
