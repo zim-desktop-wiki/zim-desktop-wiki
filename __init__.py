@@ -2,6 +2,7 @@ from zim.plugins import PluginClass
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog,ScrolledTextView
 
+from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.newfs.helpers import FSObjectMonitor
 from zim.newfs.base import _md5
 
@@ -123,8 +124,11 @@ class MergerPageViewExtension(PageViewExtension):
         self.do_try_save_pagewrap(args, kwargs)
 
     def do_try_save_pagewrap(self,*args, **kwargs):
-        if self.blocked: return
+        if self.blocked or ongoing_operation(self.notebook):
+            logger.debug('Saving aborted... Another saving process ongoing')
+            return
         self.blocked = True #prevent concurrent processes
+        #self.pageview.textview.set_property('editable',False)
         page = self.pageview.page
         
         #copied from original do_try_save_page
@@ -136,9 +140,11 @@ class MergerPageViewExtension(PageViewExtension):
         
         if disk_etag[1] == page._last_etag[1]: #disk has not changed
             #print('no need for extra actions, saving through zim')
+            logger.debug('Saving... No conflicts')
             self.do_try_save_page_orig(args, kwargs)
             self.old_etag = page._last_etag
         else: #disk has changed
+            logger.debug('Saving... Etag conflict detected.')
             self.merge_changes = 'merge'
             bufferlines = self.get_buffer_text()
             buf_etag = _md5(bufferlines)
@@ -160,6 +166,7 @@ class MergerPageViewExtension(PageViewExtension):
         
             self.do_try_save_page_orig()
         self.blocked = False #allow saving again
+        #self.pageview.textview.set_property('editable',True)
 
     def get_merged_text(self, bufferlines, disklines):
         page = self.pageview.page
