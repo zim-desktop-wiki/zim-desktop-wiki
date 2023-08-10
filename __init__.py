@@ -74,6 +74,11 @@ class MergerPageViewExtension(PageViewExtension):
         self.old_lines, self.old_etag = None, (None, None)
         if page.source_file.exists():  #get the initial contents on disk
             self.old_lines, self.old_etag = page.source_file.read_with_etag()
+            self.old_lines = self.old_lines.split('\n')
+            self.old_lines = ["\n".join(self.old_lines[0:3])] + self.old_lines[3:]
+            self.old_lines = [x+"\n" for x in self.old_lines]
+
+
 
         #connect to signals from notebook and file
         self.connectto(notebookview, 'page-changed', self.on_page_change)
@@ -87,6 +92,7 @@ class MergerPageViewExtension(PageViewExtension):
         self.do_try_save_page_orig = self.pageview._save_page_handler.do_try_save_page
         self.pageview._save_page_handler.do_try_save_page = self.do_try_save_pagewrap
 
+
     def on_page_change(self,*args,**kwargs):
         self.connect_file_monitor()
         return False
@@ -98,9 +104,9 @@ class MergerPageViewExtension(PageViewExtension):
         self.connectto(filemonitor,'changed', self.on_file_changed)
         self.filemonitor = filemonitor #must store to keep running
 
-        #logger.debug('Setting file permission umask to %s from %s', str(oct(perms), notebook.folder.path)
          #set write permission umask bit of group the same as for the notebook root
         perms = os.stat(self.notebook.folder.path).st_mode & stat.S_IWGRP ^ (stat.S_IWGRP | stat.S_IWOTH)
+        logger.debug('Setting file permission umask to %s from %s', str(oct(perms)), self.notebook.folder.path)
         os.umask(perms)
         return False
 
@@ -137,12 +143,17 @@ class MergerPageViewExtension(PageViewExtension):
         self._poll_file_timer(self.plugin.preferences['polltime'])
 
         disklines, disk_etag = self.get_disk_text_etag()
+        disklines = [ "".join(disklines[0:3])]+disklines[3:]
         
-        if disk_etag[1] == page._last_etag[1]: #disk has not changed
+        last_tag = page._last_etag
+        if last_tag is None: last_tag = (None, None)
+        #if disk_etag[1] == page._last_etag[1]: #disk has not changed
+        if disk_etag[1] == last_tag[1]: #disk has not changed
             #print('no need for extra actions, saving through zim')
             logger.debug('Saving... No conflicts')
             self.do_try_save_page_orig(args, kwargs)
-            self.old_etag = page._last_etag
+            #self.old_etag = page._last_etag
+            self.old_etag = last_tag
         else: #disk has changed
             logger.debug('Saving... Etag conflict detected.')
             self.merge_changes = 'merge'
@@ -164,18 +175,36 @@ class MergerPageViewExtension(PageViewExtension):
             page._last_etag = disk_etag #enable saving without errors
             self.old_etag = disk_etag
         
+            self.old_lines = self.get_buffer_text()
             self.do_try_save_page_orig()
         self.blocked = False #allow saving again
         #self.pageview.textview.set_property('editable',True)
+
+        perms = os.stat(self.notebook.folder.path).st_mode & stat.S_IWGRP ^ (stat.S_IWGRP | stat.S_IWOTH)
+        os.umask(perms)
+        #logger.debug('Setting file permission umask to %s from %s page %s', str(oct(perms)), self.notebook.folder.path,self.pageview.page.source_file)
+        #perms = os.stat(self.notebook.folder.path).st_mode | stat.S_IWGRP | stat.S_IRGRP #& ^stat.S_IEXEC
+        perms = os.stat(self.notebook.folder.path).st_mode 
+        try:
+            os.chmod(str(self.pageview.page.source_file), perms)
+        except FileNotFoundError: pass
 
     def get_merged_text(self, bufferlines, disklines):
         page = self.pageview.page
         logger.debug('Merged text requested')
         if self.old_lines is None: #only 2-way merge can be used
+            logger.debug('\n2way merge old_lines')
             output = diffs.diff2(bufferlines,disklines, include=(' ', '+'))
         else:
-            #logger.debug('\n3way merge old_lines:\n\t'+'\t'.join(self._last_lines))
+            #logger.debug('\n3way merge old_lines:\n\t'+'\t'.join(self.old_lines))
+            logger.debug('\n3way merge old_lines')
+            logger.debug('\nOLD LINES'.join(self.old_lines))
+            logger.debug('\nNEW LINES b'.join(bufferlines))
+            logger.debug('\nNEW LINES d'.join(disklines))
             output = diffs.diff3(bufferlines, self.old_lines, disklines)  #full 3way merge
+            logger.debug('\nOUTPUT'.join(output))
+            #breakpoint()
+        logger.debug('Merged text ready')
         return output
 
     def merge_disk_in_buffer(self,newlines,disk_etag):
@@ -215,18 +244,19 @@ class MergerPageViewExtension(PageViewExtension):
         page = self.pageview.page
 
         #directly adapted from page.reload_textbuffer
-        newtree = page.format.Parser().parse(newlines)
+        logger.debug('setting new tree with contents'+"\n".join(newlines))
+        newtree = page.format.Parser().parse(newlines[2:])
         buffer = page._textbuffer
         page._textbuffer = None
         page._parsetree = None
         if buffer is not None:
-            tree = page.get_parsetree()
+            #tree = page.get_parsetree()
             page._textbuffer = buffer
             page._textbuffer.set_modified(False)
-            page._set_parsetree(tree)
+            #page._set_parsetree(tree)
+            page._set_parsetree(newtree)
                 # load new tree in buffer, undo-able in 1 step
                 # private method circumvents readonly check !
             page.set_modified(False)
         #else do nothing - source will be read with next call to `get_parsetree()`
         return
-
