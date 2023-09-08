@@ -6213,7 +6213,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 			# Enable keybindings and buttons for find functionality if find bar is in focus
 			force_sensitive = ()
-			if widget and widget.get_parent() is self.find_bar:
+			if widget and widget.is_ancestor(self.find_bar):
 				force_sensitive = ("show_find", "find_next", "find_previous",
 					"show_find_alt1", "find_next_alt1", "find_previous_alt1")
 
