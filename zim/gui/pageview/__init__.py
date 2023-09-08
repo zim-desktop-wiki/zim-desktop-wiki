@@ -4949,7 +4949,9 @@ class TextView(Gtk.TextView):
 					# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
 					# these can still be linked with the InsertLinkDialog functionality
 					parts = word.split(':')
-					if parts and twoletter_re.search(parts[0]):
+					if parts and (twoletter_re.search(parts[0])
+							# Do link ":TopLevelPages" - #2469
+							or len(parts[0]) == 0):
 						handled = apply_link(word)
 					else:
 						handled = False
