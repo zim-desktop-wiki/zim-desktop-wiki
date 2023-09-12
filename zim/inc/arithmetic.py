@@ -295,8 +295,9 @@ def TypeAndValueOf(expression):
 class Parser:
     'Base class'
 
-    def __init__(self):
+    def __init__(self, output_decimals=6):
         # Written by parseLine(), read by evaluate():
+        self.output_decimals = output_decimals
         self.functions = {}
         self.variables = {}
 
@@ -487,6 +488,12 @@ class ParserGTK(Parser):
 
     def writeResult(self, i, textBuffer, start, end, text):
         'Write text in line i of lines from start to end offset.'
+        # Format decimals
+        formatted = f"{float(text):.{self.output_decimals}f}"
+        # Don't add unnecessary zeros
+        if len(formatted) < len(text):
+            text = formatted
+
         # Delete
         if end > start:
             # handle start at end of line or beyond

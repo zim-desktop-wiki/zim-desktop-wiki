@@ -23,12 +23,17 @@ http://pp.com.mx/python/arithmetic.
 		'help': 'Plugins:Arithmetic',
 	}
 
-	#~ plugin_preferences = (
+	plugin_preferences = (
 		# key, type, label, default
-	#~ )
+		('output_decimals', 'int', _('Output precision'), 6, (0, 100)), # T: plugin preference
+	)
 
 
 class ArithmeticPageViewExtension(PageViewExtension):
+
+	def __init__(self, plugin, window):
+		PageViewExtension.__init__(self, plugin, window)
+		self.preferences = plugin.preferences
 
 	@action(_('_Arithmetic'), accelerator='F5', icon='accessories-calculator', menuhints='tools') # T: menu item
 	def calculate(self):
@@ -38,5 +43,5 @@ class ArithmeticPageViewExtension(PageViewExtension):
 		buf = self.pageview.textview.get_buffer() # XXX
 
 		# parse and return modified text
-		parser = ParserGTK()
+		parser = ParserGTK(output_decimals=self.preferences['output_decimals'])
 		parser.parse(buf)
