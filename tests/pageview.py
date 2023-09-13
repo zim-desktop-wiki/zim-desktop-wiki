@@ -2769,10 +2769,10 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.set_textview_preference('autolink_camelcase', False)
 		self.assertTyping('FooBar ', 'FooBar ')
 
-	def testAutoFormatFileLink(self):
+	def testAutoFormatFileLinkWithAutolinkFilesPrefEnabled(self):
 		self.assertTyping('./test.pdf ', '<link href="">./test.pdf</link> ')
 
-	def testAutoFormatFileLink(self):
+	def testAutoFormatFileLinkWithAutolinkFilesPrefDisabled(self):
 		self.set_textview_preference('autolink_files', False)
 		self.assertTyping('./test.pdf ', './test.pdf ')
 
