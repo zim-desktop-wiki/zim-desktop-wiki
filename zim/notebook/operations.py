@@ -235,9 +235,6 @@ class NotebookOperation(SignalEmitter):
 		self.notebook._operation_check = self # start blocking
 		GObject.idle_add(self._start) # ensure start happens in main thread
 
-	def is_running(self):
-		return self.notebook._operation_check == self
-
 	def _start(self):
 		my_iter = iter(self)
 		GObject.idle_add(lambda: next(my_iter, False), priority=GObject.PRIORITY_LOW)
