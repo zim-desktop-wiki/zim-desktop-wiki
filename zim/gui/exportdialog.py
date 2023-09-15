@@ -58,6 +58,8 @@ class ExportDialog(Assistant):
 			dialog = ProgressDialog(self, op)
 			dialog.run()
 
+		if op.exception:
+			raise op.exception
 		if op.cancelled:
 			return False
 		else:
