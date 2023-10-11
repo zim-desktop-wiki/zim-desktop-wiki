@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 
 ====== Plugins ======
 
@@ -16,6 +16,7 @@ The following plugins are standard included with zim:
 * [[+Equation Editor|Equation Editor]]
 * [[+GNU R Plot Editor|GNU R Plot Editor]]
 * [[+Gnuplot Editor|Gnuplot Editor]]
+* [[+Indexed Full Text Search|Indexed Full Text Search]]
 * [[+Insert Screenshot|Insert Screenshot]]
 * [[+Insert Symbol|Insert Symbol]]
 * [[+Inline Calculator|Inline Calculator]]

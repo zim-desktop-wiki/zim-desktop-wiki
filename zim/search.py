@@ -53,6 +53,7 @@ from zim.notebook import Path, \
 	PageNotFoundError, IndexNotFoundError, \
 	LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
+from zim.plugins import PluginManager
 
 logger = logging.getLogger('zim.search')
 
@@ -409,8 +410,26 @@ class SearchSelection(PageSelection):
 				self.cancelled = True
 				return results or set()
 
+		# If enabled, use the indexed_fts plugin for fast content search
+		if "indexed_fts" in PluginManager:
+			logger.debug("Searching using Indexed FTS plugin")
+			process_index_fts = PluginManager["indexed_fts"].process_index_fts
+
+			# For AND sets, scope will contain the results so far, and
+			# results only contains stuff from the contentorname query
+			# (which we don't need here)
+			# For OR sets, results is whatever was found so far, and should
+			# be extended with matches inside scope.
+			for term in contentterms:
+				if group.operator == OPERATOR_AND:
+					results, scope = self._and_operator(scope, scope,
+						process_index_fts(self, term, scope))
+				else:
+					results, scope = self._or_operator(results, scope,
+						process_index_fts(self, term, scope))
+
 		# Now do the content terms all at once per page - slow or very slow
-		if contentterms:
+		elif contentterms:
 			results = self._process_content(
 				contentterms, results, scope, group.operator, callback)
 

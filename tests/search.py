@@ -5,6 +5,7 @@ import tests
 
 from zim.search import *
 from zim.notebook import Path
+from zim.plugins import indexed_fts
 
 class TestSearchRegex(tests.TestCase):
 
@@ -243,6 +244,20 @@ class TestSearchFiles(TestSearch):
 
 	def runTest(self):
 		'''Test search API with file based notebook'''
+		TestSearch.runTest(self)
+
+@tests.skipIf(
+	indexed_fts.IndexedFTSPlugin.check_dependencies()[0] == False,
+	"Indexed FTS plugin not available"
+)
+class TestSearchIndexed(TestSearch):
+	'''Test case for integration with the indexed_fts plugin'''
+
+	def setUp(self):
+		plugin = PluginManager.load_plugin('indexed_fts')
+		TestSearch.setUp(self)
+
+	def runTest(self):
 		TestSearch.runTest(self)
 
 

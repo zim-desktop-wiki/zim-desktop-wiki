@@ -47,6 +47,7 @@ based on the FTS5 virtual table module of
 sqlite.
 '''),
 		'author': 'Nimrod Maclomhair',
+		'help': 'Plugins:Indexed Full Text Search'
 	}
 
 	@classmethod
