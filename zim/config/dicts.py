@@ -426,6 +426,46 @@ class Coordinate(ConfigDefinition):
 value_is_coord = Coordinate # XXX for backward compatibility
 
 
+class ConfigDefinitionConstant(String):
+	'''ConfigDefinition that allows handling of Gtk and Pango constants'''
+
+	def __init__(self, default, group, prefix):
+		'''Constructor
+		@param default: default value, in string format how it would
+		appear in the config file; e.g. 'GTK_ICON_SIZE_MENU' as string
+		@param group: the object that contains the constants;
+		e.g. C{Gtk.IconSize} as object
+		@param prefix: the string part that maps to the group;
+		e.g. 'GTK_ICON_SIZE' as string
+		'''
+		self.group = group
+		self.prefix = prefix
+		String.__init__(self, default=default)
+
+	def check(self, value):
+		value = String.check(self, value)
+		if isinstance(value, str):
+			value = value.upper()
+			for prefix in (self.prefix, self.prefix.split('_', 1)[1]):
+				# e.g. PANGO_WEIGHT_BOLD --> BOLD but also WEIGHT_BOLD --> BOLD
+				if value.startswith(prefix):
+					value = value[len(prefix):]
+				value = value.lstrip('_')
+
+			if hasattr(self.group, value):
+				return getattr(self.group, value)
+			else:
+				raise ValueError('No such constant: %s_%s' % (self.prefix, value))
+		else:
+			return value
+
+	def tostring(self, value):
+		if hasattr(value, 'value_name'):
+			return value.value_name
+		else:
+			return str(value)
+
+
 _definition_classes = {
 	str: String,
 	int: Integer,

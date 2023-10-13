@@ -9,7 +9,7 @@ import logging
 
 from zim.notebook import Path
 from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry, ErrorDialog, ScrolledWindow, StatusPage
-from zim.gui.pageview import FIND_REGEX
+from zim.gui.pageview.find import FIND_REGEX
 
 from zim.search import *
 

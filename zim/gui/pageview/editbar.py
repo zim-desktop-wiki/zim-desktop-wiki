@@ -4,8 +4,13 @@ from gi.repository import Gtk
 from gi.repository import Pango
 from gi.repository import Gio
 
+import logging
+
 from zim.plugins import PluginManager, list_actions
 from zim.signals import ConnectorMixin
+
+
+logger = logging.getLogger('zim.gui.pageview')
 
 
 class EditActionMixin(object):

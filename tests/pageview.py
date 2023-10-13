@@ -11,8 +11,13 @@ logger = logging.getLogger('tests.pageview')
 from zim.newfs import LocalFile, LocalFolder
 from zim.formats import get_format, ParseTree
 from zim.notebook import Path
-from zim.gui.pageview import *
 from zim.gui.clipboard import Clipboard
+
+from zim.gui.pageview import *
+from zim.gui.pageview.find import FIND_CASE_SENSITIVE, FIND_REGEX, FIND_WHOLE_WORD
+from zim.gui.pageview.lists import TextBufferList
+from zim.gui.pageview.textview import camelcase
+from zim.gui.pageview.undostack import UndoStackManager
 
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
@@ -140,18 +145,20 @@ class TextBufferTestCaseMixin(object):
 			self.assertEqual(tree.tostring(), wanted)
 
 	def assertSelection(self, buffer, line, offset, string):
-		self.assertCursorPosition(buffer, offset, line)
 		bound = buffer.get_selection_bounds()
-		self.assertTrue(bound)
+		self.assertTrue(bound, msg="There is no selection")
 		selection = bound[0].get_slice(bound[1])
-		self.assertEqual(selection, string)
+		self.assertEqual(selection, string, msg="Selection matches >%s< instead of >%s<" % (selection, string))
+		self.assertCursorPosition(buffer, line, offset, msg="Selection does not start at line %i pos %i" % (line, offset))
+			# least informative check done last - will only hit if right string is matched in wrong location
 
-	def assertCursorPosition(self, buffer, offset, line):
+	def assertCursorPosition(self, buffer, line, offset, msg=None):
+		msg = msg or "Cursor is not a line %i pos %i" % (line, offset)
 		#~ print('CHECK', line, offset, text)
 		cursor = buffer.get_insert_iter()
 		#~ print('  GOT', cursor.get_line(), cursor.get_line_offset())
-		self.assertEqual(cursor.get_line(), line)
-		self.assertEqual(cursor.get_line_offset(), offset)
+		self.assertEqual(cursor.get_line(), line, msg=msg)
+		self.assertEqual(cursor.get_line_offset(), offset, msg=msg)
 
 
 class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
@@ -656,6 +663,55 @@ aaa <link href="xxx">bbb</link> ccc
 		data = buffer.select_link()
 		self.assertEqual(data['href'], 'xxx')
 		self.assertEqual(buffer.get_has_link_selection(), data)
+
+	def testSelectWord(self):
+		buffer = self.get_buffer('Test 123. foo\n')
+
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		buffer.select_word()
+		self.assertSelection(buffer, 0, 5, '123')
+
+		buffer.select_word()
+		self.assertSelection(buffer, 0, 5, '123') # no change
+
+		buffer.place_cursor(buffer.get_iter_at_offset(33))
+		buffer.select_word()
+		self.assertFalse(buffer.get_has_selection()) # middle of whitespace
+
+	def testStripSelection(self):
+		buffer = self.get_buffer('Test 123. foo\n')
+
+		# existing selection needs stripping
+		start = buffer.get_iter_at_offset(4)
+		end = buffer.get_iter_at_offset(10)
+		buffer.select_range(start, end)
+		self.assertSelection(buffer, 0, 4, ' 123. ')
+		buffer.strip_selection()
+		self.assertSelection(buffer, 0, 5, '123.')
+
+	def testSelectLines(self):
+		buffer = self.get_buffer('Test 123. foo\nline with spaces    \n\n')
+
+		# select line (with / without previous selection)
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		buffer.select_word()
+		self.assertSelection(buffer, 0, 5, '123')
+		buffer.select_lines_for_selection()
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n') # extended
+
+		buffer.select_lines_for_selection()
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n') # no change
+
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		self.assertFalse(buffer.get_has_selection())
+		buffer.select_lines_for_selection()
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n')
+
+		# empty line
+		buffer.place_cursor(buffer.get_iter_at_line(3))
+		self.assertFalse(buffer.get_has_selection())
+		buffer.select_lines_for_selection()
+		self.assertFalse(buffer.get_has_selection())
 
 	def testToggleTextStylePre(self):
 		notebook = self.setUpNotebook()
@@ -1266,8 +1322,7 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		self.assertBufferEquals(buffer, '<code>test </code><strong><code>strong</code></strong><code> test</code>')
 
 	def testIllegalNestedTagTag(self):
-		# Code and @tag are incompatible formats. When applied to the same
-		# region, the code part is dropped
+		# Code and @tag are incompatible formats. When applied to the same region, the code part is dropped
 		buffer = self.get_buffer('test <tag name="tag">@tag</tag> test')
 		code_tag = buffer.get_tag_table().lookup('style-code')
 		bounds = buffer.get_bounds()
@@ -2915,55 +2970,6 @@ Baz
 		self.assertEqual(pageview.get_word(), 'bar')
 		self.assertEqual(pageview.get_selection(), 'bar')
 		self.assertEqual(pageview.get_selection(format='wiki'), 'bar')
-
-
-	def testAutoSelect(self):
-		# This test indirectly tests select_word, select_line and strip_selection
-
-		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.textview.get_buffer()
-		buffer.set_text('''Test 123. foo\nline with spaces    \n\n''')
-
-		# select word (with / without previous selection)
-		buffer.place_cursor(buffer.get_iter_at_offset(6))
-		pageview.autoselect()
-		self.assertSelection(buffer, 0, 5, '123')
-
-		pageview.autoselect()
-		self.assertSelection(buffer, 0, 5, '123') # no change
-
-		buffer.place_cursor(buffer.get_iter_at_offset(33))
-		pageview.autoselect()
-		self.assertFalse(buffer.get_has_selection()) # middle of whitespace
-
-		# select line (with / without previous selection)
-		buffer.place_cursor(buffer.get_iter_at_offset(6))
-		pageview.autoselect()
-		self.assertSelection(buffer, 0, 5, '123')
-		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n') # extended
-
-		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n') # no change
-
-		buffer.place_cursor(buffer.get_iter_at_offset(6))
-		self.assertFalse(buffer.get_has_selection())
-		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo\n')
-
-		# empty line
-		buffer.place_cursor(buffer.get_iter_at_line(3))
-		self.assertFalse(buffer.get_has_selection())
-		pageview.autoselect(selectline=True)
-		self.assertFalse(buffer.get_has_selection())
-
-		# existing selection needs stripping
-		start = buffer.get_iter_at_offset(4)
-		end = buffer.get_iter_at_offset(10)
-		buffer.select_range(start, end)
-		self.assertSelection(buffer, 0, 4, ' 123. ')
-		pageview.autoselect()
-		self.assertSelection(buffer, 0, 5, '123.')
 
 	def testInsertLinks(self):
 		pageview = setUpPageView(self.setUpNotebook())

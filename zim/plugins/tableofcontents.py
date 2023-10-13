@@ -21,23 +21,9 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
 	WindowSidePaneWidget, widget_set_css
-from zim.gui.pageview import SCROLL_TO_MARK_MARGIN, _is_heading_tag, LineSeparatorAnchor
+from zim.gui.pageview import SCROLL_TO_MARK_MARGIN, LineSeparatorAnchor
 
 LINE_LEVEL = 2  # assume level 1 is page heading, level 2 is topic break within page
-
-# FIXME, these methods should be supported by pageview - need anchors - now it is a HACK
-
-def _is_heading_or_line(iter, include_hr):
-	if list(filter(_is_heading_tag, iter.get_tags())):
-		return True
-	elif not include_hr:
-		return False
-	else:
-		anchor = iter.get_child_anchor()
-		if anchor and  isinstance(anchor, LineSeparatorAnchor):
-			return True
-		else:
-			return False
 
 
 def find_heading(buffer, n, include_hr):
@@ -46,11 +32,16 @@ def find_heading(buffer, n, include_hr):
 	@param n: an integer
 	@returns: a C{Gtk.TextIter} for the line start of the heading or C{None}
 	'''
+	if include_hr:
+		check = lambda i: buffer.get_line_is_heading(i.get_line()) or buffer.get_anchor_object_at_iter(i, LineSeparatorAnchor)
+	else:
+		check = lambda i: buffer.get_line_is_heading(i.get_line())
+
 	iter = buffer.get_start_iter()
-	i = 1 if _is_heading_or_line(iter, include_hr) else 0
+	i = 1 if check(iter) else 0
 	while i < n:
 		iter.forward_line()
-		while not _is_heading_or_line(iter, include_hr):
+		while not check(iter):
 			if not iter.forward_line():
 				return None
 		i += 1
