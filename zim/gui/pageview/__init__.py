@@ -4239,7 +4239,7 @@ class TextView(Gtk.TextView):
 		# Update the cursor type when the mouse moves
 		x, y = event.get_coords()
 		x, y = int(x), int(y) # avoid some strange DeprecationWarning
-		coords = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
+		coords = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, x, y)
 		self.update_cursor(coords)
 
 	def do_visibility_notify_event(self, event):
