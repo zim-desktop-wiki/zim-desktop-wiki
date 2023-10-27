@@ -376,7 +376,7 @@ class LoggingFilter(logging.Filter):
 
 	# Due to how the "logging" module works, logging channels do inherit
 	# handlers of parents but not filters. Therefore setting a filter
-	# on the "zim" channel will not surpress messages from sub-channels.
+	# on the "zim" channel will not supress messages from sub-channels.
 	# Instead we need to set the filter both on the channel and on
 	# top level handlers to get the desired effect.
 

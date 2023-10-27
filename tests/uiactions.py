@@ -787,7 +787,7 @@ class TestUIActionsRealFile(tests.TestCase):
 
 		def fail_trash(dialog):
 			assert isinstance(dialog, TrashPageDialog)
-			dialog.do_response_ok() # NOT assert_repsonse_ok - we want to fail
+			dialog.do_response_ok() # NOT assert_response_ok - we want to fail
 
 		def question_yes(dialog):
 			dialog.answer_yes()
@@ -808,7 +808,7 @@ class TestUIActionsRealFile(tests.TestCase):
 
 		def fail_trash(dialog):
 			assert isinstance(dialog, TrashPageDialog)
-			dialog.do_response_ok() # NOT assert_repsonse_ok - we want to fail
+			dialog.do_response_ok() # NOT assert_response_ok - we want to fail
 
 		def question_no(dialog):
 			dialog.answer_no()
