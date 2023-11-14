@@ -9,7 +9,7 @@ from zim.plugins.base.imagegenerator import \
 
 from zim.newfs import LocalFile, TmpFile
 from zim.applications import Application, ApplicationError
-from zim.gui.widgets import supports_image_format
+from zim.gui.base.images import supports_image_format
 
 logger = logging.getLogger('zim.plugins.diagrameditor')
 
