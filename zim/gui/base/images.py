@@ -6,6 +6,8 @@ import logging
 
 from gi.repository import GLib, GdkPixbuf
 
+from zim.newfs import LocalFile
+
 logger = logging.getLogger('zim.gui.base.images')
 
 
@@ -15,7 +17,7 @@ def supports_image_format(fmt):
 	return fmt in (f.get_name() for f in GdkPixbuf.Pixbuf.get_formats())
 
 
-def image_file_load_pixels(file, width_override=-1, height_override=-1) -> GdkPixbuf.Pixbuf:
+def image_file_load_pixels(file: LocalFile, width_override=-1, height_override=-1) -> GdkPixbuf.Pixbuf:
 	"""
 	Replacement for GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, w, h)
 	Does it's best to rotate the image to the right orientation.
