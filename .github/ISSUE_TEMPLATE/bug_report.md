@@ -28,6 +28,7 @@ If applicable, add screenshots to help explain your problem.
  - Version [e.g. 0.74.0] -- specifically mention it if you use the development branch or snapshot PPA
  - OS: [e.g. linux/windows/mac os]
  - Language: especially for errors that might relate to character encoding or other locale specific issues
+ - Plugins: do you use any custom plugins that were not included with zim? Can the bug be reproduced when these custom plugins are disabled?
 
 **Additional context**
 Add any other context about the problem here.
