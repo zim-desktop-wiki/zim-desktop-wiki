@@ -57,28 +57,6 @@
         </ul>
       </description>
     </release>
-    <release date="2023-07-06" version="0.75.2">
-      <description>
-        <ul>
-          <li>Add pagename completion by words in "Jump to"</li>
-          <li>Let tasklist window remember selection state</li>
-          <li>Let tasklist window use a search bar</li>
-          <li>Add count in tasklist window</li>
-          <li>Fix auto-collapse in page index for child nodes</li>
-          <li>Fix import of gtkspellcheck</li>
-          <li>Make spellcheck more robust for page reload</li>
-          <li>Fix bug in insert screenshot</li>
-          <li>Add scrollbar to custom tool window</li>
-          <li>Fix config dirs for portable install</li>
-          <li>Use environment variable for `XDG_TEMPLATES_DIR`</li>
-          <li>Fix links to anchors on export</li>
-          <li>Fix bug in copy-paste of interwiki links</li>
-          <li>Updated diagrameditor and sequencediagrameditor plugins to generate SVG</li>
-          <li>Add keybinding for cutting the current line(s)</li>
-          <li>Fix fullscreen headerbar visibility</li>
-        </ul>
-      </description>
-    </release>
     <release date="2022-10-25" version="0.75.1">
       <description>
         <ul>
