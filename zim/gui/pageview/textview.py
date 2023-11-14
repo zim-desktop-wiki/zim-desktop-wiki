@@ -958,7 +958,7 @@ class TextView(Gtk.TextView):
 				(link_to_page_re.match(word) or (link_to_anchor_re.match(word) and not word.startswith('#'))):
 					# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
 					# these can still be linked with the InsertLinkDialog functionality
-					parts = word.split(':')
+					parts = [p for p in word.split(':') if p] # get rid of empty lead element in case of ":Foo"
 					if parts and twoletter_re.search(parts[0]):
 						handled = apply_link(word)
 					else:

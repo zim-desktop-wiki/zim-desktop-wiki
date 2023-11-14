@@ -2792,6 +2792,10 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 	def testAutoFormatSubPageLinkWithAnchor(self):
 		self.assertTyping('+Foo#anchor ', '<link href="">+Foo#anchor</link> ')
 
+	def testAutoFormatTopLevelPageLink(self):
+		# edge case for time detection - see #2469
+		self.assertTyping(':Foo ', '<link href="">:Foo</link> ')
+
 	def testNoAutoFormatTimeAsPageLink1(self):
 		self.assertTyping('10:20 ', '10:20 ')
 
