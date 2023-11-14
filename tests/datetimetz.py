@@ -1,13 +1,11 @@
 
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-
-
-
-import tests
-
+import os
+import sysconfig
 import warnings
 
+import tests
 import zim.datetimetz as datetime
 
 
@@ -43,12 +41,14 @@ class TestDateTimeZ(tests.TestCase):
 		s = datetime.strftime('%%', dt)
 		self.assertEqual(s, '%')
 
-		# Failed under msys python3.7.2
-		#s = datetime.strftime('%u', dt)
-		#self.assertTrue(isinstance(s, str) and len(s) > 0)
+		# is not mingw? https://github.com/msys2/msys2.github.io/blob/source/web/docs/python.md?plain=1#L12
+		if not (os.name == 'nt' and sysconfig.get_platform().startswith('mingw')):
+			# Failed under msys python3.7.2
+			s = datetime.strftime('%u', dt)
+			self.assertTrue(isinstance(s, str) and len(s) > 0)
 
-		#s = datetime.strftime('%V', dt)
-		#self.assertTrue(isinstance(s, str) and len(s) > 0)
+			s = datetime.strftime('%V', dt)
+			self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		# strfcal
 		s = datetime.strfcal('%w', dt)
