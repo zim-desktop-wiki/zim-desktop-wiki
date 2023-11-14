@@ -9,12 +9,15 @@ This plugin adds a dialog that allows you to take a screenshot of the desktop or
 
 Supported tools:
 
-Linux / unix:
+Linux / unix (X11 only):
 * import (ImageMagick)
 * scrot
 
 Windows:
 * boxcutter
+
+macOS:
+* screencapture
 
 ===== Preferences =====
 

@@ -4,7 +4,8 @@
 
 
 import time
-from platform import os
+import platform
+import os
 
 from gi.repository import Gtk
 
@@ -17,10 +18,11 @@ from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ErrorDialog
 
 
-PLATFORM = os.name
+PLATFORM = platform.system()
 
 """
 TESTED:
+	- gnome-screenshot
 	- import (imagemagick)
 	- scrot
 UNTESTED:
@@ -28,10 +30,21 @@ UNTESTED:
 """
 COMMAND = 'import'
 SUPPORTED_COMMANDS_BY_PLATFORM = dict([
-	('posix', ('import', 'scrot', 'gnome-screenshot')),
-	('nt', ('boxcutter',)),
+	('Linux_Wayland', ('gnome-screenshot',)),
+	('Linux_X', ('import', 'scrot', 'gnome-screenshot')),
+	('Windows', ('boxcutter',)),
+	('Darwin', ('screencapture',)),
 ])
-SUPPORTED_COMMANDS = SUPPORTED_COMMANDS_BY_PLATFORM[PLATFORM]
+
+if PLATFORM == 'Linux':
+	if os.environ.get('XDG_SESSION_TYPE') == 'wayland':
+		platform = 'Linux_Wayland'
+	else:
+		platform = 'Linux_X'
+else:
+	platform = PLATFORM
+SUPPORTED_COMMANDS = SUPPORTED_COMMANDS_BY_PLATFORM[platform]
+
 if len(SUPPORTED_COMMANDS):
 	COMMAND = SUPPORTED_COMMANDS[0]  # set first available tool as default
 
@@ -58,9 +71,15 @@ class ScreenshotPicker(object):
 		}),
 		('gnome-screenshot', {
 			'select': ('--area',),
-			'full': ('--window',),
+			'full': (),
 			'delay': '--delay',
 			'file': '-f',
+		}),
+		('screencapture', {
+			'select': ('-i',),
+			'full': ('-T0',),
+			'delay': '-T',
+			'file': None,
 		}),
 	])
 	cmd_default = COMMAND
