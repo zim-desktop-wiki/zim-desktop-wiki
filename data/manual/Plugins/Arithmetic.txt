@@ -10,6 +10,9 @@ This plugin allows you to evaluate arithmetic expressions in a zim page.
 
 **See also:** the [[Inline Calculator|Inline Calculator plugin]] which does something similar
 
+===== Plugin options =====
+The option **Output precision** sets the maximum number of decimals shown in the output; extraneous decimals aren't shown. The precision of the underlying [[https://docs.python.org/3/library/decimal.html|''decimal'']] library is always set to 100 places.
+
 ===== Tutorial =====
 You may do standard arithmetic operations in a document,
 ending the operation with an equals sign, for example:
