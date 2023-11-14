@@ -338,34 +338,6 @@ def _gtk_popup_at_pointer_backward(menu, event, button):
 	menu.popup(None, None, None, None, button, time)
 
 
-def rotate_pixbuf(pixbuf):
-	'''Rotate the pixbuf to match orientation from EXIF info.
-	This is intended for e.g. photos that have EXIF information that
-	shows how the camera was held.
-	@returns: a new version of the pixbuf or the pixbuf itself.
-	'''
-	# For newer gtk we could use GdkPixbuf.Pixbuf.apply_embedded_orientation
-
-	# Values for orientation seen in some random snippet in gtkpod
-	o = pixbuf.get_option('orientation')
-	if o:
-		o = int(o)
-	if o == 3: # 180 degrees
-		return pixbuf.rotate_simple(GdkPixbuf.PixbufRotation.UPSIDEDOWN)
-	elif o == 6: # 270 degrees
-		return pixbuf.rotate_simple(GdkPixbuf.PixbufRotation.CLOCKWISE)
-	elif o == 9: # 90 degrees
-		return pixbuf.rotate_simple(GdkPixbuf.PixbufRotation.COUNTERCLOCKWISE)
-	else:
-		# No rotation info, older gtk version, or advanced transpose
-		return pixbuf
-
-
-def supports_image_format(fmt):
-	'''Check if an image format is supported by GDK.
-	'''
-	return fmt in (f.get_name() for f in GdkPixbuf.Pixbuf.get_formats())
-
 def help_text_factory(text):
 	'''Create a label with an "info" icon in front of it. Intended for
 	informational text in dialogs.
