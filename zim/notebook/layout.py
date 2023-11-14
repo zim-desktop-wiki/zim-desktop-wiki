@@ -155,7 +155,7 @@ class FilesLayout(NotebookLayout):
 		@returns: L{FilePath} that should take precedent as te page
 		source
 		'''
-		filespaths.sort(key=lambda p: (p.ctime(), p.basename))
+		filepaths.sort(key=lambda p: (p.ctime(), p.basename))
 		return filepaths[0]
 
 	def get_format(self, file):
