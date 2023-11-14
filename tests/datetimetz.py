@@ -50,6 +50,18 @@ class TestDateTimeZ(tests.TestCase):
 			s = datetime.strftime('%V', dt)
 			self.assertTrue(isinstance(s, str) and len(s) > 0)
 
+		s = datetime.strftime('%Y 道', dt)
+		self.assertTrue(isinstance(s, str) and len(s) == 4 + 1 + 1)
+
+		s = datetime.strftime('%Y ❗', dt)
+		self.assertTrue(isinstance(s, str) and len(s) == 4 + 1 + 1)
+
+		s = datetime.strftime('%Y 👨‍👩‍👧‍👦', dt)
+		self.assertTrue(isinstance(s, str) and len(s) >= 4 + 1 + 1)
+
+		s = datetime.strftime('%Y ƑÊẶṜ', dt)
+		self.assertTrue(isinstance(s, str) and len(s) >= 4 + 1 + 4)
+
 		# strfcal
 		s = datetime.strfcal('%w', dt)
 		self.assertTrue(isinstance(s, str) and len(s) > 0)
