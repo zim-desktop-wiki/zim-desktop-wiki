@@ -111,4 +111,4 @@ class DiagramGenerator(ImageGeneratorClass):
 
 	def get_default_text(self):
 		'''Provides a template or starting point for the user to begin editing.'''
-		return self.default_text
+		return self.default_text or ''
