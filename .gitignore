@@ -103,3 +103,6 @@ debian/python-module-stampdir/
 
 # PyCharm
 .idea
+
+# Rider
+.vs
