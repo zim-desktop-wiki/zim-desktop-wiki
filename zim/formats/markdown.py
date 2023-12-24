@@ -49,7 +49,7 @@ class Dumper(TextDumper):
 		STRONG: ('**', '**'),
 		MARK: ('__', '__'), # OPEN ISSUE: not available in pandoc
 		STRIKE: ('~~', '~~'),
-		VERBATIM: ("``", "``"),
+		VERBATIM: ('`', '`'),
 		TAG: ('', ''), # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('~', '~'),
 		SUPERSCRIPT: ('^', '^'),
