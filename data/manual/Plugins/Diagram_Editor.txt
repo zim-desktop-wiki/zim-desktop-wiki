@@ -30,4 +30,5 @@ For full documentation of the script language see: http://www.graphviz.org/
 This plugin has the following options:
 
 * The option **Generate diagrams in SVG format** determines whether the diagrams will be generated in the SVG format. This is only enabled by default if your system supports it.
+* The option **Default text** sets the default text for each new diagram, to help get you started. An example default is ''digraph G {rankdir=LR}''
 

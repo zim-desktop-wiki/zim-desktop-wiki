@@ -38,6 +38,12 @@ This is a core plugin shipping with zim.
             _('Generate diagrams in SVG format'), # T: plugin preference
 			supports_image_format('svg')
 		),
+		(
+			'default_text',
+			'string',
+			_('Default text'),
+			''
+		),
 	)
 
 	@classmethod
@@ -72,6 +78,7 @@ class DiagramGenerator(ImageGeneratorClass):
 		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.dotfile = TmpFile('diagram.dot')
 		self.dotfile.touch()
+		self.default_text = plugin.preferences['default_text']
 
 	def generate_image(self, text):
 		# Write to tmp file
@@ -101,3 +108,7 @@ class DiagramGenerator(ImageGeneratorClass):
 			self.imgfile.remove()
 		except AttributeError:
 			logger.debug('Closed dialog before generating image, nothing to remove')
+
+	def get_default_text(self):
+		'''Provides a template or starting point for the user to begin editing.'''
+		return self.default_text or ''
