@@ -4,7 +4,7 @@
 import tests
 
 from zim.import_files import *
-from zim.notebook import Path, PageNotAvailableError
+from zim.notebook import Path, PageNotAvailableError, init_notebook
 from zim.notebook.index import IndexNotFoundError
 
 
@@ -96,3 +96,68 @@ class TestImportFile(tests.TestCase):
 		self.assertEqual(file1.read(), 'Some other file 123\n')
 		file2 = self.notebook.folder.file('Not_yet_a_page001.txt~')
 		self.assertEqual(file2.read(), 'Existing file 123\n')
+
+
+class TestImportCommand(tests.TestCase):
+
+	DATA = (
+		('Page1.txt', 'Test 123'),
+		('Page2.txt', 'Test 456'),
+		('__Page3.txt', 'Test 789'),
+	)
+
+	def setUp(self):
+		self.tmpfolder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		self.notebookfolder = self.tmpfolder.folder('notebook')
+		init_notebook(self.notebookfolder)
+		self.sourcefolder = self.tmpfolder.folder('source')
+		for f, t in self.DATA:
+			self.sourcefolder.file(f).write(t)
+
+	def _run_import(self, pagename, *filenames):
+		from zim.main import ImportCommand
+
+		cmd = ImportCommand('import')
+		cmd.parse_options(self.notebookfolder.path, pagename, *filenames)
+		cmd.run()
+
+	def runTest(self):
+		# Test single file import to target page
+		pagefile = self.notebookfolder.file('NewPage.txt')
+		self.assertFalse(pagefile.exists())
+		self._run_import('NewPage', self.sourcefolder.file('Page1.txt').path)
+		self.assertTrue(pagefile.exists())
+
+		# Test multiple file import to parent page, including illegal name
+		folder = self.notebookfolder.folder('NewPage')
+		self.assertFalse(folder.exists())
+		self._run_import('NewPage',
+				self.sourcefolder.file('Page1.txt').path,
+				self.sourcefolder.file('Page2.txt').path,
+				self.sourcefolder.file('__Page3.txt').path
+			)
+		self.assertTrue(folder.exists())
+		self.assertTrue(folder.file('Page1.txt').exists())
+		self.assertTrue(folder.file('Page2.txt').exists())
+		self.assertTrue(folder.file('Page3.txt').exists())
+
+		# Test usage error existing target page
+		from zim.main import UsageError
+		with self.assertRaises(UsageError):
+			self._run_import('NewPage', self.sourcefolder.file('Page1.txt').path)
+
+		# Test --assubpage & new page name creation
+		self.assertFalse(folder.file('Page1_1.txt').exists())
+		self._run_import('--assubpage', 'NewPage', self.sourcefolder.file('Page1.txt').path)
+		self.assertTrue(folder.file('Page1_1.txt').exists())
+
+		# Test implicit --assubpage & new page name creation
+		self.assertFalse(folder.file('Page1_2.txt').exists())
+		self._run_import('NewPage:', self.sourcefolder.file('Page1.txt').path)
+		self.assertTrue(folder.file('Page1_2.txt').exists())
+
+		# Test ":" as target
+		pagefile = self.notebookfolder.file('Page1.txt')
+		self.assertFalse(pagefile.exists())
+		self._run_import(':', self.sourcefolder.file('Page1.txt').path)
+		self.assertTrue(pagefile.exists())

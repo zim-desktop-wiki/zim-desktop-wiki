@@ -580,6 +580,13 @@ except ImportError:
 	logger.debug("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
 	import mimetypes
 
+#: Extensions to determine text mimetypes - used in L{File.istext()}
+TEXT_EXTENSIONS = {
+	'txt': 'text/plain',
+	'md': 'text/markdown',
+	'markdown': 'text/markdown',
+}
+
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = {
 	# Gleaned from Gdk.get_formats()
@@ -623,8 +630,11 @@ IMAGE_EXTENSIONS = {
 def get_mimetype_from_path(path):
 	if '.' in path:
 		_, ext = path.rsplit('.', 1)
-		if ext.lower() in IMAGE_EXTENSIONS:
-			return IMAGE_EXTENSIONS[ext.lower()]
+		ext = ext.lower()
+		if ext in TEXT_EXTENSIONS:
+			return TEXT_EXTENSIONS[ext]
+		elif ext in IMAGE_EXTENSIONS:
+			return IMAGE_EXTENSIONS[ext]
 
 	if xdgmime:
 		mimetype = xdgmime.get_type(path, name_pri=80)
@@ -664,15 +674,27 @@ class File(FSObjectBase):
 	def __iter__(self):
 		return iter(self.readlines())
 
+	def istext(self):
+		'''Check if this file is a text file
+		Convenience function for checking mimetype starts with 'text/'
+		Works even when no real mime-type suport is available.
+		@returns: C{True} when this is a text file
+		'''
+		if '.' in self.basename:
+			_, ext = self.basename.rsplit('.', 1)
+			if ext.lower() in TEXT_EXTENSIONS:
+				return True
+
+		return self.mimetype().startswith('text/')
+
 	def isimage(self):
-		'''Check if this is an image file. Convenience method that
-		works even when no real mime-type suport is available.
+		'''Check if this file is an image file
+		Convenience function for checking mimetype starts with 'image/'
+		Works even when no real mime-type suport is available.
 		If this method returns C{True} it is no guarantee
 		this image type is actually supported by Gtk.
 		@returns: C{True} when this is an image file
 		'''
-		# Quick shortcut to be able to load images in the gui even if
-		# we have no proper mimetype support
 		if '.' in self.basename:
 			_, ext = self.basename.rsplit('.', 1)
 			if ext.lower() in IMAGE_EXTENSIONS:

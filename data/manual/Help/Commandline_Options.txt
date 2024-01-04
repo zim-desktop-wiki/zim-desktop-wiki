@@ -11,6 +11,7 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE_LINK]]
    or: zim --gui [OPTIONS] [NOTEBOOK [PAGE_LINK]]
    or: zim --server [OPTIONS] [NOTEBOOK]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
+   or: zim --import [OPTIONS] NOTEBOOK PAGE FILES
    or: zim --search NOTEBOOK QUERY
    or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --plugin PLUGIN [ARGUMENTS]
@@ -25,6 +26,7 @@ General Options:
   --gui            run the editor (this is the default)
   --server         run the web server
   --export         export to a different format
+  --import         import one or more files into a notebook
   --search         run a search query on a notebook
   --index          build an index for a notebook
   --plugin         call a specific plugin function
@@ -56,6 +58,11 @@ Export Options:
   -r, --recursive  when exporting a page, also export sub-pages
   -s, --singlefile export all pages to a single output file
   -O, --overwrite  force overwriting existing file(s)
+
+Import Options:
+  --format         format to read (defaults to 'wiki')
+  --assubpage      import files as sub-pages of PATH, this is implicit true
+                   when PATH ends with a ":" or when multiple files are given
 
 Search Options:
   None

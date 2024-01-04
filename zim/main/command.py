@@ -105,7 +105,7 @@ class Command(object):
 		minimum = len([a for a in self.arguments if not a.startswith('[')])
 		if len(self.args) < minimum:
 			raise UsageError('Command %s takes %i arguments' % (self.command, minimum))
-		elif len(self.args) > len(self.arguments):
+		elif len(self.args) > len(self.arguments) and not self.arguments[-1].endswith('+'):
 			raise UsageError('Command %s takes only %i arguments' % (self.command, len(self.args)))
 		else:
 			return tuple(self.args) \

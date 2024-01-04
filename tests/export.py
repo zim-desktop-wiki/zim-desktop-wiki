@@ -36,11 +36,6 @@ from zim.fs import adapt_from_oldfs
 from zim.newfs import File, Folder, FilePath
 
 
-def md5(f):
-	return _md5(f.raw())
-
-
-
 class TestMultiFileLayout(tests.TestCase):
 
 	#  dir/

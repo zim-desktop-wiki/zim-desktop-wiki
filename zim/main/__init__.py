@@ -44,6 +44,7 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE_LINK]]
    or: zim --gui [OPTIONS] [NOTEBOOK [PAGE_LINK]]
    or: zim --server [OPTIONS] [NOTEBOOK]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
+   or: zim --import [OPTIONS] NOTEBOOK PAGE FILES
    or: zim --search NOTEBOOK QUERY
    or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --plugin PLUGIN [ARGUMENTS]
@@ -59,6 +60,7 @@ General Options:
   --gui            run the editor (this is the default)
   --server         run the web server
   --export         export to a different format
+  --import         import one or more files into a notebook
   --search         run a search query on a notebook
   --index          build an index for a notebook
   --plugin         call a specific plugin function
@@ -90,6 +92,11 @@ Export Options:
   -r, --recursive  when exporting a page, also export sub-pages
   -s, --singlefile export all pages to a single output file
   -O, --overwrite  force overwriting existing file(s)
+
+Import Options:
+  --format         format to read (defaults to 'wiki')
+  --assubpage      import files as sub-pages of PATH, this is implicit true
+                   when PATH ends with a ":" or when multiple files are given
 
 Search Options:
   None
@@ -162,7 +169,8 @@ class NotebookCommand(Command):
 
 		if len(self.arguments) > 1 \
 		and self.arguments[1] in ('PAGE', '[PAGE]', 'PAGE_LINK', '[PAGE_LINK]') \
-		and args[1] is not None:
+		and args[1] is not None and args[1] != ':':
+			# The ":" path is a special case to allow e.g. --import to handle top level namespace
 			return notebookinfo, HRef.new_from_wiki_link(args[1])
 		else:
 			return notebookinfo, None
@@ -516,7 +524,6 @@ class ExportCommand(NotebookCommand):
 		from zim.export.selections import AllPages, SinglePage, SubPages
 
 		notebook, href = self.build_notebook()
-		notebook.index.check_and_update()
 
 		if href and self.opts.get('recursive'):
 			page = Path(href.names) # ignore anchor
@@ -531,6 +538,40 @@ class ExportCommand(NotebookCommand):
 		exporter = self.get_exporter(page)
 		exporter.export(selection)
 
+
+class ImportCommand(NotebookCommand):
+	'''Class implementing the C{--import} command'''
+
+	arguments = ('NOTEBOOK', 'PAGE', 'FILES+')
+	options = (
+		('format=', '', 'format to import from (defaults to \'wiki\')'),
+		('assubpage', 's', 'import as sub-pages of PATH'),
+	)
+
+	def run(self):
+		from zim.newfs import localFileOrFolder
+		from zim.import_files import import_file_from_user_input, import_files_from_user_input
+
+		notebook, href = self.build_notebook()
+		path = Path(href.names) if href else None
+		format = self.opts.get('format', 'wiki')
+		assubpage = self.opts.get('assubpage', False)
+
+		n, p, *files = self.get_arguments()
+		files = [localFileOrFolder(f, pwd=self.pwd) for f in files] # raises if does not exist
+
+		if p.endswith(':') or len(files) > 1:
+			# Implicit set option, only real use of the option is to force single file imports
+			# as sub-page instead of target page
+			assubpage = True
+
+		if not assubpage:
+			# Special case for 1 file to 1 page
+			if notebook.get_page(path).exists():
+				raise UsageError('Page "%s" exists, to import as sub-page please use "--assubpage"' % path.name)
+			import_file_from_user_input(files[0], notebook, path, format)
+		else:
+			import_files_from_user_input(files, notebook, path, format)
 
 
 class SearchCommand(NotebookCommand):
@@ -597,6 +638,7 @@ commands = {
 	'server': ServerCommand,
 	'servergui': ServerGuiCommand,
 	'export': ExportCommand,
+	'import': ImportCommand,
 	'search': SearchCommand,
 	'index': IndexCommand,
 }

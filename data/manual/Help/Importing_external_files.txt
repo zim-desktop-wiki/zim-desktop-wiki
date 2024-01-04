@@ -4,7 +4,27 @@ Creation-Date: 2010-04-03T23:35:33.816582
 
 ====== Importing External Files ======
 
-===== Pages in Zim =====
+
+There is a dialog to import a text file into the notebook as a page. See the menu item //Files// -> //Import page...//
+
+If you want to import multiple files you can either use the ''zim --import'' commandline option or format the files yourself and move them to the right location.
+
+
+===== Import by commandline =====
+
+The commandline option ''zim --import'' can be used to import multiple files into an existing notebook. See [[Commandline Options]] for options to this command. You can either import a single file to a given page name or multiple files as sub-pages of a given page.
+
+If you want to create a new notebook from imported files, first create an empty notebook and then import the files.
+
+The import command will never overwrite existing files. If pages by the same name already exist a number will be post-fixed.
+
+Note that rebuilding the index may take quite some time if you have added many pages.
+If indexing does not trigger automatically you can use the //Tools// -> //Re-build Index// menu item.
+
+
+===== Import by moving files =====
+
+==== Pages in Zim ====
 Pages in Zim are stored as text files in normal folders and subfolders in your file system.
 The file name is used as the page name. The hierarchical structure is similar to the one appearing in the index. The file names should contain **no blanks**; instead use underlines. So a filename can look like this: "Help_on_creating_notebooks.txt" or "HelpOnCreatingNotebooks.txt".
 
@@ -24,12 +44,15 @@ Finally zim pages that have a ".txt" extension must start with a header line tha
 Without the heading line, ".txt" files are regarded as text file attachments.
 
 
-===== Moving pages into an existing notebook =====
-If you have just a few pages then use the import function, see the menu item //Files// -> //Import page...//
+==== Moving pages into an existing notebook ====
+If you have files that conform with the page file format as description above, you can import them as follows
 
-If you have a larger number of pages that conform with the page description above, then close  Zim, move these pages either into an existing subfolder to the other pages of the existing Zim Notebook folder or create a new subfolder inside the Zim Notebook folder. Reopen the Notebook and the pages and the new subfolder should appear. Rebuilding the index may take quite some time if you have added many pages.
+* Close  Zim
+* Move these files to the desired location in the notebook folder
+* Reopen the notebook in Zim and the new pages should appear in the index
 
-It may be advisable to click Tools / Re-build Index
+Note that rebuilding the index may take quite some time if you have added many pages.
+If indexing does not trigger automatically you can use the //Tools// -> //Re-build Index// menu item.
 
 
 ===== Creating a new Notebook =====
