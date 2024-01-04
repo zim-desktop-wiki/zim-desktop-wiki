@@ -183,6 +183,19 @@ class BackwardImageGeneratorModel(ImageGeneratorModelBase):
 			self.image_file = _stitch_fileextension(self.script_file, imagefile_extension)
 			self.attrib['src'] = './' + self.image_file.basename
 
+		# Regen missing/outdated image if the notebook/page isn't readonly
+		if not (notebook.readonly or (page and page.readonly)) and self.script_file.exists() and (
+				not self.image_file.exists() or
+				self.script_file.mtime() + 1 > self.image_file.mtime()):
+			logger.debug('Image did not exist or source file was modified externally, re-generating')
+			try:
+				text = self.get_text()
+				image_file, log_file = self.generator.generate_image(text)
+			except Error:
+				pass
+			else:
+				self.set_from_generator(text, image_file)
+
 	def get_text(self):
 		if self.image_file is not None and self.script_file.exists():
 			text = self.script_file.read()
@@ -192,8 +205,11 @@ class BackwardImageGeneratorModel(ImageGeneratorModelBase):
 		return self.generator.filter_source(text)
 
 	def set_from_generator(self, text, image_file):
-		image_file = adapt_from_oldfs(image_file)
+		# FIXME: refactor the file saving sequence (save script first, generate image second); see #2112
 		self.script_file.write(text)
+		image_file = adapt_from_oldfs(image_file)
+		image_file._set_mtime(self.script_file.mtime())  # avoid needless regen
+
 		if image_file == self.image_file:
 			pass
 		else:
@@ -386,7 +402,7 @@ class ImageGeneratorDialog(Dialog):
 			model.set_from_generator(text, image_file)
 		model.generator.cleanup()
 
-	def __init__(self, widget, label, generator, image_file=None, text='', syntax=None):
+	def __init__(self, widget, label, generator, image_file:'LocalFile'=None, text='', syntax=None):
 		title = _('Edit %s') % label # T: dialog title, %s is the object name like "Equation"
 		Dialog.__init__(self, widget, title, defaultwindowsize=(450, 300))
 		self.generator = generator
@@ -428,8 +444,16 @@ class ImageGeneratorDialog(Dialog):
 		hbox.pack_start(self.logbutton, False, True, 0)
 
 		self.set_text(text)
-		self.imageview.set_file(self.image_file) # if None sets broken image
+		if self._file_deleted:
+			self.update_image()  # includes setting imageview file
+		else:
+			self.imageview.set_file(self.image_file) # if None sets broken image
 		self.textview.grab_focus()
+
+	@property
+	def _file_deleted(self):  # see #2102
+		" Returns True when image_file is set but doesn't exist, ie. when the file has been deleted. "
+		return self.image_file is not None and not self.image_file.exists()
 
 	def set_text(self, text):
 		buffer = self.textview.get_buffer()
@@ -461,7 +485,8 @@ class ImageGeneratorDialog(Dialog):
 
 	def do_response_ok(self):
 		buffer = self.textview.get_buffer()
-		if buffer.get_modified():
+		if buffer.get_modified() or self._file_deleted:  # XXX: doesn't check notebook editable
+			logger.debug('Image modified or did not exist, re-generating')
 			self.update_image()
 
 		if not (self.image_file and self.image_file.exists()):
