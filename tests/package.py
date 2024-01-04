@@ -66,7 +66,7 @@ class TestDist(tests.TestCase):
 
 		# Check desktop file
 		try:
-			subprocess.check_call(['desktop-file-validate', 'xdg/zim.desktop'])
+			subprocess.check_call(['desktop-file-validate', 'xdg/org.zim_wiki.Zim.desktop'])
 		except OSError:
 			print("Could not run desktop-file-validate")
 
