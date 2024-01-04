@@ -290,17 +290,27 @@ class PluginsTab(Gtk.VBox):
 		path = selected[0].get_path(selected[1])
 
 		key, active, activatable, name, klass = treeview.get_model()[path]
-
 		self._current_plugin = key
-		logger.debug('Loading description for plugin: %s', key)
+		logger.debug('[GUI/Preferences/Plugins]: Plugin[%s] is selected.', name)
+
+		if not activatable:
+			logger.debug('[GUI/Preferences/Plugins]: Plugin[%s] is not activatable, try to load it again.', name)
+			try:
+				klass = PluginManager().load_plugin(key)
+			except Exception:
+				logger.debug("[GUI/Preferences/Plugins]: Failed to load plugin[%s] again.", name)
+				activatable = False
+			else:
+				activatable = True
+				treeview.get_model()[path][2] = activatable
+				treeview.get_model()[path][4] = klass
 
 		# Insert plugin info into textview with proper formatting
 		# TODO use our own widget with formatted text here...
 		buffer = self.textbuffer
 		def insert(text, style=None):
 			if style:
-				buffer.insert_with_tags_by_name(
-					buffer.get_end_iter(), text, style)
+				buffer.insert_with_tags_by_name(buffer.get_end_iter(), text, style)
 			else:
 				buffer.insert_at_cursor(text)
 
