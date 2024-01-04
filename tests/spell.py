@@ -1,5 +1,5 @@
 
-# Copyright 2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2015,2023 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 
@@ -12,6 +12,15 @@ try:
 	from gi.repository import GtkSpell as gtkspell
 except:
 	gtkspell = None
+
+
+try:
+	import gi
+	gi.require_version('Gspell', '1')
+	from gi.repository import Gspell
+except:
+	Gspell = None
+
 
 try:
 	import gtkspellcheck
@@ -33,11 +42,12 @@ class TestSpell(object):
 	def setUp(self):
 		self._restore = (
 			zim.plugins.spell.gtkspell,
+			zim.plugins.spell.Gspell,
 			zim.plugins.spell.gtkspellcheck
 		)
 
 	def tearDown(self):
-		zim.plugins.spell.gtkspell, zim.plugins.spell.gtkspellcheck = \
+		zim.plugins.spell.gtkspell, zim.plugins.spell.Gspell, zim.plugins.spell.gtkspellcheck = \
 			self._restore
 
 	def runTest(self, adapterclass):
@@ -69,8 +79,19 @@ class TestGtkspell(TestSpell, tests.TestCase):
 
 	def runTest(self):
 		zim.plugins.spell.gtkspell = gtkspell
+		zim.plugins.spell.Gspell = None
 		zim.plugins.spell.gtkspellcheck = None
 		TestSpell.runTest(self, zim.plugins.spell.GtkspellAdapter)
+
+
+@tests.skipIf(Gspell is None, 'Gspell not installed')
+class TestGspell(TestSpell, tests.TestCase):
+
+	def runTest(self):
+		zim.plugins.spell.Gspell = Gspell
+		zim.plugins.spell.gtkspell = None
+		zim.plugins.spell.gtkspellcheck = None
+		TestSpell.runTest(self, zim.plugins.spell.GspellAdapter)
 
 
 @tests.skipIf(gtkspellcheck is None, 'gtkspellcheck not installed')
@@ -78,6 +99,7 @@ class TestGtkspellchecker(TestSpell, tests.TestCase):
 
 	def runTest(self):
 		zim.plugins.spell.gtkspell = None
+		zim.plugins.spell.Gspell = None
 		zim.plugins.spell.gtkspellcheck = gtkspellcheck
 		TestSpell.runTest(self, zim.plugins.spell.GtkspellcheckAdapter)
 

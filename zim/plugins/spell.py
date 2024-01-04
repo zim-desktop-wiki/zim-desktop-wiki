@@ -1,7 +1,6 @@
 
-# Copyright 2008,2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2015,2023 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Spell check plugin based on gtkspell'''
 
 import re
 import locale
@@ -19,20 +18,39 @@ from zim.gui.widgets import ErrorDialog
 
 import gi
 
-# Try which of the two bindings is available
+# Try which of the bindings is available
+
+gtkspellcheck = None
+gtkspell = None
+Gspell = None
+
+
 try:
 	gi.require_version('Gtk','3.0') # see issue #2301
 	import gtkspellcheck
 except ImportError:
 	gtkspellcheck = None
 
+if not gtkspellcheck:
+	try:
+		gi.require_version('Gspell', '1')
+		from gi.repository import Gspell
+		
+		langs = Gspell.language_get_available()
+		#for lang in langs:
+		#	logger.debug('%s (%s) dict available', lang.get_name(), lang.get_code())
+		if not langs:
+			Gspell = None
+	except ImportError:
+		Gspell = None
+
+if not Gspell:
 	try:
 		gi.require_version('GtkSpell', '3.0')
 		from gi.repository import GtkSpell as gtkspell
-	except:
+	except ImportError:
 		gtkspell = None
-else:
-	gtkspell = None
+
 
 
 # Hotfix for robustness of loading languages in gtkspellcheck
@@ -77,7 +95,8 @@ class SpellPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Spell Checker'), # T: plugin name
 		'description': _('''\
-Adds spell checking support using gtkspell.
+Adds spell checking support using 
+gtkspellchecker, Gspell, or gtkspell libraries.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
@@ -91,8 +110,9 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return bool(gtkspellcheck or gtkspell), [
+		return any((gtkspellcheck, Gspell, gtkspell)), [
 			('gtkspellcheck', not gtkspellcheck is None, True),
+			('Gspell', not Gspell is None, True),
 			('gtkspell', not gtkspell is None, True)
 		]
 
@@ -131,6 +151,8 @@ class SpellPageViewExtension(PageViewExtension):
 					gtkspellcheck.__version__
 				)
 				return OldGtkspellcheckAdapter
+		elif Gspell:
+			return GspellAdapter
 		else:
 			return GtkspellAdapter
 
@@ -292,3 +314,29 @@ class GtkspellAdapter(AdapterBase):
 			self._textbuffer = None
 			self._checker.detach()
 			self._checker = None
+
+
+class GspellAdapter(AdapterBase):
+
+	def __init__(self, textview, lang):
+		gspell_language = Gspell.language_lookup(lang)
+		checker = Gspell.Checker.new(gspell_language)
+		buffer = Gspell.TextBuffer.get_from_gtk_text_buffer(textview.get_buffer())
+		buffer.set_spell_checker(checker)
+		self._gspell_view = Gspell.TextView.get_from_gtk_text_view(textview)
+		self.enable()
+
+	def check_buffer_initialized(self):
+		pass
+
+	def enable(self):
+		self._gspell_view.set_inline_spell_checking(True)
+		self._gspell_view.set_enable_language_menu(True)
+		
+	def disable(self):
+		self.detach()
+
+	def detach(self):
+		self._gspell_view.set_inline_spell_checking(False)
+		self._gspell_view.set_enable_language_menu(False)
+
