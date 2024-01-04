@@ -110,7 +110,8 @@ class TemplateEditorDialog(Dialog):
 			source = default
 
 		name = PromptNameDialog(self).run()
-		assert name is not None
+		if name is None:
+			return # User cancelled the operation
 		_, ext = custom.basename.rsplit('.', 1)
 		basename = name + '.' + ext
 		newfile = custom.parent().file(basename)
