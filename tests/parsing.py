@@ -28,7 +28,7 @@ class TestParsing(tests.TestCase):
 	def testRe(self):
 		'''Test parsing Re class'''
 		string = 'foo bar baz'
-		re = Re('f(oo)\s*(bar)')
+		re = Re(r'f(oo)\s*(bar)')
 		if re.match(string):
 			self.assertEqual(len(re), 3)
 			self.assertEqual(re[0], 'foo bar')

@@ -672,7 +672,7 @@ class SingleClickTreeView(Gtk.TreeView):
 
 
 class BrowserTreeView(SingleClickTreeView):
-	'''Sub-class of C{Gtk.TreeView} that is intended for hierarchic
+	r'''Sub-class of C{Gtk.TreeView} that is intended for hierarchic
 	lists that can be navigated in "browser mode". It inherits the
 	single-click behavior of L{SingleClickTreeView} and adds the
 	following keybindings:

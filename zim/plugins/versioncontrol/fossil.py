@@ -132,7 +132,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		@returns: nothing
 		"""
 		self.init()
-		self.ignore('\.zim*/*,notebook.fossil')
+		self.ignore(r'\.zim*/*,notebook.fossil')
 		self.add('.') # add all existing files
 
 	def repo_exists(self):

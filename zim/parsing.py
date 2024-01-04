@@ -260,7 +260,7 @@ def parse_date(string):
 
 
 class Re(object):
-	'''Wrapper around regex pattern objects which memorizes the
+	r'''Wrapper around regex pattern objects which memorizes the
 	last match object and gives list access to it's capturing groups.
 	See module re for regex docs.
 
@@ -358,14 +358,14 @@ class Re(object):
 		return self.m.end(group)
 
 # Some often used regexes
-is_uri_re = Re('^(\w[\w\+\-\.]*):')
+is_uri_re = Re(r'^(\w[\w\+\-\.]*):')
 	# "scheme:"
-is_url_re = Re('^(\w[\w\+\-\.]*)://')
+is_url_re = Re(r'^(\w[\w\+\-\.]*)://')
 	# "scheme://"
-is_www_link_re = Re('^www\.([\w\-]+\.)+[\w\-]+')
+is_www_link_re = Re(r'^www\.([\w\-]+\.)+[\w\-]+')
 	# "www." followed by 2 or more domain sections
 	# See also 'url_re' in 'formats/wiki.py' following the GFM scheme
-is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+(\?.+)?$', re.U)
+is_email_re = Re(r'^(mailto:\S+|[^\s:]+)\@\S+\.\w+(\?.+)?$', re.U)
 	# "mailto:" address
 	# name "@" host
 	# but exclude other uris like mid: and cid:
@@ -377,13 +377,13 @@ is_win32_path_re = Re(r'^[A-Za-z]:[\\/]')
 is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# \\host\share
 	# smb://host/share
-is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
+is_interwiki_re = Re(r'^(\w[\w\+\-\.]*)\?(.*)', re.U)
 	# identifier "?" path
-is_interwiki_keyword_re = re.compile('^\w[\w+\-.]*$', re.U)
+is_interwiki_keyword_re = re.compile(r'^\w[\w+\-.]*$', re.U)
 
 
 def valid_interwiki_key(name):
-	key = re.sub('[^\w+\-.]', '_', name)
+	key = re.sub(r'[^\w+\-.]', '_', name)
 	if key[0] in ('-', '.'):
 		key = '_' + key[1:] # "_" matches \w
 	return key
@@ -415,7 +415,7 @@ def uri_scheme(link):
 
 
 def normalize_win32_share(path):
-	'''Translates paths for windows shares in the platform specific
+	r'''Translates paths for windows shares in the platform specific
 	form. So on windows it translates C{smb://} URLs to C{\\host\share}
 	form, and vice versa on all other platforms.
 	Just returns the original path if it was already in the right form,

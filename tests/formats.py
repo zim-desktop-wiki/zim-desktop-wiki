@@ -105,7 +105,7 @@ class TestFormatMixin(object):
 				#~ print('\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n')
 			self.assertNoTextMissing(string, reftree)
 
-	_nonalpha_re = re.compile('\W')
+	_nonalpha_re = re.compile(r'\W')
 
 	def assertNoTextMissing(self, text, tree):
 		'''Assert that no plain text from C{tree} is missing in C{text}

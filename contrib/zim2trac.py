@@ -42,15 +42,15 @@ def removeSpecialChars(s):
 cabecera = re.compile("(={1,6})([^=/]+?)(={1,6})")
 inlineVerbatim = re.compile("''([^']+?)''")
 #~ multilineVerbatim=re.compile("\n[\t](.+?)\n")
-negrita = re.compile('\*\*([^*]+?)\*\*')
-italic = re.compile('//([^/\n\]]+?)//')
-bracketedURL = re.compile('\[\[(http://[^|]+)\|([^|]+?)\]\]')
+negrita = re.compile(r'\*\*([^*]+?)\*\*')
+italic = re.compile(r'//([^/\n\]]+?)//')
+bracketedURL = re.compile(r'\[\[(http://[^|]+)\|([^|]+?)\]\]')
 #TODO: separar links relativos y absolutos
-simpleRelLink = re.compile('\[\[([^:][^|]+?)\]\]')
-namedRelLink = re.compile('\[\[([^:][^|]+?)\|([^|]+?)\]\]')
-simpleAbsLink = re.compile('\[\[:([^|]+?)\]\]')
-namedAbsLink = re.compile('\[\[:([^|]+?)\|([^|]+?)\]\]')
-images = re.compile('([^{]){{/(.+?)\}\}')
+simpleRelLink = re.compile(r'\[\[([^:][^|]+?)\]\]')
+namedRelLink = re.compile(r'\[\[([^:][^|]+?)\|([^|]+?)\]\]')
+simpleAbsLink = re.compile(r'\[\[:([^|]+?)\]\]')
+namedAbsLink = re.compile(r'\[\[:([^|]+?)\|([^|]+?)\]\]')
+images = re.compile(r'([^{]){{/(.+?)\}\}')
 def translate(nota, prefix1, prefix2):
 	'''Takes a note in zim format and returns a note in trac format
 	'''

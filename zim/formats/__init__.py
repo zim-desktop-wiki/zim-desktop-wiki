@@ -1364,8 +1364,8 @@ class TableParser():
 
 from zim.config.dicts import DefinitionOrderedDict
 
-_is_header_re = re.compile('^([\w\-]+):\s+(.*?)\n', re.M)
-_is_continue_re = re.compile('^([^\S\n]+)(.+?)\n', re.M)
+_is_header_re = re.compile(r'^([\w\-]+):\s+(.*?)\n', re.M)
+_is_continue_re = re.compile(r'^([^\S\n]+)(.+?)\n', re.M)
 
 def parse_header_lines(text):
 	'''Read header lines in the rfc822 format.

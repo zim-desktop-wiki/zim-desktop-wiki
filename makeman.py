@@ -25,7 +25,7 @@ def get_about():
 		elif line.startswith('====') or line.startswith('!['):
 			pass # skip images and header underline
 		elif line.startswith('* '):
-			lines.append('.IP \[bu]\n')
+			lines.append('.IP \\[bu]\n')
 			lines.append(line[2:]) # add list element
 		else:
 			lines.append(line)

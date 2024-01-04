@@ -121,7 +121,7 @@ class SpellPageViewExtension(PageViewExtension):
 	def _choose_adapter_cls(self):
 		if gtkspellcheck:
 			version = tuple(
-				map(int, re.findall('\d+', gtkspellcheck.__version__))
+				map(int, re.findall(r'\d+', gtkspellcheck.__version__))
 			)
 			if version >= (4, 0, 3):
 				return GtkspellcheckAdapter

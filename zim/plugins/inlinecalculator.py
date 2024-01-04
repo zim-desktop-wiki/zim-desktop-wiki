@@ -194,7 +194,7 @@ class ExpressionError(Error):
 		# T: error description
 
 
-_multiline_re = re.compile('--+\s+[+-]')
+_multiline_re = re.compile(r'--+\s+[+-]')
 	# for multiline summation with "--- +" and similar
 
 

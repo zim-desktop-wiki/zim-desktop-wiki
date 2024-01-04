@@ -435,7 +435,7 @@ class InsertedObjectPageviewManager(object):
 
 	@staticmethod
 	def _action_name(key):
-		return 'insert_' + re.sub('\W', '_', key)
+		return 'insert_' + re.sub(r'\W', '_', key)
 
 	def on_changed(self, o):
 		insertedobjects = PluginManager.insertedobjects

@@ -32,7 +32,7 @@ logger = logging.getLogger('zim.gui.pageview.textbuffer')
 
 
 
-is_numbered_bullet_re = re.compile('^(\d+|\w|#)\.$')
+is_numbered_bullet_re = re.compile(r'^(\d+|\w|#)\.$')
 	#: This regular expression is used to test whether a bullet belongs to a numbered list or not
 
 

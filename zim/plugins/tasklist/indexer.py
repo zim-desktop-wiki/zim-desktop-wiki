@@ -31,8 +31,8 @@ from .dates import parse_date
 
 
 _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
-_day_re = re.compile('(\d{1,2})')
-_date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
+_day_re = re.compile(r'(\d{1,2})')
+_date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + r'|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
 _MIN_START_DATE = '0'

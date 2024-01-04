@@ -19,7 +19,7 @@ from zim.errors import Error
 from zim.parsing import url_encode, url_decode
 
 
-is_url_re = re.compile('^\w{2,}:/')
+is_url_re = re.compile(r'^\w{2,}:/')
 is_share_re = re.compile(r'^\\\\\w')
 
 
@@ -107,7 +107,7 @@ def _split_file_url(url):
 	if path.startswith('/localhost/'): # exact 2 '/' before 'localhost'
 		path = path[11:]
 		isshare = False
-	elif scheme == 'smb' or re.match('^/\w', path): # exact 2 '/' followed by hostname
+	elif scheme == 'smb' or re.match(r'^/\w', path): # exact 2 '/' followed by hostname
 		isshare = True
 	else:
 		isshare = False # either 'file:/' or 'file:///'

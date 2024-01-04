@@ -13,7 +13,7 @@ import re
 import subprocess
 
 
-comment_re = re.compile('^\s*#\s*Tests\s*:', re.I)
+comment_re = re.compile(r'^\s*#\s*Tests\s*:', re.I)
 
 
 def get_project_dir(file):

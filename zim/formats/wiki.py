@@ -48,16 +48,16 @@ bullet_pattern = '(?:[\\*\u2022]|\\[[ \\*x><]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 bullet_line_re = re.compile(r'^(\t*)(%s)(.*$\n?)' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
-number_bullet_re = re.compile('^(\d+|[a-zA-Z])\.$')
+number_bullet_re = re.compile(r'^(\d+|[a-zA-Z])\.$')
 
-param_re = re.compile('([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
+param_re = re.compile(r'([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
 	# matches parameter list for objects
 	# allow name="foo bar" and name=Foo
 
 empty_lines_re = re.compile(r'((?:^[ \t]*\n)+)', re.M | re.U)
 	# match multiple empty lines
 
-unindented_line_re = re.compile('^\S', re.M)
+unindented_line_re = re.compile(r'^\S', re.M)
 	# match any unindented line
 
 
@@ -152,7 +152,7 @@ def match_url(text):
 			or (url[-1] == ')' and url.count(')') > url.count('(')):
 				url = url[:-1]
 		elif url[-1] == ';':
-			m = re.search('&\w+;$', url)
+			m = re.search(r'&\w+;$', url)
 			if m:
 				ref = m.group(0)
 				url = url[:-len(ref)]
