@@ -17,6 +17,8 @@ The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Pref
 
 **Use the <Enter> key to follow links** toggles the key binding to follow links inside a page. If disabled an <Enter> on a link will just be ignored. The <Alt><Enter> key binding can be used as an alternative.
 
+**Preview link destination in overlay** toggles whether moving the mouse over (or the cursor into one) pops up a box in the lower left corner of the editor showing the link destination, eg. a page name or an URL address.
+
 **Show the cursor also for pages that can not be edited** is used to toggle the behavior of the cursor when a page can not be edited. By default, the cursor is not visible when a page is read-only, but keyboard navigation is easier when the cursor is always visible.
 
 **Use custom font** allows selecting a custom font for the editor window. This only applies to the page view itself, the font for all other interface elements is determined by the desktop theme.
