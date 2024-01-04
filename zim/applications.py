@@ -301,7 +301,7 @@ class Application(object):
 
 			p = subprocess.Popen(argv,
 				cwd=cwd,
-				stdout=open(os.devnull, 'w'),
+				stdout=subprocess.DEVNULL,
 				stderr=subprocess.PIPE,
 				startupinfo=info,
 				bufsize=4096,
@@ -311,7 +311,7 @@ class Application(object):
 			try:
 				p = subprocess.Popen(argv,
 					cwd=cwd,
-					stdout=open(os.devnull, 'w'),
+					stdout=subprocess.DEVNULL,
 					stderr=subprocess.PIPE,
 					bufsize=4096,
 					close_fds=True
@@ -320,7 +320,7 @@ class Application(object):
 				if _CAN_CALL_FLATPAK_HOST_COMMAND:
 					p = subprocess.Popen(_FLATPAK_HOSTCOMMAND_PREFIX + argv,
 						cwd=cwd,
-						stdout=open(os.devnull, 'w'),
+						stdout=subprocess.DEVNULL,
 						stderr=subprocess.PIPE,
 						bufsize=4096,
 						close_fds=True
