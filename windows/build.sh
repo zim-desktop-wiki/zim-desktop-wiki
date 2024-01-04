@@ -180,6 +180,12 @@ check_module \
   "from gi.repository import Gtk" \
   "Gtk3 is not installed in a way it can be loaded in Python"
 
+info "Installing python modules for plugins ..."
+
+# for linkmap, see https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues/2012
+pacman -R --noconfirm mingw-w64-x86_64-python-numpy || echo 'skipped due to mingw-w64-x86_64-python-numpy not exist.'
+pip install xdot numpy
+
 info "Determining Zim version ..."
 
 __zim_ver=$(cd "${__dir}/.." && python setup.py --version)
