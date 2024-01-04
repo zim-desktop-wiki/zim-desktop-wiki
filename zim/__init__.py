@@ -191,7 +191,7 @@ if os.name == 'nt':
 	# Windows specific environment variables
 	# os.environ does not support setdefault() ...
 	if not 'USER' in os.environ or not os.environ['USER']:
-		os.environ['USER'] = os.environ['USERNAME']
+		os.environ['USER'] = os.environ.get('USERNAME', None)
 
 	if not 'HOME' in os.environ or not os.environ['HOME']:
 		if 'USERPROFILE' in os.environ:
@@ -209,3 +209,4 @@ if not os.path.isdir(os.environ['HOME']):
 if not 'USER' in os.environ or not os.environ['USER']:
 	os.environ['USER'] = os.path.basename(os.environ['HOME'])
 	logger.info('Environment variable $USER was not set, set to "%s"', os.environ['USER'])
+
