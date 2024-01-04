@@ -258,7 +258,7 @@ class TextView(Gtk.TextView):
 		# Update the cursor type when the mouse moves
 		x, y = event.get_coords()
 		x, y = int(x), int(y) # avoid some strange DeprecationWarning
-		coords = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
+		coords = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, x, y)
 		self.update_cursor(coords)
 
 	def do_visibility_notify_event(self, event):
@@ -655,7 +655,7 @@ class TextView(Gtk.TextView):
 		tupple with coordinates for the mouse pointer.
 		'''
 		x, y = self.get_pointer()
-		x, y = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
+		x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, x, y)
 		iter = strip_boolean_result(self.get_iter_at_location(x, y))
 		return iter, (x, y)
 
@@ -1073,7 +1073,7 @@ class TextView(Gtk.TextView):
 
 	def on_query_tooltip(self, widget, x, y, keyboard_tip, tooltip):
 		# Handle tooltip query event
-		x,y = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
+		x,y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, x, y)
 		iter = strip_boolean_result(self.get_iter_at_location(x, y))
 		if iter is not None:
 			pixbuf = self._get_pixbuf_at_pointer(iter, (x, y))
