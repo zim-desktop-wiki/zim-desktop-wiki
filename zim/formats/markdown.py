@@ -109,10 +109,29 @@ class Dumper(TextDumper):
 			return ['[%s](%s)' % (text, href)]
 
 	def dump_img(self, tag, attrib, strings=None):
-		# OPEN ISSUE: image properties used in zim not supported in pandoc
 		src = self.linker.img(attrib['src'])
 		text = attrib.get('alt', '')
-		return ['![%s](%s)' % (text, src)]
+
+		# Handle image dimensions and ids
+		# Pandoc support setting dimensions like this:
+		# ![Alt text](href){ width=500px height=20px }
+		dimensions = filter(lambda i: i[0] in ['width', 'height'], attrib.items())
+		properties = ["%s=%spx" % (k, v) for k, v in dimensions]
+
+		if 'id' in attrib:
+			properties.append('#' + attrib['id'])
+
+		if len(properties) > 0:
+			props = '{ %s }' % (' '.join(properties))
+		else:
+			props = ''
+
+		# Handle image links by nesting the image inside a link
+		if 'href' in attrib:
+			href = attrib.get('href')
+			return ['[![%s](%s)%s](%s)' % (text, src, props, href)]
+
+		return ['![%s](%s)%s' % (text, src, props)]
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		# dump object as verbatim block
