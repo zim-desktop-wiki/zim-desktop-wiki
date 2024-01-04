@@ -21,6 +21,14 @@ if USED_PYTHON_VERSION < REQUIRED_MINIMUM_PYTHON_VERSION:
 
 
 def init_environment(installdir):
+	# Automatically set data dir for a virtualenv install
+	if sys.prefix != sys.base_prefix:
+		zim_data_dir = os.path.join(sys.prefix, 'share')
+		if os.path.isdir(zim_data_dir):
+			os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
+					[zim_data_dir] + os.getenv('XDG_DATA_DIRS', '').split(os.pathsep)
+				).strip(os.pathsep)
+
 	# Try loading custom environment setup
 	env_config_file = os.path.join(installdir, 'environ.ini')
 	if os.path.exists(env_config_file):
@@ -129,6 +137,8 @@ def main():
 		print(err.msg, file=sys.stderr)
 	except KeyboardInterrupt: # e.g. <Ctrl>C while --server
 		print('Interrupt', file=sys.stderr)
+	except Exception as err:
+		print(err, file=sys.stderr)
 	finally:
 		sys.exit(exit_code)
 
