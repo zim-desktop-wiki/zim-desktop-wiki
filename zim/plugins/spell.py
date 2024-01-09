@@ -28,7 +28,7 @@ Gspell = None
 try:
 	gi.require_version('Gtk','3.0') # see issue #2301
 	import gtkspellcheck
-except ImportError:
+except:
 	gtkspellcheck = None
 
 if not gtkspellcheck:
@@ -41,14 +41,14 @@ if not gtkspellcheck:
 		#	logger.debug('%s (%s) dict available', lang.get_name(), lang.get_code())
 		if not langs:
 			Gspell = None
-	except ImportError:
+	except:
 		Gspell = None
 
 if not Gspell:
 	try:
 		gi.require_version('GtkSpell', '3.0')
 		from gi.repository import GtkSpell as gtkspell
-	except ImportError:
+	except:
 		gtkspell = None
 
 
