@@ -28,7 +28,7 @@ from zim.parsing import link_type, is_win32_path_re, valid_interwiki_key
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
-from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
+from .page import Path, Page, PageError, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD, ROOT_PATH
 
 DATA_FORMAT_VERSION = (0, 4)
@@ -108,13 +108,6 @@ def _cache_dir_for_dir(dir):
 	return XDG_CACHE_HOME.folder(('zim', path))
 
 
-class PageError(Error):
-
-	def __init__(self, path):
-		self.path = path
-		self.msg = self._msg % path.name
-
-
 class PageNotFoundError(PageError):
 	_msg = _('No such page: %s') # T: message for PageNotFoundError
 
@@ -135,7 +128,7 @@ class PageNotAvailableError(PageNotFoundError):
 		self.file = file
 
 
-class PageExistsError(Error):
+class PageExistsError(PageError):
 	_msg = _('Page already exists: %s') # T: message for PageExistsError
 
 

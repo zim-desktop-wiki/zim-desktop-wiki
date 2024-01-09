@@ -396,6 +396,9 @@ class UIActions(object):
 			dialog = ProgressDialog(self.widget, op)
 			dialog.run()
 
+			if op.exception:
+				raise op.exception
+
 			if update_only or isinstance(op, IndexCheckAndUpdateOperation):
 				return not dialog.cancelled
 			else:
@@ -409,6 +412,9 @@ class UIActions(object):
 			op = IndexCheckAndUpdateOperation(self.notebook)
 			dialog = ProgressDialog(self.widget, op)
 			dialog.run()
+
+			if op.exception:
+				raise op.exception
 
 			return not dialog.cancelled
 
@@ -650,8 +656,10 @@ class MovePageDialog(Dialog):
 		)
 		dialog = ProgressDialog(self, op)
 		dialog.run()
-
-		return True
+		if op.exception:
+			raise op.exception
+		else:
+			return True
 
 
 class DeletePageDialogBase(Dialog):

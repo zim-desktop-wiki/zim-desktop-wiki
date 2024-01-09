@@ -253,8 +253,9 @@ class TestUIActions(tests.TestCase):
 			dialog.set_input(name='ExistingPage')
 			self.assertRaises(PageExistsError, dialog.do_response_ok)
 
-		with tests.DialogContext(renamepage):
-			self.uiactions.move_page()
+		with tests.LoggingFilter('zim', 'Page already exists'):
+			with tests.DialogContext(renamepage):
+				self.uiactions.move_page()
 
 	def testRenamePageNonExistingPageFails(self):
 		from zim.notebook import PageNotFoundError
@@ -264,8 +265,9 @@ class TestUIActions(tests.TestCase):
 			dialog.set_input(name='NewName')
 			self.assertRaises(PageNotFoundError, dialog.do_response_ok)
 
-		with tests.DialogContext(renamepage):
-			self.uiactions.move_page(page)
+		with tests.LoggingFilter('zim', 'No such page'):
+			with tests.DialogContext(renamepage):
+				self.uiactions.move_page(page)
 
 	def testRenamePageWithPageUpdateHeading(self):
 		page = self.notebook.get_page(Path('MyPage'))
@@ -427,8 +429,9 @@ class TestUIActions(tests.TestCase):
 			dialog.set_input(parent=':')
 			self.assertRaises(PageExistsError, dialog.do_response_ok)
 
-		with tests.DialogContext(movepage):
-			self.uiactions.move_page(page)
+		with tests.LoggingFilter('zim', 'Page already exists'):
+			with tests.DialogContext(movepage):
+				self.uiactions.move_page(page)
 
 	def testMovePageFailsForExistingTextFile(self):
 		from zim.notebook import PageNotAvailableError
@@ -443,8 +446,9 @@ class TestUIActions(tests.TestCase):
 			dialog.set_input(parent=':')
 			self.assertRaises(PageNotAvailableError, dialog.do_response_ok)
 
-		with tests.DialogContext(movepage):
-			self.uiactions.move_page(page)
+		with tests.LoggingFilter('zim', 'Page not available'):
+			with tests.DialogContext(movepage):
+				self.uiactions.move_page(page)
 
 	def testMovePageNonExistingPageFails(self):
 		from zim.notebook import PageNotFoundError
@@ -454,8 +458,9 @@ class TestUIActions(tests.TestCase):
 			dialog.set_input(parent='NewParent')
 			self.assertRaises(PageNotFoundError, dialog.do_response_ok)
 
-		with tests.DialogContext(movepage):
-			self.uiactions.move_page(page)
+		with tests.LoggingFilter('zim', 'No such page'):
+			with tests.DialogContext(movepage):
+				self.uiactions.move_page(page)
 
 	def testMovePageUpdateLinks(self):
 		referrer = self.notebook.get_page(Path('Referrer'))
@@ -792,8 +797,9 @@ class TestUIActionsRealFile(tests.TestCase):
 		def question_yes(dialog):
 			dialog.answer_yes()
 
-		with tests.DialogContext(fail_trash, question_yes, DeletePageDialog):
-			self.uiactions.delete_page()
+		with tests.LoggingFilter('zim', 'Test'):
+			with tests.DialogContext(fail_trash, question_yes, DeletePageDialog):
+				self.uiactions.delete_page()
 
 		self.assertFalse(self.page.exists())
 
@@ -808,13 +814,14 @@ class TestUIActionsRealFile(tests.TestCase):
 
 		def fail_trash(dialog):
 			assert isinstance(dialog, TrashPageDialog)
-			dialog.do_response_ok() # NOT assert_repsonse_ok - we want to fail
+			dialog.do_response_ok() # NOT assert_response_ok - we want to fail
 
 		def question_no(dialog):
 			dialog.answer_no()
 
-		with tests.DialogContext(fail_trash, question_no):
-			self.uiactions.delete_page()
+		with tests.LoggingFilter('zim', 'Test'):
+			with tests.DialogContext(fail_trash, question_no):
+				self.uiactions.delete_page()
 
 		self.assertTrue(self.page.exists())
 

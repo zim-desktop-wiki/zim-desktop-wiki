@@ -144,7 +144,7 @@ except ImportError:
 
 
 from zim.signals import SignalEmitter
-from zim.errors import Error
+from zim.errors import Error, log_error
 
 NOOP = lambda: None
 
@@ -276,7 +276,7 @@ class NotebookOperation(SignalEmitter):
 		except Exception as err:
 			self.cancelled = True
 			self.exception = err
-			raise
+			log_error(err)
 		finally:
 			if self.notebook._operation_check == self:
 				self.notebook._operation_check = NOOP # stop blocking
