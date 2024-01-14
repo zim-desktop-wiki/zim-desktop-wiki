@@ -64,7 +64,8 @@ __all__ = [
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
-	'arithmetic', 'linesorter', 'commandpalette', 'windowtitleeditor'
+	'arithmetic', 'linesorter', 'commandpalette', 'windowtitleeditor',
+	'indexed_fts'
 ]
 
 
