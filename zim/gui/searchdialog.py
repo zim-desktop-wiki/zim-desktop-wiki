@@ -176,8 +176,8 @@ class SearchResultsTreeView(BrowserTreeView):
 				column.set_expand(True)
 			self.append_column(column)
 
-		model.set_sort_column_id(1, Gtk.SortType.DESCENDING)
-			# By default sort by score
+		# Don't sort here because we'll do more elaborate sorting later manually#
+		#model.set_sort_column_id(1, Gtk.SortType.DESCENDING)
 
 		self.connect('row-activated', self._do_open_page)
 		self.connect('destroy', self.__class__._cancel)
@@ -225,7 +225,7 @@ class SearchResultsTreeView(BrowserTreeView):
 			else:
 				score = -1 # went missing !??? - technically a bug
 			row[self.SCORE_COL] = score
-			order.append((score, i))
+			order.append((path, i, score))
 			seen.add(path)
 
 		# Add new paths
@@ -234,11 +234,12 @@ class SearchResultsTreeView(BrowserTreeView):
 			score = results.scores.get(path, 0)
 			model.append((path.name, score, path))
 			i += 1
-			order.append((score, i))
+			order.append((path, i, score))
 
-		# re-order
-		#order.sort() # sort on first item, which is score
-		#model.reorder([x[1] for x in order]) # use second item
+		# sort by score, then by name. This doesn't seem to work by setting a sort column.
+		order.sort(key=lambda i: i[0].name)
+		order.sort(key=lambda i: i[2], reverse=True)
+		model.reorder([x[1] for x in order])
 
 		self.hasresults = len(model) > 0
 

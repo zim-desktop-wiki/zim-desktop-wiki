@@ -593,9 +593,17 @@ class SearchCommand(NotebookCommand):
 
 		selection = SearchSelection(notebook)
 		selection.search(query)
-		for path in sorted(selection, key=lambda p: p.name):
-			print(path.name)
 
+		if self.opts.get("with-scores", False):
+			sorted_sel = sorted(selection.scores.items(),
+				key=lambda i:i[0].name, reverse=False)
+			sorted_sel.sort(key=lambda i:i[1], reverse=True)
+
+			for result in sorted_sel:
+				print(str(result[1]) + "\t" + result[0].name)
+		else:
+			for path in sorted(selection, key=lambda p: p.name):
+				print(path.name)
 
 class IndexCommand(NotebookCommand):
 	'''Class implementing the C{--index} command'''
