@@ -45,7 +45,7 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE_LINK]]
    or: zim --server [OPTIONS] [NOTEBOOK]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
    or: zim --import [OPTIONS] NOTEBOOK PAGE FILES
-   or: zim --search NOTEBOOK QUERY
+   or: zim --search [OPTIONS] NOTEBOOK QUERY
    or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --plugin PLUGIN [ARGUMENTS]
    or: zim --manual [OPTIONS] [PAGE_LINK]
@@ -99,7 +99,7 @@ Import Options:
                    when PATH ends with a ":" or when multiple files are given
 
 Search Options:
-  None
+  --with-scores    print score for each page, sort by score
 
 Index Options:
   -f, --flush      flush the index first and force re-building
@@ -578,6 +578,9 @@ class SearchCommand(NotebookCommand):
 	'''Class implementing the C{--search} command'''
 
 	arguments = ('NOTEBOOK', 'QUERY')
+	options = (
+		("with-scores", "s", "also print scores of search results"),
+	)
 
 	def run(self):
 		from zim.search import SearchSelection, Query
