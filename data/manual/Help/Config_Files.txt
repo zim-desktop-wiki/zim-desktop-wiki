@@ -139,6 +139,7 @@ Known style tags:
 * **sub**: subscript text
 * **sup**: superscript text
 * **link**: hyperlink text
+* **page-link**: hyperlink text pointing to another page
 * **indent**: indented lines
 * **bullet-list**: lines in a bullet list
 * **numbered-list**: lines in a numbered list

@@ -15,6 +15,7 @@ from zim.formats import get_dumper, heading_to_anchor, increase_list_iter, \
 from zim.newfs import LocalFile
 from zim.config import String, Float, Integer, Boolean, \
 	ConfigDefinitionConstant
+from zim.parsing import link_type
 from zim.plugins import PluginManager
 from zim.gui.base.images import image_file_load_pixels
 from zim.gui.clipboard import textbuffer_register_serialize_formats
@@ -285,6 +286,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'sub': {'rise': -3500, 'scale': 0.7},
 		'sup': {'rise': 7500, 'scale': 0.7},
 		'link': {'foreground': 'blue'},
+		'page-link': {'foreground': 'blue'},
 		'tag': {'foreground': '#ce5c00'},
 		'indent': {},
 		'bullet-list': {},
@@ -796,8 +798,8 @@ class TextBuffer(Gtk.TextBuffer):
 		if hasattr(href, 'uri'):
 			href = href.uri
 		assert isinstance(href, str) or href is None
-
-		tag = self.create_tag(None, **self.tag_styles['link'])
+		link_style = 'page-link' if (link_type(href or '') == 'page') else 'link'
+		tag = self.create_tag(None, **self.tag_styles[link_style])
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
 		if href == text or not href or href.isspace():
