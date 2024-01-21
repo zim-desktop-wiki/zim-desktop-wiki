@@ -285,6 +285,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'sub': {'rise': -3500, 'scale': 0.7},
 		'sup': {'rise': 7500, 'scale': 0.7},
 		'link': {'foreground': 'blue'},
+		'internal-link': {'foreground': 'green'},
 		'tag': {'foreground': '#ce5c00'},
 		'indent': {},
 		'bullet-list': {},
@@ -796,8 +797,12 @@ class TextBuffer(Gtk.TextBuffer):
 		if hasattr(href, 'uri'):
 			href = href.uri
 		assert isinstance(href, str) or href is None
-
-		tag = self.create_tag(None, **self.tag_styles['link'])
+		url: str = href or ''
+		is_external_link : bool = url.startswith('http://') or url.startswith('https://')
+		if is_external_link:
+			tag = self.create_tag(None, **self.tag_styles['link'])
+		else: 
+			tag = self.create_tag(None, **self.tag_styles['internal-link'])
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
 		if href == text or not href or href.isspace():
