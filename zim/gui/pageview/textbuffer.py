@@ -797,12 +797,9 @@ class TextBuffer(Gtk.TextBuffer):
 		if hasattr(href, 'uri'):
 			href = href.uri
 		assert isinstance(href, str) or href is None
-		url: str = href or ''
-		is_external_link : bool = url.startswith('http://') or url.startswith('https://')
-		if is_external_link:
-			tag = self.create_tag(None, **self.tag_styles['link'])
-		else: 
-			tag = self.create_tag(None, **self.tag_styles['internal-link'])
+		is_internal_link = (link_type(href or '') == 'page')
+		styles = self.tag_styles['internal-link' if is_internal_link else 'link']
+		tag = self.create_tag(None, **styles)
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
 		if href == text or not href or href.isspace():
