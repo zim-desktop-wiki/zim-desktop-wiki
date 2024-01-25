@@ -199,6 +199,39 @@ class TestXDGDirs(tests.TestCase):
 					list(map(value_to_folder, v.split(my_sep)))
 				)
 
+	@tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
+	@tests.skipIf(os.environ.get('XDG_DATA_DIRS', False), 'Not in standard XDG environment')
+	def testXDGDataDirs(self):
+		'''
+		test real XDG_DATA_DIRS is expected
+
+		Similar but unlike testAllValid, this test case checks the "real"
+		XDG_DATA_DIRS which is expected to be installed data files.
+		This test case is useful when XDG_DATA_DIRS is not a "standard" one.
+		For example, a python virtual environment (venv) installation will
+		install the data files under the venv.
+		'''
+		flag = False
+		files_to_check = (
+			'dates.list',
+			'menubar.xml',
+			'style.conf',
+			'symbols.list',
+			'urls.list',
+			'zim.png'
+		)
+		dir_candidates = basedirs._split_environ_dir_list(os.environ['XDG_DATA_DIRS'])
+		for dir_candidate in dir_candidates:
+			dir_zim_data = dir_candidate.subdir(['zim'])
+			if dir_zim_data.exists():
+				for f_to_check in files_to_check:
+					f = dir_zim_data.file(f_to_check)
+					self.assertTrue(f.exists())
+					# we found at least one folder with expected files
+					flag = True
+
+		# we found no folder with expected files
+		self.assertTrue(flag)
 
 class TestControlledDict(tests.TestCase):
 
