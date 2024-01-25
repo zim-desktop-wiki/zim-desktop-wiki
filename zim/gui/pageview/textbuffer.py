@@ -1784,7 +1784,7 @@ class TextBuffer(Gtk.TextBuffer):
 		return any(filter(_is_pre_tag, iter.get_tags()))
 
 	def get_range_in_verbatim_block(self, start, end):
-		t = filter(_is_pre_tag, iter.get_tags())
+		t = list(filter(_is_pre_tag, start.get_tags()))
 		if t:
 			return self.range_has_tag(t[0], start, end)
 		else:
