@@ -123,8 +123,8 @@ All files in this package, except for those mentioned below, are
 copyrighted by Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 Translations are copyrighted by their respective translators. All translations
-that are entered through the launchpad website are distributed under the BSD
-license. See the translation files for detailed translator credits.
+that are entered through the launchpad or weblate websites are distributed
+under the BSD license. See the translation files for detailed translator credits.
 
 The following files were included from other sources:
 

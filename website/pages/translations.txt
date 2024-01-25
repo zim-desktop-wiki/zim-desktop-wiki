@@ -3,7 +3,7 @@ Wiki-Format: zim 0.4
 
 ====== Translations ======
 
-To contribute to translations online please go to [[https://hosted.weblate.org/projects/zim/master/]]. Here you can collaborate with others to translate zim into your native language.
+To contribute to translations online please go to [[https://hosted.weblate.org/projects/zim/develop/]]. Here you can collaborate with others to translate zim into your native language.
 
 If you rather use offline tools like [[http://www.poedit.net/|poedit]] you can either check out the source repository for zim (see [[Contribute]]) and submit changes as a pull request.
 
