@@ -15,6 +15,7 @@ from zim.formats import get_dumper, heading_to_anchor, increase_list_iter, \
 from zim.newfs import LocalFile
 from zim.config import String, Float, Integer, Boolean, \
 	ConfigDefinitionConstant
+from zim.parsing import link_type
 from zim.plugins import PluginManager
 from zim.gui.base.images import image_file_load_pixels
 from zim.gui.clipboard import textbuffer_register_serialize_formats
@@ -285,7 +286,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'sub': {'rise': -3500, 'scale': 0.7},
 		'sup': {'rise': 7500, 'scale': 0.7},
 		'link': {'foreground': 'blue'},
-		'internal-link': {'foreground': 'green'},
+		'internal-link': {'foreground': 'green', 'underline': Pango.Underline.DOUBLE},
 		'tag': {'foreground': '#ce5c00'},
 		'indent': {},
 		'bullet-list': {},
