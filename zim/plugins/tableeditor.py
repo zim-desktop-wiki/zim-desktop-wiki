@@ -7,6 +7,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
+from gi.repository import GLib
 
 import re
 import weakref
@@ -499,6 +500,8 @@ class TableViewWidget(InsertedObjectWidget):
 		'''Initializes a treeview with its model (liststore) and all its columns'''
 		treeview = Gtk.TreeView(model.liststore)
 
+		treeview.connect('key-press-event', self.on_treeview_key_press_event)
+
 		# Set default sorting function.
 		model.liststore.set_default_sort_func(lambda *a: 0)
 
@@ -757,6 +760,71 @@ class TableViewWidget(InsertedObjectWidget):
 		''' Trigger after a cell is edited but any change is skipped '''
 		self._cellinput_canceled = True
 
+	def on_treeview_key_press_event(self, treeview, event):
+		''' Event handler for key-press-events in treeview '''
+		keyname = Gdk.keyval_name(event.keyval)
+		shift_pressed = event.state & Gdk.ModifierType.SHIFT_MASK
+		path, col = treeview.get_cursor()
+		columns = [c for c in treeview.get_columns()]
+		colindex = columns.index(col)
+		rowmove = 0
+		colmove = 0
+
+		# ISO_Left_Tab should be enough to signify shift-tab, but there's some doubt in sources on the Web, so also
+		# cope with 'Tab' where shift is pressed.
+
+		# Move cursor to the next/previous column/row
+		if keyname == 'ISO_Left_Tab':
+			colmove = -1
+		elif keyname == 'Tab':
+			colmove = -1 if shift_pressed else 1
+		# Placeholder for later work
+		# elif keyname == 'Return':
+		# rowmove = -1 if shift_pressed else 1
+		else:
+			pass
+
+		if colmove != 0 or rowmove != 0:
+			model = treeview.get_model()
+
+			next_colindex = colindex
+			if colmove > 0:
+				# Move cursor to the next column. If it's the last column, move back to the first
+				if next_colindex + 1 < len(columns):
+					next_colindex += 1
+				else:
+					next_colindex = 0
+					rowmove = 1
+			elif colmove < 0:
+				# Move cursor to the previous column. If it's the first column, move to the last
+				if next_colindex > 0:
+					next_colindex -= 1
+				else:
+					next_colindex = len(columns) - 1
+					rowmove = -1
+			else:
+				pass
+
+			rowindex = path.get_indices()[0]
+			if rowmove > 0:
+				# Move cursor to the next row. If it's the last row, move back to the first
+				if rowindex + 1 < len(model):
+					path.next()
+				else:
+					path = Gtk.TreePath.new_from_indices([0])
+			elif rowmove < 0:
+				# Move cursor to the previous row. If it's the first row, move to the last
+				if rowindex > 0:
+					path.prev()
+				else:
+					path = Gtk.TreePath.new_from_indices([len(model) - 1])
+
+			def set_cursor_when_idle():
+				treeview.set_cursor(path, columns[next_colindex], True)
+				return False
+			GLib.idle_add(set_cursor_when_idle)
+
+			return True  # event is handled - don't propagate to the parent
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
