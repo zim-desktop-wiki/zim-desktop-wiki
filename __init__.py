@@ -58,6 +58,15 @@ class ConfirmDialog(Dialog):
         self.close()
         return 1
 
+#additionally add 'diskmerger' to the list of plugins in zim's test.py and
+#a minimalistic test case to tests/diskmerger.py:
+#import tests
+#from zim.plugins import PluginManager
+#from zim.plugins.diskmerger import *
+#class TestCommandPalette(tests.TestCase):
+#	def setUp(self):
+#		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+#		plugin = PluginManager.load_plugin('command_palette')
 
 ################################################################################
 class MergerPageViewExtension(PageViewExtension):
