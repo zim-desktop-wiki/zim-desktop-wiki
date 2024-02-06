@@ -65,7 +65,7 @@ __all__ = [
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
 	'arithmetic', 'linesorter', 'commandpalette', 'windowtitleeditor',
-	'indexed_fts'
+	'indexed_fts', 'diskmerger'
 ]
 
 
