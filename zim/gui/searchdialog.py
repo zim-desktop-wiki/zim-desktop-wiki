@@ -15,6 +15,10 @@ from zim.search import *
 
 logger = logging.getLogger('zim.gui.searchdialog')
 
+HELP_TEXT = _(
+	'For advanced search you can use operators like\n'
+	'AND, OR and NOT. See the help page for more details.'
+) # T: help text for the search dialog
 
 class SearchDialog(Dialog):
 
@@ -35,6 +39,7 @@ class SearchDialog(Dialog):
 		search_label = Gtk.Label.new_with_mnemonic(_('_Search') + ': ')
 		hbox.pack_start(search_label, False, True, 0) # T: input label
 		self.query_entry = InputEntry()
+		self.query_entry.set_tooltip_text(HELP_TEXT)
 		hbox.add(self.query_entry)
 		search_label.set_mnemonic_widget(self.query_entry)
 		self.search_button = Gtk.Button.new_with_mnemonic(_('_Find')) # T: Button label
@@ -45,12 +50,6 @@ class SearchDialog(Dialog):
 
 		self.cancel_button = Gtk.Button.new_with_mnemonic(_('_Cancel')) # T: Button label
 		hbox.pack_start(self.cancel_button, False, True, 0)
-
-		help_text = _(
-			'For advanced search you can use operators like\n'
-			'AND, OR and NOT. See the help page for more details.'
-		) # T: help text for the search dialog
-		self.query_entry.set_tooltip_text(help_text)
 
 		self.namespacecheckbox = Gtk.CheckButton.new_with_mnemonic(_('_Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
@@ -64,9 +63,9 @@ class SearchDialog(Dialog):
 		self.results_treeview = SearchResultsTreeView(notebook, navigation)
 		self._stack = Gtk.Stack()
 		for name, widget in (
-			('ready', StatusPage('edit-find-symbolic', None)),
+			('ready', StatusPage('edit-find-symbolic', None, HELP_TEXT)),
 			('searching', StatusPage('edit-find-symbolic', _('Searching ...'))), # T: placeholder label when search has started
-			('no-results', StatusPage('edit-find-symbolic', _('No results'))), # T: placeholder label when search has no results
+			('no-results', StatusPage('edit-find-symbolic', _('No results'), HELP_TEXT)), # T: placeholder label when search has no results
 			('results', ScrolledWindow(self.results_treeview)),
 		):
 			widget.show_all()

@@ -4221,5 +4221,6 @@ class StatusPage(Gtk.Bin):
 		if info_text:
 			label = Gtk.Label(info_text)
 			label.set_line_wrap(True)
+			label.set_justify(Gtk.Justification.CENTER)
 			label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL)
 			box.add(label)
