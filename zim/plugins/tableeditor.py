@@ -708,6 +708,11 @@ class TableViewWidget(InsertedObjectWidget):
 			model.set_value(newiter, col, value)
 			model.set_value(treeiter, col, newvalue)
 
+		# Move cursor to the new position of the moved row
+		nextiter = model.iter_next(treeiter) if direction > 0 else model.iter_previous(treeiter)
+		path = model.get_path(nextiter)
+		self.treeview.set_cursor(path, None, True)
+
 	def on_open_link(self, action, link):
 		''' Context menu: Open a link, which is written in a cell '''
 		self.emit('link-clicked', {'href': str(link)})
