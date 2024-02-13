@@ -763,68 +763,97 @@ class TableViewWidget(InsertedObjectWidget):
 	def on_treeview_key_press_event(self, treeview, event):
 		''' Event handler for key-press-events in treeview '''
 		keyname = Gdk.keyval_name(event.keyval)
-		shift_pressed = event.state & Gdk.ModifierType.SHIFT_MASK
-		path, col = treeview.get_cursor()
-		columns = [c for c in treeview.get_columns()]
-		colindex = columns.index(col)
-		rowmove = 0
-		colmove = 0
 
+		row_direction = 0
+		col_direction = 0
+
+		# Detect cursor movements
 		# ISO_Left_Tab should be enough to signify shift-tab, but there's some doubt in sources on the Web, so also
 		# cope with 'Tab' where shift is pressed.
-
-		# Move cursor to the next/previous column/row
 		if keyname == 'ISO_Left_Tab':
-			colmove = -1
+			col_direction = -1
 		elif keyname == 'Tab':
-			colmove = -1 if shift_pressed else 1
+			shift_pressed = event.state & Gdk.ModifierType.SHIFT_MASK
+			col_direction = -1 if shift_pressed else 1
 		# Placeholder for later work
 		# elif keyname == 'Return':
-		# rowmove = -1 if shift_pressed else 1
+		# rol_direction = -1 if shift_pressed else 1
 		else:
 			pass
 
-		if colmove != 0 or rowmove != 0:
+		if col_direction != 0 or row_direction != 0:
 			model = treeview.get_model()
+			path, col = treeview.get_cursor()
+			columns = [c for c in treeview.get_columns()]
+			colindex = columns.index(col)
+			num_cols = len(columns)
+			num_rows = len(model)
 
-			next_colindex = colindex
-			if colmove > 0:
-				# Move cursor to the next column. If it's the last column, move back to the first
-				if next_colindex + 1 < len(columns):
-					next_colindex += 1
-				else:
-					next_colindex = 0
-					rowmove = 1
-			elif colmove < 0:
-				# Move cursor to the previous column. If it's the first column, move to the last
-				if next_colindex > 0:
-					next_colindex -= 1
-				else:
-					next_colindex = len(columns) - 1
-					rowmove = -1
-			else:
-				pass
-
-			rowindex = path.get_indices()[0]
-			if rowmove > 0:
-				# Move cursor to the next row. If it's the last row, move back to the first
-				if rowindex + 1 < len(model):
-					path.next()
-				else:
-					path = Gtk.TreePath.new_from_indices([0])
-			elif rowmove < 0:
-				# Move cursor to the previous row. If it's the first row, move to the last
-				if rowindex > 0:
-					path.prev()
-				else:
-					path = Gtk.TreePath.new_from_indices([len(model) - 1])
+			next_col, next_path = self.action_col_row_move(colindex, path, num_cols, num_rows, col_direction, row_direction)
 
 			def set_cursor_when_idle():
-				treeview.set_cursor(path, columns[next_colindex], True)
+				treeview.set_cursor(next_path, columns[next_col], True)
 				return False
 			GLib.idle_add(set_cursor_when_idle)
 
 			return True  # event is handled - don't propagate to the parent
+
+	def action_col_row_move(self, col, path, num_cols, num_rows, col_direction, row_direction):
+		"""
+		Process the movement of the cursor in the table, returning the next column and path.
+
+		:param col: The current column index.
+		:type col: int
+		:param path: The current Gtk.TreePath object, representing the row position.
+		:type path: Gtk.TreePath
+		:param num_cols: The total number of columns in the table.
+		:type num_cols: int
+		:param num_rows: The total number of rows in the table.
+		:type num_rows: int
+		:param col_direction: The direction to move the cursor in the columns. Positive for right, negative for left.
+		:type col_direction: int
+		:param row_direction: The direction to move the cursor in the rows. Positive for down, negative for up.
+		:type row_direction: int
+
+		:return: A tuple containing the next column index and the next Gtk.TreePath object.
+		:rtype: tuple
+		"""
+
+		if col_direction > 0:
+			# Move cursor to the next column. If it's the last column, move back to the first
+			if col + 1 < num_cols:
+				next_col = col + 1
+			else:
+				next_col = 0
+				row_direction = 1
+		elif col_direction < 0:
+			# Move cursor to the previous column. If it's the first column, move to the last
+			if col > 0:
+				next_col = col - 1
+			else:
+				next_col = num_cols - 1
+				row_direction = -1
+		else:
+			next_col = col
+
+		rowindex = path.get_indices()[0]
+		next_path = path.copy()
+		if row_direction > 0:
+			# Move cursor to the next row. If it's the last row, move back to the first
+			if rowindex + 1 < num_rows:
+				next_path.next()
+			else:
+				next_path = Gtk.TreePath.new_from_indices([0])
+		elif row_direction < 0:
+			# Move cursor to the previous row. If it's the first row, move to the last
+			if rowindex > 0:
+				next_path.prev()
+			else:
+				next_path = Gtk.TreePath.new_from_indices([num_rows - 1])
+		else:
+			pass
+
+		return next_col, next_path
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
