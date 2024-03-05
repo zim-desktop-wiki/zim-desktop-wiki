@@ -21,7 +21,7 @@ from zim.fs import adapt_from_oldfs
 from zim.newfs import SEP, Folder, LocalFile, LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 from zim.newfs.helpers import TrashNotSupportedError
 from zim.config import HierarchicDict
 from zim.parsing import link_type, is_win32_path_re, valid_interwiki_key

@@ -5,18 +5,19 @@ import tests
 from tests import os_native_path
 
 import os
-import sys
 import sqlite3
-import time
+
+from zim.base.naturalsort import natural_sort_key
 
 from zim.notebook.layout import FilesLayout
-from zim.newfs import LocalFolder, File
 from zim.notebook import Path
+from zim.notebook.page import HRef
 from zim.notebook.index import Index, DB_VERSION
 from zim.notebook.index.files import FilesIndexer, TestFilesDBTable, FilesIndexChecker, TYPE_FOLDER
-from zim.notebook.index.pages import PagesIndexer, TestPagesDBTable
+from zim.notebook.index.pages import PagesIndexer, TestPagesDBTable, PagesViewInternal
 from zim.notebook.index.links import LinksIndexer
 from zim.notebook.index.tags import TagsIndexer
+from zim.formats.wiki import Parser as WikiParser
 
 
 def is_dir(path):
@@ -437,12 +438,6 @@ class TestPageNameConflict(tests.TestCase):
 
 		self.assertEqual(id1, id2)
 
-
-from zim.utils import natural_sort_key
-from zim.notebook.index.pages import PagesViewInternal
-from zim.notebook.page import HRef
-from zim.formats.wiki import Parser as WikiParser
-from zim.newfs.mock import MockFile
 
 class TestLinksIndexer(tests.TestCase):
 

@@ -31,19 +31,17 @@ to let plugins extend specific application objects.
 
 
 from gi.repository import GObject
-import types
-import os
-import sys
 import logging
-import inspect
 import weakref
 
 import collections.abc as abc
 
+from zim.base import classproperty
+from zim.base.klasslookup import get_module, lookup_subclass, lookup_subclasses
+
 from zim.newfs import LocalFolder, LocalFile
 
-from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SIGNAL_RUN_LAST, SignalHandler
-from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses
+from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_RUN_LAST
 from zim.actions import hasaction, get_actions
 
 from zim.config import data_dirs, XDG_DATA_HOME, ConfigManager
@@ -321,7 +319,7 @@ class InsertedObjectTypeMap(SignalEmitter):
 		return [k for k in self]
 
 	def items(self):
-		return [(k, self[v]) for k in self]
+		return [(k, self[k]) for k in self]
 
 	def values(self):
 		return [self[k] for k in self]

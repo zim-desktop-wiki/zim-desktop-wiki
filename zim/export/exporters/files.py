@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger('zim.export')
 
-from zim.utils import MovingWindowIter
+from zim.base import MovingWindowIter
 
 from zim.config import data_file
 from zim.notebook import Path

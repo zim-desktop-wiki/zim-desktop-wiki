@@ -11,7 +11,7 @@ import logging
 import re
 
 import zim.datetimetz as datetime
-from zim.utils import natural_sorted
+from zim.base.naturalsort import natural_sorted
 
 from zim.notebook import Path
 from zim.actions import toggle_action, initialize_actiongroup, PRIMARY_MODIFIER_MASK

@@ -20,7 +20,7 @@ from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 
 from zim.gui.notebookview import NotebookViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \

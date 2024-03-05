@@ -18,7 +18,7 @@ logger = logging.getLogger('zim.plugin.tableeditor')
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.actions import action
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_RUN_LAST
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 from zim.config import String
 from zim.main import ZIM_APPLICATION
 from zim.formats import ElementTreeModule as ElementTree

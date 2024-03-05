@@ -6,6 +6,7 @@
 
 
 import tests
+from zim.base import MovingWindowIter
 
 from zim.newfs import FileNotFoundError
 

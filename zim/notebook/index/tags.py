@@ -4,13 +4,12 @@
 
 
 
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 from zim.signals import SIGNAL_NORMAL
 
 
 from .base import IndexerBase, IndexView, IndexNotFoundError
-from .pages import PagesViewInternal, ROOT_PATH, \
-	PageIndexRecord  #, get_treepath_for_indexpath_factory
+from .pages import PagesViewInternal
 
 
 class IndexTag(object):

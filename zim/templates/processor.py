@@ -13,7 +13,7 @@ expressions in the template.
 import collections.abc as abc
 
 from zim.newfs import FileNotFoundError
-from zim.utils import MovingWindowIter
+from zim.base import MovingWindowIter
 from zim.parser import SimpleTreeElement
 
 from zim.templates.expression import ExpressionDictObject, ExpressionParameter

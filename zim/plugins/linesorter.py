@@ -9,7 +9,7 @@ from gi.repository import Gtk
 from zim.errors import Error
 from zim.plugins import PluginClass
 from zim.actions import action
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import MessageDialog

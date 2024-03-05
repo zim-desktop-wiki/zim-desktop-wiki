@@ -5,8 +5,8 @@
 import tests
 
 from copy import copy
-
-from zim.utils import *
+from zim.base import LastDefinedOrderedDict, MovingWindowIter
+from zim.base.naturalsort import natural_sort, natural_sorted
 
 class TestNaturalSorting(tests.TestCase):
 
@@ -38,11 +38,11 @@ class TestNaturalSorting(tests.TestCase):
 		self.assertTrue(id(result) != id(input))
 
 
-class TestDefinitionOrderedDict(tests.TestCase):
+class TestLastDefinedOrderedDict(tests.TestCase):
 
 	def runTest(self):
 		items = [('foo', 1), ('bar', 2), ('baz', 3)]
-		mydict = DefinitionOrderedDict(items)
+		mydict = LastDefinedOrderedDict(items)
 
 		self.assertIsInstance(repr(mydict), str)
 

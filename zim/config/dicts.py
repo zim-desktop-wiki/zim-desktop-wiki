@@ -23,19 +23,15 @@ L{ConfigManager} defined in L{zim.config.manager}.
 
 
 
-import sys
-import re
 import logging
-import types
 import ast
 import json
 
 import collections.abc as abc
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL, init_signals_for_new_object
-from zim.utils import DefinitionOrderedDict
+from zim.base import LastDefinedOrderedDict
 from zim.newfs import FileNotFoundError
-from zim.errors import Error
 
 from .basedirs import XDG_CONFIG_HOME
 
@@ -43,8 +39,8 @@ from .basedirs import XDG_CONFIG_HOME
 logger = logging.getLogger('zim.config')
 
 
-class ControlledDict(DefinitionOrderedDict, SignalEmitter, ConnectorMixin):
-	'''Sub-class of C{DefinitionOrderedDict} that tracks modified state.
+class ControlledDict(LastDefinedOrderedDict, SignalEmitter, ConnectorMixin):
+	'''Sub-class of C{LastDefinedOrderedDict} that tracks modified state.
 	This modified state is recursive for nested C{ControlledDict}s.
 
 	Used as base class for L{SectionedConfigDict} and L{ConfigDict}.
@@ -59,32 +55,32 @@ class ControlledDict(DefinitionOrderedDict, SignalEmitter, ConnectorMixin):
 
 	def __init__(self, E=(), **F):
 		init_signals_for_new_object(self) # Hack, probably needed because we inherit from "dict"
-		DefinitionOrderedDict.__init__(self, E or F)
+		LastDefinedOrderedDict.__init__(self, E or F)
 		self._modified = False
 
 	def __setitem__(self, k, v):
-		DefinitionOrderedDict.__setitem__(self, k, v)
+		LastDefinedOrderedDict.__setitem__(self, k, v)
 		if isinstance(v, ControlledDict):
 			self.connectto(v, 'changed', self.on_child_changed)
 		self.emit('changed')
 
 	def __delitem__(self, k):
-		v = DefinitionOrderedDict.__delitem__(self, k)
-		if isinstance(v, DefinitionOrderedDict):
+		v = LastDefinedOrderedDict.__delitem__(self, k)
+		if isinstance(v, LastDefinedOrderedDict):
 			self.disconnect_from(v)
 		self.emit('changed')
 
 	def pop(self, key, default=None):
 		# Only emit changed once here
 		with self.block_signals('changed'):
-			v = DefinitionOrderedDict.pop(self, key, default)
+			v = LastDefinedOrderedDict.pop(self, key, default)
 		self.emit('changed')
 		return v
 
 	def update(self, E=(), **F):
 		# Only emit changed once here
 		with self.block_signals('changed'):
-			DefinitionOrderedDict.update(self, E, **F)
+			LastDefinedOrderedDict.update(self, E, **F)
 		self.emit('changed')
 
 	def changed(self):
@@ -517,7 +513,7 @@ class ConfigDict(ControlledDict):
 	value does not conform to the definition.
 
 	THis class derives from L{ControlledDict} which in turn derives
-	from L{DefinitionOrderedDict} so changes to the config can be tracked by the
+	from L{LastDefinedOrderedDict} so changes to the config can be tracked by the
 	C{changed} signal, and values are kept in the same order so the order
 	in which items are written to the config file is predictable.
 	'''
@@ -525,7 +521,7 @@ class ConfigDict(ControlledDict):
 	def __init__(self, E=None, **F):
 		assert not (E and F)
 		ControlledDict.__init__(self)
-		self.definitions = DefinitionOrderedDict()
+		self.definitions = LastDefinedOrderedDict()
 		self._input = {}
 		if E or F:
 			self.input(E or F)
@@ -558,7 +554,7 @@ class ConfigDict(ControlledDict):
 		keys in the dict, but want to preserve all of them when
 		writing back to a file.
 		'''
-		return dict(self.all_items()) # FIXME should be DefinitionOrderedDict, but causes test errors
+		return dict(self.all_items()) # FIXME should be LastDefinedOrderedDict, but causes test errors
 
 	def all_items(self):
 		# Like items() but returns both defined values and input values
@@ -629,7 +625,7 @@ class ConfigDict(ControlledDict):
 				self._set_input(key, value)
 			else:
 				with self.block_signals('changed'):
-					DefinitionOrderedDict.__setitem__(self, key, definition.default)
+					LastDefinedOrderedDict.__setitem__(self, key, definition.default)
 
 	def _set_input(self, key, value):
 		try:
@@ -648,7 +644,7 @@ class ConfigDict(ControlledDict):
 			value = self.definitions[key].default
 
 		with self.block_signals('changed'):
-			DefinitionOrderedDict.__setitem__(self, key, value)
+			LastDefinedOrderedDict.__setitem__(self, key, value)
 
 	def setdefault(self, key, default, check=None, allow_empty=False):
 		'''Set the default value for a configuration item.

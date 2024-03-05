@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger('zim.notebook.index')
 
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 from zim.formats import ParseTreeBuilder

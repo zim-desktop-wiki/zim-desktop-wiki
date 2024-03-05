@@ -23,7 +23,7 @@ from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
 from zim.notebook import NotebookExtension
 from zim.notebook.operations import NotebookState, SimpleAsyncOperation
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 
 from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \

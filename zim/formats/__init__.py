@@ -74,14 +74,11 @@ to a title or subtitle in the document.
 '''
 
 import re
-import string
 import itertools
 import logging
 
-import types
 import collections
 
-from zim.newfs import LocalFile
 from zim.parsing import link_type, is_url_re, is_www_link_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
@@ -308,7 +305,7 @@ class ParseTree(object):
 	def __init__(self, *arg, **kwarg):
 		self._etree = ElementTreeModule.ElementTree(*arg, **kwarg)
 		self._object_cache = {}
-		self.meta = DefinitionOrderedDict()
+		self.meta = LastDefinedOrderedDict()
 
 	@classmethod
 	def new_from_tokens(klass, tokens):
@@ -1362,7 +1359,7 @@ class TableParser():
 		return cells
 
 
-from zim.config.dicts import DefinitionOrderedDict
+from zim.base import LastDefinedOrderedDict
 
 _is_header_re = re.compile(r'^([\w\-]+):\s+(.*?)\n', re.M)
 _is_continue_re = re.compile(r'^([^\S\n]+)(.+?)\n', re.M)
@@ -1378,7 +1375,7 @@ def parse_header_lines(text):
 	@returns: the text minus the headers and a dict with the headers
 	'''
 	assert isinstance(text, str)
-	meta = DefinitionOrderedDict()
+	meta = LastDefinedOrderedDict()
 	match = _is_header_re.match(text)
 	pos = 0
 	while match:

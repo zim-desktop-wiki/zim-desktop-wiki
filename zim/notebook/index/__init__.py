@@ -16,7 +16,7 @@ except ImportError:
 
 from zim.newfs import LocalFile, File, Folder, FileNotFoundError
 from zim.signals import SignalEmitter
-from zim.utils import natural_sort_key
+from zim.base.naturalsort import natural_sort_key
 
 from zim.notebook.operations import NotebookOperation, NotebookOperationOngoing, ongoing_operation
 

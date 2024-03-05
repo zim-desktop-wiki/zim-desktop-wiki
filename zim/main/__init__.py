@@ -22,7 +22,7 @@ import zim.config.basedirs
 
 from zim import __version__
 
-from zim.utils import get_module, lookup_subclass
+from zim.base.klasslookup import get_module, lookup_subclass
 from zim.errors import Error
 from zim.notebook import Notebook, Path, HRef, \
 	get_notebook_list, resolve_notebook, build_notebook
