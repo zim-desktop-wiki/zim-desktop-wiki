@@ -752,6 +752,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, liststore, colid):
 		''' Trigger before cell-editing, to transform text-field data into right format '''
+		logger.debug('on_cell_editing_started: colid=%d, path=%s', colid, path)
 		self._keep_toolbar_open = True
 
 		editable.connect('focus-out-event', self.on_cell_focus_out, cellrenderer, path, liststore, colid)
@@ -762,11 +763,13 @@ class TableViewWidget(InsertedObjectWidget):
 		self._currently_edited = (editable, liststore, path, colid)
 
 	def on_cell_focus_out(self, editable, event, cellrenderer, path, liststore, colid):
+		logger.debug('on_cell_focus_out: colid=%d, path=%s', colid, path)
 		if not self._cellinput_canceled:
 			self.on_cell_changed(cellrenderer, path, editable.get_text(), liststore, colid)
 
 	def on_cell_editing_canceled(self, renderer):
 		''' Trigger after a cell is edited but any change is skipped '''
+		logger.debug('on_cell_editing_canceled')
 		self._cellinput_canceled = True
 
 	def autosave_current_cell(self):
@@ -774,9 +777,12 @@ class TableViewWidget(InsertedObjectWidget):
 		Saves the current cell, if it is currently being edited.
 		This covers cases where a cell has been edited and the user clicks outside the cell, e.g. on a button.
 		"""
+		logger.debug('autosave_current_cell. _currently_edited: %s', self._currently_edited)
 		if self._currently_edited:
 			editable, liststore, path, colid = self._currently_edited
 			text = editable.get_text()
+			editable.editing_done()
+			editable.remove_widget()
 			self.on_cell_changed(None, path, text, liststore, colid)
 
 	def on_treeview_key_press_event(self, treeview, event):
@@ -801,26 +807,29 @@ class TableViewWidget(InsertedObjectWidget):
 			pass
 
 		if col_direction != 0 or row_direction != 0:
-			# The cursor is about to move
-			self.autosave_current_cell()
-
+			logger.debug('on_treeview_key_press_event: col_direction=%d, row_direction=%d', col_direction, row_direction)
 			model = treeview.get_model()
 			path, col = treeview.get_cursor()
 			columns = [c for c in treeview.get_columns()]
-			colindex = columns.index(col)
 			num_cols = len(columns)
 			num_rows = len(model)
+			colindex = columns.index(col)
 
-			next_col, next_path = self.action_col_row_move(colindex, path, num_cols, num_rows, col_direction, row_direction)
+			self.autosave_current_cell()
 
+			next_col, next_path = self.process_col_row_move(colindex, path, num_cols, num_rows, col_direction, row_direction)
+
+			# The cursor is about to move to a new cell. Save the current cell and move the cursor.
 			def set_cursor_when_idle():
 				treeview.set_cursor(next_path, columns[next_col], True)
 				return False
 			GLib.idle_add(set_cursor_when_idle)
+			logger.debug('on_treeview_key_press_event: set_cursor_when_idle done')
 
 			return True  # event is handled - don't propagate to the parent
 
-	def action_col_row_move(self, col, path, num_cols, num_rows, col_direction, row_direction):
+	@staticmethod
+	def process_col_row_move(col, path, num_cols, num_rows, col_direction, row_direction):
 		"""
 		Process the movement of the cursor in the table, returning the next column and path.
 
@@ -840,6 +849,9 @@ class TableViewWidget(InsertedObjectWidget):
 		:return: A tuple containing the next column index and the next Gtk.TreePath object.
 		:rtype: tuple
 		"""
+		# TODO remove this line on commit
+		logger.debug('action_col_row_move: col=%d, path=%s, num_cols=%d, num_rows=%d, col_direction=%d, row_direction=%d',
+				 col, path, num_cols, num_rows, col_direction, row_direction)
 
 		if col_direction > 0:
 			# Move cursor to the next column. If it's the last column, move back to the first
