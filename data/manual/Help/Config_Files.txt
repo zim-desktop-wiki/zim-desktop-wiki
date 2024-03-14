@@ -162,6 +162,10 @@ Known properties for Tags:
 * **linespacing**: //integer//
 * **rise**: //integer// (offset from line center, intended for "sup" and "sub")
 
+
+In the style config, properties can be postfixed with "''[darktheme]''" to define variants that are used when the "Prefer dark theme" [[Preferences|preference]] is enabled.
+
+
 ==== Gtk configuration ====
 
 To change the look of the application beyond what can be done with the ''style.conf'' file you need to modify the Gtk theming. With Gtk3 this can be done using the CSS language similar to how e.g. webpages are styled.

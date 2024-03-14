@@ -65,8 +65,12 @@ if sys.platform == "darwin":
 #: Preferences for the user interface
 ui_preferences = (
 	# key, type, category, label, default
+	('prefer-dark-theme', 'bool', 'Interface', _('Prefer dark theme')
+		+ '\n' + _('This option requires a Gtk theme supporting a dark variant')
+		+ '\n' + _('This option requires restart of the application'), False),
+		# T: option for preferences dialog
 	('show_headerbar', 'bool', 'Interface', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), os_default_headerbar),
-		# T: option for plugin preferences
+		# T: option for preferences dialog
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING + '<Space>'), False),
 		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 		# default value is False because this is mapped to switch between
@@ -686,6 +690,16 @@ class MainWindow(WindowBaseMixin, Window):
 
 		self.add_accel_group(group)
 		self._switch_focus_accelgroup = group
+
+		# Toggle dark theme
+		gtk_settings = Gtk.Settings.get_default()
+		text_style = ConfigManager.get_config_dict('style.conf')
+		if self.preferences['prefer-dark-theme']:
+			gtk_settings.set_property('gtk-application-prefer-dark-theme', True)
+			text_style.set_selectors(('darktheme',))
+		else:
+			gtk_settings.set_property('gtk-application-prefer-dark-theme', False)
+			text_style.set_selectors(None)
 
 	@toggle_action(_('Menubar'), init=True) # T: label for View->Menubar menu item
 	def toggle_menubar(self, show):

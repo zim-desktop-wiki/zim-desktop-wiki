@@ -7,6 +7,8 @@ The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Pref
 
 ===== Interface =====
 
+**Prefer dark theme** when this preference is set the, zim will request for a dark variant of the active Gtk theme. With the default themes, this should result in a darm mode for the application. In addition the "[darktheme]" elements from the "''style.conf''" configuration are used (see [[Config Files]]). To see the full effect of this option, you may need to restart the application.
+
 **Show controls in the window decoration** determines whether controls are show in the window border. This implies custom window decoration; this may break some platform semantics depending on your operating system. This option requires restart of the application.
 
 **Use <Ctrl><Space> to switch to the side pane** toggles the key binding for <Ctrl><Space>. The reason to toggle this binding 'off' is usually because it is also used for input methods when using non-western scripts.

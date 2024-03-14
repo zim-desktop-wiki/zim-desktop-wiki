@@ -1,5 +1,5 @@
 
-# Copyright 2009-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2024 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -17,6 +17,7 @@ from zim.notebook import Path
 from zim.actions import toggle_action, initialize_actiongroup, PRIMARY_MODIFIER_MASK
 from zim.signals import DelayedCallback, SIGNAL_AFTER, SignalHandler, ConnectorMixin
 from zim.config import ConfigManager, ConfigDefinition
+from zim.config.dicts import String
 from zim.plugins import PluginManager, ExtensionBase, extendable
 from zim.gui.widgets import \
 	Dialog, WindowSidePaneWidget, InputEntry, \
@@ -758,13 +759,6 @@ class LabelAndTagView(Gtk.ListBox):
 				row.set_header(None)
 
 
-HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
-MEDIUM_COLOR = '#FCB956' # orange ("idem" - #FCAF3E)
-ALERT_COLOR = '#FCEB65' # yellow ("idem" - #FCE94F)
-# FIXME: should these be configurable ?
-
-COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
-
 _cal_days_to_work_days = [
 	# for each weekday 5 offsets used in algo below
 	# represent weekends in a 14 day period starting at given weekday
@@ -808,6 +802,16 @@ def days_to_str(days, use_workweek, weekday):
 
 class TaskListTreeView(BrowserTreeView):
 
+	# These default values are overwritten based on "styles.conf" configuration
+	HIGH_COLOR = '#ef2929' # red (derived from Tango style guide)
+	MEDIUM_COLOR = '#f57900' # orange
+	ALERT_COLOR = '#fce947' # yellow
+
+	PRIO_COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
+
+	TAG_TEXT_COLOR = '#ce5c00'
+	INACTIVE_TEXT_COLOR = 'darkgrey'
+
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'view-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -819,6 +823,14 @@ class TaskListTreeView(BrowserTreeView):
 		use_workweek=False,
 		sort_column=PRIO_COL, sort_order=Gtk.SortType.DESCENDING
 	):
+		self.text_style = ConfigManager.get_config_dict('style.conf')
+		self.text_style['TaskList Prio High'].define({'background': String(self.HIGH_COLOR)})
+		self.text_style['TaskList Prio Medium'].define({'background': String(self.MEDIUM_COLOR)})
+		self.text_style['TaskList Prio Alert'].define({'background': String(self.ALERT_COLOR)})
+		self.text_style['TaskList Inactive'].define({'foreground': String(self.INACTIVE_TEXT_COLOR)})
+		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
+		self.on_text_style_changed()
+
 		self.real_model = Gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str, int, str)
 			# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL, STATUS_COL, STATUS_ICON_NAME_COL
 		model = self.real_model.filter_new()
@@ -860,11 +872,11 @@ class TaskListTreeView(BrowserTreeView):
 		def render_prio(col, cell, model, i, data):
 			text = model.get_value(i, PRIO_SORT_LABEL_COL)
 			if not model.get_value(i, ACT_COL):
-				text = '<span color="darkgrey">%s</span>' % text
+				text = '<span color="%s">%s</span>' % (self.INACTIVE_TEXT_COLOR, text)
 				bg = None
 			else:
 				prio = model.get_value(i, PRIO_COL)
-				bg = COLORS[min(prio, 3)]
+				bg = self.PRIO_COLORS[min(prio, 3)]
 			cell.set_property('markup', text)
 			cell.set_property('cell-background', bg)
 
@@ -911,18 +923,18 @@ class TaskListTreeView(BrowserTreeView):
 				cell.set_property('text', '')
 			else:
 				if not model.get_value(i, ACT_COL):
-					date = '<span color="darkgrey">%s</span>' % date
+					date = '<span color="%s">%s</span>' % (self.INACTIVE_TEXT_COLOR, date)
 				cell.set_property('markup', date)
 				# TODO allow strftime here
 
 			if model_col == DUE_COL:
 				if date <= today:
-					color = HIGH_COLOR
+					color = self.HIGH_COLOR
 				elif date <= tomorrow:
-					color = MEDIUM_COLOR
+					color = self.MEDIUM_COLOR
 				elif date <= dayafter:
 					# "<=" because tomorrow and/or dayafter can be after the weekend
-					color = ALERT_COLOR
+					color = self.ALERT_COLOR
 				else:
 					color = None
 				cell.set_property('cell-background', color)
@@ -944,7 +956,7 @@ class TaskListTreeView(BrowserTreeView):
 			text = model.get_value(i, PAGE_COL)
 			text = encode_markup_text(text)
 			if not model.get_value(i, ACT_COL):
-				text = '<span color="darkgrey">%s</span>' % text
+				text = '<span color="%s">%s</span>' % (self.INACTIVE_TEXT_COLOR, text)
 			cell.set_property('markup', text)
 
 		cell_renderer = Gtk.CellRendererText()
@@ -963,6 +975,15 @@ class TaskListTreeView(BrowserTreeView):
 		# HACK because we can not register ourselves :S
 		self.connect('row_activated', self.__class__.do_row_activated)
 		self.connect('focus-in-event', self.__class__.do_focus_in_event)
+
+	def on_text_style_changed(self, *a):
+		self.HIGH_COLOR = self.text_style['TaskList Prio High']['background']
+		self.MEDIUM_COLOR = self.text_style['TaskList Prio Medium']['background']
+		self.ALERT_COLOR = self.text_style['TaskList Prio Alert']['background']
+		self.PRIO_COLORS = [None, self.ALERT_COLOR, self.MEDIUM_COLOR, self.HIGH_COLOR] # index 0..3
+
+		self.TAG_TEXT_COLOR = self.text_style['Tag tag'].get('foreground', self.TAG_TEXT_COLOR)
+		self.INACTIVE_TEXT_COLOR = self.text_style['TaskList Inactive']['foreground']
 
 	def get_view_column_visible(self, key):
 		assert key in self.view_columns
@@ -1059,10 +1080,10 @@ class TaskListTreeView(BrowserTreeView):
 			desc = re.sub(r'\s*!+\s*', ' ', desc) # get rid of exclamation marks
 			desc = encode_markup_text(desc)
 			if actionable:
-				desc = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', desc) # highlight tags - same color as used in pageview
+				desc = _tag_re.sub(r'<span color="%s">@\1</span>' % self.TAG_TEXT_COLOR, desc) # highlight tags
 				desc = task_label_re.sub(r'<b>\1</b>', desc) # highlight labels
 			else:
-				desc = r'<span color="darkgrey">%s</span>' % desc
+				desc = '<span color="%s">%s</span>' % (self.INACTIVE_TEXT_COLOR, desc)
 
 			# Insert all columns
 			modelrow = [False, actionable, row['prio'], row['start'], row['due'], tags, desc, path.name, row['id'], prio_sort_int, prio_sort_label, status, status_icon_name]
@@ -1278,7 +1299,7 @@ class TaskListTreeView(BrowserTreeView):
 
 <table class="tasklist">
 <tr><th>Prio</th><th>Task</th><th>Due</th><th>Start</th><th>Page</th></tr>
-''' % (HIGH_COLOR, MEDIUM_COLOR, ALERT_COLOR)
+''' % (self.HIGH_COLOR, self.MEDIUM_COLOR, self.ALERT_COLOR)
 
 		today = str(datetime.date.today())
 		tomorrow = str(datetime.date.today() + datetime.timedelta(days=1))

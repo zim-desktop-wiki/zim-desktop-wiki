@@ -824,7 +824,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				if not tag in TextBuffer.tag_styles:
 					raise AssertionError('No such tag: %s' % tag)
 
-				attrib = dict(i for i in list(section.items()) if i[1] is not None)
+				attrib = dict(i for i in list(section.items_by_selectors()) if i[1] is not None)
 				if 'linespacing' in attrib:
 					attrib['pixels-below-lines'] = attrib.pop('linespacing')
 

@@ -17,6 +17,13 @@ The option **Show "GTD-style" inbox & next actions lists** determines what lists
 
 The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window. **Show due date in sidepane**, **Show start date in sidepane** & **Show page column in the sidepane** determine which columns are shown in the side pane.
 
+In addition to the these preference, the colors used in the tasklist to indicate priority can be configured in the "''style.conf''" [[Config_Files|config file]]. For this the following groups can be defined:
+
+* "TaskList Prio High" - only support the "background" property
+* "TaskList Prio Medium" - only support the "background" property
+* "TaskList Prio Alert" - only support the "background" property
+* "TaskList Inactive" - only support the "foreground" property
+
 
 ===== Notebook properties =====
 If the option "**Consider all checkboxes as tasks**" is enabled any checkboxes found will appear in the task list. If it is disabled only checkboxes that have a task label (like "FIXME" or "TODO") will appear in the list.

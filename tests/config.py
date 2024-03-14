@@ -400,7 +400,7 @@ class TestConfigDefinitions(tests.TestCase):
 
 class TestConfigDict(tests.TestCase):
 
-	def runTest(self):
+	def testDefinitions(self):
 		mydict = ConfigDict((
 			('a', 'AAA'),
 			('b', 'BBB'),
@@ -471,7 +471,7 @@ class TestConfigDict(tests.TestCase):
 		self.assertEqual(mydict['d'], 'bar')
 		self.assertFalse(mydict.modified)
 
-		# Test copying
+	def testCopy(self):
 		values = {
 			'a': 'AAA',
 			'b': 'BBB',
@@ -488,6 +488,42 @@ class TestConfigDict(tests.TestCase):
 		mycopy = mydict.copy()
 		self.assertEqual(dict(mycopy), values)
 		self.assertEqual(mycopy, mydict)
+
+	def testSelectors(self):
+		values = (('a', 'AAA'), ('a[darktheme]', 'BBB'))
+		mydict = ConfigDict(values)
+		mydict.define(a=String(None))
+		self.assertEqual(mydict['a'], 'AAA')
+		self.assertEqual(list(mydict.items_by_selectors()), [('a', 'AAA')])
+
+		# Test various selectors, everytime the "all_items" output should be the same
+		mydict.set_selectors(('darktheme',))
+		self.assertEqual(mydict['a'], 'BBB')
+		self.assertEqual(mydict.get('a', 'CCC'), 'BBB')
+		self.assertEqual(list(mydict.items_by_selectors()), [('a', 'BBB')])
+		self.assertEqual(list(mydict.all_items()), list(values))
+
+		mydict.set_selectors(('foo',))
+		self.assertEqual(mydict['a'], 'AAA')
+		self.assertEqual(list(mydict.items_by_selectors()), [('a', 'AAA')])
+		self.assertEqual(list(mydict.all_items()), list(values))
+
+		mydict.set_selectors(('foo', 'darktheme'))
+		self.assertEqual(mydict['a'], 'BBB')
+		self.assertEqual(list(mydict.items_by_selectors()), [('a', 'BBB')])
+		self.assertEqual(list(mydict.all_items()), list(values))
+
+		mydict.set_selectors(None)
+		self.assertEqual(mydict['a'], 'AAA')
+		self.assertEqual(list(mydict.items_by_selectors()), [('a', 'AAA')])
+		self.assertEqual(list(mydict.all_items()), list(values))
+
+		# Test adding new definition after selectors are defined
+		mydict.set_selectors(('darktheme',))
+		mydict.input({'b': 'ligth', 'b[darktheme]': 'dark'})
+		mydict.define(b=String(None))
+		self.assertEqual(mydict['b'], 'dark')
+		self.assertEqual(list(mydict.items_by_selectors()), [('a', 'BBB'), ('b', 'dark')])
 
 
 class TestINIConfigFile(tests.TestCase):
@@ -546,20 +582,32 @@ none=
 		conf['Foo']['tja'] = (33, 44)
 		self.assertTrue(conf.modified)
 
-		# Get a non-exiting section (__getitem__ not overloaded)
+		# Get a non-existing section
 		conf.set_modified(False)
 		section = conf['NewSection']
 		self.assertEqual(section, ConfigDict())
+		self.assertFalse(section.modified)
 		self.assertFalse(conf.modified)
 
-	def testPersistent(self):
-		# Make sure also not initialized values are kept
+	def testNonInitializedValuesArePreserved(self):
 		text = '[Foo]\nb=test\na=test\n\n'
 		file = tests.MockObject()
 		file.readlines = lambda: text.splitlines(1)
 		conf = INIConfigFile(file)
+		self.assertEqual(conf['Foo'], {})
 		self.assertEqual(list(conf['Foo'].all_items()), [('b', 'test'), ('a', 'test')])
 		self.assertEqual(conf.dump(), text.splitlines(1))
+
+	def testSelectors(self):
+		text = '[Foo]\na=AAA\na[darktheme]=BBB\n\n'
+		file = tests.MockObject()
+		file.readlines = lambda: text.splitlines(1)
+		conf = INIConfigFile(file)
+		conf['Foo'].define(a=String(None))
+		self.assertEqual(conf['Foo']['a'], 'AAA')
+		conf.set_selectors(('darktheme',))
+		self.assertEqual(conf['Foo']['a'], 'BBB')
+
 
 class TestUserDirs(tests.TestCase):
 
