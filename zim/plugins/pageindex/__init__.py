@@ -400,7 +400,6 @@ class PageTreeView(BrowserTreeView):
 		self._autoexpanded = None
 		self._autoexpand = True
 		self._autocollapse = True
-		self._last_selected_path = None
 
 		column = Gtk.TreeViewColumn('_pages_')
 		column.set_expand(True)
@@ -475,10 +474,6 @@ class PageTreeView(BrowserTreeView):
 		treeiter = model.get_iter(treepath)
 		mytreeiter = model.get_user_data(treeiter)
 		selected_path = self.get_selected_path()
-
-		if self._last_selected_path == selected_path:
-			return
-		self._last_selected_path = selected_path
 
 		if self._autocollapse:
 			self.restore_autoexpanded_path()
