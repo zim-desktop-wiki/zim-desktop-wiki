@@ -7,6 +7,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
+from gi.repository import GLib
 
 import re
 import weakref
@@ -336,6 +337,7 @@ class TableViewWidget(InsertedObjectWidget):
 		self._keep_toolbar_open = False  # a cell is currently edited, toolbar should not be hidden
 		self._cellinput_canceled = None  # cell changes should be skipped
 		self._toolbar_enabled = True  # sets if toolbar should be shown beneath a selected table
+		self._currently_edited = None # currently edited cell - tuple (editable, model, path, colid)
 
 		# Toolbar for table actions
 		self.toolbar = self.create_toolbar()
@@ -499,6 +501,8 @@ class TableViewWidget(InsertedObjectWidget):
 		'''Initializes a treeview with its model (liststore) and all its columns'''
 		treeview = Gtk.TreeView(model.liststore)
 
+		treeview.connect('key-press-event', self.on_treeview_key_press_event)
+
 		# Set default sorting function.
 		model.liststore.set_default_sort_func(lambda *a: 0)
 
@@ -594,6 +598,7 @@ class TableViewWidget(InsertedObjectWidget):
 		Displays a context-menu on right button click
 		Opens the link of a tablecell on CTRL pressed and left button click
 		'''
+		self.autosave_current_cell()
 		if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 1 and event.get_state() & Gdk.ModifierType.CONTROL_MASK:
 			# With CTRL + LEFT-Mouse-Click link of cell is opened
 			cellvalue = self.fetch_cell_by_event(event, treeview)
@@ -643,6 +648,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def on_add_row(self, action):
 		''' Context menu: Add a row '''
+		self.autosave_current_cell()
 		selection = self.treeview.get_selection()
 		model, treeiter = selection.get_selected()
 		if not treeiter:  # no selected item
@@ -657,6 +663,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def on_clone_row(self, action):
 		''' Context menu: Clone a row '''
+		self.autosave_current_cell()
 		selection = self.treeview.get_selection()
 		model, treeiter = selection.get_selected()
 		if not treeiter:  # no selected item
@@ -669,6 +676,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def on_delete_row(self, action):
 		''' Context menu: Delete a row '''
+		self.autosave_current_cell()
 		selection = self.treeview.get_selection()
 		model, treeiter = selection.get_selected()
 		if not treeiter:  # no selected item
@@ -686,6 +694,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def on_move_row(self, action, direction):
 		''' Trigger for moving a row one position up/down '''
+		self.autosave_current_cell()
 		selection = self.treeview.get_selection()
 		model, treeiter = selection.get_selected()
 		if not treeiter:  # no selected item
@@ -708,6 +717,11 @@ class TableViewWidget(InsertedObjectWidget):
 			model.set_value(newiter, col, value)
 			model.set_value(treeiter, col, newvalue)
 
+		# Move cursor to the new position of the moved row
+		nextiter = model.iter_next(treeiter) if direction > 0 else model.iter_previous(treeiter)
+		path = model.get_path(nextiter)
+		self.treeview.set_cursor(path, None, True)
+
 	def on_open_link(self, action, link):
 		''' Context menu: Open a link, which is written in a cell '''
 		self.emit('link-clicked', {'href': str(link)})
@@ -718,6 +732,7 @@ class TableViewWidget(InsertedObjectWidget):
 
 	def on_change_columns(self, action):
 		''' Context menu: Edit table, run the EditTableDialog '''
+		self.autosave_current_cell()
 		aligns = self.model.get_aligns()
 		wraps = self.model.get_wraps()
 		headers = [col.get_title() for col in self.treeview.get_columns()]
@@ -733,9 +748,11 @@ class TableViewWidget(InsertedObjectWidget):
 		markup = CellFormatReplacer.input_to_cell(text)
 		liststore[path][colid] = markup
 		self._cellinput_canceled = False
+		self._currently_edited = None
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, liststore, colid):
 		''' Trigger before cell-editing, to transform text-field data into right format '''
+		logger.debug('on_cell_editing_started: colid=%d, path=%s', colid, path)
 		self._keep_toolbar_open = True
 
 		editable.connect('focus-out-event', self.on_cell_focus_out, cellrenderer, path, liststore, colid)
@@ -743,15 +760,134 @@ class TableViewWidget(InsertedObjectWidget):
 		markup = CellFormatReplacer.cell_to_input(markup)
 		editable.set_text(markup)
 		self._cellinput_canceled = False
+		self._currently_edited = (editable, liststore, path, colid)
 
 	def on_cell_focus_out(self, editable, event, cellrenderer, path, liststore, colid):
+		logger.debug('on_cell_focus_out: colid=%d, path=%s', colid, path)
 		if not self._cellinput_canceled:
 			self.on_cell_changed(cellrenderer, path, editable.get_text(), liststore, colid)
 
 	def on_cell_editing_canceled(self, renderer):
 		''' Trigger after a cell is edited but any change is skipped '''
+		logger.debug('on_cell_editing_canceled')
 		self._cellinput_canceled = True
 
+	def autosave_current_cell(self):
+		"""
+		Saves the current cell, if it is currently being edited.
+		This covers cases where a cell has been edited and the user clicks outside the cell, e.g. on a button.
+		"""
+		logger.debug('autosave_current_cell. _currently_edited: %s', self._currently_edited)
+		if self._currently_edited:
+			editable, liststore, path, colid = self._currently_edited
+			text = editable.get_text()
+			editable.editing_done()
+			editable.remove_widget()
+			self.on_cell_changed(None, path, text, liststore, colid)
+
+	def on_treeview_key_press_event(self, treeview, event):
+		''' Event handler for key-press-events in treeview '''
+		keyname = Gdk.keyval_name(event.keyval)
+
+		row_direction = 0
+		col_direction = 0
+
+		# Detect cursor movements
+		# ISO_Left_Tab should be enough to signify shift-tab, but there's some doubt in sources on the Web, so also
+		# cope with 'Tab' where shift is pressed.
+		if keyname == 'ISO_Left_Tab':
+			col_direction = -1
+		elif keyname == 'Tab':
+			shift_pressed = event.state & Gdk.ModifierType.SHIFT_MASK
+			col_direction = -1 if shift_pressed else 1
+		# Placeholder for later work
+		# elif keyname == 'Return':
+		# rol_direction = -1 if shift_pressed else 1
+		else:
+			pass
+
+		if col_direction != 0 or row_direction != 0:
+			logger.debug('on_treeview_key_press_event: col_direction=%d, row_direction=%d', col_direction, row_direction)
+			model = treeview.get_model()
+			path, col = treeview.get_cursor()
+			columns = [c for c in treeview.get_columns()]
+			num_cols = len(columns)
+			num_rows = len(model)
+			colindex = columns.index(col)
+
+			self.autosave_current_cell()
+
+			next_col, next_path = self.process_col_row_move(colindex, path, num_cols, num_rows, col_direction, row_direction)
+
+			# The cursor is about to move to a new cell. Save the current cell and move the cursor.
+			def set_cursor_when_idle():
+				treeview.set_cursor(next_path, columns[next_col], True)
+				return False
+			GLib.idle_add(set_cursor_when_idle)
+			logger.debug('on_treeview_key_press_event: set_cursor_when_idle done')
+
+			return True  # event is handled - don't propagate to the parent
+
+	@staticmethod
+	def process_col_row_move(col, path, num_cols, num_rows, col_direction, row_direction):
+		"""
+		Process the movement of the cursor in the table, returning the next column and path.
+
+		:param col: The current column index.
+		:type col: int
+		:param path: The current Gtk.TreePath object, representing the row position.
+		:type path: Gtk.TreePath
+		:param num_cols: The total number of columns in the table.
+		:type num_cols: int
+		:param num_rows: The total number of rows in the table.
+		:type num_rows: int
+		:param col_direction: The direction to move the cursor in the columns. Positive for right, negative for left.
+		:type col_direction: int
+		:param row_direction: The direction to move the cursor in the rows. Positive for down, negative for up.
+		:type row_direction: int
+
+		:return: A tuple containing the next column index and the next Gtk.TreePath object.
+		:rtype: tuple
+		"""
+		# TODO remove this line on commit
+		logger.debug('action_col_row_move: col=%d, path=%s, num_cols=%d, num_rows=%d, col_direction=%d, row_direction=%d',
+				 col, path, num_cols, num_rows, col_direction, row_direction)
+
+		if col_direction > 0:
+			# Move cursor to the next column. If it's the last column, move back to the first
+			if col + 1 < num_cols:
+				next_col = col + 1
+			else:
+				next_col = 0
+				row_direction = 1
+		elif col_direction < 0:
+			# Move cursor to the previous column. If it's the first column, move to the last
+			if col > 0:
+				next_col = col - 1
+			else:
+				next_col = num_cols - 1
+				row_direction = -1
+		else:
+			next_col = col
+
+		rowindex = path.get_indices()[0]
+		next_path = path.copy()
+		if row_direction > 0:
+			# Move cursor to the next row. If it's the last row, move back to the first
+			if rowindex + 1 < num_rows:
+				next_path.next()
+			else:
+				next_path = Gtk.TreePath.new_from_indices([0])
+		elif row_direction < 0:
+			# Move cursor to the previous row. If it's the first row, move to the last
+			if rowindex > 0:
+				next_path.prev()
+			else:
+				next_path = Gtk.TreePath.new_from_indices([num_rows - 1])
+		else:
+			pass
+
+		return next_col, next_path
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
