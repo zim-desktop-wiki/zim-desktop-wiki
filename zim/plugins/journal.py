@@ -12,6 +12,8 @@ from functools import partial
 
 import logging
 
+from datetime import timedelta
+
 from zim.plugins import PluginClass
 from zim.actions import action
 from zim.signals import SignalHandler, ConnectorMixin
@@ -349,7 +351,26 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		button.add(self.label)
 		button.set_relief(Gtk.ReliefStyle.NONE)
 		button.connect('clicked', lambda b: self.go_today())
+
+		image_size = Gtk.IconSize.SMALL_TOOLBAR
+		image_substract = Gtk.Image()
+		image_substract.set_from_icon_name( "pan-start-symbolic", image_size)
+		image_add = Gtk.Image()
+		image_add.set_from_icon_name( "pan-end-symbolic", image_size)
+
+		button_substract = Gtk.Button()
+		button_substract.set_image(image_substract)
+		button_substract.set_relief(Gtk.ReliefStyle.NONE)
+		button_substract.connect('clicked', lambda b: self.substract_delta())
+
+		button_add = Gtk.Button()
+		button_add.set_image(image_add)
+		button_add.set_relief(Gtk.ReliefStyle.NONE)
+		button_add.connect('clicked', lambda b: self.add_delta())
+
+		self.label_box.add(button_substract)
 		self.label_box.add(button)
+		self.label_box.add(button_add)
 
 		self._close_button = None
 
@@ -380,6 +401,40 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 	def go_today(self):
 		self.calendar.select_date(datetime.date.today())
 		self.calendar.emit('activate')
+
+	def add_delta(self):
+		properties = self.plugin.notebook_properties(self.notebook)
+		granularity = properties['granularity']
+
+		if granularity == DAY:
+			d = timedelta(days=1)
+		elif granularity == WEEK:
+			d = timedelta(weeks=1)
+		else:
+			# When the granularity is set to months or years we switch back to days
+			d = timedelta(days=1)
+
+		day = self.calendar.get_date()
+
+		self.calendar.select_date(day+d)
+		self.calendar.emit('activate')
+
+	def substract_delta(self):
+		properties = self.plugin.notebook_properties(self.notebook)
+		granularity = properties['granularity']
+
+		if granularity == DAY:
+			d = timedelta(days=-1)
+		elif granularity == WEEK:
+			d = timedelta(weeks=-1)
+		else:
+			# When the granularity is set to months or years we switch back to days
+			d = timedelta(days=-1)
+
+		day = self.calendar.get_date()
+		self.calendar.select_date(day+d)
+		self.calendar.emit('activate')
+
 
 	def set_embeded_closebutton(self, button):
 		if self._close_button:
