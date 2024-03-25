@@ -99,6 +99,8 @@ class JournalPlugin(PluginClass):
 This plugin turns one section of the notebook into a journal
 with a page per day, week or month.
 Also adds a calendar widget to access these pages.
+
+The python module "babel" is an optional dependency to determine the weekday conventions.
 '''),
 		# T: plugin description
 		'author': 'Jaap Karssenberg',
@@ -151,6 +153,15 @@ Also adds a calendar widget to access these pages.
 			return dates[1]
 		else:
 			return None
+
+	@classmethod
+	def check_dependencies(klass):
+		try:
+			import babel
+			has_babel=True
+		except Exception as e:
+			has_babel = False
+		return True, [("Babel", has_babel, True)]
 
 
 def dateRangeTemplateFunction(start, end):
