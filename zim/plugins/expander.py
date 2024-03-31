@@ -29,6 +29,8 @@ class InsertTextExpanderPlugin(PluginClass):
 This plugin adds a foldable text section as an insert 
 in a zim page.
 
+Right-click the Expander name to change it.
+
 '''),  # T: plugin description
 		'author': 'Mike Bluett',
 		'help': 'Plugins:Text Expander',
