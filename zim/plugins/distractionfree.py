@@ -62,6 +62,7 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 		css = '''
 		#zim-pageview text {
 			color: %(textcolor)s;
+			caret-color : %(textcolor)s;
 			background-color: %(basecolor)s;
 		}
 		#zim-window-main-box scrolledwindow{
