@@ -1,10 +1,12 @@
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2024 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
 import zim.datetimetz as datetime
 
+from zim.parse import convert_space_to_tab, fix_unicode_whitespace
+from zim.parse.builder import BuilderTextBuffer
 from zim.parse.encode import \
 	escape_string, unescape_string, split_escaped_string, \
 	url_decode, url_encode, \
@@ -12,8 +14,12 @@ from zim.parse.encode import \
 from zim.parse.links import *
 from zim.parse.dates import *
 from zim.parse.dates import old_parse_date
-
-from zim.parser import *
+from zim.parse.regexparser import *
+from zim.parse.simpletree import *
+from zim.parse.tokenlist import EndOfTokenListError, TokenBuilder, TokenParser, \
+	collect_until_end_token, filter_token, reverseTopLevelLists, \
+	testTokenStream, tokens_to_text, topLevelLists
+from zim.formats import ParseTreeBuilder, PARAGRAPH
 
 
 class TestEscapeStringFunctions(tests.TestCase):
@@ -274,7 +280,7 @@ class TestSimpleTreeBuilder(tests.TestCase):
 		builder.end('root')
 
 		root = builder.get_root()
-		self.assertEqual(root, [
+		self.assertEqual(root,
 			E('root', {}, [
 					'foo', 'bar',
 					E('dus', {}, ['ja']),
@@ -283,35 +289,73 @@ class TestSimpleTreeBuilder(tests.TestCase):
 					'foo', 'bar',
 				]
 			)
-		])
+		)
 
 
 		realbuilder = SimpleTreeBuilder()
 		builder = BuilderTextBuffer(realbuilder)
 
-		builder.start('root', {})
+		builder.start('root', None)
 		builder.text('foo')
 		builder.text('bar')
-		builder.append('dus', {}, 'ja')
+		builder.append('bold', {'level': 3}, 'ja')
 		builder.text('foo')
 		builder.text('bar')
-		builder.append('br', {})
+		builder.append('br', None)
 		builder.text('foo')
 		builder.text('bar')
 		builder.end('root')
 
 		root = realbuilder.get_root()
-		self.assertEqual(root, [
-			E('root', {}, [
+		self.assertEqual(root,
+				E('root', None, [
 					'foobar',
-					E('dus', {}, ['ja']),
+					E('bold', {'level': 3}, ['ja']),
 					'foobar',
-					E('br', {}, []),
+					E('br', None, []),
 					'foobar',
 				]
 			)
-		])
+		)
 
+
+class TestTokensToSimpleTree(tests.TestCase):
+
+	def setUp(self):
+		E = SimpleTreeElement
+		self.elt = E('root', None, [
+				'foobar',
+				E('bold', {'level': 3}, ['ja']),
+				'foobar',
+				E('br', None, []),
+				'foobar',
+			]
+		)
+		self.tokens = [
+			('root', None),
+				(TEXT, 'foobar'),
+				('bold', {'level': 3}), (TEXT, 'ja'), (END, 'bold'),
+				(TEXT, 'foobar'),
+				('br', None), (END, 'br'),
+				(TEXT, 'foobar'),
+			(END, 'root')
+		]
+
+	def testSimpleTreeToTokens(self):
+		self.assertEqual(simpletree_to_tokens(self.elt), self.tokens)
+
+	def testSimpleTreeToTokensWithParserBuilder(self):
+		builder = TokenBuilder()
+		SimpleTreeParser(builder).parse(self.elt)
+		self.assertEqual(builder.tokens, self.tokens)
+
+	def testTokensToSimpleTree(self):
+		self.assertEqual(tokens_to_simpletree(self.tokens), self.elt)
+
+	def testTokensToSimpleTreeWithParserBuilder(self):
+		builder = SimpleTreeBuilder()
+		TokenParser(builder).parse(self.tokens)
+		self.assertAlmostEqual(builder.get_root(), self.elt)
 
 
 class TestBuilderTextBuffer(tests.TestCase):
@@ -343,20 +387,20 @@ class TestBuilderTextBuffer(tests.TestCase):
 		buffer.end('FOO')
 
 		E = SimpleTreeElement
-		self.assertEqual(builder.get_root(), [
+		self.assertEqual(builder.get_root(), 
 			E('FOO', None, [
 				'aaa\nbbb\nccc\n',
 				E('BAR', None, []),
 				'ddd\neee',
 			])
-		])
+		)
 
 
 
 class TestParser(tests.TestCase):
 
 	def testFixUnicode(self):
-		self.assertEqual(fix_unicode_chars('foo\u2028bar\u2029check\n'), 'foo\nbar check\n')
+		self.assertEqual(fix_unicode_whitespace('foo\u2028bar\u2029check\n'), 'foo\nbar check\n')
 
 	def testConvertSpaceToTab(self):
 		self.assertEqual(convert_space_to_tab('    foo\n\t     bar\n'), '\tfoo\n\t\t bar\n')
@@ -374,3 +418,102 @@ class TestParser(tests.TestCase):
 			self.assertEqual(line, wanted)
 
 	## TODO -- Parser test cases ##
+
+
+class TestTokenParser(tests.TestCase):
+
+	def walk(self, tree, builder):
+		# Iter tree without toplevellist
+		for t in tree._get_tokens(tree._etree.getroot()):
+			if t[0] == TEXT:
+				builder.text(t[1])
+			elif t[0] == END:
+				builder.end(t[1])
+			else:
+				builder.start(t[0], t[1])
+
+	def testRoundtrip(self):
+		tree = tests.new_parsetree()
+		#~ print tree
+		tb = TokenBuilder()
+		self.walk(tree, tb)
+		tokens = tb.tokens
+		#~ import pprint; pprint.pprint(tokens)
+
+		testTokenStream(tokens)
+
+		builder = ParseTreeBuilder()
+		TokenParser(builder).parse(tokens)
+		newtree = builder.get_parsetree()
+
+		self.assertEqual(tree.tostring(), newtree.tostring())
+
+
+	def testTopLevelLists(self):
+		tree = tests.new_parsetree()
+		tb = TokenBuilder()
+		self.walk(tree, tb)
+		tokens = tb._tokens # using raw tokens
+
+		newtokens = topLevelLists(tokens)
+		testTokenStream(newtokens)
+		revtokens = reverseTopLevelLists(newtokens)
+
+		def correct_none_attrib(t):
+			if t[0] == PARAGRAPH and not t[1]:
+				return (PARAGRAPH, {})
+			else:
+				return t
+
+		revtokens = list(map(correct_none_attrib, revtokens))
+
+		self.assertEqual(revtokens, tokens)
+
+
+class TestFunctions(tests.TestCase):
+
+	def testCollectTokens(self):
+		# simple
+		self.assertEqual(
+			collect_until_end_token(
+				[('B', {}), ('T', ''), (END, 'B'), (END, 'A'), ('T', '')],
+				'A'
+			),
+				[('B', {}), ('T', ''), (END, 'B')]
+		)
+		# nested
+		self.assertEqual(
+			collect_until_end_token(
+				[('A', {}), ('T', ''), (END, 'A'), (END, 'A'), ('T', '')],
+				'A'
+			),
+				[('A', {}), ('T', ''), (END, 'A')]
+		)
+		# error case: no closing tag found
+		with self.assertRaises(EndOfTokenListError):
+			collect_until_end_token(
+				[('B', {}), ('T', ''), (END, 'B'), ('T', '')],
+				'A'
+			)
+
+	def testFilterTokens(self):
+		self.assertEqual(
+			list(filter_token(
+				[('T', 'pre'), ('A', {}), ('T', 'inner'), (END, 'A'), ('T', 'post')],
+				'A'
+			)),
+			[('T', 'pre'), ('T', 'post')]
+		)
+		self.assertEqual(
+			list(filter_token(
+				[('T', 'pre'), ('A', {}), ('A', {}), ('T', 'inner'), (END, 'A'), (END, 'A'), ('T', 'post')],
+				'A'
+			)),
+			[('T', 'pre'), ('T', 'post')]
+		)
+
+	def testTokensToText(self):
+		self.assertEqual(
+			tokens_to_text([('B', {}), ('T', 'Foo'), (END, 'B'), ('T', 'Bar')]),
+			'FooBar'
+		)

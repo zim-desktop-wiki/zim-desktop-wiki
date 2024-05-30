@@ -10,7 +10,9 @@ expressions in the template.
 
 import re
 
-from zim.parser import Parser, Rule, SimpleTreeBuilder, BuilderTextBuffer
+from zim.parse.builder import BuilderTextBuffer
+from zim.parse.regexparser import Rule
+from zim.parse.simpletree import SimpleTreeBuilder
 
 from zim.templates.expressionparser import ExpressionParser, ExpressionParameter
 
@@ -26,9 +28,6 @@ class TemplateBuilderTextBuffer(BuilderTextBuffer):
 	def __init__(self, builder):
 		BuilderTextBuffer.__init__(self, builder)
 		self._lstrip_pending = False
-
-	def text(self, text):
-		BuilderTextBuffer.text(self, text)
 
 	def flush(self):
 		text = ''.join(self.buffer)
@@ -69,7 +68,7 @@ class TemplateBuilderTextBuffer(BuilderTextBuffer):
 class TemplateTreeBuilder(SimpleTreeBuilder):
 	'''Sub-class of L{SimpleTreeBuilder}.
 	This class implements a special case for the "BLOCK" element and
-	always places it in the top level of the parse tree
+	always places it in the top level of the tree
 	'''
 
 	def __init__(self):
@@ -79,7 +78,8 @@ class TemplateTreeBuilder(SimpleTreeBuilder):
 		# Special case for blocks - put them outside tree
 		if tag == 'BLOCK':
 			element = self.elementfactory(tag, attrib, [])
-			self.root.append(element)
+			assert self.toplevel and self.toplevel[0].tag == 'TEMPLATE'
+			self.toplevel[0].append(element)
 			self.stack.append(element)
 		else:
 			SimpleTreeBuilder.start(self, tag, attrib)
@@ -159,8 +159,10 @@ class TemplateParser(object):
 	def __call__(self, builder, text):
 		wrapper = TemplateBuilderTextBuffer(builder)
 		wrapper.start('TEMPLATE')
+		wrapper.start('MAIN')
 		if text:
 			self.text_parser(wrapper, text)
+		wrapper.end('MAIN')
 		wrapper.end('TEMPLATE')
 
 	def build_text_parser(self):

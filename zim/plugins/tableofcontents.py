@@ -14,8 +14,8 @@ logger = logging.getLogger('zim.plugins.tableofcontents')
 
 from zim.plugins import PluginClass
 from zim.signals import ConnectorMixin, DelayedCallback
-from zim.tokenparser import collect_until_end_token, tokens_to_text
-from zim.formats import ANCHOR, HEADING, LINE
+from zim.parse.tokenlist import tokens_to_text, collect_until_end_token
+from zim.formats import HEADING, LINE
 
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.pageview import PageViewExtension

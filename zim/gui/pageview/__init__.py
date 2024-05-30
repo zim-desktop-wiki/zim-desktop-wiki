@@ -363,7 +363,7 @@ class PageViewExtensionBase(ActionExtensionBase):
 		ExtensionBase.__init__(self, plugin, pageview)
 		self.pageview = pageview
 		self._window = self.pageview.get_toplevel()
-		assert hasattr(self._window, 'add_tab'), 'expect mainwindow, got %s' % self._window
+		assert hasattr(self._window, 'add_sidepane_widget'), 'expect mainwindow, got %s' % self._window
 
 		self.navigation = self._window.navigation
 		self.uistate = pageview.notebook.state[self.plugin.config_key]
@@ -379,12 +379,12 @@ class PageViewExtensionBase(ActionExtensionBase):
 	def add_sidepane_widget(self, widget, preferences_key):
 		key = widget.__class__.__name__
 		position = self.plugin.preferences[preferences_key]
-		self._window.add_tab(key, widget, position)
+		self._window.add_sidepane_widget(key, widget, position)
 
 		def on_preferences_changed(preferences):
 			position = self.plugin.preferences[preferences_key]
 			self._window.remove(widget)
-			self._window.add_tab(key, widget, position)
+			self._window.add_sidepane_widget(key, widget, position)
 
 		sid = self.connectto(self.plugin.preferences, 'changed', on_preferences_changed)
 		self._sidepane_widgets[widget] = sid

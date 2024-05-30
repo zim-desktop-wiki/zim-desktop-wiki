@@ -10,15 +10,9 @@ import tests
 
 from zim.formats import *
 from zim.parse.links import is_url_link
-from zim.tokenparser import skip_to_end_token
+from zim.parse.tokenlist import skip_to_end_token
 from zim.notebook import Path
 from zim.templates import Template
-
-from xml.etree.ElementTree import ElementTree, Element
-
-
-if not ElementTreeModule.__name__.endswith('cElementTree'):
-	print('WARNING: using ElementTree instead of cElementTree')
 
 
 class TestFormatMixin(object):

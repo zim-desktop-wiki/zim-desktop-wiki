@@ -135,6 +135,7 @@ class FileBrowserIconView(Gtk.IconView):
 		self._idle_event_id = None
 		self._monitor = None
 		self._mtime = None
+		self._parent_signal_id = None
 
 		GObject.GObject.__init__(self)
 		self.set_model(
@@ -143,6 +144,8 @@ class FileBrowserIconView(Gtk.IconView):
 		self.set_text_column(BASENAME_COL)
 		self.set_pixbuf_column(PIXBUF_COL)
 		self.set_icon_size(icon_size)
+		self.set_row_spacing(0)
+		self.set_column_spacing(0)
 
 		self.enable_model_drag_source(
 			Gdk.ModifierType.BUTTON1_MASK,
@@ -159,6 +162,37 @@ class FileBrowserIconView(Gtk.IconView):
 
 		self.connect('button-press-event', self.on_button_press_event)
 		self.connect('item-activated', self.on_item_activated)
+
+		self.connect('parent-set', self.__class__.on_parent_set)
+
+	def on_parent_set(self, old_parent):
+		# Bootstrap hack
+		if old_parent and self._parent_signal_id:
+			old_window = old_parent.get_parent()
+			if old_window:
+				old_window.disconnect(self._parent_signal_id)
+			self._parent_signal_id = None
+		
+		parent = self.get_parent()
+		if parent:
+			window = self.get_parent().get_parent()
+			if window:
+				self._parent_signal_id = window.connect('size-allocate', self._recalc_n_columns)
+
+	def _recalc_n_columns(self, *a):
+		# HACK: Force number of columns - automatic setting of "-1" fails to do the right thing :(
+		# Use parent of parent - want size of ScrolledWindow, not ViewPort
+		# FUTURE: We could be more flexible in actually adjusting widget width to fit exactly in the widget width
+		parent = self.get_parent()
+		if parent is None:
+			return
+		window = parent.get_parent()
+		if window is None:
+			return
+		widget_width = window.get_allocated_width()
+		col_width = self.get_item_width() + self.get_column_spacing() + 2 * self.get_item_padding()
+		n_cols = max(1, int(0.75*widget_width/col_width)) # XXX 0.75 is arbitrary fudge factor because somehow iconview takes more space than it says !?
+		self.set_columns(n_cols)
 
 	def set_use_thumbnails(self, use_thumbnails):
 		self.use_thumbnails = use_thumbnails
@@ -275,28 +309,25 @@ class FileBrowserIconView(Gtk.IconView):
 		# Set item width to force wrapping text for long items
 		# Set to icon size + some space for padding etc.
 		# And set orientation etc.
-		text_size = max_text_length * 13 # XXX assume 13x per char
+		text_size = max_text_length * 11 # XXX assume 11x per char - make sure code below is robust if this is not correct
 		icon_size = self.icon_size
 
 		if icon_size < 64:
 			# Text next to the icons
 			if icon_size > 16 and max_text_length > 15:
 				# Wrap text over 2 rows
-				self.set_item_width(
-					icon_size + int((text_size + 1) / 2))
+				self.set_item_width(icon_size + int((text_size + 1) / 2))
 			else:
 				# Single row
 				self.set_item_width(icon_size + text_size)
 
 			self.set_item_orientation(Gtk.Orientation.HORIZONTAL)
-			self.set_row_spacing(0)
-			self.set_column_spacing(0)
 		else:
 			# Text below the icons
-			self.set_item_width(max((icon_size + 12, 96)))
+			self.set_item_width(icon_size + 12) # allow text slightly more width than image
 			self.set_item_orientation(Gtk.Orientation.VERTICAL)
-			self.set_row_spacing(3)
-			self.set_column_spacing(3)
+
+		self._recalc_n_columns()
 
 	def teardown_folder(self):
 		try:
@@ -411,13 +442,14 @@ class FileBrowserIconView(Gtk.IconView):
 		t_label = _('Type') # T: label for file type
 		s_label = _('Size') # T: label for file size
 		m_label = _('Modified') # T: label for file modification date
-		tooltip.set_markup(
-			"%s\n\n<b>%s:</b> %s\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
-				name,
-				t_label, mtype_desc or mtype,
-				s_label, size,
-				m_label, mdate,
-			))
+		markup = "%s\n\n<b>%s:</b> %s\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
+			name,
+			t_label, mtype_desc or mtype,
+			s_label, size,
+			m_label, mdate,
+		)
+		markup = markup.replace('&', '&amp;')
+		tooltip.set_markup(markup)
 		tooltip.set_icon(pixbuf)
 		widget.set_tooltip_item(tooltip, path)
 

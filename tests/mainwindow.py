@@ -205,7 +205,7 @@ class TestTogglingState(tests.TestCase):
 
 		mywidget = MockSidePaneWidget()
 		mywidget.show_all()
-		window.add_tab('Test', mywidget, LEFT_PANE)
+		window.add_sidepane_widget('Test', mywidget, LEFT_PANE)
 
 		self.assertTrue(window.uistate['left_pane'][0])
 		window.toggle_panes()

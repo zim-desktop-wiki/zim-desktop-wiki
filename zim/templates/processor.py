@@ -14,7 +14,7 @@ import collections.abc as abc
 
 from zim.newfs import FileNotFoundError
 from zim.base import MovingWindowIter
-from zim.parser import SimpleTreeElement
+from zim.parse.simpletree import SimpleTreeElement
 
 from zim.templates.expression import ExpressionDictObject, ExpressionParameter
 
@@ -60,7 +60,7 @@ class TemplateProcessor(object):
 		self.blocks = {}
 		self.parse_included_file_func = parse_included_file_func
 		for item in parts:
-			if item.tag == 'TEMPLATE':
+			if item.tag == 'MAIN':
 				self.main = item
 			elif item.tag == 'BLOCK':
 				self.blocks[item.get('name')] = item
@@ -187,7 +187,7 @@ class TemplateProcessor(object):
 		try:
 			include_template = None
 			for item in self.parse_included_file_func(path):
-				if item.tag == 'TEMPLATE':
+				if item.tag == 'MAIN':
 					include_template = item
 				elif item.tag == 'BLOCK':
 					self.blocks[item.get('name')] = item

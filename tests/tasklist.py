@@ -13,7 +13,7 @@ from zim.plugins.tasklist.indexer import *
 from zim.plugins.tasklist.indexer import _MAX_DUE_DATE, _MIN_START_DATE
 
 from zim.parse.dates import old_parse_date
-from zim.tokenparser import testTokenStream
+from zim.parse.tokenlist import testTokenStream
 from zim.formats.wiki import Parser as WikiParser
 
 WIKI_TEXT = '''\

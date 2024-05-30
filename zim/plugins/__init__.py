@@ -176,6 +176,19 @@ def list_actions(obj):
 	return actions
 
 
+def get_plugin_key(obj):
+	'''Tries to determine the plugin key for C{obj}
+	Derives the name from C{__module__}
+	Raises C{AssertionError} on failure
+	'''
+	parts = obj.__module__.split('.')
+	if 'plugins' in parts:
+		i = parts.index('plugins')
+		return parts[i+1]
+	else:
+		raise AssertionError('Cannot determine plugin for %s, (%s)' % (obj, obj.__module__))
+
+
 class ExtensionBase(SignalEmitter, ConnectorMixin):
 	'''Base class for all extensions classes
 	@ivar plugin: the plugin object to which this extension belongs
@@ -776,3 +789,14 @@ class PluginClass(ConnectorMixin):
 		Can be implemented by sub-classes.
 		'''
 		pass
+
+	def show_preferences(self, widget):
+		'''Convenience method to show the preferences dialog for this plugin
+		@param widget: C{Gtk.Widget} used to find toplevel window
+		'''
+		mykey = get_plugin_key(self)
+		window = widget.get_toplevel()
+		if not window:
+			raise AssertionError('Need toplevel which supports "show_preferences" action - no window')
+		action = find_action(window, 'show_preferences')
+		action(select_plugin=mykey)

@@ -97,7 +97,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 		optionskeys.append(k)
 		optionsvalues.append(v)
 	try:
-		pixbuf = image_file_load_pixels(file, thumbsize, thumbsize)
+		pixbuf = image_file_load_pixels(file, thumbsize, thumbsize, fail_silent=True)
 		pixbuf.savev(tmpfile.path, 'png', optionskeys, optionsvalues)
 		_atomic_rename(tmpfile.path, thumbfile.path)
 	except:

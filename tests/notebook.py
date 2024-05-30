@@ -1431,7 +1431,7 @@ class TestPage(TestPath):
 	def _testEmptyFile(self, text):
 		page = self.generator('empty_page')
 		page.source_file.write(text)
-		with tests.LoggingFilter('zim.parser', 'Parser got empty string'):
+		with tests.LoggingFilter('zim.parse', 'Parser got empty string'):
 			parsetree = page.get_parsetree()
 		self.assertFalse(parsetree.hascontent)
 

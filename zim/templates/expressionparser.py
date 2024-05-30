@@ -11,7 +11,7 @@ import operator
 import ast
 
 
-from zim.parser import ParserError
+from zim.parse.regexparser import ParserError
 
 from zim.templates.expression import \
 	ExpressionOperator, ExpressionUnaryOperator, \

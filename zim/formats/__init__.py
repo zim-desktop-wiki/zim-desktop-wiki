@@ -76,20 +76,22 @@ to a title or subtitle in the document.
 import re
 import itertools
 import logging
-
 import collections
+
+from functools import reduce
+
+logger = logging.getLogger('zim.formats')
+
 
 from zim.parse.encode import url_decode, url_encode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parse.links import link_type, is_url_re, is_www_link_re
-from zim.parser import Builder
+from zim.parse.tokenlist import TokenParser, topLevelLists, collect_until_end_token
+from zim.parse.builder import Builder
+
 from zim.config import ConfigDict
 from zim.plugins import PluginManager
 
 import zim.plugins
-from functools import reduce
-
-
-logger = logging.getLogger('zim.formats')
 
 # Needed to determine RTL, but may not be available
 # if gtk bindings are not installed
@@ -309,7 +311,6 @@ class ParseTree(object):
 
 	@classmethod
 	def new_from_tokens(klass, tokens):
-		from zim.tokenparser import TokenParser
 		tokens = list(tokens) # TODO: allow efficient use of generator here ?
 		assert tokens
 		if tokens[0][0] != FORMATTEDTEXT:
@@ -394,8 +395,6 @@ class ParseTree(object):
 		return ParseTree().fromstring(self.tostring())
 
 	def iter_tokens(self):
-		from zim.tokenparser import topLevelLists
-
 		return iter(topLevelLists(self._get_tokens(self._etree.getroot())))
 
 	def _get_tokens(self, node):
@@ -607,8 +606,6 @@ class ParseTree(object):
 
 	def iter_elements(self, tag):
 		'''Helper function to find all occurences of C{tag}, yields L{TokenListElement}s'''
-		from zim.tokenparser import collect_until_end_token
-
 		token_iter = self.iter_tokens()
 		for t in token_iter:
 			if t[0] == tag:
@@ -625,8 +622,6 @@ class ParseTree(object):
 		C{tags}. The return value of C{func} can be C{None} to remove the element,
 		the same or a modified L{TokenListElement} or a list of tokens.
 		'''
-		from zim.tokenparser import collect_until_end_token
-
 		tokens = []
 		token_iter = self.iter_tokens()
 		for t in token_iter:
@@ -653,8 +648,6 @@ def split_heading_from_parsetree(parsetree, keep_head_token=True):
 	Returns two L{ParseTree} objects: one for the header and one for the main
 	body of the content - both can be C{None} if they are empty.
 	'''
-	from zim.tokenparser import collect_until_end_token
-
 	token_iter = parsetree.iter_tokens()
 	heading = []
 	body = []

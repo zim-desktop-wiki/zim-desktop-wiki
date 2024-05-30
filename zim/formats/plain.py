@@ -5,8 +5,8 @@
 
 import re
 
-import zim.parser
-from zim.parser import fix_unicode_chars, Rule
+from zim.parse import fix_unicode_whitespace
+from zim.parse.regexparser import Rule, RegexParser
 
 from zim.formats import *
 from zim.parse.links import old_url_link_re
@@ -38,9 +38,9 @@ class Parser(ParserClass):
 		if not isinstance(input, str):
 			input = ''.join(input)
 
-		input = fix_unicode_chars(input)
+		input = fix_unicode_whitespace(input)
 
-		parser = zim.parser.Parser(
+		parser = RegexParser(
 			Rule(LINK, old_url_link_re.pattern, process=self.parse_url) # FIXME need .r attribute because url_re is a Re object
 		)
 

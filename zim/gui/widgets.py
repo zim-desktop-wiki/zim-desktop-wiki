@@ -2094,7 +2094,6 @@ class WindowSidePane(Gtk.VBox):
 		self.notebook.set_show_border(False)
 		button = self._close_button()
 		self.notebook.set_action_widget(button, Gtk.PackType.END)
-
 		self.add(self.notebook)
 
 		self._update_topbar()
@@ -2132,19 +2131,28 @@ class WindowSidePane(Gtk.VBox):
 		else:
 			self._show_multiple_tabs()
 
-	def _set_topbar_label(self, label):
-		assert isinstance(label, Gtk.Label)
-		label.set_alignment(0.03, 0.5)
+	def _set_topbar_label(self, widget):
+		if widget:
+			label = widget.get_title_label()
+			label.set_alignment(0.03, 0.5)
+			label.show()
+			ebox = Gtk.EventBox()
+			ebox.add(label)
+			ebox.connect('button-press-event', self.__class__.on_title_button_press_event, widget)
+		else:
+			label = Gtk.Label(label='')
+			ebox = None
+
 		for child in self.topbar.get_children():
-			if isinstance(child, Gtk.Label):
+			if isinstance(child, (Gtk.Label, Gtk.EventBox)):
 				child.destroy()
-		self.topbar.pack_start(label, True, True, 0)
+		self.topbar.pack_start(ebox or label, True, True, 0)
 
 	def _show_empty_topbar(self):
 		self.notebook.set_show_tabs(False)
 		_hide(self.notebook.get_action_widget(Gtk.PackType.END))
 
-		self._set_topbar_label(Gtk.Label(label=''))
+		self._set_topbar_label(None)
 		_show(self.topbar)
 
 	def _show_single_tab(self):
@@ -2152,7 +2160,7 @@ class WindowSidePane(Gtk.VBox):
 		_hide(self.notebook.get_action_widget(Gtk.PackType.END))
 
 		child = self.notebook.get_nth_page(0)
-		self._set_topbar_label(child.get_title_label())
+		self._set_topbar_label(child)
 		if isinstance(child, WindowSidePaneWidget) \
 			and child.set_embeded_closebutton(self._close_button()):
 				_hide(self.topbar)
@@ -2161,18 +2169,45 @@ class WindowSidePane(Gtk.VBox):
 
 	def _show_multiple_tabs(self):
 		self.notebook.set_show_tabs(True)
-		self._set_topbar_label(Gtk.Label(label=''))
+		self._set_topbar_label(None)
 		# Show close button next to notebook tabs
 		_show(self.notebook.get_action_widget(Gtk.PackType.END))
 		_hide(self.topbar)
 
-	def add_tab(self, key, widget):
+	def add_sidepane_widget(self, key: str, widget: 'WindowSidePaneWidget'):
+		'''Add a sidepane widget to this sidepane
+		@param key: string identifyer or the widget, typically the class name
+		@param widget: a C{WindowSidePaneWidget}
+		'''
 		assert isinstance(widget, WindowSidePaneWidget)
 		assert widget.title is not None
+		if self.key in (TOP_PANE, BOTTOM_PANE):
+			widget.set_orientation(Gtk.Orientation.HORIZONTAL)
+		else:
+			widget.set_orientation(Gtk.Orientation.VERTICAL)
 		widget.tab_key = key
-		self.notebook.append_page(widget, widget.get_title_label())
+		label = widget.get_title_label()
+		label.show()
+		ebox = Gtk.EventBox()
+		ebox.add(label)
+		ebox.connect('button-press-event', self.__class__.on_title_button_press_event, widget)
+		self.notebook.append_page(widget, ebox)
 		self.notebook.set_tab_reorderable(widget, True)
 		self._update_topbar()
+
+	def on_title_button_press_event(self, event, widget):
+		if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+			# popover on secondairy mouse click
+			popover = widget.get_popover_menu()
+			if popover is not None:
+				popover.set_relative_to(self)
+				rect = Gdk.Rectangle()
+				rect.x, rect.y = self.get_pointer()
+				rect.width, rect.height = 1, 1
+				popover.set_pointing_to(rect)
+				popover.set_position(Gtk.PositionType.BOTTOM)
+				popover.show_all()
+				popover.popup()
 
 	def remove(self, widget):
 		if widget in self.notebook.get_children():
@@ -2293,8 +2328,24 @@ class WindowSidePaneWidget(ConnectorMixin):
 	L{WindowSidePane}
 	'''
 
+	title = 'NAME' #: title used for label above the widget
+	_info_text = None
+
+	def set_info(self, text):
+		'''Set info text for the widget, displayed instead of title
+		@param text: label text or C{None} to unset
+		'''
+		self._info_text = text
+		if hasattr(self, '_title_labels'):
+			for label in self._title_labels:
+				label.set_text_with_mnemonic(text)
+
 	def get_title_label(self):
-		label = Gtk.Label.new_with_mnemonic(self.title)
+		'''Create a C{Gtk.Label} containing the title or info text
+		This label will dynamically be updated
+		'''
+		text = self._info_text or self.title
+		label = Gtk.Label.new_with_mnemonic(text)
 		if not hasattr(self, '_title_labels'):
 			self._title_labels = set()
 		self._title_labels.add(label)
@@ -2305,11 +2356,58 @@ class WindowSidePaneWidget(ConnectorMixin):
 		if hasattr(self, '_title_labels'):
 			self._title_labels.remove(label)
 
-	def set_title(self, text):
-		self.title = text
-		if hasattr(self, '_title_labels'):
-			for label in self._title_labels:
-				label.set_text_with_mnemonic(text)
+	def get_popover_menu(self):
+		'''Returns a C{Gtk.Popover} for this side widget
+		Usually displayed on a "right-click" on the title of the widget.
+		Will by default contain an item to open the plugin preferences.
+		Sub-classes can implement L{populate_popover_menu()} to add more items.
+		'''
+		popover = Gtk.Popover()
+		vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+		popover.add(vbox)
+		self.populate_popover_menu(vbox)
+
+		if self.can_show_plugin_preferences():
+			button = Gtk.Button(_('Preferences...')) # T: label for menu item which opens preferences dialog
+			button.connect('clicked', lambda b: self.show_plugin_preferences())
+			vbox.add(button)
+
+		if len(vbox.get_children()) > 0:
+			for child in vbox.get_children():
+				if isinstance(child, Gtk.Button):
+					child.connect('clicked', lambda b: popover.popdown())
+			return popover
+		else:
+			return None
+
+	def populate_popover_menu(self, vbox):
+		'''Callback to populate the popover menu
+		Items can be added to C{vbox}
+		'''
+		pass
+
+	def get_plugin(self):
+		'''Returns the plugin object if this widget is defined in a plugin module, else C{None}
+		This method relies on the singleton nature of the C{PluginManager}
+		'''
+		from zim.plugins import get_plugin_key, PluginManager
+		try:
+			name = get_plugin_key(self)
+			return PluginManager.get(name)
+		except AssertionError:
+			return None
+
+	def can_show_plugin_preferences(self):
+		'''Returns C{True} if L{show_preferences()} is likely to succeed'''
+		plugin = self.get_plugin()
+		return plugin and plugin.plugin_preferences
+
+	def show_plugin_preferences(self):
+		'''Show the preferences dialog for the asociated plugin'''
+		plugin = self.get_plugin()
+		if not plugin:
+			raise AssertionError('No plugin found for %s' % self)
+		plugin.show_preferences(self)
 
 	def set_embeded_closebutton(self, button):
 		'''Embed a button in the widget to close the side pane
@@ -2317,6 +2415,16 @@ class WindowSidePaneWidget(ConnectorMixin):
 		@returns: C{True} if supported and successfull
 		'''
 		return False
+
+	def set_orientation(self, orientation):
+		'''Set orientation of the widget
+		This method will be called when the widget is added to the pane.
+        Widgets can use this to better align to the orientation of the
+        enclosing pane. If the widget is a C{Gtk.Box} or a different
+		C{Gtk.Orientable} this method is already implemented in the Gtk widget.
+		@param orientation: one of C{Gtk.Orientation.VERTICAL} or C{Gtk.Orientation.HORIZONTAL}
+		'''
+		pass
 
 
 from zim.config import ConfigDefinition, ConfigDefinitionByClass, StringAllowEmpty
@@ -2520,16 +2628,15 @@ class Window(Gtk.Window):
 		statusbar.pack_end(frame, False, True, 0)
 		frame.show_all()
 
-	def add_tab(self, key, widget, pane):
-		'''Add a tab in one of the panes.
-		@param key: string that is used to identify this tab in the window state
-		@param widget: the gtk widget to show in the tab
-		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE},
-		C{TOP_PANE} or C{BOTTOM_PANE}.
+	def add_sidepane_widget(self, key: str, widget: 'WindowSidePaneWidget', pane):
+		'''Add a sidepane widget to this window
+		@param key: string identifyer or the widget, typically the class name
+		@param widget: a C{WindowSidePaneWidget}
+		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE}, C{TOP_PANE} or C{BOTTOM_PANE}.
 		'''
 		pane_key = pane
 		paned, pane, mini = self._zim_window_sidepanes[pane_key]
-		pane.add_tab(key, widget)
+		pane.add_sidepane_widget(key, widget)
 		self.set_pane_state(pane_key, True)
 
 	def remove(self, widget):
@@ -4086,7 +4193,7 @@ class ImageView(Gtk.Layout):
 		a fixed factor.
 		@param factor: static scaling factor (in combination with C{SCALE_STATIC})
 		'''
-		assert scaling in (SCALE_FIT, SCALE_STATIC)
+		assert scaling in (self.SCALE_FIT, self.SCALE_STATIC)
 		self.scaling = scaling
 		self.factor = factor
 		self._render()

@@ -1,4 +1,3 @@
-
 # Copyright 2016-2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # Tokens come in 3 variants
@@ -16,9 +15,7 @@
 #
 # Tags need to be properly nested, so they represent a hierarchy.
 
-
-from zim.parser import Builder
-from zim.formats import NUMBEREDLIST, BULLETLIST, LISTITEM, PARAGRAPH, ANCHOR
+from .builder import Builder
 
 TEXT = 'T'
 END = '/'
@@ -81,13 +78,7 @@ def filter_token(token_iter, token):
 
 
 def tokens_to_text(tokens):
-	text = []
-	token_iter = iter(tokens)
-	for t in token_iter:
-		if t[0] == ANCHOR:
-			skip_to_end_token(token_iter, ANCHOR)
-		elif t[0] == TEXT:
-			text.append(t[1])
+	text = [t[1] for t in tokens if t[0] == TEXT]
 	return ''.join(text)
 
 
@@ -100,6 +91,86 @@ def tokens_by_line(tokens):
 			line = []
 	if line:
 		yield line
+
+
+def _changeList(tokeniter):
+	# </li><ul>...</ul> --> <ul>...</ul></li>
+	from zim.formats import NUMBEREDLIST, BULLETLIST, LISTITEM
+	
+	newtokens = []
+	for t in tokeniter:
+		if t[0] in (NUMBEREDLIST, BULLETLIST):
+			assert newtokens and newtokens[-1] == (END, LISTITEM), 'Empty parent ?'
+			newtokens.pop()
+			newtokens.append(t)
+			newtokens.extend(_changeList(tokeniter)) # recurs
+			t = next(tokeniter)
+			while t[0] in (NUMBEREDLIST, BULLETLIST):
+				# There can be multiple list after each other
+				newtokens.append(t)
+				newtokens.extend(_changeList(tokeniter)) # recurs
+				t = next(tokeniter)
+			else:
+				newtokens.append((END, LISTITEM))
+
+		# note: no "elif" here ! can process remainder of above block
+		if t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
+			newtokens.append(t)
+			break
+		else:
+			newtokens.append(t)
+
+	return newtokens
+
+
+def topLevelLists(tokens):
+	# Make tree more HTML-like:
+	# - Move UL / OL to top level, outside P
+	# - Put sub-UL / sub-OL inside LI element
+	#
+	# Consider multiple lists one after the other as a single list
+	# section here - this can happen for mixed bullet + numbered list items
+	#
+	# <p><ul>...</ul></p> --> <ul>...</ul>
+	# <p><ul>...</ul>.. --> <ul>...</ul><p>..
+	# ..<ul>...</ul>.. --> ..</p><ul>...</ul><p>..
+	# ..<ul>...</ul></p> --> ..</p><ul>...</ul>
+	#
+	from zim.formats import NUMBEREDLIST, BULLETLIST, PARAGRAPH
+	para_end = (END, PARAGRAPH)
+	seen_para = False
+	tokeniter = iter(tokens)
+	newtokens = []
+	for t in tokeniter:
+		if t[0] in (NUMBEREDLIST, BULLETLIST):
+			assert seen_para, 'Looks like tokenlist had top level lists to start with'
+			if newtokens[-1][0] == PARAGRAPH:
+				newtokens.pop()
+			else:
+				newtokens.append((END, PARAGRAPH))
+
+			newtokens.append(t)
+			newtokens.extend(_changeList(tokeniter))
+
+			nexttoken = next(tokeniter)
+			while nexttoken[0] in (BULLETLIST, NUMBEREDLIST):
+				newtokens.append(nexttoken)
+				newtokens.extend(_changeList(tokeniter))
+				nexttoken = next(tokeniter)
+
+			if nexttoken == (END, PARAGRAPH):
+				pass
+			else:
+				newtokens.append((PARAGRAPH, None))
+				newtokens.append(nexttoken)
+		else:
+			if t[0] == PARAGRAPH:
+				seen_para = True
+			elif t == para_end:
+				seen_para = False
+			newtokens.append(t)
+
+	return newtokens
 
 
 class TokenBuilder(Builder):
@@ -144,90 +215,24 @@ class TokenBuilder(Builder):
 			])
 
 
-class TokenParser(object):
-
-	def __init__(self, builder):
-		self.builder = builder
-
-	def parse(self, tokens):
-		for t in reverseTopLevelLists(tokens):
-			if t[0] == END:
-				self.builder.end(t[1])
-			elif t[0] == TEXT:
-				self.builder.text(t[1])
-			else:
-				self.builder.start(*t)
-
-
-def topLevelLists(tokens):
-	# Make tree more HTML-like:
-	# - Move UL / OL to top level, outside P
-	# - Put sub-UL / sub-OL inside LI element
-	#
-	# Consider multiple lists one after the other as a single list
-	# section here - this can happen for mixed bullet + numbered list items
-	#
-	# <p><ul>...</ul></p> --> <ul>...</ul>
-	# <p><ul>...</ul>.. --> <ul>...</ul><p>..
-	# ..<ul>...</ul>.. --> ..</p><ul>...</ul><p>..
-	# ..<ul>...</ul></p> --> ..</p><ul>...</ul>
-	#
-	para_end = (END, PARAGRAPH)
-	seen_para = False
-	tokeniter = iter(tokens)
+def _reverseChangeList(tokeniter):
+	# <ul>...</ul></li> --> </li><ul>...</ul>
+	from zim.formats import NUMBEREDLIST, BULLETLIST, LISTITEM
 	newtokens = []
 	for t in tokeniter:
 		if t[0] in (NUMBEREDLIST, BULLETLIST):
-			assert seen_para, 'Looks like tokenlist had top level lists to start with'
-			if newtokens[-1][0] == PARAGRAPH:
-				newtokens.pop()
-			else:
-				newtokens.append((END, PARAGRAPH))
-
-			newtokens.append(t)
-			newtokens.extend(_changeList(tokeniter))
-
+			listtokens = [t] + _reverseChangeList(tokeniter) # recurs
 			nexttoken = next(tokeniter)
-			while nexttoken[0] in (BULLETLIST, NUMBEREDLIST):
-				newtokens.append(nexttoken)
-				newtokens.extend(_changeList(tokeniter))
-				nexttoken = next(tokeniter)
-
-			if nexttoken == (END, PARAGRAPH):
-				pass
-			else:
-				newtokens.append((PARAGRAPH, None))
-				newtokens.append(nexttoken)
-		else:
-			if t[0] == PARAGRAPH:
-				seen_para = True
-			elif t == para_end:
-				seen_para = False
-			newtokens.append(t)
-
-	return newtokens
-
-
-def _changeList(tokeniter):
-	# </li><ul>...</ul> --> <ul>...</ul></li>
-	newtokens = []
-	for t in tokeniter:
-		if t[0] in (NUMBEREDLIST, BULLETLIST):
-			assert newtokens and newtokens[-1] == (END, LISTITEM), 'Empty parent ?'
-			newtokens.pop()
-			newtokens.append(t)
-			newtokens.extend(_changeList(tokeniter)) # recurs
-			t = next(tokeniter)
-			while t[0] in (NUMBEREDLIST, BULLETLIST):
+			while nexttoken[0] in (NUMBEREDLIST, BULLETLIST):
 				# There can be multiple list after each other
-				newtokens.append(t)
-				newtokens.extend(_changeList(tokeniter)) # recurs
-				t = next(tokeniter)
+				listtokens.append(nexttoken)
+				listtokens.extend(_reverseChangeList(tokeniter)) # recurs
+				nexttoken = next(tokeniter)
 			else:
-				newtokens.append((END, LISTITEM))
-
-		# note: no "elif" here ! can process remainder of above block
-		if t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
+				assert nexttoken == (END, LISTITEM), 'unexpected token: %s' % nexttoken
+			newtokens.append((END, LISTITEM))
+			newtokens.extend(listtokens)
+		elif t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
 			newtokens.append(t)
 			break
 		else:
@@ -247,7 +252,7 @@ def reverseTopLevelLists(tokens):
 	# ..</p><ul>...</ul><p>.. ..<ul>...</ul>..
 	# ..</p><ul>...</ul>.. --> ..<ul>...</ul></p>
 	#
-
+	from zim.formats import NUMBEREDLIST, BULLETLIST, PARAGRAPH
 	tokeniter = iter(tokens)
 	newtokens = []
 	for t in tokeniter:
@@ -277,32 +282,23 @@ def reverseTopLevelLists(tokens):
 	return newtokens
 
 
-def _reverseChangeList(tokeniter):
-	# <ul>...</ul></li> --> </li><ul>...</ul>
-	newtokens = []
-	for t in tokeniter:
-		if t[0] in (NUMBEREDLIST, BULLETLIST):
-			listtokens = [t] + _reverseChangeList(tokeniter) # recurs
-			nexttoken = next(tokeniter)
-			while nexttoken[0] in (NUMBEREDLIST, BULLETLIST):
-				# There can be multiple list after each other
-				listtokens.append(nexttoken)
-				listtokens.extend(_reverseChangeList(tokeniter)) # recurs
-				nexttoken = next(tokeniter)
-			else:
-				assert nexttoken == (END, LISTITEM), 'unexpected token: %s' % nexttoken
-			newtokens.append((END, LISTITEM))
-			newtokens.extend(listtokens)
-		elif t[0] == END and t[1] in (NUMBEREDLIST, BULLETLIST):
-			newtokens.append(t)
-			break
-		else:
-			newtokens.append(t)
+class TokenParser(object):
 
-	return newtokens
+	def __init__(self, builder):
+		self.builder = builder
+
+	def parse(self, tokens):
+		for t in reverseTopLevelLists(tokens):
+			if t[0] == END:
+				self.builder.end(t[1])
+			elif t[0] == TEXT:
+				self.builder.text(t[1])
+			else:
+				self.builder.start(*t)
 
 
 def testTokenStream(token_iter):
+	from zim.formats import NUMBEREDLIST, BULLETLIST, PARAGRAPH
 	nesting = []
 	for t in token_iter:
 		assert isinstance(t, tuple) and len(t) == 2, 'Malformed token'

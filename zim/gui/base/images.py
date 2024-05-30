@@ -17,7 +17,7 @@ def supports_image_format(fmt):
 	return fmt in (f.get_name() for f in GdkPixbuf.Pixbuf.get_formats())
 
 
-def image_file_load_pixels(file: LocalFile, width_override=-1, height_override=-1) -> GdkPixbuf.Pixbuf:
+def image_file_load_pixels(file: LocalFile, width_override=-1, height_override=-1, fail_silent=False) -> GdkPixbuf.Pixbuf:
 	"""
 	Replacement for GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, w, h)
 	Does it's best to rotate the image to the right orientation.
@@ -32,7 +32,8 @@ def image_file_load_pixels(file: LocalFile, width_override=-1, height_override=-
 	try:
 		pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 	except GLib.GError:
-		logger.debug(f'GTK failed to read image, using Pillow fallback: {file.path}')
+		if not fail_silent:
+			logger.debug(f'GTK failed to read image, using Pillow fallback: {file.path}')
 	else:
 		need_switch_to_fallback = False
 
@@ -48,13 +49,15 @@ def image_file_load_pixels(file: LocalFile, width_override=-1, height_override=-
 				with Image.open(file.path) as image:
 					pixbuf = _convert_pillow_image_to_pixbuf(image)
 			except UnidentifiedImageError:
-				logger.debug(f'Pillow failed to read image: {file.path}')
+				if not fail_silent:
+					logger.debug(f'Pillow failed to read image: {file.path}')
 			else:
 				need_switch_to_fallback = False
 
 	if need_switch_to_fallback:
-		error_message = f'No available fallback for load this image: {file.path}'
-		logger.debug(error_message)
+		if not fail_silent:
+			error_message = f'No available fallback for load this image: {file.path}'
+			logger.debug(error_message)
 		raise TypeError(error_message)
 
 	# Let's try to find and remember the orientation before scaling,

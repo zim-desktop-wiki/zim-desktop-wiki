@@ -48,7 +48,7 @@ __all__ = [
 	'datetimetz', 'base', 'errors', 'signals', 'actions',
 	'fs', 'newfs',
 	'config', 'applications',
-	'parsing', 'tokenparser',
+	'parsing',
 	# Notebook components
 	'formats', 'templates',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',

@@ -11,7 +11,7 @@ import logging
 from zim.plugins import PluginClass
 from zim.notebook import NotebookExtension, Path
 from zim.notebook.index.base import IndexerBase
-from zim.tokenparser import TEXT
+from zim.parse.tokenlist import TEXT
 from zim.search import SearchSelection
 
 logger = logging.getLogger("zim.plugins.indexed_fts")
@@ -123,7 +123,7 @@ sqlite.
 			if not scope:
 				# initialize scope with whole notebook :S
 				scope = set()
-				for p in self.notebook.pages.walk():
+				for p in searchselection.notebook.pages.walk():
 					scope.add(p)
 			inverse = scope - myresults
 			myresults.clear()

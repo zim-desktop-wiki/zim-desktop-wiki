@@ -264,10 +264,10 @@ class UIActions(object):
 		TemplateEditorDialog(self.widget).run()
 
 	@action(_('Pr_eferences'), '<Primary>comma') # T: Menu item
-	def show_preferences(self):
+	def show_preferences(self, show_tab=None, select_plugin=None):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
-		PreferencesDialog(self.widget).run()
+		PreferencesDialog(self.widget, show_tab=show_tab, select_plugin=select_plugin).run()
 
 		# Loading plugins can modify the index state
 		if not self.notebook.index.is_uptodate:

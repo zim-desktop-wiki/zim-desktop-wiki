@@ -8,8 +8,8 @@ import logging
 
 logger = logging.getLogger('zim.formats.wiki')
 
-from zim.parser import Rule, fix_unicode_chars, convert_space_to_tab
-from zim.parser import Parser as RuleParser
+from zim.parse import convert_space_to_tab, fix_unicode_whitespace
+from zim.parse.regexparser import Rule, RegexParser
 from zim.parse.links import is_url_link, match_url_link, url_link_re, old_url_link_re
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
@@ -128,7 +128,7 @@ class WikiParser(object):
 		# Intermediate level, breaks up lists and indented blocks
 		# TODO: deprecate this by taking lists out of the para
 		#       and make a new para for each indented block
-		p = RuleParser(
+		p = RegexParser(
 			Rule(
 				'X-Bullet-List',
 				r'''(
@@ -165,7 +165,7 @@ class WikiParser(object):
 
 	def _init_block_parser(self):
 		# Top level parser, to break up block level items
-		p = RuleParser(
+		p = RegexParser(
 			Rule(VERBATIM_BLOCK, r'''
 				^(?P<pre_indent>\t*) \'\'\' \s*?				# 3 "'"
 				( (?:^.*\n)*? )									# multi-line text
@@ -529,7 +529,7 @@ class Parser(ParserClass):
 			input = ''.join(input)
 
 		input = input.replace('\u2029', ' ') # Unicode PARAGRAPH SEPARATOR, causes conflict between "splitlines()" and regex "\n" matching - see issues #1760
-		input = fix_unicode_chars(input)
+		input = fix_unicode_whitespace(input)
 
 		meta, version = None, False
 		if file_input:
