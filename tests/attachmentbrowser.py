@@ -29,6 +29,8 @@ class TestThumbnailCreators(tests.TestCase):
 			for i, basename in enumerate(dir.list_names()):
 				if basename.endswith('.svg'):
 					continue # fails on windows in some cases
+				if basename.endswith('.ico'):
+					continue # Support removed in gdk-pixbuf 2.42.11
 				file = dir.file(basename)
 				thumbfile = thumbdir.file('thumb--' + basename)
 
@@ -150,10 +152,14 @@ class TestThumbnailQueue(tests.TestCase):
 		dir = tests.ZIM_DATA_FOLDER.folder('pixmaps')
 		pixmaps = set()
 		for basename in dir.list_names():
-			if not basename.endswith('.svg'):
-				file = dir.file(basename)
-				pixmaps.add(file.path)
-				queue.queue_thumbnail_request(file, 64)
+			if basename.endswith('.svg'):
+				continue # fails on windows in some cases
+			if basename.endswith('.ico'):
+				continue # Support removed in gdk-pixbuf 2.42.11
+
+			file = dir.file(basename)
+			pixmaps.add(file.path)
+			queue.queue_thumbnail_request(file, 64)
 
 		self.assertFalse(queue.queue_empty())
 
