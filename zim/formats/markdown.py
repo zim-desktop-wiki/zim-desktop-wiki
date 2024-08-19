@@ -61,8 +61,13 @@ class Dumper(TextDumper):
 		return TextDumper.dump(self, tree)
 
 	def dump_indent(self, tag, attrib, strings):
-		# OPEN ISSUE: no indent for para
-		return strings
+		# Prefix lines with one or more tabs
+		if attrib and 'indent' in attrib:
+			prefix = '> ' * int(attrib['indent'])
+			return self.prefix_lines(prefix, strings)
+			# TODO enforces we always end such a block with \n unless partial
+		else:
+			return strings
 
 	dump_p = dump_indent
 	dump_div = dump_indent
