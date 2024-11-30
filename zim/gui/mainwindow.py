@@ -102,7 +102,7 @@ class MainWindowExtension(ActionExtensionBase):
 	An action method is any object method of the extension method that
 	is decorated by the L{action()} or L{toggle_action()} decorators
 	(see L{zim.actions}). Such a method is called when the user clicks
-	to correcponding menu item or presses the corresponding key binding.
+	a corresponding menu item or presses the corresponding key binding.
 	The decorator is used to define the text to display in the menu
 	and the key binding.
 

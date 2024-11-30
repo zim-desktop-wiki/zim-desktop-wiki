@@ -845,6 +845,18 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		def set_actiongroup_sensitive(window, widget):
 			#~ print('!! FOCUS SET:', widget)
 			sensitive = widget is self.textview
+			#MGB: 
+			# Insures that TextViews other than PageView also can have sensitive set to True.
+			# This permits the Format menu items (as well as other menu items)
+			# to be available for use by that TextView.
+			buffer = self.textview.get_buffer()			
+			for anchor in buffer.list_objectanchors():
+				logger.debug('PageView: set_actiongroup_sensitive(): Focus is = %s', anchor.textview.has_focus())
+				for widget in anchor.get_widgets():
+					if widget:
+						logger.debug('PageView: set_actiongroup_sensitive(): Setting sensitive = True for Expander')
+						sensitive = True
+						logger.debug('PageView: set_actiongroup_sensitive(): Focus is = %s', widget.textview.has_focus())
 
 			# Enable keybindings and buttons for find functionality if find bar is in focus
 			force_sensitive = ()
@@ -948,6 +960,18 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 			# Finish hooking up the new page
 			self.set_cursor_pos(cursor)
+			
+			# MGB:
+			for anchor in buffer.list_objectanchors():
+				for widget in anchor.get_widgets():
+					if widget:
+						logger.debug('PageView: set_page(): widget = %s', widget)
+						buffer = widget.textview.get_buffer()
+						self._buffer_signals += (
+							buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
+							buffer.connect('modified-changed', lambda o: self.on_modified_changed(o)),
+							buffer.connect_after('mark-set', self.do_mark_set),
+						)
 
 			self._buffer_signals += (
 				buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
@@ -1078,6 +1102,20 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Batch update global menu sensitivity while respecting
 		sensitivities set due to cursor position, readonly state etc.
 		'''
+		buffer = self.textview.get_buffer()
+
+		# MGB:
+		# If an ExpanderAnchor object is present, check if 'has_focus' is True.
+			# If it is True, use the ExpanderAnchor.TextView buffer instead of the PageView.TextView buffer AND force sensitive = True.
+			# This prevents various menu items being greyed-out when switching focus to an Expander object.
+		# For some reason, after ExpanderWidget.grab_focus() is run, has_focus() returns False.
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				logger.debug('PageView: set_menuitems_sensitive(): widget = %s', widget)
+				logger.debug('PageView: set_menuitems_sensitive(): widget focus = %s', widget.textview.has_focus())
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+
 
 		if sensitive:
 			# partly overrule logic in window.toggle_editable()
@@ -1108,6 +1146,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		is set at the end of the buffer.
 		'''
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+
 		if pos < 0:
 			start, end = buffer.get_bounds()
 			iter = end
@@ -1341,6 +1386,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		menu.show_all()
 
 	def _default_do_populate_popup(self, menu):
+		# MGB:  For PageView, populates the right-click menu.
 		# Add custom tool
 		# FIXME need way to (deep)copy widgets in the menu
 		#~ toolmenu = uimanager.get_widget('/text_popup')
@@ -1600,35 +1646,104 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def undo(self):
 		'''Menu action to undo a single step'''
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		widget_has_focus = False
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+					widget_has_focus = True
+					
 		buffer.undostack.undo()
-		self.scroll_cursor_on_screen()
+		# MGB: This prevents a large amount of whitespace being added
+		# after Ctrl-Z is used to remove text from an Expander buffer.
+		if not widget_has_focus:
+			self.scroll_cursor_on_screen()
 
 	@action(_('_Redo'), '<Primary><shift>Z', alt_accelerator='<Primary>Y', menuhints='edit') # T: Menu item
 	def redo(self):
 		'''Menu action to redo a single step'''
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+			
 		buffer.undostack.redo()
 		self.scroll_cursor_on_screen()
 
 	@action(_('Cu_t'), '<Primary>X', menuhints='edit') # T: Menu item
 	def cut(self):
 		'''Menu action for cut to clipboard'''
-		self.textview.emit('cut-clipboard')
+		#MGB:
+		widget_has_focus = False
+		buffer = self.textview.get_buffer()
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					widget_has_focus = True
+		
+		if widget_has_focus:
+			widget.textview.emit('cut-clipboard')
+		else:
+			self.textview.emit('cut-clipboard')
 
 	@action(_('_Copy'), '<Primary>C', menuhints='edit') # T: Menu item
 	def copy(self):
 		'''Menu action for copy to clipboard'''
-		self.textview.emit('copy-clipboard')
+		
+		#MGB:
+		anchor_textview_has_focus = False
+		buffer = self.textview.get_buffer()
+		for anchor in buffer.list_objectanchors():
+			if anchor.textview.has_focus():
+				anchor_textview_has_focus = True
+				focus_anchor = anchor
+		
+		if anchor_textview_has_focus:
+			logger.debug('PageView: copy(): Anchor copy')
+			logger.debug('PageView: copy(): Anchor = %s', focus_anchor)
+			focus_anchor.textview.emit('copy-clipboard')
+		else:
+			logger.debug('PageView: copy(): PageView copy')
+			self.textview.emit('copy-clipboard')
 
 	@action(_('_Paste'), '<Primary>V', menuhints='edit') # T: Menu item
 	def paste(self):
 		'''Menu action for paste from clipboard'''
-		self.textview.emit('paste-clipboard')
+		#MGB:
+		anchor_textview_has_focus = False
+		buffer = self.textview.get_buffer()
+		for anchor in buffer.list_objectanchors():
+			if anchor.textview.has_focus():
+				anchor_textview_has_focus = True
+				focus_anchor = anchor
+		
+		if anchor_textview_has_focus:
+			logger.debug('PageView: paste(): Anchor paste')
+			focus_anchor.textview.emit('paste-clipboard')
+		else:
+			logger.debug('PageView: paste(): PageView paste')
+			self.textview.emit('paste-clipboard')
 
 	@action(_('_Delete'), menuhints='edit') # T: Menu item
 	def delete(self):
 		'''Menu action for delete'''
-		self.textview.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
+		# MGB:
+		widget_has_focus = False
+		buffer = self.textview.get_buffer()
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget is not None:
+					#logger.debug('PageView: delete(): Expander textview focus = %s', widget.textview.has_focus())
+					if widget.textview.has_focus():
+						widget.textview.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
+						widget_has_focus = True
+		if not widget_has_focus:
+			self.textview.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
 
 	@action(_('Un-check Checkbox'), verb_icon=STOCK_UNCHECKED_BOX, menuhints='edit') # T: Menu item
 	def uncheck_checkbox(self):
@@ -1683,12 +1798,24 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param iter: C{TextIter} for an alternative cursor position
 		'''
 		buffer = self.textview.get_buffer()
+		# MGB:
+		anchor_has_focus = False
+		# If an ExpanderAnchor object is present, check if 'had_focus' is True.
+			# 'had_focus' is passed into InsertLinkDialog as a parameter.
+		# If it is True, use the ExpanderAnchor.TextView buffer instead of the PageView.TextView buffer.
+		for anchor in buffer.list_objectanchors():
+			logger.debug('PageView: edit_object(): Expander textview has focus = %s', anchor.textview.has_focus())
+			if anchor.textview.has_focus():
+				buffer = anchor.textview.get_buffer()
+				anchor_has_focus = True
+
 		if iter:
 			buffer.place_cursor(iter)
 
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		if buffer.get_link_tag(iter):
-			return InsertLinkDialog(self, self).run()
+			# MGB: Added ', anchor_has_focus'
+			return InsertLinkDialog(self, self, anchor_has_focus).run()
 
 		image = buffer.get_image_data(iter)
 		anchor = buffer.get_objectanchor(iter)
@@ -1717,6 +1844,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param iter: C{TextIter} for an alternative cursor position
 		'''
 		buffer = self.textview.get_buffer()
+		#MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				logger.debug('PageView: remove_link(): widget = %s', widget)
+				if widget.textview.has_focus():
+					logger.debug('PageView: remove_link(): %s textview focus is True', widget)
+					buffer = widget.textview.get_buffer()
 
 		if not buffer.get_has_selection() \
 		or (iter and not buffer.iter_in_selection(iter)):
@@ -1727,11 +1861,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			buffer.remove_link(*bounds)
+			# MGB:  Had to add this because for some reason in the case of a Remove Link
+			# the PageView buffer doesn't know that anything has been modified.
+			buffer = self.textview.get_buffer()
+			buffer.set_modified(True)
 
 	@action(_('Copy Line'), accelerator='<Primary><Shift>C', menuhints='edit') # T: menu item to copy current line to clipboard
 	def copy_current_line(self):
 		'''Menu action to copy the current line to the clipboard'''
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+			
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 		buffer.select_line()
 
@@ -1748,6 +1893,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def cut_current_line(self):
 		'''Menu action to cut the current line to the clipboard'''
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+		
 		buffer.select_lines_for_selection()
 		bounds = buffer.get_selection_bounds()
 		tree = buffer.get_parsetree(bounds)
@@ -1760,7 +1912,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
-		InsertDateDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
+		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+
+		InsertDateDialog(self, buffer, self.notebook, self.page).run()
 
 	def insert_object(self, attrib, data):
 		buffer = self.textview.get_buffer()
@@ -1776,6 +1936,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def insert_line(self):
 		'''Menu action to insert a line at the cursor position'''
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+			
 		with buffer.user_action:
 			buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
 			# Add newline after line separator widget.
@@ -1786,14 +1953,36 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
 		@param file: optional file to suggest in the dialog
 		'''
-		InsertImageDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
+		buffer = self.textview.get_buffer()
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+
+		InsertImageDialog(self, buffer, self.notebook, self.page, file).run()
 
 	@action(_('_Attachment...'), verb_icon='zim-attachment', menuhints='insert') # T: Menu item
 	def attach_file(self, file=None):
 		'''Menu action to show the L{AttachFileDialog}
 		@param file: optional file to suggest in the dialog
 		'''
-		AttachFileDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
+		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+			
+		AttachFileDialog(self, buffer, self.notebook, self.page, file).run()
+
+	# MGB:
+	@action(_('Foldable Text'), menuhints='insert') # T: Menu item for Insert menu
+	def insert_expander(self):
+		'''Menu action to insert a text expander object at the cursor position'''
+		#logger.debug('gui/pageview/init.py: PageView: insert_expander()')
+		ExpanderDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
 
 	def insert_image(self, file):
 		'''Insert a image
@@ -1801,7 +1990,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		isn't an image, a "broken image" icon will be shown
 		'''
 		src = self.notebook.relative_filepath(file, self.page) or file.uri
-		self.textview.get_buffer().insert_image_at_cursor(file, src)
+		# MGB:
+		buffer = self.textview.get_buffer()
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				logger.debug('PageView: insert_image(): Expander focus = %s', widget.textview.has_focus())
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+	
+		buffer.insert_image_at_cursor(file, src)
 
 	@action(_('Bulle_t List'), menuhints='insert') # T: Menu item
 	def insert_bullet_list(self):
@@ -1820,6 +2017,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def _start_bullet(self, bullet_type):
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				logger.debug('PageView: _start_bullet(): Expander focus = %s', widget.textview.has_focus())
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+
 		line = buffer.get_insert_iter().get_line()
 
 		with buffer.user_action:
@@ -1852,6 +2057,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def _apply_bullet(self, bullet_type):
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			# set for selected lines & restore selection
@@ -1876,7 +2088,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('Text From _File...'), menuhints='insert') # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
-		InsertTextFromFileDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
+		buffer = self.textview.get_buffer()
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+
+		#MGB:  Added 'buffer' parameter
+		InsertTextFromFileDialog(self, buffer, self.notebook, self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
@@ -1912,6 +2132,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			sep = '\n'
 
 		buffer = self.textview.get_buffer()
+		# MGB:
+		# If an ExpanderAnchor object is present, check if it has focus. 
+		# If it does, use the ExpanderAnchor buffer instead of the PageView buffer.
+		for anchor in buffer.list_objectanchors():
+			logger.debug('gui/pageview/__init__.py:  insert_links(): Expander texview has focus = %s', anchor.textview.has_focus())
+			if anchor.textview.has_focus():
+				buffer = anchor.buffer
+
 		with buffer.user_action:
 			if buffer.get_has_selection():
 				start, end = buffer.get_selection_bounds()
@@ -1923,7 +2151,25 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Link...'), '<Primary>L', verb_icon='zim-link', menuhints='insert') # T: Menu item
 	def insert_link(self):
 		'''Menu item to show the L{InsertLinkDialog}'''
-		InsertLinkDialog(self, self).run()
+		# MGB:
+		buffer = self.textview.get_buffer()
+		logger.debug('PageView: insert_link(): Pageview textview = %s', self.textview)
+		anchor_has_focus = False
+		# If an ExpanderAnchor object is present, check if it has focus. 
+			# If it does, anchor_had_focus is passed as True as a parameter to InsertLinkDialog().
+			# This is to ensure that 'buffer = anchor.textview.buffer' (inside InsertLinkDialog) gets used.
+		# 'has_focus()' is True when and Insert > Link is done from the Menu; but, 
+			# 'has_focus()' is False when and Insert > Link is done from the Toolbar
+			# I think this is happening because the Toolbar grabs focus
+		for anchor in buffer.list_objectanchors():
+			logger.debug('PageView: insert_link(): Expander textview has focus = %s', anchor.textview.has_focus())
+			if anchor.textview.has_focus():
+				anchor_has_focus = True
+				logger.debug('PageView: insert_link(): Setting Page Modified to True')
+				self.page.set_modified(True)
+				
+		# MGB:  Added 'anchor_has_focus'
+		InsertLinkDialog(self, self, anchor_has_focus).run()
 
 	def _update_new_file_submenu(self, action):
 		folder = self.preferences['file_templates_folder']
@@ -2008,13 +2254,32 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''
 		buffer = self.textview.get_buffer()
+		#MGB:
+		# Switch to the Expander buffer if the Expander object contains some selected text.
+		for anchor in buffer.list_objectanchors():
+			if anchor.buffer.get_has_selection():
+				buffer = anchor.buffer
+
 		buffer.clear_formatting_interactive(autoselect=self.preferences['autoselect'])
 
 	@action(_('_Remove Heading'), '<Primary>7', menuhints='edit') # T: Menu item
 	def clear_heading_format(self):
 		'''Menu item to remove heading'''
 		buffer = self.textview.get_buffer()
+		
+		# MGB:
+		for anchor in buffer.list_objectanchors():
+			for widget in anchor.get_widgets():
+				if widget.textview.has_focus():
+					buffer = widget.textview.get_buffer()
+					
 		buffer.clear_heading_format_interactive()
+		
+		# MGB:  If a widget is detected and buffer is changed to that widget
+		# change back to the PageView buffer so that that buffer knows a change 
+		# has occurred within the widget.
+		buffer = self.textview.get_buffer()
+		buffer.set_modified(True)
 
 	def do_toggle_format_action_alt(self, active, action):
 		self.do_toggle_format_action(action)
@@ -2047,6 +2312,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param name: the format style name (e.g. "h1", "strong" etc.)
 		'''
 		buffer = self.textview.get_buffer()
+		#MGB:
+		# Switch to the Expander buffer if the Expander object contains some selected text.
+		for anchor in buffer.list_objectanchors():
+			#logger.debug('gui/pageview/__init__.py: PageView: toggle_format(): anchor = %s', anchor)
+			if anchor.buffer.get_has_selection():
+				#logger.debug('gui/pageview/__init__.py: PageView: toggle_format(): anchor buffer has selection')
+				buffer = anchor.buffer
+
 		buffer.toggle_format_tag_by_name_interactive(name, autoselect=self.preferences['autoselect'])
 		
 	@action(_('Move Selected Text...')) # T: Menu item

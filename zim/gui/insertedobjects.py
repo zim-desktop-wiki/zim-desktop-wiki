@@ -3,6 +3,8 @@
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+import logging
+logger = logging.getLogger('zim.gui.pageview.insertedobjects')
 
 from gi.repository import Gtk
 from gi.repository import GObject
@@ -150,6 +152,7 @@ class TextViewWidget(InsertedObjectWidget):
 
 	def __init__(self, buffer):
 		InsertedObjectWidget.__init__(self)
+		logger.debug('gui/insertedobjects.py: TextViewWidget: init()')
 		self.set_has_cursor(True)
 		self.buffer = buffer
 		self._init_view()
@@ -297,7 +300,13 @@ class UnkownObjectBuffer(Gtk.TextBuffer):
 	def __init__(self, attrib, data):
 		Gtk.TextBuffer.__init__(self)
 		self.object_attrib = attrib
-		self.set_text(data)
+		# MGB: Added the following simply to permit my Expander objects to get the data 
+		# this class sees when it gets data from an Expander object in a Zim page file.
+		self.data = data
+		logger.debug('insertedobjects.py: UnkownObjectBuffer: init(): data = %s', data)
+		# MGB: A new buffer should be able to be created without the necessity of any text.
+		if data:
+			self.set_text(data)
 
 	def get_object_data(self):
 		attrib = self.object_attrib.copy()
@@ -318,12 +327,14 @@ class UnknownInsertedObject(InsertedObjectType):
 		return attrib
 
 	def model_from_data(self, notebook, page, attrib, data):
+		logger.debug ('gui/insertedobjects.py: UnknownInsertedObject: model_from_data()')
 		return UnkownObjectBuffer(attrib, data)
 
 	def data_from_model(self, buffer):
 		return buffer.get_object_data()
 
 	def create_widget(self, buffer):
+		logger.debug ('gui/insertedobjects.py: UnknownInsertedObject: create_widget()')
 		return UnkownObjectWidget(buffer)
 
 

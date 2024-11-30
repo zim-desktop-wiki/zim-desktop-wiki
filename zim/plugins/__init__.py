@@ -123,8 +123,8 @@ def extendable(*extension_bases, register_after_init=True):
 def find_extension(obj, klass):
 	'''Lookup an extension object
 	This function allows finding extension classes defined by any plugin.
-	So it can be used to find an defined by the same plugin, but also allows
-	cooperation by other plugins.
+	So it can be used to find an extension defined by the same plugin, but 
+	also allows cooperation by other plugins.
 	The lookup uses C{isinstance()}, so abstract classes can be used to define
 	interfaces between plugins if you don't want to depent on the exact
 	implementation class.

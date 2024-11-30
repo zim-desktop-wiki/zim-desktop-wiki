@@ -197,6 +197,9 @@ Insert an image.
 **Attachment**
 Attach a file to the current page. Will prompt for a file, the file will then be copied to the notebook folder and a link inserted in the current page.
 
+**Foldable Text**
+Insert an expandable/collapsible section of text within a page.
+
 **Screenshot**
 Prompt with options to take a screenshot and insert it as an image.
 

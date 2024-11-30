@@ -77,6 +77,7 @@
 			<separator/>
 			<menuitem action='show_insert_image'/>
 			<menuitem action='attach_file'/>
+			<menuitem action='insert_expander'/>
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>

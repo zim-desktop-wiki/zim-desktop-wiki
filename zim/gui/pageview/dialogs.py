@@ -3,6 +3,7 @@
 import logging
 
 from gi.repository import Gtk
+from gi.repository import Gdk
 
 import os
 import zim.datetimetz as datetime
@@ -12,9 +13,10 @@ from zim.config import ConfigManager
 from zim.formats import get_format
 from zim.notebook import HRef, PageNotFoundError
 from zim.parse.links import link_type
-from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, BrowserTreeView, ScrolledWindow
+from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, BrowserTreeView, ScrolledWindow, InputEntry
 from zim.gui.base.images import image_file_get_dimensions
 from zim.gui.applications import edit_config_file, open_folder
+from zim.gui.pageview.expander import ExpanderAnchor
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -536,11 +538,12 @@ class InsertLinkDialog(Dialog):
 	'''Dialog to insert a new link in the page or edit properties of
 	an existing link
 	'''
-
-	def __init__(self, parent, pageview):
+	# MGB: Added the 'has_focus' parameter
+	def __init__(self, parent, pageview, has_focus):
 		self.pageview = pageview
-		href, text = self._get_link_from_buffer()
-
+		self.has_focus = has_focus
+		href, text, self.buffer = self._get_link_from_buffer()
+		
 		if href:
 			title = _('Edit Link') # T: Dialog title
 		else:
@@ -574,6 +577,14 @@ class InsertLinkDialog(Dialog):
 		href, text = '', ''
 
 		buffer = self.pageview.textview.get_buffer()
+		# MGB:
+		# If an ExpanderAnchor object is present, check if it has focus. 
+		# If it does, use that ExpanderAnchor.TextView buffer instead of the PageView.TextView buffer.
+		for anchor in buffer.list_objectanchors():
+			logger.debug('InsertLinkDialog: _get_link_from_buffer(): Expander textview has focus = %s', anchor.textview.has_focus())
+			if anchor.textview.has_focus():
+				buffer = anchor.buffer
+
 		if buffer.get_has_selection():
 			buffer.strip_selection()
 			link = buffer.get_has_link_selection()
@@ -599,7 +610,9 @@ class InsertLinkDialog(Dialog):
 			self._selection_bounds = None
 			self._selected_text = False
 
-		return href, text
+		# MGB: Added 'buffer' because for some reason focus on Expander Textview is lost
+		# after the InsertLinkDialog object is created.
+		return href, text, buffer
 
 	def on_href_changed(self, o):
 		# Check if we can also update text
@@ -650,14 +663,36 @@ class InsertLinkDialog(Dialog):
 
 		text = self.form['text'] or href
 
-		buffer = self.pageview.textview.get_buffer()
-		with buffer.user_action:
+		#buffer = self.pageview.textview.get_buffer()
+		# MGB:
+		# If an ExpanderAnchor object is present, check if 'had_focus' is True.
+			# 'had_focus' is passed into this Dialog from where it is called in the PageView class.
+		# If it is True, use the ExpanderAnchor.TextView buffer instead of the PageView.TextView buffer.
+		#for anchor in buffer.list_objectanchors():
+		#	logger.debug('InsertLinkDialog: do_response_ok(): %s has_focus = %s', anchor, self.has_focus)
+			#if self.has_focus:
+		#	if anchor.textview.has_focus():
+		#		buffer = anchor.buffer
+	
+		# MGB:  Changed all references to 'buffer' to 'self.buffer' with the exception
+		# of the last two lines.
+		with self.buffer.user_action:
 			if self._selection_bounds:
 				start, end = list(map(
-					buffer.get_iter_at_offset, self._selection_bounds))
-				buffer.delete(start, end)
-			buffer.insert_link_at_cursor(text, href)
-
+					self.buffer.get_iter_at_offset, self._selection_bounds))
+				self.buffer.delete(start, end)
+			logger.debug('InsertLinkDialog: do_response_ok(): Calling insert_link_at_cursor()')
+			self.buffer.insert_link_at_cursor(text, href)
+			# MGB: Added this to prevent a situation where a newly added Link
+			# does not get saved to the Zim page file. This specifically occurs
+			# if an Expander object is newly added and where a Link is added
+			# directly afterwords. If an Expander object is added then Zim is restarted
+			# and then a Link is added this problem does not occur.
+			# Where an Expander object is not involved, having this here does
+			# not cause a problem.
+			buffer = self.pageview.textview.get_buffer()
+			buffer.set_modified(True)
+		
 		return True
 
 
@@ -864,3 +899,51 @@ class NewFileDialog(Dialog):
 	def do_response_ok(self):
 		self.result = self.form['basename']
 		return True
+
+# MGB:
+class ExpanderDialog(Gtk.Dialog):
+
+	def __init__(self, parent, buffer, notebook, page):
+		Gtk.Dialog.__init__(self, parent) 		# T: dialog title
+		logger.debug('gui/pageview/dialogs.py: ExpanderDialog: init()')
+		name = ''
+		self.parent = parent
+		self.buffer = buffer
+		self.notebook = notebook
+		self.page = page
+		self.set_title('Expander Object Name')
+		self.set_default_size(250, 100)
+		
+		# grid is just for the window title.
+		grid = Gtk.Grid()
+		grid.set_column_spacing(5)
+		grid.set_row_spacing(5)
+
+		label = Gtk.Label(_('Name') + ':') 				# T: input label for object Name
+		grid.attach(label, 0, 1, 1, 1)
+		self.entry = InputEntry()
+		grid.attach(self.entry, 1, 1, 1, 1)
+
+		self.vbox.add(grid)
+		self.add_button('Ok', Gtk.ResponseType.OK)
+		self.ok_btn = self.get_widget_for_response(response_id=Gtk.ResponseType.OK)
+		self.ok_btn.connect("clicked", self.on_ok_clicked)
+		self.entry.connect ("key-press-event", self.on_enter)
+
+		self.show_all()
+
+	def on_ok_clicked(self, widget):
+		self.create_expander_object()
+
+	def on_enter(self, widget, event):
+		logger.debug('gui/pageview/dialogs.py: ExpanderNameDialog: on_enter()')
+		# Keycode = 36 (Enter)
+		if event.type == Gdk.EventType.KEY_PRESS and event.hardware_keycode == 36:
+			self.create_expander_object()
+
+	def create_expander_object(self):
+		logger.debug('gui/pageview/dialogs.py: ExpanderNameDialog: create_expander_object()')
+		with self.buffer.user_action:
+			self.buffer.insert_objectanchor_at_cursor(ExpanderAnchor(self.notebook, self.page, self.entry.get_text(), data = ''))
+		self.destroy()
+

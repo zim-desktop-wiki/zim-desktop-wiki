@@ -576,6 +576,7 @@ class TextBuffer(Gtk.TextBuffer):
 	# emitting textstyle-changed is skipped while loading the tree
 
 	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', raw=False, textstyles=[], indent_offset=0):
+		# This results in data from a Zim page being read into the related buffer space.
 		# FIXME should load list_level from cursor position
 		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
 		list_iter = list_start
@@ -1149,6 +1150,17 @@ class TextBuffer(Gtk.TextBuffer):
 				objecttype = UnknownInsertedObject()
 
 		model = objecttype.model_from_data(self.notebook, self.page, attrib, data)
+		# MGB:
+		# Creates a new Expander object where the object is defined in a Zim note file.
+		from .expander import ExpanderAnchor
+		if attrib['type'] == 'expander':
+			logger.debug('TextBuffer: insert_object_at_cursor(): ExpanderAnchor() with Notebook = %s', self.notebook)
+			objecttype = ExpanderAnchor(self.notebook, self.page, attrib['name'], data)
+			# Having this model derived directly from the ExpanderAnchor rather than 
+			# from UnknownInsertedObject insures that model.connect is applied
+			# to Expander and not UnknownInsertedObject.
+			model = objecttype.model_from_data(self.notebook, self.page, attrib, data)
+
 		self.insert_object_model_at_cursor(objecttype, model, raw=raw)
 
 	def insert_object_model_at_cursor(self, objecttype, model, raw=False):
@@ -1156,8 +1168,14 @@ class TextBuffer(Gtk.TextBuffer):
 
 		model.connect('changed', lambda o: self.set_modified(True))
 
+		# MGB:
+		from .expander import ExpanderAnchor
 		if isinstance(objecttype, TableViewObjectType):
 			anchor = TableAnchor(objecttype, model)
+		# MGB:
+		elif isinstance(objecttype, ExpanderAnchor):
+			# The ExpanderAnchor has been instantiated in insert_object_at_cursor() as objecttype
+			anchor = objecttype
 		else:
 			anchor = PluginInsertedObjectAnchor(objecttype, model)
 
@@ -2276,10 +2294,10 @@ class TextBuffer(Gtk.TextBuffer):
 	def do_pre_delete_range(self, start, end):
 		# (Interactive) deleting a formatted word with <del>, or <backspace>
 		# should drop the formatting, however selecting a formatted word and
-		# than typing to replace it, should keep formatting
+		# then typing to replace it, should keep formatting.
 		# Therefore we set a mark to remember the formatting and clear it
 		# at the end of a user action, or with the next insert at a different
-		# location
+		# location.
 		if self._raw_delete_ongoing:
 			return
 
@@ -2304,7 +2322,7 @@ class TextBuffer(Gtk.TextBuffer):
 			# get_tags() uses right side gravity, so omits list item ending here
 
 		# Do merging of tags regardless of whether we deleted a line end or not
-		# worst case some clean up of run-aways tags is done
+		# worst case some clean up of run-away tags is done
 		if not start.starts_line() and (
 			any(filter(_is_line_based_tag, start.get_toggled_tags(True)))
 			or

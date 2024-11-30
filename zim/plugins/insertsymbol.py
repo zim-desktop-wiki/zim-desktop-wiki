@@ -70,6 +70,8 @@ class InsertSymbolPageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, pageview):
 		PageViewExtension.__init__(self, plugin, pageview)
+		# MGB: Added the next line
+		self.pageview = pageview
 		self.connectto(pageview.textview, 'end-of-word')
 		if not plugin.symbols:
 			plugin.load_file()
@@ -77,7 +79,17 @@ class InsertSymbolPageViewExtension(PageViewExtension):
 	@action(_('Sy_mbol...'), menuhints='insert') # T: menu item
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
-		InsertSymbolDialog(self.pageview, self.plugin, self.pageview).run()
+		# MGB:
+		anchor_focus = None
+		buffer = self.pageview.textview.get_buffer()
+		# If an ExpanderAnchor object is present, check if it has focus. 
+			# If it does, anchor_had_focus is passed as True as a parameter to InsertSymbolDialog().
+			# This is to ensure that 'buffer = anchor.textview.buffer' (inside InsertSymbolDialog) gets used.
+		for anchor in buffer.list_objectanchors():
+			if anchor.textview.has_focus():
+				anchor_focus = anchor
+		# MGB: Added 'anchor_focus'
+		InsertSymbolDialog(self.pageview, self.plugin, self.pageview, anchor_focus).run()
 
 	def on_end_of_word(self, textview, start, end, word, char, editmode):
 		'''Handler for the end-of-word signal from the textview'''
@@ -106,6 +118,15 @@ class InsertSymbolPageViewExtension(PageViewExtension):
 
 		# replace word with symbol
 		buffer = textview.get_buffer()
+		# MGB:
+		anchor = None
+		# If an ExpanderAnchor object is present, check if it has focus. 
+		# If it does use that ExpanderAnchor buffer instead of the PageView buffer.
+		for anchor in buffer.list_objectanchors():
+			logger.debug('plugins/insertsymbol.py: on_end_of_word(): anchor = %s', anchor)
+			if anchor.textview.has_focus():
+				buffer = anchor.textview.buffer
+
 		mark = buffer.create_mark(None, end, left_gravity=False)
 		if char == ';':
 			end = end.copy()
@@ -123,7 +144,8 @@ class InsertSymbolPageViewExtension(PageViewExtension):
 
 class InsertSymbolDialog(Dialog):
 
-	def __init__(self, parent, plugin, pageview):
+	# MGB:  Added 'anchor_focus'
+	def __init__(self, parent, plugin, pageview, anchor_focus):
 		Dialog.__init__(
 			self,
 			parent,
@@ -133,6 +155,8 @@ class InsertSymbolDialog(Dialog):
 		)
 		self.plugin = plugin
 		self.pageview = pageview
+		# MGB: Added next line
+		self.anchor_focus = anchor_focus
 		if not plugin.symbols:
 			plugin.load_file()
 
@@ -205,5 +229,10 @@ class InsertSymbolDialog(Dialog):
 		text = self.textentry.get_text()
 		textview = self.pageview.textview
 		buffer = textview.get_buffer()
+		# MGB:
+		# An Expander or other widget is present, so use that buffer.
+		if self.anchor_focus:
+			buffer = self.anchor_focus.textview.get_buffer()
+				
 		buffer.insert_at_cursor(text)
 		return True

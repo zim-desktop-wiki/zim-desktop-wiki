@@ -146,7 +146,9 @@ class EditBar(EditActionMixin, Gtk.ActionBar):
 
 		for action in self.edit_format_actions:
 			button = action.create_icon_button()
-			button.connect('clicked', _grab_focus_on_click)
+			# MGB: Commented this out because it prevents my Expander object from retaining focus 
+			# after a EditBar button is clicked. Testing shows taking focus is not necessary.
+			# button.connect('clicked', _grab_focus_on_click)
 			self.pack_start(button)
 
 		for label, icon_name, menu in self.edit_menus:
@@ -154,7 +156,9 @@ class EditBar(EditActionMixin, Gtk.ActionBar):
 			self.pack_start(button)
 
 		clear_button = self.edit_clear_action.create_icon_button()
-		clear_button.connect('clicked', lambda o: pageview.grab_focus())
+		# MGB: Commented this out because it prevents my Expander object from retaining focus 
+		# after a EditBar button is clicked. Testing shows taking focus is not necessary.
+		#clear_button.connect('clicked', lambda o: pageview.grab_focus())
 		self.pack_end(clear_button)
 
 		self.insert_state_label = Gtk.Label()
@@ -249,6 +253,8 @@ class ToolBarEditBarManager(EditActionMixin, ConnectorMixin):
 				popover.popdown()
 		button.connect('toggled', toggle_popover)
 		popover.connect('closed', lambda o: button.set_active(False))
-		popover.connect('closed', lambda o: self.pageview.grab_focus())
+		# MGB: Commented this out because it prevents my Expander object from retaining focus 
+		# after a EditBar button is clicked. Testing shows taking focus is not necessary.
+		#popover.connect('closed', lambda o: self.pageview.grab_focus())
 
 		return button
