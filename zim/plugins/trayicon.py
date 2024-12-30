@@ -2,6 +2,7 @@
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import GObject
+from gi.repository import Gio
 from gi.repository import Gtk
 
 import logging
@@ -43,12 +44,12 @@ def set_global_trayicon(classic=False):
 
 	if GLOBAL_TRAYICON and isinstance(GLOBAL_TRAYICON, cls):
 		return None
-	else:
-		new = cls()
-		if GLOBAL_TRAYICON:
-			GLOBAL_TRAYICON.destroy()
-		GLOBAL_TRAYICON = cls()
-		return GLOBAL_TRAYICON
+
+	if GLOBAL_TRAYICON:
+		GLOBAL_TRAYICON.destroy()
+
+	GLOBAL_TRAYICON = cls()
+	return GLOBAL_TRAYICON
 
 
 class TrayIconPluginCommand(GtkCommand):
@@ -123,6 +124,9 @@ class TrayIconBase(object):
 	'''Base class for the zim tray icon.
 	Contains code to create the tray icon menus.
 	'''
+
+	def get_application(self):
+		return Gio.Application.get_default()
 
 	def get_trayicon_menu(self):
 		'''Returns the main 'tray icon menu'''
@@ -221,8 +225,7 @@ class TrayIconBase(object):
 
 	def do_quit(self):
 		'''Quit zim.'''
-		if Gtk.main_level() > 0:
-			Gtk.main_quit()
+		self.get_application().quit()
 
 	def do_open_notebook(self):
 		'''Opens the notebook dialogs'''
