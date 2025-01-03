@@ -1,13 +1,13 @@
 Plugins
 =======
 
-Plugins are one of the two extension mechanisms supported by zim. Plugins are loaded
+Plugins are one of the two extension mechanisms supported by Zim. Plugins are loaded
 as part of the application code and can modify key components of the interface.
 One of our design goals is to keep the core functionality limited and
 ship default plugins for anything a user would want to be able to disable.
 
 ( The other extension mechanism being "custom tools". The latter allows defining
-tools in the zim menu that call an external script or application. This can be
+tools in the Zim menu that call an external script or application. This can be
 used to add some simple functions that only act on the files in the notebook. )
 
 Plugins are written in Python3 and consists of a class defining the plugin and
@@ -21,8 +21,8 @@ allowed. A plugin is allowed to call any non-GPL program as long as the plugin
 itself is under GPL and the non-GPL program runs as a separate process with a
 clearly defined inter process communication interface.
 
-
 ## Defining your plugin
+
 Plugins are simply sub-modules of the `zim.plugins` python package. However
 only core plugins should be placed directly in the module folder.
 
@@ -54,7 +54,7 @@ class MyPlugin(PluginClass):
   }
 ```
 
-**NOTE:** when testing your plugin you will have to quit zim and restart after
+**NOTE:** when testing your plugin you will have to quit Zim and restart after
 changing the plugin code because once a plugin is loaded, it keeps using the copy
 from memory.
 
@@ -83,7 +83,7 @@ At the time of writing these extension base-classes are defined:
   - `PageViewExtension`: for functions that add functionality to the editor
     window, or want to add side panes next to the editor. Use this for e.g. for
     a side pane showing additional information or content for a specific page
-  - `NotebookExtension`: similar to a `PageViewExtension`, but these extensions
+  - `NotebookViewExtension`: similar to a `PageViewExtension`, but these extensions
     only load for the main window where the notebook can be navigated, not for
     windows with a single page that cannot be changed. Use this for e.g.
     for a side pane showing an index of a the notebook
@@ -171,7 +171,7 @@ helps in cleaning up.
 ## Coding Style & Conventions
 
 See the python style guide for best practices. Some additional remarks:
-* In contradiction to the style guide, zim uses `TAB`s (not spaces) with a
+* In contradiction to the style guide, Zim uses `TAB`s (not spaces) with a
   tabstop set to the equivalent of 4 spaces
 * Only use "assert" for checks that could be removed when code is stable, these
   statements could be optimized away
@@ -196,7 +196,7 @@ case. Have a look at test cases of existing plugins for ideas how to do that.
 ## Merge request checklist
 
 If you think your plugin is a good fit for the list of default plugins in Zim
-you can create your own branch of the zim source code with your plugin added
+you can create your own branch of the Zim source code with your plugin added
 and open a merge request.
 
 Some things to consider:
@@ -217,12 +217,14 @@ new features accepted for the main repository.
 something similar and inspect the code.*
 
 ### Let a plugin handle a specific URL scheme
+
 The PageView object defines a signal `activate-link`. An extension object
 can connect to this signal and check the link that is being opened. If it
 matches the URL scheme of interest you can handle it and return `True` to let
 the PageView know it should not try to open this link itself.
 
 ### Define a new inline object type
+
 With an "inline object" we mean objects that are part of the wiki text, like
 equations, diagrams, tables.
 
@@ -237,6 +239,7 @@ objects which generate an image based on text input - like the equation and
 diagram editor plugins.
 
 ### Add a widget in the side pane of the window
+
 To add widgets to the side pane of the window, you should either extend the
 `PageView` using a `PageViewExtension` or extend the `NotebookView` using a
 `NotebookViewExtension`. Both have a method `add_sidepane_widget()` which
@@ -252,8 +255,10 @@ property of the Gtk widget can be used to determine whether a widget is
 currently being shown or not.
 
 ### Maintain state of a plugin
- Besides the preferences and properties, there is an `uistate` dict which
- can be used to store the state of a plugin - e.g. window size, visible
- selections etc. This dict is intended to store the state which one would
- wnat to restore after closign the application and restarting. It will never
- capture the exact state of the live Gtk widgets.
+
+Besides the preferences and properties, there is an `uistate` dict which
+can be used to store the state of a plugin - e.g. window size, visible
+selections etc. This dict is intended to store the state which one would
+want to restore after closing the application and restarting. It will never
+capture the exact state of the live Gtk widgets.
+
