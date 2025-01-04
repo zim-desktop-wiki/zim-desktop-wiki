@@ -247,7 +247,7 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 	}
 
 	def __init__(self):
-		GObject.GObject.__init__(self)
+		Gtk.StatusIcon.__init__(self)
 
 		icon_theme = Gtk.IconTheme.get_default()
 		if icon_theme.has_icon('zim-panel'):
@@ -279,13 +279,13 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 		menu = Gtk.Menu()
 		self.populate_menu_with_notebooks(menu, list)
 		menu.show_all()
-		menu.popup(None, None, Gtk.StatusIcon.position_menu, self, button, activate_time)
+		menu.popup(None, None, None, self, button, activate_time)
 
 	def do_popup_menu(self, button=3, activate_time=0):
 		#~ print('>>', button, activate_time)
 		menu = self.get_trayicon_menu()
 		menu.show_all()
-		menu.popup(None, None, Gtk.StatusIcon.position_menu, self, button, activate_time)
+		menu.popup(None, None, None, self, button, activate_time)
 
 	def destroy(self):
 		self.set_property('visible', False)
