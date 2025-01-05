@@ -56,8 +56,8 @@ jobs:
 
 
   test_macos:
-    runs-on: macos-12
-    name: Python 3.11 on macos-12
+    runs-on: macos-14
+    name: Python 3.11 on macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,7 +69,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install pygobject3 gtk+3
+          brew install pygobject3 gtk+3 python@3.11
 
       # FIXME: this needs to be investigated
       - name: Disable TestPlugins() as they segfault
@@ -83,7 +83,7 @@ jobs:
 
       - name: Run test suite
         run: |
-          /usr/local/opt/python@3.11/libexec/bin/python test.py
+          /opt/homebrew/opt/python@3.11/libexec/bin/python test.py
 
 
 
