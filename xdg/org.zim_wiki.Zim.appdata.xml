@@ -14,11 +14,11 @@
       including the ability to link pages and to add other files as attachments.
       Pages in Zim are also displayed in the sidebar in a hierarchical tree style
       layout to help organize your notes better.
-	</p>
+    </p>
     <p>
-		Various plugins provide additional functionality, like a task list manager,
-		an equation editor, a tray icon, and support for version control.
-	</p>
+      Various plugins provide additional functionality, like a task list manager,
+      an equation editor, a tray icon, and support for version control.
+    </p>
     <p>Zim can be used to:</p>
     <ul>
       <li>Keep an archive of notes</li>
@@ -30,9 +30,11 @@
     </ul>
   </description>
   <launchable type="desktop-id">org.zim_wiki.Zim.desktop</launchable>
-  <url type="homepage">http://zim-wiki.org/</url>
+  <url type="homepage">https://zim-wiki.org/</url>
   <screenshots>
-    <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
+    <screenshot type="default">
+      <image type="source">https://zim-wiki.org/screenshots/zim-normal.png</image>
+    </screenshot>
   </screenshots>
   <releases>
     <release date="2024-12-29" version="0.76.0">
