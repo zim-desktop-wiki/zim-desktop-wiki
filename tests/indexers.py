@@ -518,7 +518,7 @@ class TestUnicodeRepresentationAlternatives(tests.TestCase):
 	#
 	# Both are valid unicode and should be recognized as the same page.
 	# Gtk input methods seem to prefer single character
-	# Specifically Mac OS X seems to prefer combination character for filesystem
+	# Specifically macOS seems to prefer combination character for filesystem
 
 	def testNotebook(self):
 		self._test_notebook("Gl\u00fcck", "GLu\u0308ck")

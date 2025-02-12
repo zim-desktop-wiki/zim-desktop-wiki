@@ -18,7 +18,7 @@ You can make any text into a link, thus the link you see and what it links to do
 Links can also be auto-formatted when typing, see [[Auto Formatting]] for more details
 
 
-==== Relative links ====
+===== Page links =====
 All links to other pages are relative to the current page unless they start with an ":" character. Zim first looks in the same section as the current page and if the name is not found, it searches all the parent sections. The rule is that it will check all pages that share a common parent with the current page bottom-up and match the first page with the right name. If you want to link to a child of a page that has a common parent you can link it using a relative path from the top page that does have a shared parent.
 
 For example, you have a page "''Zim:Examples:Linking:Relative''" now you just use "''Absolute''" to link to "''Zim:Examples:Linking:Absolute''", but you also use "''Examples:Calendar''" to link to "''Zim:Examples:Calendar''". This link works because the first part of the link ("''Examples''") is resolved relatively in the tree above the current page.
@@ -28,7 +28,7 @@ To create relative links to a sub-page of the current page, start the link with 
 Note that when inserting the link by [[Auto Formatting]] the link must have at least 2 letters in the first part of the link to avoid linking strings like e.g. "10:20PM". Also see [[Pages]] for more information on page names.
 
 
-==== Link to a heading or object ====
+===== Link to a heading or object =====
 To link to a heading or an object you can use "''#heading-id''" within the same page or "''pagename#heading-id''" from another page.
 
 Headings have an implicit id which consist of the heading text in lowercase with spaces replaces by "-" and all special characters removed. For example the heading of this section can be links as [[#link-to-a-heading-or-object]].
@@ -38,14 +38,14 @@ Objects like images and other inline objects can have an explicit "id" attribute
 Finally there is a special "anchor" object to place a link anywhere in the text or to e.g. set an explicit id for a heading. This can be inserted by typing "''##name''" and is rendered like this: {{id: name}} .
 
 
-==== File Links ====
+===== File Links =====
 You can link to files from zim. File names always need to contain a "''/''" character (even if your operating system uses another path separator). You can link relative to your home directory using "~/foo"  or relative to the page using "./foo". When you want to "attach" a file to a page you can use "//Tools//->//Open folder//" to open the file browser in the appropriate directory. Once you have copied or moved the file to this directory you can drag-and-drop from your file browser to the zim page, this will create a link.
 
 File links starting with "''/''", like "''/foo''" will be relative to the filesystem root, or to the Document Root, if you have one set in the [[Properties]]. If a Document Root is set, the only way to link to files outside this root is to use "''file:///''" URIs.
 
 Proper file URIs for files on the local filesystem should always start with either "''file:///''" or "''file://localhost/''".  URIs starting with "''file:/''" are technically invalid but will be interpreted as a local file. URIs starting with "''file://''" suggest a remote file following the "''file://host/share/''" syntax, these will be interpreted as a link to a "windows" share drive.
 
-==== Links to share drives ====
+===== Links to share drives =====
 "Windows" share drives or samba shares under Linux can be linked in different ways:
 
 '''

@@ -3,8 +3,10 @@
 # This class is in a seperate module to avoid Gtk imports in the main module
 # imports are a bit circular
 
+import os
 import logging
 import signal
+from typing import List, Optional
 
 logger = logging.getLogger('zim')
 
@@ -14,6 +16,7 @@ from gi.repository import Gio
 from gi.repository import Gtk
 
 from . import _application_startup, build_command, UsageError
+
 
 class ZimGtkApplication(Gtk.Application):
 	
@@ -33,6 +36,7 @@ class ZimGtkApplication(Gtk.Application):
 		else:
 			self.set_flags(Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
 		self.connect('startup', self.__class__._do_startup) # Hack to avoid bug in python-gtk interaction
+		self.connect('shutdown', self.__class__._do_shutdown)
 
 	def _do_startup(self):
 		_application_startup()
@@ -48,13 +52,23 @@ class ZimGtkApplication(Gtk.Application):
 
 		zim.errors.set_use_gtk(True)
 
+	def _do_shutdown(self):
+		# MainWindow implements saving in the destroy method
+		for window in self.get_windows():
+			window.destroy()
+
 	def do_command_line(self, gcommandline):
 		# Handler in primary process to process commandline and start application
 		# if started from remote process, the exit code is given back to that process
 		# and it exits while primary process keeps running as long as there are windows
-		return self.run_commandline(gcommandline.get_arguments()[1:], gcommandline.get_cwd())
+		args = gcommandline.get_arguments()
+		if 'python' in os.path.basename(args[0]):
+			args = args[2:] # strip python interpreter and zim script name
+		else:
+			args = args[1:] # strip zim executable name
+		return self.run_commandline(args, gcommandline.get_cwd())
 
-	def run_commandline(self, args: list[str], pwd: str|None = None) -> int:
+	def run_commandline(self, args: List[str], pwd: Optional[str] = None) -> int:
 		'''Run a commandline in the current process
 		@param args: the commandline options
 		@param pwd: the working directory as string path
@@ -69,9 +83,14 @@ class ZimGtkApplication(Gtk.Application):
 			print(err, file=sys.stderr)
 			return 1
 		else:
-			if window:
+			if window and isinstance(window, Gtk.Window):
 				self.add_window(window)
-			window.present()
+				window.present()
+			elif window:
+				# E.g. trayicon, not a window, but we need to hold application
+				self.hold()
+				window.connect('destroy', lambda *a: self.release())
+
 			return 0
 
 	def open_notebook(self, location, pagelink=None):
@@ -105,7 +124,7 @@ class ZimGtkApplication(Gtk.Application):
 		from zim import ZIM_EXECUTABLE
 		from zim.applications import Application
 
-		args = [ZIM_EXECUTABLE] + [a for a in args if a is not None]
+		args = [ZIM_EXECUTABLE] + [a for a in arg if a is not None]
 		if not '--standalone' in args:
 			args.append('--standalone')
 

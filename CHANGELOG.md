@@ -5,6 +5,42 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.76.1 - Fri 31 Jan 2025
+* Fix bug in auto-save on quit
+* Fix bug with find for pages with table object
+* Fix bug with undo deleting table object
+* Fix bug with out-denting verbatim text
+* Fix issue with linesorter plugin
+* Fix issue in commandline parsing for quicknote
+* Fix tray-icon plugin issues
+* Fix bug for Unix style links on Windows
+* Merge fixes for Indexed FTS search plugin
+* Let ToC selection follow cursor
+
+##  0.76.0 - Sun 29 Dec 2024
+* Add Indexed Full-Text Search plugin
+* Add Window Title Editor plugin
+* Add Mermaid diagrams plugin
+* Add preference to toggle dark theme variant
+* Add separate style for page links
+* Add commandline page import
+* Add preferences menu for side pane widgets
+* Diagram plugin: add preference for default text
+* Journal plugin: add range offsets to `journal_plugin.days()` in template
+* Search: add option to output scores on the command line
+* Spellcheck plugin: add Gspell support
+* Quicknote plugin: support wiki heading format as page name
+* Arithmetic plugin: add option for limiting output decimals
+* Markdown export: use blockquote to export indented paragraphs
+* Markdown export: include image dimensions and ID
+* Windows: fix high CPU usage by storing child process PID
+* Windows: Fix unicode handling of strftime for windows
+* Refactor to use Gtk.Application
+* Refactor zim.parser to zim.parse.regexparser
+* Refactor find API for pageview
+* Refactor internal serialization for textbuffer
+* Refactor parsing modules and utils
+* Port setup.py from distutils to setuptools
 
 ##  0.75.2 - Thu 06 Jul 2023
 * Add pagename completion by words in "Jump to"
@@ -23,7 +59,6 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Updated diagrameditor and sequencediagrameditor plugins to generate SVG
 * Add keybinding for cutting the current line(s)
 * Fix fullscreen headerbar visibility
-
 
 ##  0.75.1 - Tue 25 Oct 2022
 * Fix bug with relative path notebook icon

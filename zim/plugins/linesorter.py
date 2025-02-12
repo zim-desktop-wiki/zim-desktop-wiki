@@ -1,23 +1,18 @@
-
 # Copyright 2011 NorfCran <norfcran@gmail.com>
 # License:  same as zim (gpl)
 
-
-
-from gi.repository import Gtk
 
 from zim.errors import Error
 from zim.plugins import PluginClass
 from zim.actions import action
 from zim.base.naturalsort import natural_sort_key
-
 from zim.gui.pageview import PageViewExtension
-from zim.gui.widgets import MessageDialog
+from zim.gui.pageview.serialize import textbuffer_internal_serialize_range, textbuffer_internal_insert_at_cursor
 
 
-import logging
+#~ import logging
 
-logger = logging.getLogger('zim.plugins.linesorter')
+#~ logger = logging.getLogger('zim.plugins.linesorter')
 
 
 class LineSorterPlugin(PluginClass):
@@ -87,13 +82,13 @@ class LineSorterPageViewExtension(PageViewExtension):
 
 			# Make a list of tuples, first element of each tuple is
 			# text only sort key (no formatting), second element
-			# is parsetree per line
+			# is buffer data per line
 			lines = []
 			for line_nr in range(first_lineno, last_lineno + 1):
 				start, end = buffer.get_line_bounds(line_nr)
 				text = start.get_text(end)
-				tree = buffer.get_parsetree(bounds=(start, end))
-				lines.append((natural_sort_key(text), tree))
+				linedata = textbuffer_internal_serialize_range(buffer, start, end)
+				lines.append((natural_sort_key(text), linedata))
 			#~ logger.debug("Content of selected lines (text, tree): %s", lines)
 
 			# Sort the list of tuples
@@ -105,7 +100,7 @@ class LineSorterPageViewExtension(PageViewExtension):
 			# Replace selection
 			buffer.delete(iter_begin_line, iter_end_line)
 			for line in sorted_lines:
-				buffer.insert_parsetree_at_cursor(line[1])
+				textbuffer_internal_insert_at_cursor(buffer, line[1])
 
 
 	def move_line(self, offset):
@@ -131,7 +126,8 @@ class LineSorterPageViewExtension(PageViewExtension):
 			cursor_offset = cursor.get_line_offset()
 
 		# get copy tree
-		tree = buffer.get_parsetree(bounds=(start, end), raw=True)
+		assert start.starts_line()
+		linedata = textbuffer_internal_serialize_range(buffer, start, end)
 
 		with buffer.user_action:
 			# delete lines and insert at target
@@ -152,7 +148,7 @@ class LineSorterPageViewExtension(PageViewExtension):
 
 			# actual insert
 			insert_line = iter.get_line()
-			buffer.insert_parsetree_at_cursor(tree)
+			textbuffer_internal_insert_at_cursor(buffer, linedata)
 
 			# Fixup line end if selection happened to be end of buffer without newline
 			# and moving up
@@ -189,9 +185,10 @@ class LineSorterPageViewExtension(PageViewExtension):
 		'''Menu action to dublicate line'''
 		buffer = self.pageview.textview.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
-		tree = buffer.get_parsetree(bounds=(start, end))
+		linedata = textbuffer_internal_serialize_range(buffer, start, end)
 		with buffer.user_action:
-			buffer.insert_parsetree(end, tree)
+			buffer.place_cursor(end)
+			textbuffer_internal_insert_at_cursor(buffer, linedata)
 
 
 	@action(_('_Remove Line'), accelerator='<Primary><Shift>K', menuhints='edit')  # T: Menu item

@@ -112,7 +112,7 @@ class Index(SignalEmitter):
 			self.set_property('db_version', DB_VERSION) # Ensure we can write
 		except sqlite3.OperationalError:
 			# db is there but table does not exist
-			logger.debug('Operational error, init tabels')
+			logger.debug('Operational error, init tables')
 			try:
 				self._db_init()
 			except:
@@ -138,7 +138,8 @@ class Index(SignalEmitter):
 	def _db_init(self):
 		tables = [r[0] for r in self._db.execute(
 			'SELECT name FROM sqlite_master '
-			'WHERE type="table" and name NOT LIKE "sqlite%"'
+			'WHERE type=? and name NOT LIKE ?',
+			('table', 'sqlite%')
 		)]
 		for table in tables:
 			self._db.execute('DROP TABLE %s' % table)

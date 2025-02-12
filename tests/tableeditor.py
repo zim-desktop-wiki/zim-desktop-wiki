@@ -237,5 +237,5 @@ class TestTableFunctions(tests.TestCase):
 		self.assertEqual(CellFormatReplacer.cell_to_input('<span background="yellow">highlight</span>', with_pango=True),
 						 '__highlight__')
 		self.assertEqual(CellFormatReplacer.zim_to_cell('<link href="./alink">hello</link>'),
-						 '<span foreground="blue">hello<span size="1">./alink</span></span>')
+						 '<span foreground="blue"><span size="1">./alink</span>hello</span>')
 		self.assertEqual(CellFormatReplacer.cell_to_zim('<tt>code-block</tt>'), '<code>code-block</code>')

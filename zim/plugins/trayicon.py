@@ -2,6 +2,7 @@
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import GObject
+from gi.repository import Gio
 from gi.repository import Gtk
 
 import logging
@@ -43,12 +44,12 @@ def set_global_trayicon(classic=False):
 
 	if GLOBAL_TRAYICON and isinstance(GLOBAL_TRAYICON, cls):
 		return None
-	else:
-		new = cls()
-		if GLOBAL_TRAYICON:
-			GLOBAL_TRAYICON.destroy()
-		GLOBAL_TRAYICON = cls()
-		return GLOBAL_TRAYICON
+
+	if GLOBAL_TRAYICON:
+		GLOBAL_TRAYICON.destroy()
+
+	GLOBAL_TRAYICON = cls()
+	return GLOBAL_TRAYICON
 
 
 class TrayIconPluginCommand(GtkCommand):
@@ -123,6 +124,9 @@ class TrayIconBase(object):
 	'''Base class for the zim tray icon.
 	Contains code to create the tray icon menus.
 	'''
+
+	def get_application(self):
+		return Gio.Application.get_default()
 
 	def get_trayicon_menu(self):
 		'''Returns the main 'tray icon menu'''
@@ -221,8 +225,7 @@ class TrayIconBase(object):
 
 	def do_quit(self):
 		'''Quit zim.'''
-		if Gtk.main_level() > 0:
-			Gtk.main_quit()
+		self.get_application().quit()
 
 	def do_open_notebook(self):
 		'''Opens the notebook dialogs'''
@@ -244,7 +247,7 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 	}
 
 	def __init__(self):
-		GObject.GObject.__init__(self)
+		Gtk.StatusIcon.__init__(self)
 
 		icon_theme = Gtk.IconTheme.get_default()
 		if icon_theme.has_icon('zim-panel'):
@@ -276,13 +279,13 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 		menu = Gtk.Menu()
 		self.populate_menu_with_notebooks(menu, list)
 		menu.show_all()
-		menu.popup(None, None, Gtk.StatusIcon.position_menu, self, button, activate_time)
+		menu.popup(None, None, None, self, button, activate_time)
 
 	def do_popup_menu(self, button=3, activate_time=0):
 		#~ print('>>', button, activate_time)
 		menu = self.get_trayicon_menu()
 		menu.show_all()
-		menu.popup(None, None, Gtk.StatusIcon.position_menu, self, button, activate_time)
+		menu.popup(None, None, None, self, button, activate_time)
 
 	def destroy(self):
 		self.set_property('visible', False)

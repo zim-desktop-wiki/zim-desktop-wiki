@@ -173,8 +173,7 @@ class Dumper(DumperClass):
 		return (bullet, ' ') + tuple(strings)
 
 	def dump_anchor(self, tag, attrib, strings=None):
-		# TODO: what should be returned here?
-		return ("[id: ", attrib['name'], "]")
+		return () # anchor has no text representation
 
 	def dump_link(self, tag, attrib, strings=None):
 		# Just plain text, either text of link, or link href
@@ -194,7 +193,7 @@ class Dumper(DumperClass):
 		text = alt if alt else src
 		return [text]
 
-	def dump_object_fallback(self, tag, attrib, strings):
+	def dump_object_fallback(self, tag, attrib, strings=None):
 		return strings
 
 	def dump_table(self, tag, attrib, strings):

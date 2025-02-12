@@ -1004,7 +1004,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@returns: a L{File} or L{Folder} object.
 		'''
 		assert isinstance(filename, str) and filename
-		file = self._resolve_abs_file(filename)
+		try:
+			file = self._resolve_abs_file(filename)
+		except:
+			logger.exception('Could not resolve filename as absolute path: %s', filename)
+			file = None
+
 		if file is None:
 			if path:
 				folder = self.get_attachments_dir(path)

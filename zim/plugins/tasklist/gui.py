@@ -608,9 +608,11 @@ class ListSelectionView(Gtk.ListBox):
 			if row.get_child()._zim_key == key:
 				self.select_row(row)
 				self.emit('row-activated', row)
-				return
+				return True
 		else:
-			raise AssertionError("Could not find key: %s" % key)
+			# NOTE: do not make this a fatal error, might be old uistate in place
+			logger.debug("Could not find selection key: %s" % key)
+			return False
 
 
 class LabelAndTagView(Gtk.ListBox):
@@ -1202,7 +1204,7 @@ class TaskListTreeView(BrowserTreeView):
 		text = self._get_raw_text(model[path])
 
 		pageview = self.opener.open_page(page)
-		pageview.find(text)
+		pageview.show_find(text)
 
 	def _get_raw_text(self, task):
 		id = task[TASKID_COL]

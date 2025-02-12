@@ -11,7 +11,7 @@ logger = logging.getLogger('zim.newfs')
 
 
 FS_CASE_SENSITIVE = not (os.name == 'nt' or sys.platform == 'darwin') #: file system case-sensitive yes or no
-	# Both windows and mac OS have by default case in-sensitive file systems
+	# Both windows and macOS have by default case in-sensitive file systems
 
 FS_SUPPORT_NON_LOCAL_FILE_SHARES = (os.name == 'nt') #: Support \\host\share paths yes or no
 

@@ -6,17 +6,20 @@ from tests import os_native_path
 import logging
 import os
 
+
 logger = logging.getLogger('tests.pageview')
 
+
+from zim.plugins import PluginManager
 from zim.newfs import LocalFile, LocalFolder
 from zim.formats import get_format, ParseTree
 from zim.notebook import Path
 from zim.gui.clipboard import Clipboard
 
 from zim.gui.pageview import *
-from zim.gui.pageview.find import FIND_CASE_SENSITIVE, FIND_REGEX, FIND_WHOLE_WORD
 from zim.gui.pageview.lists import TextBufferList
 from zim.gui.pageview.textview import camelcase
+from zim.gui.pageview.serialize import *
 from zim.gui.pageview.undostack import UndoStackManager
 
 
@@ -98,51 +101,103 @@ class TestLines(tests.TestCase):
 class TextBufferTestCaseMixin(object):
 	# Mixin class with extra test methods
 
-	def get_buffer(self, input=None, raw=True):
+	def get_buffer(self, content=None):
+		'''Create a new L{TextBuffer}
+		@param content: buffer contents, see L{set_buffer()} for supported formats
+		'''
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
-		if input is not None:
-			tree = self._get_tree(input, raw)
-		else:
-			tree = None
-		return TextBuffer(notebook, page, parsetree=tree)
+		buffer = TextBuffer(notebook, page)
+		if content is not None:
+			self.set_buffer(buffer, content)
+			buffer.undostack.clear_undostack()
+		return buffer
 
-	def set_buffer(self, buffer, input, raw=True):
-		tree = self._get_tree(input, raw)
-		buffer.set_parsetree(tree)
-
-	def _get_tree(self, input, raw):
-		if isinstance(input, str):
-			if not input.startswith('<?xml'):
-				if raw:
-					input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
-				else:
-					input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>''' % input
-			tree = tests.new_parsetree_from_xml(input)
-		elif isinstance(input, (list, tuple)):
-			raise NotImplementedError('Support tokens')
-		else:
-			tree = input
-		return tree
-
-	def assertBufferEquals(self, buffer, wanted, raw=True):
-		if isinstance(wanted, (tuple, list)):
-			wanted = list(wanted)
-			tree = buffer.get_parsetree()
-			tokens = list(tree.iter_tokens())
-			self.assertEqual(tokens, wanted)
-		else:
-			if isinstance(wanted, str):
-				if not wanted.startswith('<?xml'):
-					if raw:
-						wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
-					else:
-						wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>''' % wanted
+	def set_buffer(self, buffer, content):
+		'''Set L{TextBuffer} contents
+		If using xml contents, it can be treated as either L{ParseTree} xml or L{TextBufferInternalContents}
+		xml. This depends on the xml tag `<zim-tree>` being present or not
+		@param content: buffer content as xml, L{ParseTree}, tokens or L{TextBufferInternalContents}
+		'''
+		input = content
+		if isinstance(content, (list, tuple)):
+			raise NotImplementedError('Support tokens') # TODO convert to ParseTree
+		elif isinstance(content, str):
+			if '<zim-tree>' in content:
+				if not content.startswith('<?xml'):
+					content = '''<?xml version='1.0' encoding='utf-8'?>\n%s''' % content
+				content = tests.new_parsetree_from_xml(content)
 			else:
-				wanted = tree.tostring()
-			raw = '<zim-tree raw="True">' in wanted
-			tree = buffer.get_parsetree(raw=raw)
-			self.assertEqual(tree.tostring(), wanted)
+				# assume textbuffer internal
+				if not content.startswith('<zim-textbuffer>'):
+					content = '<zim-textbuffer>%s</zim-textbuffer>' % content
+				content = TextBufferInternalContents.new_from_xml(content)
+
+		if isinstance(content, ParseTree):
+			with FilterNoSuchImageWarning():
+				buffer.set_parsetree(content)
+			self.assertParseTreeEqual(buffer, input, 'Set/get failed on `set_buffer()`') # Set/get test
+		elif isinstance(content, TextBufferInternalContents):
+			buffer.clear()
+			with FilterNoSuchImageWarning():
+				textbuffer_internal_insert_at_cursor(buffer, content)
+			self.assertBufferEqual(buffer, input, 'Set/get failed on `set_buffer()`') # Set/get test
+		else:
+			raise TypeError('Unsupported input type: %s', content)
+
+	def assertParseTreeEqual(self, parsetree, wanted, msg=None):
+		'''Compare L{ParseTree} contents
+		NOTE: This method compares the L{ParseTree} content, which is cleaned up to adhere to the formatting
+		rules, if you are interrested in the internal state of a L{TextBuffer} use L{assertBufferEqual()} instead
+		@param content: either a L{ParseTree}, xml or token representation, or any object supporting C{get_parsetree()}
+		@param wanted: either a L{ParseTree}, xml or token representation, or any object supporting C{get_parsetree()}
+		'''
+		parsetree = self._parsetree_like_to_xml(parsetree)
+		wanted = self._parsetree_like_to_xml(wanted)
+		self.assertEqual(parsetree, wanted, msg)
+
+	def _parsetree_like_to_xml(self, content):
+		if hasattr(content, 'get_parsetree'):
+			content = content.get_parsetree()
+
+		if isinstance(content, (tuple, list)):
+			raise NotImplementedError('Convert tokens to ParseTree')
+			# return parsetree.tostring()
+		elif isinstance(content, str):
+			if not content.startswith('<?xml') and '<zim-tree' not in content:
+				content = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>''' % content
+			elif not content.startswith('<?xml'):
+				content = '''<?xml version='1.0' encoding='utf-8'?>\n%s''' % content
+			return content
+		elif isinstance(content, ParseTree):
+			return content.tostring()
+		else:
+			raise TypeError('Unsupported input type: %s', content)
+
+	def assertBufferEqual(self, buffer, wanted, msg=None):
+		'''Compare L{TextBuffer} contents
+		NOTE: this method compares the internal state of the L{TextBuffer}, if you are only interested in 
+		the resulting L{ParseTree}, use L{assertParseTreeEqual()} instead
+		@param buffer: a L{TextBuffer}, L{TextBufferInternalContents}, or xml representation
+		@param wanted: a L{TextBuffer}, L{TextBufferInternalContents}, or xml representation
+		'''
+		buffer = self._buffer_like_to_xml(buffer)
+		wanted = self._buffer_like_to_xml(wanted)
+		self.assertEqual(buffer, wanted, msg)
+
+	def _buffer_like_to_xml(self, buffer):
+		if isinstance(buffer, TextBuffer):
+			data = textbuffer_internal_serialize_range(buffer, *buffer.get_bounds())
+			return data.to_xml()
+		elif isinstance(buffer, TextBufferInternalContents):
+			return buffer.to_xml()
+		elif isinstance(buffer, str):
+			assert '<zim-tree' not in buffer, 'Expected buffer contents, got parsetree'
+			if not buffer.startswith('<zim-textbuffer>'):
+				buffer = '<zim-textbuffer>%s</zim-textbuffer>' % buffer
+			return buffer
+		else:
+			raise TypeError('Unsupported input type: %s', buffer)
 
 	def assertSelection(self, buffer, line, offset, string):
 		bound = buffer.get_selection_bounds()
@@ -159,6 +214,9 @@ class TextBufferTestCaseMixin(object):
 		#~ print('  GOT', cursor.get_line(), cursor.get_line_offset())
 		self.assertEqual(cursor.get_line(), line, msg=msg)
 		self.assertEqual(cursor.get_line_offset(), offset, msg=msg)
+
+	def print_buffer(self, buffer):
+		print(self._buffer_like_to_xml(buffer))
 
 
 class TestTextBuffer(tests.TestCase, TextBufferTestCaseMixin):
@@ -254,353 +312,74 @@ More text
 		result = newbuffer.get_parsetree()
 		self.assertEqual(result.tostring(), wanted_without_newline)
 
-	def testVarious(self):
-		'''Test serialization and interaction of the page view textbuffer'''
+	def testSetParseTreeDoesNotModify(self):
+		# Ensure insert does not modify tree (e.g. attrib types)
+		# comparing tokens to avoid xml flattening
 		tree = tests.new_parsetree()
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		with FilterNoSuchImageWarning():
-			buffer.set_parsetree(tree)
+		tokens = list(tree.iter_tokens())
+		buffer = self.get_buffer(tree)
+		self.assertEqual(tokens, list(tree.iter_tokens()))
 
-		raw1 = buffer.get_parsetree(raw=True)
-		result1 = buffer.get_parsetree()
-		reftree = tree.copy()
-		self.assertEqual(result1.tostring(), reftree.tostring())
-
-		# Compare we are stable when loading raw tree again
-		raw = raw1.tostring()
-		with FilterNoSuchImageWarning():
-			buffer.set_parsetree(raw1)
-		self.assertEqual(raw1.tostring(), raw)
-			# If this fails, set_parsetree is modifying the tree
-		raw2 = buffer.get_parsetree(raw=True)
-		self.assertEqual(raw2.tostring(), raw)
-			# Actual cooked roundtrip test
-
-		# Compare we are stable when loading cooked tree again
-		#~ cooked = result1.tostring()
-		#~ with FilterNoSuchImageWarning():
-			#~ buffer.set_parsetree(result1)
-		#~ self.assertEqual(result1.tostring(), cooked)
-			#~ # If this fails, set_parsetree is modifying the tree
-		#~ result2 = buffer.get_parsetree()
-		#~ self.assertEqual(result2.tostring(), cooked)
-			# Actual cooked roundtrip test
-
-		# Test 'raw' really preserves "errors"
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">
-foo <h level="1">bar</h> baz
-
-dus <pre>ja</pre> hmm
-
-<h level="2">foo
-</h>bar
-
-dus <div indent="5">ja</div> <emphasis>hmm
-dus ja
-</emphasis>grrr
-
-<li bullet="*" indent="0"> Foo
-</li><li bullet="*" indent="0"> Bar
-</li>
-</zim-tree>'''
-		tree = tests.new_parsetree_from_xml(input)
-		buffer.set_parsetree(tree)
-
-		rawtree = buffer.get_parsetree(raw=True)
-		self.assertEqual(rawtree.tostring(), input)
-
-		# Test errors are cleaned up correctly
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p>foo bar baz
-</p>
-<p>dus <code>ja</code> hmm
-</p>
-<h level="2">foo
+	def testPasteFormattedText(self):
+		buffer = self.get_buffer('''\
+<zim-tree><h level="2">foo
 </h><p>bar
-</p>
-<p>dus ja <emphasis>hmm</emphasis>
-<emphasis>dus ja</emphasis>
-grrr
 </p>
 <p><ul><li bullet="*">Foo
 </li><li bullet="*">Bar
-</li></ul></p>
-</zim-tree>'''
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), wanted)
-
-		# Test pasting some simple text
-		buffer.set_parsetree(tree) # reset without errors
-		input = '''\
+</li></ul></p></zim-tree>''')
+		pastetree = tests.new_parsetree_from_xml('''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><strong>Bold</strong></zim-tree>'''
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p>foo bar baz
-</p>
-<p>dus <code>ja</code> hmm
-</p>
-<h level="2">foo
+<zim-tree><strong>Bold</strong></zim-tree>''')
+		iter = buffer.get_iter_at_line(3)
+		iter.forward_chars(5) # position after "* Foo"
+		buffer.insert_parsetree(iter, pastetree, interactive=True)
+		iter = buffer.get_iter_at_line(4) # position before bullet "* Bar"
+		buffer.insert_parsetree(iter, pastetree, interactive=True)
+		self.assertTrue(buffer.get_modified())
+		self.assertParseTreeEqual(buffer, '''\
+<zim-tree><h level="2">foo
 </h><p>bar
-</p>
-<p>dus ja <emphasis>hmm</emphasis>
-<emphasis>dus ja</emphasis>
-grrr
 </p>
 <p><ul><li bullet="*">Foo<strong>Bold</strong>
 </li><li bullet="*"><strong>Bold</strong>Bar
-</li></ul></p>
-</zim-tree>'''
-		pastetree = tests.new_parsetree_from_xml(input)
-		iter = buffer.get_iter_at_line(12)
-		iter.forward_chars(5) # position after "* Foo"
-		buffer.insert_parsetree(iter, pastetree, interactive=True)
-		iter = buffer.get_iter_at_line(13) # position before bullet "* Bar"
-		buffer.insert_parsetree(iter, pastetree, interactive=True)
-		tree = buffer.get_parsetree()
-		self.assertTrue(buffer.get_modified())
-		self.assertEqual(tree.tostring(), wanted)
+</li></ul></p></zim-tree>''')
 
-		# Now paste list halfway and see result is OK
+	def testPasteList(self):
+		# Paste list halfway and see result is OK
 		# because of the bullets pasting should go to a new line
 		# automatically
-		input = '''\
+		buffer = self.get_buffer('''\
+<zim-tree><h level="2">foo
+</h><p>bar
+</p>
+<p><ul><li bullet="*">Foo
+</li><li bullet="*">Bar
+</li></ul></p></zim-tree>''')
+		pastetree = tests.new_parsetree_from_xml('''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><li>Foo
-</li><li>Bar
-</li>
-</zim-tree>'''
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p>foo bar baz
+<zim-tree><li bullet="*">Foo
+</li><li bullet="*">Bar
+</li></zim-tree>''')
+		iter = buffer.get_iter_at_line(1)
+		iter.forward_chars(3) # position after "baz"
+		buffer.insert_parsetree(iter, pastetree, interactive=True)
+		self.assertTrue(buffer.get_modified())
+		self.assertParseTreeEqual(buffer, '''\
+<h level="2">foo
+</h><p>bar
 <ul><li bullet="*">Foo
 </li><li bullet="*">Bar
 </li></ul></p>
 
+<p><ul><li bullet="*">Foo
+</li><li bullet="*">Bar
+</li></ul></p>''')
 
-<p>dus <code>ja</code> hmm
-</p>
-<h level="2">foo
-</h><p>bar
-</p>
-<p>dus ja <emphasis>hmm</emphasis>
-<emphasis>dus ja</emphasis>
-grrr
-</p>
-<p><ul><li bullet="*">Foo<strong>Bold</strong>
-</li><li bullet="*"><strong>Bold</strong>Bar
-</li></ul></p>
-</zim-tree>'''
-		pastetree = tests.new_parsetree_from_xml(input)
-		iter = buffer.get_iter_at_line(1)
-		iter.forward_chars(11) # position after "baz"
-		buffer.insert_parsetree(iter, pastetree, interactive=True)
-		tree = buffer.get_parsetree()
-		self.assertTrue(buffer.get_modified())
-		self.assertEqual(tree.tostring(), wanted)
-
-		# Test sanity for editing "errors"
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<li bullet="unchecked-box" indent="0">Box 1
-</li><li bullet="unchecked-box" indent="0">Box 2
-</li><li bullet="unchecked-box" indent="0">Box 3
-</li>
-</zim-tree>
-'''
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p><ul><li bullet="unchecked-box">Box 1
-</li><li bullet="unchecked-box">foo Box 2
-</li><li bullet="unchecked-box">Box 3
-</li></ul></p>
-</zim-tree>'''
-		tree = tests.new_parsetree_from_xml(input)
-		buffer.set_parsetree(tree)
-		iter = buffer.get_iter_at_line(2) # iter *before* checkbox
-		buffer.insert(iter, 'foo ')
-		#print buffer.get_parsetree(raw=True).tostring()
-		#print buffer.get_parsetree().tostring()
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), wanted)
-
-		# Strange bug let to second bullet disappearing in this case
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p><ul indent="1"><li bullet="*">Box 1
-</li><li bullet="*">Box 2
-</li><li bullet="*">Box 3
-</li></ul></p>
-</zim-tree>'''
-		tree = tests.new_parsetree_from_xml(input)
-		buffer.set_parsetree(tree)
-		iter = buffer.get_iter_at_line(2) # iter before checkbox
-		bound = iter.copy()
-		bound.forward_char()
-		buffer.select_range(iter, bound)
-		buffer.toggle_format_tag_by_name('strike')
-		#~ print buffer.get_parsetree(raw=True).tostring()
-		#~ print buffer.get_parsetree().tostring()
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), input)
-
-		# Check how robust we are for placeholder utf8 character
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		buffer.insert_at_cursor('foo \uFFFC bar')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>foo  bar</p></zim-tree>'''
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), wanted)
-
-		# Test merge lines logic on delete
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">Foo
-</h>
-<h level="2">Bar
-</h>
-<p><ul><li bullet="*">List item 0
-</li></ul></p>
-<p><ul indent="1"><li bullet="*">List item 1
-</li></ul></p></zim-tree>'''
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">FooBar
-</h>
-<p>List item 0
-</p>
-<p><div indent="1">List item 1
-</div></p></zim-tree>'''
-		# Note: we don't insert extra newlines, but <li> assumes them
-		tree = tests.new_parsetree_from_xml(input)
-		buffer.set_parsetree(tree)
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), input)
-
-		iter = buffer.get_iter_at_line(2) # before h2
-		bound = iter.copy()
-		iter.backward_chars(2) # after h1
-		buffer.delete(iter, bound)
-
-		iter = buffer.get_iter_at_line(2) # list item 0
-		bound = iter.copy()
-		bound.forward_chars(2) # Behind bullet
-		buffer.delete(iter, bound)
-
-		iter = buffer.get_iter_at_line(4) # list item 1
-		bound = iter.copy()
-		bound.forward_chars(2) # Behind bullet
-		buffer.delete(iter, bound)
-
-		#~ print buffer.get_parsetree().tostring()
-		#~ print wanted
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), wanted)
-
-
-
-		# Exercize recursive checkbox lists
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo
-</li><li bullet="unchecked-box" indent="0"> Bar
-</li><li bullet="unchecked-box" indent="1"> Bar 1
-</li><li bullet="unchecked-box" indent="2"> Bar 1.1
-</li><li bullet="unchecked-box" indent="1"> Bar 2
-</li><li bullet="unchecked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
-</li>Tja
-</zim-tree>'''
-		tree = tests.new_parsetree_from_xml(input)
-		buffer.set_parsetree(tree)
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input) # just a sanity check
-
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="xchecked-box" indent="0"> Foo
-</li><li bullet="checked-box" indent="0"> Bar
-</li><li bullet="xchecked-box" indent="1"> Bar 1
-</li><li bullet="checked-box" indent="2"> Bar 1.1
-</li><li bullet="checked-box" indent="1"> Bar 2
-</li><li bullet="checked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
-</li>Tja
-</zim-tree>'''
-		buffer.toggle_checkbox(2, recursive=True) # Bar
-		buffer.toggle_checkbox(3, recursive=True) # Bar 1
-			# After first click all children become checked
-			# After second click one becomes xchecked
-		buffer.place_cursor(buffer.get_iter_at_line(1)) # Foo
-		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX)
-			# Like <Shift><F12> on first list item line
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="xchecked-box" indent="0"> Foo
-</li><li bullet="unchecked-box" indent="0"> Bar
-</li><li bullet="unchecked-box" indent="1"> Bar 1
-</li><li bullet="unchecked-box" indent="2"> Bar 1.1
-</li><li bullet="unchecked-box" indent="1"> Bar 2
-</li><li bullet="unchecked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
-</li>Tja
-</zim-tree>'''
-		start = buffer.get_iter_at_line(2) # Bar
-		end = buffer.get_iter_at_line(6) # Bar 3
-		end.forward_to_line_end()
-		buffer.select_range(start, end)
-		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recursive=True)
-			# Like keypress would trigger while selection present
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-
-		# Test deleting checkbox and undo / redo does not mess up indenting etc
-		undomanager = UndoStackManager(buffer)
-		previous = wanted
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="xchecked-box" indent="0"> Foo
-</li><li bullet="unchecked-box" indent="0"> Bar
-</li><li bullet="unchecked-box" indent="0"> Baz
-</li>Tja
-</zim-tree>'''
-		start = buffer.get_iter_at_line(3) # Bar
-		end = buffer.get_iter_at_line(7) # Baz (before checkbox !)
-		buffer.delete(start, end)
-		tree = buffer.get_parsetree(raw=True)
-		#~ print tree.tostring()
-		#~ print wanted
-		self.assertEqual(tree.tostring(), wanted)
-
-		undomanager.undo()
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), previous)
-
-		undomanager.redo()
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+	def testRobustForUTF8PlaceholderCharacter(self):
+		buffer = self.get_buffer('foo \uFFFC bar')
+		self.assertBufferEqual(buffer, 'foo \uFFFC bar')
+		self.assertParseTreeEqual(buffer, '<zim-tree><p>foo  bar</p></zim-tree>')
 
 	def testStringEscapeDoesNotGetEvaluated(self):
 		input = '''\
@@ -616,25 +395,11 @@ This is not a tab: \\tab
 	def testReplace(self):
 		# Check replacing a formatted word
 		# word is deleted, but formatting should stay
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p>aaa <strong>bbb</strong> ccc
-</p></zim-tree>
-'''
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<p>aaa <strong>eee</strong> ccc
-</p></zim-tree>'''
-		tree = tests.new_parsetree_from_xml(input)
+		input = 'aaa <strong>bbb</strong> ccc'
+		wanted = 'aaa <strong>eee</strong> ccc'
 
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		buffer.set_parsetree(tree)
-
-		iter = buffer.get_iter_at_offset(7) # middle of "bbb"
+		buffer = self.get_buffer(input)
+		iter = buffer.get_iter_at_offset(6) # middle of "bbb"
 		buffer.place_cursor(iter)
 		buffer.select_word()
 
@@ -642,22 +407,12 @@ This is not a tab: \\tab
 			buffer.delete_selection(True, True)
 			buffer.insert_interactive_at_cursor("eee", 3, True)
 
-		self.assertBufferEquals(buffer, wanted)
+		self.assertBufferEqual(buffer, wanted)
 
 	def testSelectLink(self):
-		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-aaa <link href="xxx">bbb</link> ccc
-</zim-tree>
-'''
-		tree = tests.new_parsetree_from_xml(input)
-
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		buffer.set_parsetree(tree)
-		buffer.place_cursor(buffer.get_iter_at_offset(7)) # middle of link
+		input = 'aaa <link href="xxx">bbb</link> ccc'
+		buffer = self.get_buffer(input)
+		buffer.place_cursor(buffer.get_iter_at_offset(6)) # middle of link
 
 		self.assertIsNone(buffer.get_has_link_selection())
 		data = buffer.select_link()
@@ -714,36 +469,67 @@ aaa <link href="xxx">bbb</link> ccc
 		self.assertFalse(buffer.get_has_selection())
 
 	def testToggleTextStylePre(self):
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		buffer.set_parsetree(tests.new_parsetree_from_xml('''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>A
+		buffer = self.get_buffer('''\
+A
 <div indent="1">B
 </div>C
 <div indent="1">D
-</div></p></zim-tree>
-'''))
+</div>''')
 		start, end = buffer.get_bounds()
 		buffer.select_range(start, end)
 		buffer.toggle_format_tag_by_name('pre')
-
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(), '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><pre>A
+		self.assertBufferEqual(buffer, '''\
+<pre>A
 	B
 C
 	D
-</pre></zim-tree>''')
+</pre>''')
 
 	def testToggleTextStyleCodeOverTag(self):
-		buffer = TextBuffer(None, None)
-		self.set_buffer(buffer, 'foo <tag name="test">@test</tag> bar')
+		buffer = self.get_buffer('foo <tag name="None">@test</tag> bar')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('code')
-		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
+		self.assertBufferEqual(buffer, '<code>foo @test bar</code>')
+
+	def testMergeLinesVarious(self):
+		# Test merge lines logic on delete
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><h level="1">Foo
+</h>
+<h level="2">Bar
+</h>
+<p><ul><li bullet="*">List item 0
+</li></ul></p>
+<p><ul indent="1"><li bullet="*">List item 1
+</li></ul></p></zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><h level="1">FooBar
+</h>
+<p>List item 0
+</p>
+<p><div indent="1">List item 1
+</div></p></zim-tree>'''
+		# Note: we don't insert extra newlines, but <li> assumes them
+		buffer = self.get_buffer(input)
+
+		iter = buffer.get_iter_at_line(2) # before h2
+		bound = iter.copy()
+		iter.backward_chars(2) # after h1
+		buffer.delete(iter, bound)
+
+		iter = buffer.get_iter_at_line(2) # list item 0
+		bound = iter.copy()
+		bound.forward_chars(2) # Behind bullet
+		buffer.delete(iter, bound)
+
+		iter = buffer.get_iter_at_line(4) # list item 1
+		bound = iter.copy()
+		bound.forward_chars(2) # Behind bullet
+		buffer.delete(iter, bound)
+
+		self.assertParseTreeEqual(buffer, wanted)
 
 	def assertMergeLines(self, input, output, line=0, offset=None):
 		buffer = self.get_buffer(input)
@@ -758,41 +544,41 @@ C
 
 		with buffer.user_action:
 			buffer.delete_interactive(iter, end, True)
-		self.assertBufferEquals(buffer, output)
+		self.assertBufferEqual(buffer, output)
 
 		# Check undo / redo of special handling of bullets at merge - see issue #1949
 		buffer.undostack.undo()
-		self.assertBufferEquals(buffer, input)
+		self.assertBufferEqual(buffer, input)
 		buffer.undostack.redo()
-		self.assertBufferEquals(buffer, output)
+		self.assertBufferEqual(buffer, output)
 
 	def testMergeLinesWithBullet(self):
 		# Ensure that bullet of line 2 is removed, in raw tree also the space is gone
 		self.assertMergeLines(
-			'<li bullet="*" indent="0"> item 1\n</li><li bullet="*" indent="0"> item 2\n</li>',
-			'<li bullet="*" indent="0"> item 1item 2\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 item 1\n\u2022 item 2\n</li>',
+			'<li indent="0" style="bullet-list">\u2022 item 1item 2\n</li>'
 		)
 
 	def testMergeLinesWithNumberedBullet(self):
 		# Ensure that bullet of line 2 is removed, in raw tree also the space is gone
 		self.assertMergeLines(
-			'<li bullet="1." indent="0"> item 1\n</li><li bullet="2." indent="0"> item 2\n</li>',
-			'<li bullet="1." indent="0"> item 1item 2\n</li>'
+			'<li indent="0" style="numbered-list">1. item 1\n2. item 2\n</li>',
+			'<li indent="0" style="numbered-list">1. item 1item 2\n</li>'
 		)
 
 	def testMergeLinesWithBulletWithNotABullet(self):
 		# Check numer at start of 2nd bullet is preserved - see issue #1949
 		self.assertMergeLines(
-			'<li bullet="*" indent="0"> item 1\n</li><li bullet="*" indent="0"> 1. item 2\n</li>',
-			'<li bullet="*" indent="0"> item 11. item 2\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 item 1\n\u2022 1. item 2\n</li>',
+			'<li indent="0" style="bullet-list">\u2022 item 11. item 2\n</li>'
 		)
 
 	def testMergeLinesWithNotABulletWithoutNewline(self):
 		# See issue #1328, avoid accidental removal of something that looks
 		# like a bullet
 		self.assertMergeLines(
-			'<li bullet="*" indent="0"> item 1 123. test\n</li>',
-			'<li bullet="*" indent="0"> item 1123. test\n</li>',
+			'<li indent="0" style="bullet-list">\u2022 item 1 123. test\n</li>',
+			'<li indent="0" style="bullet-list">\u2022 item 1123. test\n</li>',
 			line=0, offset=8 # Position at after "item 1"
 		)
 
@@ -800,15 +586,15 @@ C
 		# See issue #1328, avoid accidental removal of something that looks
 		# like a bullet
 		self.assertMergeLines(
-			'<li bullet="*" indent="0"> item 1\n</li>123. test\n',
-			'<li bullet="*" indent="0"> item 1123. test\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 item 1\n</li>123. test\n',
+			'<li indent="0" style="bullet-list">\u2022 item 1123. test\n</li>'
 		)
 
 	def testMergeLinesNewlineAfterListItem(self):
 		# Ensure that trailing newline gets formatted as well
 		self.assertMergeLines(
-			'<li bullet="*" indent="0"> item 1\n</li>\ntext\n',
-			'<li bullet="*" indent="0"> item 1\n</li>text\n',
+			'<li indent="0" style="bullet-list">\u2022 item 1\n</li>\ntext\n',
+			'<li indent="0" style="bullet-list">\u2022 item 1\n</li>text\n',
 		)
 
 	def testMergeLinesNewlineAfterHeading(self):
@@ -830,96 +616,94 @@ C
 		for lvl in range(1, 7):
 			buffer.select_line(0)
 			buffer.toggle_format_tag_by_name('h%i' % lvl)
-			self.assertBufferEquals(buffer, '<h level="%i">foo bar\n</h>' % lvl)
+			self.assertBufferEqual(buffer, '<h level="%i">foo bar\n</h>' % lvl)
 
 	def testFormatHeadingWithFormatting(self):
-		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n')
+		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="None">Foo</link>\n')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('h2')
-		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n</h>')
+		self.assertBufferEqual(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="None">Foo</link>\n</h>')
 
 	def testFormatHeadingOnIndent(self):
 		buffer = self.get_buffer('<div indent="2">foo bar\n</div>')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('h2')
-		self.assertBufferEquals(buffer, '<h level="2">foo bar\n</h>')
+		self.assertBufferEqual(buffer, '<h level="2">foo bar\n</h>')
 
 	def testFormatHeadingOnList(self):
-		buffer = self.get_buffer('<li bullet="1."> foo bar\n</li>')
+		buffer = self.get_buffer('<li indent="0" style="numbered-list">1. foo bar\n</li>')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('h2')
-		self.assertBufferEquals(buffer, '<h level="2" /><h level="2">1. foo bar\n</h>')
-				# FIXME: first <h level="2" /> should not be there, but does not seem to affect user behavior
-				#        maybe removed by refactoring serialization
+		self.assertBufferEqual(buffer, '<h level="2">1. foo bar\n</h>')
 
 	def testFormatHeadingOnAnchor(self):
 		buffer = self.get_buffer('Foo bar <anchor name="bar" />')
 		buffer.select_line(0)
 		buffer.toggle_format_tag_by_name('h2')
-		self.assertBufferEquals(buffer, '<h level="2">Foo bar <anchor name="bar" /></h>')
+		self.assertBufferEqual(buffer, '<h level="2">Foo bar <anchor name="bar" /></h>')
 
 	def testBreakHeadingOnNewline(self):
 		buffer = self.get_buffer('<h level="1">Heading\n</h>')
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>')
 
 		buffer.place_cursor(buffer.get_iter_at_offset(7))
 		with buffer.user_action:
 			buffer.insert_at_cursor('\n')
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>\n')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>\n')
 		with buffer.user_action:
 			buffer.insert_at_cursor('test 123')
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>test 123\n')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>test 123\n')
 
 		# Check undo stack since this is special case in do_insert_text()
 		buffer.undostack.undo()
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>\n')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>\n')
 		buffer.undostack.undo()
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>')
 
 		# Check for special case at end of buffer
 		buffer = self.get_buffer('<h level="1">Heading</h>')
 		buffer.place_cursor(buffer.get_iter_at_offset(7))
 		buffer.insert_at_cursor('\n')
 		buffer.insert_at_cursor('test 123')
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>test 123')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>test 123')
 
 	def testMoveHeadingOnNewlineAtStart(self):
 		# Newline at start of heading should not result in empty line
 		# with heading tag, insetad move heading down and leave normal line
 		buffer = self.get_buffer('<h level="1">Heading\n</h>')
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>')
 
 		buffer.place_cursor(buffer.get_iter_at_offset(0))
 		with buffer.user_action:
 			buffer.insert_at_cursor('\n')
-		self.assertBufferEquals(buffer, '\n<h level="1">Heading\n</h>')
+		self.assertBufferEqual(buffer, '\n<h level="1">Heading\n</h>')
 		with buffer.user_action:
 			buffer.insert_at_cursor('test 123')
-		self.assertBufferEquals(buffer, '\n<h level="1">test 123Heading\n</h>')
+		self.assertBufferEqual(buffer, '\n<h level="1">test 123Heading\n</h>')
 
 		# Check undo stack since this is special case in do_insert_text()
 		buffer.undostack.undo()
-		self.assertBufferEquals(buffer, '\n<h level="1">Heading\n</h>')
+		self.assertBufferEqual(buffer, '\n<h level="1">Heading\n</h>')
 		buffer.undostack.undo()
-		self.assertBufferEquals(buffer, '<h level="1">Heading\n</h>')
+		self.assertBufferEqual(buffer, '<h level="1">Heading\n</h>')
 
 	def testMoveIndentOnNewlineAtStart(self):
 		buffer = self.get_buffer('<div indent="2">Test 123\n</div>')
-		self.assertBufferEquals(buffer, '<div indent="2">Test 123\n</div>')
+		self.assertBufferEqual(buffer, '<div indent="2">Test 123\n</div>')
 
 		buffer.place_cursor(buffer.get_iter_at_offset(0))
 		with buffer.user_action:
 			buffer.insert_at_cursor('\n')
-		self.assertBufferEquals(buffer, '\n<div indent="2">Test 123\n</div>')
+		self.assertBufferEqual(buffer, '\n<div indent="2">Test 123\n</div>')
 
 	def testMoveVerbatimBlockOnNewlineAtStart(self):
 		buffer = self.get_buffer('<pre>Test 123\n</pre>')
-		self.assertBufferEquals(buffer, '<pre>Test 123\n</pre>')
+		self.assertBufferEqual(buffer, '<pre>Test 123\n</pre>')
 
 		buffer.place_cursor(buffer.get_iter_at_offset(0))
 		with buffer.user_action:
 			buffer.insert_at_cursor('\n')
-		self.assertBufferEquals(buffer, '\n<pre>Test 123\n</pre>')
+		self.assertBufferEqual(buffer, '\n<pre>Test 123\n</pre>')
 
 	def testFindAnchor(self):
 		buffer = self.get_buffer()
@@ -978,18 +762,16 @@ C
 		self.assertEqual(anchor, 'anchor1') # pick closest one
 
 	def testGetAnchorAtSameIterForImage(self):
-		with FilterNoSuchImageWarning():
-			buffer = self.get_buffer('Some text <img src="./foo.png" id="anchor1" />\n')
-			iter = buffer.get_iter_at_offset(10)
-			anchor = buffer.get_anchor_for_location(iter)
-			self.assertEqual(anchor, 'anchor1') # pick one at iter
+		buffer = self.get_buffer('Some text <img id="anchor1" src="./foo.png" />\n')
+		iter = buffer.get_iter_at_offset(10)
+		anchor = buffer.get_anchor_for_location(iter)
+		self.assertEqual(anchor, 'anchor1') # pick one at iter
 
 	def testGetAnchorNearbyIterForImage(self):
-		with FilterNoSuchImageWarning():
-			buffer = self.get_buffer('Some <img src="./foo.png" id="anchor1" /> text <anchor name="test" />\n')
-			iter = buffer.get_iter_at_offset(8)
-			anchor = buffer.get_anchor_for_location(iter)
-			self.assertEqual(anchor, 'anchor1') # pick closest one
+		buffer = self.get_buffer('Some <img id="anchor1" src="./foo.png" /> text <anchor name="test" />\n')
+		iter = buffer.get_iter_at_offset(8)
+		anchor = buffer.get_anchor_for_location(iter)
+		self.assertEqual(anchor, 'anchor1') # pick closest one
 
 	def testGetAnchorForHeadingExplicit(self):
 		buffer = self.get_buffer('<h level="2">Some heading <anchor name="test" />\n</h>')
@@ -1005,34 +787,34 @@ C
 
 	def testReNumberList(self):
 		buffer = self.get_buffer(
-			'<li bullet="2." indent="0"> foo bar\n</li>'
-			'<li bullet="5." indent="0"> foo bar\n</li>'
-			'<li bullet="7." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n'
+			'5. foo bar\n'
+			'7. foo bar\n</li>'
 		)
 		buffer.renumber_list(1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="2." indent="0"> foo bar\n</li>'
-			'<li bullet="3." indent="0"> foo bar\n</li>'
-			'<li bullet="4." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n'
+			'3. foo bar\n'
+			'4. foo bar\n</li>'
 		)
 
 	def testReNumberListWithBullet(self):
 		# Must break at bullet
 		buffer = self.get_buffer(
-			'<li bullet="2." indent="0"> foo bar\n</li>'
-			'<li bullet="*" indent="0"> foo bar\n</li>'
-			'<li bullet="7." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
+			'<li indent="0" style="numbered-list">7. foo bar\n</li>'
 		)
 		for line in (0, 1, 2):
 			buffer.renumber_list(line)
-			self.assertBufferEquals(	# Raw content
+			self.assertBufferEqual(	# Raw content
 				buffer,
-				'<li bullet="2." indent="0"> foo bar\n</li>'
-				'<li bullet="*" indent="0"> foo bar\n</li>'
-				'<li bullet="7." indent="0"> foo bar\n</li>'
+				'<li indent="0" style="numbered-list">2. foo bar\n</li>'
+				'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
+				'<li indent="0" style="numbered-list">7. foo bar\n</li>'
 			)
-			self.assertBufferEquals(	# Serialize towards formatter
+			self.assertParseTreeEqual(	# Serialize towards formatter
 				buffer,
 				'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 				'<zim-tree><p>'
@@ -1045,19 +827,19 @@ C
 	def testReNumberListWithCheckbox(self):
 		# Must break at checkbox
 		buffer = self.get_buffer(
-			'<li bullet="2." indent="0"> foo bar\n</li>'
-			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>'
-			'<li bullet="7." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">7. foo bar\n</li>'
 		)
 		for line in (0, 1, 2):
 			buffer.renumber_list(line)
-			self.assertBufferEquals(	# Raw content
+			self.assertBufferEqual(	# Raw content
 				buffer,
-				'<li bullet="2." indent="0"> foo bar\n</li>'
-				'<li bullet="unchecked-box" indent="0"> foo bar\n</li>'
-				'<li bullet="7." indent="0"> foo bar\n</li>'
+				'<li indent="0" style="numbered-list">2. foo bar\n</li>'
+				'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo bar\n</li>'
+				'<li indent="0" style="numbered-list">7. foo bar\n</li>'
 			)
-			self.assertBufferEquals(	# Serialize towards formatter
+			self.assertParseTreeEqual(	# Serialize towards formatter
 				buffer,
 				'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
 				'<zim-tree><p>'
@@ -1069,216 +851,216 @@ C
 
 	def testReNumberListAfterIndentTop(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">2. foo bar\n' # was indented
+			'a. foo bar\n'
+			'b. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">3. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 0)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="c." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n' # was indented
+			'b. foo bar\n'
+			'c. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentTop(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="c." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n'
+			'a. foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">b. foo bar\n'
+			'c. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n'
+			'2. foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">a. foo bar\n'
+			'b. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">3. foo bar\n</li>'
 		)
 
 	def testReNumberListAfterIndentMiddle(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n'
+			'2. foo bar\n' # was indented
+			'a. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">3. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(2, 0)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="c." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n'
+			'b. foo bar\n' # was indented
+			'c. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentMiddle(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="c." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">b. foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">c. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(2, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">a. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">3. foo bar\n</li>'
 		)
 
 	def testReNumberListAfterIndentBottom(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n'
+			'b. foo bar\n'
+			'2. foo bar\n</li>' # was indented
+			'<li indent="0" style="numbered-list">3. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(3, 0)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="c." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n'
+			'b. foo bar\n'
+			'c. foo bar\n</li>' # was indented
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentBottom(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="c." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n'
+			'b. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">c. foo bar\n' # was unindented
+			'2. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(3, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n'
+			'b. foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n' # was unindented
+			'3. foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterIndentForNewNumberSublist1(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="2." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">2. foo bar\n</li>' # was indented
+			'<li indent="0" style="numbered-list">3. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="a." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">a. foo bar\n</li>' # was indented
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterIndentForNewNumberSublist2(self):
 		buffer = self.get_buffer(
-			'<li bullet="a." indent="0"> foo bar\n</li>'
-			'<li bullet="b." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="c." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">a. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">b. foo bar\n</li>' # was indented
+			'<li indent="0" style="numbered-list">c. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="a." indent="0"> foo bar\n</li>'
-			'<li bullet="1." indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="b." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">a. foo bar\n</li>'
+			'<li indent="1" style="numbered-list">1. foo bar\n</li>' # was indented
+			'<li indent="0" style="numbered-list">b. foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterIndentForNewBulletSublist(self):
 		buffer = self.get_buffer(
-			'<li bullet="*" indent="0"> foo bar\n</li>'
-			'<li bullet="*" indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
+			'<li indent="1" style="bullet-list">\u2022 foo bar\n</li>' # was indented
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="*" indent="0"> foo bar\n</li>'
-			'<li bullet="*" indent="1"> foo bar\n</li>' # was indented
-			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
+			'<li indent="1" style="bullet-list">\u2022 foo bar\n</li>' # was indented
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterUnindentCovertsBulletToNumber(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="*" indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="*" indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>' # was unindented
+			'<li indent="1" style="bullet-list">\u2022 foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="*" indent="1"> foo bar\n</li>'
-			'<li bullet="3." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n'
+			'2. foo bar\n</li>' # was unindented
+			'<li indent="1" style="bullet-list">\u2022 foo bar\n</li>'
+			'<li indent="0" style="numbered-list">3. foo bar\n</li>'
 		)
 
 	def testReNumberListAfterUnIndentDoesNotTouchCheckbox(self):
 		buffer = self.get_buffer(
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="unchecked-box" indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo bar\n</li>' # was unindented
+			'<li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="1." indent="0"> foo bar\n</li>'
-			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="unchecked-box" indent="1"> foo bar\n</li>'
-			'<li bullet="2." indent="0"> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo bar\n</li>' # was unindented
+			'<li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">2. foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterUnindentCovertsNumberToBullet(self):
 		buffer = self.get_buffer(
-			'<li bullet="*" indent="0"> foo bar\n</li>'
-			'<li bullet="1." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="2." indent="1"> foo bar\n</li>'
-			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">2. foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="*" indent="0"> foo bar\n</li>'
-			'<li bullet="*" indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="1." indent="1"> foo bar\n</li>'
-			'<li bullet="*" indent="0"> foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n'
+			'\u2022 foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo bar\n</li>'
 		)
 
 	def assertRenumberListAfterUnindentCovertsNumberToCheckbox(self):
 		buffer = self.get_buffer(
-			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
-			'<li bullet="1." indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="2." indent="1"> foo bar\n</li>'
-			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
+			'<li indent="0" style="checked-box"><icon stock="zim-checked-box" /> foo bar\n</li>'
+			'<li indent="0" style="numbered-list">1. foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">2. foo bar\n</li>'
+			'<li indent="0" style="checked-box"><icon stock="zim-checked-box" /> foo bar\n</li>'
 		)
 		buffer.renumber_list_after_indent(1, 1)
-		self.assertBufferEquals(
+		self.assertBufferEqual(
 			buffer,
-			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
-			'<li bullet="unchecked-box" indent="0"> foo bar\n</li>' # was unindented
-			'<li bullet="1." indent="1"> foo bar\n</li>'
-			'<li bullet="checked-box" indent="0"> foo bar\n</li>'
+			'<li indent="0" style="checked-box"><icon stock="zim-checked-box" /> foo bar\n</li>'
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo bar\n</li>' # was unindented
+			'<li indent="1" style="numbered-list">1. foo bar\n</li>'
+			'<li indent="0" style="checked-box"><icon stock="zim-checked-box" /> foo bar\n</li>'
 		)
 
 	def testNestedFormattingRoundtrip(self):
@@ -1290,7 +1072,7 @@ normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>i
 normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis></strike> normal2
 </p></zim-tree>'''
 		buffer = self.get_buffer(xml)
-		self.assertBufferEquals(buffer, xml)
+		self.assertParseTreeEqual(buffer, xml)
 
 	def testLinkWithFormatting(self):
 		#text = '[[http://example.com| //Example// ]]' # spaces are crucial in this example - see issue #1306
@@ -1299,19 +1081,19 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 <zim-tree><p><link href="http://example.com"> <emphasis>Example</emphasis> </link>
 </p></zim-tree>'''
 		buffer = self.get_buffer(xml)
-		self.assertBufferEquals(buffer, xml)
+		self.assertParseTreeEqual(buffer, xml)
 
 	def testLinkWithoutTargetDirectEditable(self):
-		buffer = self.get_buffer('<p><link href="Test">Test</link>\n</p>', raw=False)
+		buffer = self.get_buffer('<zim-tree><p><link href="Test">Test</link>\n</p></zim-tree>')
 		buffer.place_cursor(buffer.get_iter_at_offset(4))
 		buffer.insert_at_cursor('Link')
-		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
+		self.assertParseTreeEqual(buffer, '<zim-tree><p><link href="TestLink">TestLink</link>\n</p></zim-tree>')
 
 	def testLinkWithoutTargetDirectEditableWhileFormatted(self):
-		buffer = self.get_buffer('<p><link href="TestFormatted">Test<strong>Formatted</strong></link>\n</p>', raw=False)
+		buffer = self.get_buffer('<zim-tree><p><link href="TestFormatted">Test<strong>Formatted</strong></link>\n</p></zim-tree>')
 		buffer.place_cursor(buffer.get_iter_at_offset(13))
 		buffer.insert_at_cursor('Link')
-		self.assertBufferEquals(buffer, '<p><link href="TestFormattedLink">Test<strong>FormattedLink</strong></link>\n</p>', raw=False)
+		self.assertParseTreeEqual(buffer, '<zim-tree><p><link href="TestFormattedLink">Test<strong>FormattedLink</strong></link>\n</p></zim-tree>')
 
 	def testFormatWithinCode(self):
 		# No format nests within verbatim, so needs to break up in multiple parts
@@ -1319,23 +1101,25 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		code_tag = buffer.get_tag_table().lookup('style-code')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(code_tag, *bounds)
-		self.assertBufferEquals(buffer, '<code>test </code><strong><code>strong</code></strong><code> test</code>')
+		self.assertBufferEqual(buffer, '<code>test </code><strong><code>strong</code></strong><code> test</code>')
 
 	def testIllegalNestedTagTag(self):
 		# Code and @tag are incompatible formats. When applied to the same region, the code part is dropped
-		buffer = self.get_buffer('test <tag name="tag">@tag</tag> test')
+		buffer = self.get_buffer('test <tag name="None">@tag</tag> test')
 		code_tag = buffer.get_tag_table().lookup('style-code')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(code_tag, *bounds)
-		self.assertBufferEquals(buffer, '<code>test </code><tag name="tag">@tag</tag><code> test</code>')
+		self.assertBufferEqual(buffer, '<code>test </code><tag name="None"><code>@tag</code></tag><code> test</code>')
+		self.assertParseTreeEqual(buffer, '<p><code>test</code> <tag name="tag">@tag</tag> <code>test</code></p>')
 
-	def testFormatWithinPre(self):
+	def testIllegalFormatWithinPre(self):
 		# No format nests within verbatim, ignore
 		buffer = self.get_buffer('test\n<strong>strong</strong>\ntest\n')
 		code_tag = buffer.get_tag_table().lookup('style-pre')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(code_tag, *bounds)
-		self.assertBufferEquals(buffer, '<pre>test\nstrong\ntest\n</pre>', raw=False)
+		self.assertBufferEqual(buffer, '<pre>test\n</pre><strong><pre>strong</pre></strong><pre>\ntest\n</pre>')
+		self.assertParseTreeEqual(buffer, '<pre>test\nstrong\ntest\n</pre>')
 
 	def testIllegalDoubleIndentTag(self):
 		# Highest prio tag should get precedence - this is what the user sees
@@ -1346,17 +1130,19 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(indent1, *bounds)
 		buffer.apply_tag(indent2, *bounds)
-		self.assertBufferEquals(buffer, '<p><div indent="1">test 123\n</div></p>', raw=False)
+		self.assertBufferEqual(buffer, '<div indent="2"><div indent="1">test 123\n</div></div>')
+		self.assertParseTreeEqual(buffer, '<p><div indent="1">test 123\n</div></p>')
 
 	def testIllegalIndentedListItem(self):
 		# Bullet item should get precedence - this is what the user sees
 		# prio in reverse order of tag creation
 		# bullet should get prio, even if created earlier
-		buffer = self.get_buffer('<li>test 123\n</li>')
+		buffer = self.get_buffer('<li indent="0" style="bullet-list">\u2022 test 123\n</li>')
 		indent = buffer._get_indent_tag(2)
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(indent, *bounds)
-		self.assertBufferEquals(buffer, '<p><ul><li bullet="*">test 123\n</li></ul></p>', raw=False)
+		self.assertBufferEqual(buffer, '<div indent="2"><li indent="0" style="bullet-list">\u2022 test 123\n</li></div>')
+		self.assertParseTreeEqual(buffer, '<p><ul><li bullet="*">test 123\n</li></ul></p>')
 
 	def testIllegalIndentedHeading(self):
 		# Heading should get prio - this is what the users sees
@@ -1366,7 +1152,8 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(head1, *bounds)
 		buffer.apply_tag(indent, *bounds)
-		self.assertBufferEquals(buffer, '<h level="1">test 123\n</h>', raw=False)
+		self.assertBufferEqual(buffer, '<div indent="1"><h level="1">test 123\n</h></div>')
+		self.assertParseTreeEqual(buffer, '<h level="1">test 123\n</h>')
 
 	def testIllegalDoubleHeading(self):
 		# Highest prio tag should get precedence - this is what the user sees
@@ -1376,77 +1163,105 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(head1, *bounds)
 		buffer.apply_tag(head2, *bounds)
-		self.assertBufferEquals(buffer, '<h level="2">test 123\n</h>', raw=False)
+		self.assertBufferEqual(buffer, '<h level="1"><h level="2">test 123\n</h></h>')
+		self.assertParseTreeEqual(buffer, '<h level="2">test 123\n</h>')
 
 	def testIllegalHeadingWithListItem(self):
 		# Heading should get prio - this is what the users sees
-		buffer = self.get_buffer('<li> test 123\n</li>')
+		buffer = self.get_buffer('<li indent="0" style="bullet-list">\u2022 test 123\n</li>')
 		head1 = buffer.get_tag_table().lookup('style-h1')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(head1, *bounds)
-		self.assertBufferEquals(buffer, '<h level="1">\u2022 test 123\n</h>', raw=False)
+		self.assertBufferEqual(buffer, '<li indent="0" style="bullet-list"><h level="1">\u2022 test 123\n</h></li>')
+		self.assertParseTreeEqual(buffer, '<h level="1">\u2022 test 123\n</h>')
 
 	def testIllegalDoubleLink(self):
 		# Serialization should be consistent with get_link_data() to make
 		# behavior for user consistent
-		buffer = self.get_buffer('<link href="">Test 123</link>')
+		buffer = self.get_buffer('<link href="None">Test 123</link>')
 		link = buffer._create_link_tag('Test 123', 'target')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(link, *bounds)
+		self.assertBufferEqual(buffer, '<link href="target"><link href="None">Test 123</link></link>')
 		linkdata = buffer.get_link_data(buffer.get_iter_at_offset(4))
 		self.assertEqual(linkdata['href'], 'target')
-		self.assertBufferEquals(buffer, '<p><link href="target">Test 123</link></p>', raw=False)
+		self.assertParseTreeEqual(buffer, '<p><link href="target">Test 123</link></p>')
 
 	def testIllegalDoubleTag(self):
-		buffer = self.get_buffer('<tag name="test">@test</tag>')
+		buffer = self.get_buffer('<tag name="None">@test</tag>')
 		tag = buffer._create_tag_tag('@test')
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(tag, *bounds)
-		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag></p>', raw=False)
+		self.assertBufferEqual(buffer, '<tag name="None"><tag name="None">@test</tag></tag>')
+		self.assertParseTreeEqual(buffer, '<p><tag name="test">@test</tag></p>')
+
+	def testInsertBeforeBulletEndUpAfterBullet(self):
+		input = '''\
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" />Box 1
+<icon stock="zim-unchecked-box" />Box 2
+<icon stock="zim-unchecked-box" />Box 3
+</li>
+'''
+		wanted = '''\
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" />Box 1
+<icon stock="zim-unchecked-box" />foo Box 2
+<icon stock="zim-unchecked-box" />Box 3
+</li>
+'''
+		buffer = self.get_buffer(input)
+		iter = buffer.get_iter_at_line(1) # iter *before* checkbox
+		buffer.insert(iter, 'foo ')
+		self.assertBufferEqual(buffer, wanted)
+
+	def testFormattingOnBullet(self):
+		# Strange bug let to second bullet disappearing in this case
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul indent="1"><li bullet="*">Box 1
+</li><li bullet="*">Box 2
+</li><li bullet="*">Box 3
+</li></ul></p>
+</zim-tree>'''
+		buffer = self.get_buffer(input)
+		iter = buffer.get_iter_at_line(2) # iter before checkbox
+		bound = iter.copy()
+		bound.forward_char()
+		buffer.select_range(iter, bound)
+		buffer.toggle_format_tag_by_name('strike')
+		self.assertParseTreeEqual(buffer, input) # no change
 
 	def testInlineTagsBreakAtNewline(self):
-		buffer = self.get_buffer('<emphasis>line1\nline2</emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<emphasis>line1\nline2</emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis>line2</emphasis></p>', raw=False)
+		buffer = self.get_buffer('<emphasis>line1\nline2</emphasis>')
+		self.assertParseTreeEqual(buffer, '<p><emphasis>line1</emphasis>\n<emphasis>line2</emphasis></p>')
 
 	def testInlineTagsBreakAtNewline_MultipleTags(self):
-		buffer = self.get_buffer('<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<emphasis>line1 <strong>foo\nline2</strong></emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<p><emphasis>line1 <strong>foo</strong></emphasis>\n<emphasis><strong>line2</strong></emphasis></p>', raw=False)
+		buffer = self.get_buffer('<emphasis>line1 <strong>foo\nline2</strong></emphasis>')
+		self.assertParseTreeEqual(buffer, '<p><emphasis>line1 <strong>foo</strong></emphasis>\n<emphasis><strong>line2</strong></emphasis></p>')
 
 	def testInlineTagsBreakAtNewline_LeaveNoEmptyTag(self):
-		buffer = self.get_buffer('<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<emphasis>line1<strong>\nline2</strong></emphasis>', raw=True)
-		self.assertBufferEquals(buffer, '<p><emphasis>line1</emphasis>\n<emphasis><strong>line2</strong></emphasis></p>', raw=False)
+		buffer = self.get_buffer('<emphasis>line1<strong>\nline2</strong></emphasis>')
+		self.assertParseTreeEqual(buffer, '<p><emphasis>line1</emphasis>\n<emphasis><strong>line2</strong></emphasis></p>')
 
 	def testInlineTagsBreakAtNewline_ExampleIssue1245(self):
 		buffer = self.get_buffer(
 			'<strike>Ut enim ad minim veniam,\n'
 			'<link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>',
-			raw=True
 		)
-		self.assertBufferEquals(buffer,
-			'<strike>Ut enim ad minim veniam,\n'
-			'<link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike>',
-			raw=True
-		)
-		self.assertBufferEquals(buffer,
+		self.assertParseTreeEqual(buffer,
 			'<p><strike>Ut enim ad minim veniam,</strike>\n'
 			'<strike><link href="http://localhost/">quis nostrud exercitation ullamco laboris.</link></strike></p>',
-			raw=False
 		)
 
 	def testHighLightedEmail_ExampleIssue1377(self):
 		# This could as well be a formatting test - and extend to other markup as well
-		buffer = self.get_buffer('<mark><link href="">mike@example.com</link></mark>', raw=True)
-		self.assertBufferEquals(buffer, '<mark><link href="">mike@example.com</link></mark>', raw=True)
-		self.assertBufferEquals(buffer, '<p><mark><link href="mike@example.com">mike@example.com</link></mark></p>', raw=False)
+		buffer = self.get_buffer('<mark><link href="None">mike@example.com</link></mark>')
+		self.assertParseTreeEqual(buffer, '<p><mark><link href="mike@example.com">mike@example.com</link></mark></p>')
 
 	def testHighLightedURL(self):
 		# This could as well be a formatting test - and extend to other markup as well
-		buffer = self.get_buffer('<mark><link href="">http://example.com</link></mark>', raw=True)
-		self.assertBufferEquals(buffer, '<mark><link href="">http://example.com</link></mark>', raw=True)
-		self.assertBufferEquals(buffer, '<p><mark><link href="http://example.com">http://example.com</link></mark></p>', raw=False)
+		buffer = self.get_buffer('<mark><link href="None">http://example.com</link></mark>')
+		self.assertParseTreeEqual(buffer, '<p><mark><link href="http://example.com">http://example.com</link></mark></p>')
 
 	def testAppendTree(self):
 		input = '''\
@@ -1458,11 +1273,70 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		tree = tests.new_parsetree_from_xml(input)
 
 		buffer = self.get_buffer('Existing page\n')
-		self.assertBufferEquals(buffer, 'Existing page\n')
+		self.assertBufferEqual(buffer, 'Existing page\n')
 		buffer.append_parsetree(tree)
-		self.assertBufferEquals(buffer, 'Existing page\n\nnew text\n')
+		self.assertBufferEqual(buffer, 'Existing page\n\nnew text\n')
 		buffer.undostack.undo()
-		self.assertBufferEquals(buffer, 'Existing page\n')
+		self.assertBufferEqual(buffer, 'Existing page\n')
+
+
+class TestInternalSerialization(tests.TestCase):
+
+	def setUp(self):
+		self.notebook = self.setUpNotebook(content={'Test': tests.new_page_as_wiki_text()})
+		self.page = self.notebook.get_page(Path('Test'))
+		with tests.LoggingFilter('zim.gui.pageview'):
+			self.buffer = TextBuffer(self.notebook, self.page, parsetree=self.page.get_parsetree())
+
+	def testEmptyRange(self):
+		start, end = self.buffer.get_bounds()
+		data = textbuffer_internal_serialize_range(self.buffer, end, start) # switch bounds
+		self.assertEqual(data._data, [])
+		self.assertEqual(data.to_xml(), '<zim-textbuffer></zim-textbuffer>')
+
+		buffer1 = TextBuffer(self.notebook, self.page)
+		textbuffer_internal_insert_at_cursor(buffer1, data)
+		start, end = buffer1.get_bounds()
+		self.assertTrue(start.equal(end))
+
+		data = textbuffer_internal_serialize_range(buffer1, start, end)
+		self.assertEqual(data._data, [])
+
+	def testInternalDataReproducesBuffer(self):
+		import copy
+		data = textbuffer_internal_serialize_range(self.buffer, *self.buffer.get_bounds())
+		dataref = copy.deepcopy(data._data)
+		#print(data.to_xml())
+
+		buffer1 = TextBuffer(self.notebook, self.page)
+		with tests.LoggingFilter('zim.gui.pageview'):
+			textbuffer_internal_insert_at_cursor(buffer1, data)
+			self.assertEqual(data._data, dataref) # Ensure data not changed in insertion
+
+		data1 = textbuffer_internal_serialize_range(buffer1, *buffer1.get_bounds())
+		self.assertEqual(data1._data, data._data)
+
+	def testXMLReproducesInternalData(self):
+		# It might be easier to just compare the xml representations, because the conversion
+		# flattens some of the differences. However, for tests that create buffers from xml data
+		# it is important the xml exactly reproduces to buffer internal contents
+		import copy
+		data = textbuffer_internal_serialize_range(self.buffer, *self.buffer.get_bounds())
+		dataref = copy.deepcopy(data._data)
+
+		xml = data.to_xml()
+		self.assertEqual(data._data, dataref) # Ensure data not changed in conversion
+
+		data1 = TextBufferInternalContents.new_from_xml(xml)
+		self.assertEqual(data1._data, data._data)
+
+
+class TestInternalSerializationWithTableObject(TestInternalSerialization):
+	# Table object is special case with respect to serialization
+
+	def setUp(self):
+		PluginManager.load_plugin('tableeditor')
+		TestInternalSerialization.setUp(self)
 
 
 class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
@@ -1471,7 +1345,6 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 		# Test inserting a full tree, than undoing and redoing it
 
 		buffer = self.get_buffer()
-		undomanager = buffer.undostack
 		tree = tests.new_parsetree()
 
 		with FilterNoSuchImageWarning():
@@ -1484,296 +1357,145 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 		# insert_parsetree() function is not strictly serial, which
 		# probably breaks proper formatting e.g. when pasting a tree
 		# half way in a line.
-		#~ import pprint
-		#~ undomanager.flush_insert()
-		#~ def tostring(data):
-			#~ if hasattr(data, 'tostring'):
-				#~ return data.tostring()[39:]
-			#~ else:
-				#~ return data.get_property('name')
 		i = 0
-		for group in undomanager.stack + [undomanager.group]:
-			#~ pprint.pprint(
-				#~ [(a[0], a[1], a[2], tostring(a[3])) for a in group] )
+		for group in buffer.undostack.stack + [buffer.undostack.group]:
 			for action in group:
 				self.assertEqual(action[1], i) # assert undo stack is continous
 				i = action[2]
-		self.assertTrue(len(undomanager.stack) > 10) # check we recorded something
+
+		self.assertTrue(len(buffer.undostack.stack) > 10) # check we recorded something
 
 		# Now we iterate through the tree to verify we get a proper
 		# state at every step of the stack, then we redo to check we
 		# get back what we had
-		buffertree1 = buffer.get_parsetree(raw=True)
+		buffercontent1 = textbuffer_internal_serialize_range(buffer, *buffer.get_bounds())
 
-		while undomanager.undo():
-			#print(">>>", buffer.get_parsetree(raw=True).tostring())
+		while buffer.undostack.undo():
 			_ = buffer.get_parsetree() # just check for no warnings
 
-		emptytree = buffer.get_parsetree(raw=True)
-		self.assertEqual(emptytree.tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\" />")
+		start, end = buffer.get_bounds()
+		self.assertEqual(start.get_slice(end), '') # Ensure buffer empty
 
 		with FilterNoSuchImageWarning():
-			while undomanager.redo():
+			while buffer.undostack.redo():
 				_ = buffer.get_parsetree() # just check for no warnings
 
-		buffertree2 = buffer.get_parsetree(raw=True)
-		self.assertEqual(buffertree2.tostring(), buffertree1.tostring())
+		self.assertBufferEqual(buffer, buffercontent1) # Fully reconstructed
 
-		while undomanager.undo():
+		while buffer.undostack.undo():
 			continue
 
-		emptytree = buffer.get_parsetree(raw=True)
-		self.assertEqual(emptytree.tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\" />")
+		start, end = buffer.get_bounds()
+		self.assertEqual(start.get_slice(end), '') # Ensure buffer empty
 
 	def testMore(self):
 		buffer = self.get_buffer()
-		undomanager = buffer.undostack
 
 		# Test merging
 		for c in 'fooo barr baz':
 			with buffer.user_action:
 				buffer.insert_at_cursor(c)
 		#~ import pprint
-		#~ undomanager.flush_insert()
-		#~ pprint.pprint(undomanager.stack)
-		self.assertTrue(len(undomanager.stack) == 5) # 3 words, 2 spaces
-		for group in undomanager.stack:
+		#~ buffer.undostack.flush_insert()
+		#~ pprint.pprint(buffer.undostack.stack)
+		self.assertTrue(len(buffer.undostack.stack) == 5) # 3 words, 2 spaces
+		for group in buffer.undostack.stack:
 			self.assertTrue(len(group) == 1) # merge was sucessfull
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr baz</zim-tree>")
+		self.assertBufferEqual(buffer, 'fooo barr baz')
 
 		for wanted in (
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr </zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr</zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo </zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo</zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\" />"
+			"fooo barr ",
+			"fooo barr",
+			"fooo ",
+			"fooo",
+			""
 		):
-			undomanager.undo()
-			self.assertEqual(buffer.get_parsetree(raw=True).tostring(), wanted)
+			buffer.undostack.undo()
+			self.assertBufferEqual(buffer, wanted)
 
-		while undomanager.redo():
+		while buffer.undostack.redo():
 			continue
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr baz</zim-tree>")
+		self.assertBufferEqual(buffer, 'fooo barr baz')
 
-		# test other actions
+		# test format action
 		iter = buffer.get_iter_at_offset(7)
 		buffer.place_cursor(iter)
 		buffer.select_word()
 		buffer.toggle_format_tag_by_name('strong')
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
+		self.assertBufferEqual(buffer, 'fooo <strong>barr</strong> baz')
 
-		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr baz</zim-tree>")
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'fooo barr baz')
 
-		undomanager.redo()
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
+		buffer.undostack.redo()
+		self.assertBufferEqual(buffer, 'fooo <strong>barr</strong> baz')
 
+		# test delete action
 		start, end = list(map(buffer.get_iter_at_offset, (5, 10)))
 		with buffer.user_action:
 			buffer.delete(start, end)
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo baz</zim-tree>")
+		self.assertBufferEqual(buffer, 'fooo baz')
 
-		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'fooo <strong>barr</strong> baz')
 
-		undomanager.redo()
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo baz</zim-tree>")
+		buffer.undostack.redo()
+		self.assertBufferEqual(buffer, 'fooo baz')
 
 		# test folding
-		undomanager.undo()
-		undomanager.undo()
-		undomanager.undo()
-		undomanager.undo()
-
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr</zim-tree>")
+		buffer.undostack.undo()
+		buffer.undostack.undo()
+		buffer.undostack.undo()
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'fooo barr')
 
 		with buffer.user_action:
 			buffer.insert_at_cursor(' ')
+		self.assertBufferEqual(buffer, 'fooo barr ')
 
-		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr</zim-tree>")
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'fooo barr')
 
-		undomanager.undo() # here we undo fold of 4 undos above
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo baz</zim-tree>")
-		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
+		buffer.undostack.undo() # here we undo fold of 4 undos above
+		self.assertBufferEqual(buffer, 'fooo baz')
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'fooo <strong>barr</strong> baz')
 
 	def testBrokenLink(self):
 		# Specific test for when "href == text"
-		buffer = self.get_buffer('<p><link href="TestLink">TestLink</link>\n</p>')
-		undomanager = UndoStackManager(buffer)
+		buffer = self.get_buffer('<zim-tree><p><link href="TestLink">TestLink</link>\n</p></zim-tree>')
 		iter = buffer.get_iter_at_offset(4)
 		end = buffer.get_iter_at_offset(8)
 		buffer.delete(iter, end)
-		self.assertBufferEquals(buffer, '<p><link href="Test">Test</link>\n</p>', raw=False)
-		undomanager.undo()
-		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
+		self.assertParseTreeEqual(buffer, '<p><link href="Test">Test</link>\n</p>')
+		buffer.undostack.undo()
+		self.assertParseTreeEqual(buffer, '<p><link href="TestLink">TestLink</link>\n</p>')
 
 	def testUndoPageReload(self):
 		# page reload calls "set_parsetree", so by testing whether we can
-		# undo "set_buffer()" we test undo-ing a buffer reload using page.reload_textbuffer()
+		# undo "set_parsetree()" we test undo-ing a buffer reload using page.reload_textbuffer()
 		buffer = self.get_buffer('test 123')
-		undomanager = buffer.undostack
-		self.set_buffer(buffer, 'test ABC')
-		self.assertBufferEquals(buffer, 'test ABC')
-		undomanager.undo()
-		self.assertBufferEquals(buffer, 'test 123')
-
-
-class TestFind(tests.TestCase, TextBufferTestCaseMixin):
-
-	def testVarious(self):
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		finder = buffer.finder
-		buffer.set_text('''\
-FOO FooBar FOOBAR
-FooBaz Foo Bar
-foo Bar Baz Foo
-''')
-		buffer.place_cursor(buffer.get_start_iter())
-
-		# Check normal usage, case-insensitive
-		for text in ('f', 'fo', 'foo', 'fo', 'f', 'F', 'Fo', 'Foo'):
-			finder.find(text)
-			self.assertSelection(buffer, 0, 0, text.upper())
-
-		finder.find('Grr')
-		self.assertCursorPosition(buffer, 0, 0)
-
-		finder.find('Foob')
-		self.assertSelection(buffer, 0, 4, 'FooB')
-
-		for line, offset, text in (
-			(0, 11, 'FOOB'),
-			(1, 0, 'FooB'),
-			(0, 4, 'FooB'),
-		):
-			finder.find_next()
-			self.assertSelection(buffer, line, offset, text)
-
-		for line, offset, text in (
-			(1, 0, 'FooB'),
-			(0, 11, 'FOOB'),
-			(0, 4, 'FooB'),
-		):
-			finder.find_previous()
-			self.assertSelection(buffer, line, offset, text)
-
-		# Case sensitive
-		finder.find('Foo', FIND_CASE_SENSITIVE)
-		self.assertSelection(buffer, 0, 4, 'Foo')
-
-		for line, offset, text in (
-			(1, 0, 'Foo'),
-			(1, 7, 'Foo'),
-			(2, 12, 'Foo'),
-			(0, 4, 'Foo'),
-		):
-			finder.find_next()
-			self.assertSelection(buffer, line, offset, text)
-
-		# Whole word
-		finder.find('Foo', FIND_WHOLE_WORD)
-		self.assertSelection(buffer, 1, 7, 'Foo')
-
-		for line, offset, text in (
-			(2, 0, 'foo'),
-			(2, 12, 'Foo'),
-			(0, 0, 'FOO'),
-			(1, 7, 'Foo'),
-		):
-			finder.find_next()
-			self.assertSelection(buffer, line, offset, text)
-
-		# Regular expression
-		finder.find(r'Foo\s*Bar', FIND_REGEX | FIND_CASE_SENSITIVE)
-		self.assertSelection(buffer, 1, 7, 'Foo Bar')
-		finder.find_next()
-		self.assertSelection(buffer, 0, 4, 'FooBar')
-
-		# Highlight - just check it doesn't crash
-		finder.set_highlight(True)
-		finder.set_highlight(False)
-
-	def testReplace(self):
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		finder = buffer.finder
-		tree = tests.new_parsetree_from_xml('''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">FOO FooBar FOOBAR
-FooBaz Foo Bar
-<strong>foo</strong> Bar Baz Foo
-</zim-tree>''')
+		tree = tests.new_parsetree_from_text('test ABC')
 		buffer.set_parsetree(tree)
-
-		finder.find(r'Foo(\w*)', FIND_REGEX) # not case sensitive!
-		finder.find_next()
-		self.assertSelection(buffer, 0, 4, 'FooBar')
-
-		finder.replace('Dus')
-		self.assertSelection(buffer, 0, 4, 'Dus')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">FOO Dus FOOBAR
-FooBaz Foo Bar
-<strong>foo</strong> Bar Baz Foo
-</zim-tree>'''
-		self.assertBufferEquals(buffer, wanted)
-
-		finder.replace_all('dus*\\1*')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">dus** Dus dus*BAR*
-dus*Baz* dus** Bar
-<strong>dus**</strong> Bar Baz dus**
-</zim-tree>'''
-		self.assertBufferEquals(buffer, wanted)
-
+		self.assertBufferEqual(buffer, 'test ABC')
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'test 123')
 
 class TestLists(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testBulletLists(self):
-		'''Test interaction for lists'''
-
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
 		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="*" indent="0"> Foo
-</li><li bullet="*" indent="0"> Bar
-</li><li bullet="*" indent="1"> Bar 1
-</li><li bullet="*" indent="2"> Bar 1.1
-</li><li bullet="*" indent="1"> Bar 2
-</li><li bullet="*" indent="1"> Bar 3
-</li><li bullet="*" indent="0"> Baz
+Dusss
+<li indent="0" style="bullet-list">\u2022 Foo
+\u2022 Bar
+</li><li indent="1" style="bullet-list">\u2022 Bar 1
+</li><li indent="2" style="bullet-list">\u2022 Bar 1.1
+</li><li indent="1" style="bullet-list">\u2022 Bar 2
+\u2022 Bar 3
+</li><li indent="0" style="bullet-list">\u2022 Baz
 </li>Tja
-</zim-tree>'''
-		tree = tests.new_parsetree_from_xml(input)
-		buffer.set_parsetree(tree)
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input) # just a sanity check
-
-		undomanager = UndoStackManager(buffer)
+'''
+		buffer = self.get_buffer(input)
 
 		# check list initializes properly
 		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
@@ -1801,19 +1523,17 @@ class TestLists(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertFalse(list.can_indent(row))
 
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="*" indent="0"> Foo
-</li><li bullet="*" indent="1"> Bar
-</li><li bullet="*" indent="2"> Bar 1
-</li><li bullet="*" indent="3"> Bar 1.1
-</li><li bullet="*" indent="2"> Bar 2
-</li><li bullet="*" indent="2"> Bar 3
-</li><li bullet="*" indent="0"> Baz
+Dusss
+<li indent="0" style="bullet-list">\u2022 Foo
+</li><li indent="1" style="bullet-list">\u2022 Bar
+</li><li indent="2" style="bullet-list">\u2022 Bar 1
+</li><li indent="3" style="bullet-list">\u2022 Bar 1.1
+</li><li indent="2" style="bullet-list">\u2022 Bar 2
+\u2022 Bar 3
+</li><li indent="0" style="bullet-list">\u2022 Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		row, list = TextBufferList.new_from_line(buffer, 7) # Baz
 		self.assertFalse(list.can_unindent(row))
@@ -1824,87 +1544,71 @@ class TestLists(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTrue(list.unindent(row))
 
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="*" indent="0"> Foo
-</li><li bullet="*" indent="1"> Bar
-</li><li bullet="*" indent="1"> Bar 1
-</li><li bullet="*" indent="2"> Bar 1.1
-</li><li bullet="*" indent="2"> Bar 2
-</li><li bullet="*" indent="2"> Bar 3
-</li><li bullet="*" indent="0"> Baz
+Dusss
+<li indent="0" style="bullet-list">\u2022 Foo
+</li><li indent="1" style="bullet-list">\u2022 Bar
+\u2022 Bar 1
+</li><li indent="2" style="bullet-list">\u2022 Bar 1.1
+\u2022 Bar 2
+\u2022 Bar 3
+</li><li indent="0" style="bullet-list">\u2022 Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		for line in (2, 5, 6): # Bar, Bar 2 & Bar 3
 			row, list = TextBufferList.new_from_line(buffer, line)
 			self.assertTrue(list.can_unindent(row))
 			self.assertTrue(list.unindent(row))
 
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input)
+		self.assertBufferEqual(buffer, input)
 
 		# Test undo / redo for indenting and lists
 		for i in range(3):
-			self.assertTrue(undomanager.undo())
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+			self.assertTrue(buffer.undostack.undo())
+		self.assertBufferEqual(buffer, wanted)
 
-		while undomanager.undo():
+		while buffer.undostack.undo():
 			pass
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input)
+		self.assertBufferEqual(buffer, input)
 
-		while undomanager.redo():
+		while buffer.undostack.redo():
 			pass
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input)
+		self.assertBufferEqual(buffer, input)
 
 		for i in range(3):
-			self.assertTrue(undomanager.undo())
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+			self.assertTrue(buffer.undostack.undo())
+		self.assertBufferEqual(buffer, wanted)
 
-
+	def testCheckBoxLists(self):
 		# Exercize recursive checkbox lists
 		input = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo
-</li><li bullet="unchecked-box" indent="0"> Bar
-</li><li bullet="unchecked-box" indent="1"> Bar 1
-</li><li bullet="unchecked-box" indent="2"> Bar 1.1
-</li><li bullet="unchecked-box" indent="1"> Bar 2
-</li><li bullet="unchecked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
+Dusss
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Foo
+<icon stock="zim-unchecked-box" /> Bar
+</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> Bar 1
+</li><li indent="2" style="unchecked-box"><icon stock="zim-unchecked-box" /> Bar 1.1
+</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> Bar 2
+<icon stock="zim-unchecked-box" /> Bar 3
+</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Baz
 </li>Tja
-</zim-tree>'''
-		tree = tests.new_parsetree_from_xml(input)
-		buffer.set_parsetree(tree)
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input) # just a sanity check
-
-		undomanager = UndoStackManager(buffer)
-
+'''
+		buffer = self.get_buffer(input)
 
 		row, list = TextBufferList.new_from_line(buffer, 2) # Bar
 		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo
-</li><li bullet="checked-box" indent="0"> Bar
-</li><li bullet="checked-box" indent="1"> Bar 1
-</li><li bullet="checked-box" indent="2"> Bar 1.1
-</li><li bullet="checked-box" indent="1"> Bar 2
-</li><li bullet="checked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
+Dusss
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Foo
+</li><li indent="0" style="checked-box"><icon stock="zim-checked-box" /> Bar
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar 1
+</li><li indent="2" style="checked-box"><icon stock="zim-checked-box" /> Bar 1.1
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar 2
+<icon stock="zim-checked-box" /> Bar 3
+</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		list.set_bullet(row, UNCHECKED_BOX)
 		row = list.get_row_at_line(3) # Bar 1
@@ -1912,332 +1616,133 @@ class TestLists(tests.TestCase, TextBufferTestCaseMixin):
 		row = list.get_row_at_line(5) # Bar 2
 		list.set_bullet(row, UNCHECKED_BOX)
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo
-</li><li bullet="unchecked-box" indent="0"> Bar
-</li><li bullet="xchecked-box" indent="1"> Bar 1
-</li><li bullet="checked-box" indent="2"> Bar 1.1
-</li><li bullet="unchecked-box" indent="1"> Bar 2
-</li><li bullet="checked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
+Dusss
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Foo
+<icon stock="zim-unchecked-box" /> Bar
+</li><li indent="1" style="xchecked-box"><icon stock="zim-xchecked-box" /> Bar 1
+</li><li indent="2" style="checked-box"><icon stock="zim-checked-box" /> Bar 1.1
+</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> Bar 2
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar 3
+</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		row = list.get_row_at_line(5) # Bar 2
 		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo
-</li><li bullet="unchecked-box" indent="0"> Bar
-</li><li bullet="xchecked-box" indent="1"> Bar 1
-</li><li bullet="checked-box" indent="2"> Bar 1.1
-</li><li bullet="checked-box" indent="1"> Bar 2
-</li><li bullet="checked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
+Dusss
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Foo
+<icon stock="zim-unchecked-box" /> Bar
+</li><li indent="1" style="xchecked-box"><icon stock="zim-xchecked-box" /> Bar 1
+</li><li indent="2" style="checked-box"><icon stock="zim-checked-box" /> Bar 1.1
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar 2
+<icon stock="zim-checked-box" /> Bar 3
+</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		row = list.get_row_at_line(4) # Bar 1.1
 		list.set_bullet(row, UNCHECKED_BOX)
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo
-</li><li bullet="unchecked-box" indent="0"> Bar
-</li><li bullet="unchecked-box" indent="1"> Bar 1
-</li><li bullet="unchecked-box" indent="2"> Bar 1.1
-</li><li bullet="checked-box" indent="1"> Bar 2
-</li><li bullet="checked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
+Dusss
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Foo
+<icon stock="zim-unchecked-box" /> Bar
+</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> Bar 1
+</li><li indent="2" style="unchecked-box"><icon stock="zim-unchecked-box" /> Bar 1.1
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar 2
+<icon stock="zim-checked-box" /> Bar 3
+</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		wantedpre1 = wanted
 		row = list.get_row_at_line(4) # Bar 1.1
 		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="0"> Foo
-</li><li bullet="checked-box" indent="0"> Bar
-</li><li bullet="checked-box" indent="1"> Bar 1
-</li><li bullet="checked-box" indent="2"> Bar 1.1
-</li><li bullet="checked-box" indent="1"> Bar 2
-</li><li bullet="checked-box" indent="1"> Bar 3
-</li><li bullet="unchecked-box" indent="0"> Baz
+Dusss
+<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Foo
+</li><li indent="0" style="checked-box"><icon stock="zim-checked-box" /> Bar
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar 1
+</li><li indent="2" style="checked-box"><icon stock="zim-checked-box" /> Bar 1.1
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar 2
+<icon stock="zim-checked-box" /> Bar 3
+</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		# Test indenting / unindenting the whole list
 		wantedpre = wanted
 		row = list.get_row_at_line(1) # Foo
 		list.indent(row)
 		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">Dusss
-<li bullet="unchecked-box" indent="1"> Foo
-</li><li bullet="checked-box" indent="1"> Bar
-</li><li bullet="checked-box" indent="2"> Bar 1
-</li><li bullet="checked-box" indent="3"> Bar 1.1
-</li><li bullet="checked-box" indent="2"> Bar 2
-</li><li bullet="checked-box" indent="2"> Bar 3
-</li><li bullet="unchecked-box" indent="1"> Baz
+Dusss
+<li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> Foo
+</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> Bar
+</li><li indent="2" style="checked-box"><icon stock="zim-checked-box" /> Bar 1
+</li><li indent="3" style="checked-box"><icon stock="zim-checked-box" /> Bar 1.1
+</li><li indent="2" style="checked-box"><icon stock="zim-checked-box" /> Bar 2
+<icon stock="zim-checked-box" /> Bar 3
+</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> Baz
 </li>Tja
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
+'''
+		self.assertBufferEqual(buffer, wanted)
 
 		list.unindent(row)
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wantedpre)
+		self.assertBufferEqual(buffer, wantedpre)
 
 		# Test undo / redo for indenting and lists
 		for xml in (wanted, wantedpre, wantedpre1):
-			self.assertTrue(undomanager.undo())
-			tree = buffer.get_parsetree(raw=True)
-			self.assertEqual(tree.tostring(), xml)
+			self.assertTrue(buffer.undostack.undo())
+			self.assertBufferEqual(buffer, xml)
 
 		for xml in (wantedpre, wanted, wantedpre):
-			self.assertTrue(undomanager.redo())
-			tree = buffer.get_parsetree(raw=True)
-			self.assertEqual(tree.tostring(), xml)
+			self.assertTrue(buffer.undostack.redo())
+			self.assertBufferEqual(buffer, xml)
 
-		while undomanager.undo():
+		while buffer.undostack.undo():
 			pass
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input)
+		self.assertBufferEqual(buffer, input)
 
-		while undomanager.redo():
+		while buffer.undostack.redo():
 			pass
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wantedpre)
-
-
-def press(widget, sequence):
-	logger.debug('PRESS %s', sequence)
-	for key in sequence:
-		if isinstance(key, int):
-			keyval = int(key)
-		elif key == '\n':
-			keyval = int(Gdk.keyval_from_name('Return'))
-		elif key == '\t':
-			keyval = int(Gdk.keyval_from_name('Tab'))
-		else:
-			keyval = int(Gdk.unicode_to_keyval(ord(key)))
-
-		widget.test_key_press_event(keyval)
+		self.assertBufferEqual(buffer, wantedpre)
 
 
 class TestTextView(tests.TestCase, TextBufferTestCaseMixin):
 
-	def setUp(self):
+	# See also:
+	#  - TestKeyPresses
+	#  - TestDoEndOfLine
+	#  - TestDoEndOfWord
+
+	def get_view(self):
 		# Initialize default preferences from module
-		self.preferences = {}
+		preferences = {}
 		for pref in ui_preferences:
-			self.preferences[pref[0]] = pref[4]
+			preferences[pref[0]] = pref[4]
 
-	def testTyping(self):
-		## TODO: break apart this test case, see e.g. TestDoEndOfLine & TestDoEndOfWord
-
-		view = TextView(self.preferences)
+		# Initialize view
+		view = TextView(preferences)
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
 		view.set_buffer(buffer)
-		undomanager = UndoStackManager(buffer)
-
-		# Need a window to get the widget realized
-		window = Gtk.Window()
-		window.add(view)
-		view.realize()
-		#~ window.show_all()
-		#~ view.grab_focus()
-
-		press(view, 'aaa\n')
-		start, end = buffer.get_bounds()
-		self.assertEqual(buffer.get_text(start, end, True), 'aaa\n')
-			# Just checking test routines work
-
-		# Test bullet & indenting logic
-		press(view, '* foo')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo</li></zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		press(view, '\n')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="0"> </li></zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		start, end = buffer.get_bounds()
-		self.assertEqual(tree.tostring(), wanted)
-
-		press(view, '\tduss')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="1"> duss</li></zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		press(view, '\n')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> </li></zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		press(view, 'CamelCase\n')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
-</li><li bullet="*" indent="1"> </li></zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		press(view, '\n')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
-</li>
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		# selection + * to toggle bullets
-		start = buffer.get_iter_at_line(1) # before foo
-		end = buffer.get_iter_at_line(4) # empty line !
-		buffer.select_range(start, end)
-		press(view, '*')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-foo
-<div indent="1">duss
-<link href="">CamelCase</link>
-</div>
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		start = buffer.get_iter_at_line(1) # before foo
-		end = buffer.get_iter_at_line(4) # empty line !
-		buffer.select_range(start, end)
-		press(view, '*')
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
-</li>
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		iter = buffer.get_iter_at_line(1)
-		iter.forward_to_line_end() # behind "foo"
-		buffer.place_cursor(iter)
-		press(view, '\n') # because foo has children, insert indent 1 instead of 0
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="1"> \n</li><li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
-</li>
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-
-
-		# Test unindenting and test backspace can remove line end
-		press(view, (KEYVALS_BACKSPACE[0],)) # unindent
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li><li bullet="*" indent="0"> \n</li><li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
-</li>
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		press(view, (KEYVALS_LEFT_TAB[0],)) # Check <Shift><Tab> does not fall through to Tab when indent fails
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		press(view, (KEYVALS_BACKSPACE[0],)) # delete bullet at once
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree raw="True">aaa
-<li bullet="*" indent="0"> foo
-</li>
-<li bullet="*" indent="1"> duss
-</li><li bullet="*" indent="1"> <link href="">CamelCase</link>
-</li>
-</zim-tree>'''
-		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), wanted)
-
-		# TODO: this test case fails, even though it works when I try it interactively !?
-		#~ press(view, (KEYVALS_BACKSPACE[0],)) # remove newline
-		#~ wanted = '''\
-#~ <?xml version='1.0' encoding='utf-8'?>
-#~ <zim-tree raw="True">aaa
-#~ <li bullet="*" indent="0"> foo</li>
-#~ <li bullet="*" indent="1"> duss</li>
-#~ <li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
-#~
-#~ </zim-tree>'''
-		#~ tree = buffer.get_parsetree(raw=True)
-		#~ self.assertEqual(tree.tostring(), wanted)
-
-		# TODO more unindenting ?
-		# TODO checkboxes
-		# TODO Auto formatting of various link types
-		# TODO enter on link, before link, after link
+		return view
 
 	@tests.expectedFailure
 	def testCopyPaste(self):
 		assert False # FIXME
 
 		notebook = self.setUpNotebook(
-			content={'roundtrip': tests.FULL_NOTEBOOK['roundtrip']}
+			content={'roundtrip': tests.new_page_as_wiki_text()}
 		)
 		page = notebook.get_page(Path('roundtrip'))
 		parsetree = page.get_parsetree()
-
-		buffer = TextBuffer(notebook, page)
-		textview = TextView(self.preferences)
-		textview.set_buffer(buffer)
+		view = self.get_view(notebook, page)
 
 		print('** HACK for cleaning up parsetree')
 		def cleanup(parsetree):
@@ -2360,76 +1865,43 @@ foo
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="%s">%s</link></zim-tree>' % (wanted, wanted))
 
 	def testPasteWikiAndVerbatim(self):
-		view = TextView(self.preferences)
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		view.set_buffer(buffer)
+		view = self.get_view()
+		buffer = view.get_buffer()
 
 		Clipboard.set_text('foo [[link]] ')
 		view.emit('paste-clipboard')
+		self.assertBufferEqual(buffer, 'foo <link href="None">link</link> ')
 
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n"
-			'<zim-tree><p>foo <link href="link">link</link> </p></zim-tree>'
-		)
 		Clipboard.set_text('foo [[no link]]')
 		buffer.toggle_format_tag_by_name('code')
 		view.emit('paste-clipboard')
-
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n"
-			'<zim-tree><p>foo <link href="link">link</link> <code>foo [[no link]]</code></p></zim-tree>'
-		)
+		self.assertBufferEqual(buffer, 'foo <link href="None">link</link> <code>foo [[no link]]</code>')
 
 	def testPasteTextAtIndent(self):
 		# Test indenting is preserved on past
-		view = TextView(self.preferences)
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		view.set_buffer(buffer)
+		view = self.get_view()
+		buffer = view.get_buffer()
 
 		Clipboard.set_text('foo')
-
 		iter = buffer.get_insert_iter()
 		buffer.indent(iter.get_line(), interactive=True)
 		view.emit('paste-clipboard')
-
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n"
-			'<zim-tree><p><div indent="1">foo\n</div></p></zim-tree>'
-		)
+		self.assertBufferEqual(buffer, '<div indent="1">foo\n</div>')
 
 	def testPasteTextAtBullet(self):
 		# Test indenting is preserved on past
-		view = TextView(self.preferences)
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		view.set_buffer(buffer)
+		view = self.get_view()
+		buffer = view.get_buffer()
 
 		Clipboard.set_text('foo')
-
 		iter = buffer.get_insert_iter()
 		buffer.set_bullet(iter.get_line(), BULLET)
 		view.emit('paste-clipboard')
-
-		tree = buffer.get_parsetree()
-		self.assertEqual(tree.tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n"
-			'<zim-tree><p><ul><li bullet="*">foo</li></ul></p></zim-tree>'
-		)
+		self.assertBufferEqual(buffer, '<li indent="0" style="bullet-list">\u2022 foo</li>')
 
 	def testUnkownObjectType(self):
-		view = TextView(self.preferences)
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		view.set_buffer(buffer)
+		view = self.get_view()
+		buffer = view.get_buffer()
 
 		tree = tests.new_parsetree_from_text('''\
 ======= Test
@@ -2447,17 +1919,13 @@ Foo 123
 
 		buffer.set_parsetree(tree)
 		self.assertEqual(len(list(view._object_widgets)), 1) # assert there is an object in the view
-		newtree = buffer.get_parsetree()
-		self.assertEqual(newtree.tostring(), tree.tostring())
+		self.assertParseTreeEqual(buffer, tree) # assert stable over roundtrip
 
 	def testPopup(self):
-		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
+		view = self.get_view()
+		buffer = view.get_buffer()
 		buffer.set_text("TEst ABC\n")
-		textview = TextView(self.preferences)
-		textview.set_buffer(buffer)
-		menu = textview.get_popup()
+		menu = view.get_popup()
 		self.assertIsInstance(menu, Gtk.Menu)
 
 	def testStyleConfig(self):
@@ -2484,6 +1952,104 @@ Foo 123
 		# bullet_icon_size
 
 		# tag_styles
+
+
+def press(widget, sequence):
+	logger.debug('PRESS %s', sequence)
+	for key in sequence:
+		if isinstance(key, int):
+			keyval = int(key)
+		elif key == '\n':
+			keyval = int(Gdk.keyval_from_name('Return'))
+		elif key == '\t':
+			keyval = int(Gdk.keyval_from_name('Tab'))
+		else:
+			keyval = int(Gdk.unicode_to_keyval(ord(key)))
+
+		widget.test_key_press_event(keyval)
+
+
+class TestKeyPresses(tests.TestCase, TextBufferTestCaseMixin):
+
+	# TODO check key press routines with/without selection
+	# for all keybindings that are not handled by end-of-word or end-of-line
+
+	def get_view(self):
+		# Initialize default preferences from module
+		preferences = {}
+		for pref in ui_preferences:
+			preferences[pref[0]] = pref[4]
+
+		# Initialize view
+		view = TextView(preferences)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		view.set_buffer(buffer)
+		return view
+
+	def testToggleSelectionToList(self):
+		# selection + * to toggle bullets
+		as_list = '''\
+<li indent="0" style="bullet-list">\u2022 Item 1
+</li><li indent="1" style="bullet-list">\u2022 Item 1.1
+\u2022 Item 1.2
+</li>
+'''
+		not_as_list = '''\
+Item 1
+<div indent="1">Item 1.1
+Item 1.2
+</div>
+'''
+
+		view = self.get_view()
+		buffer = view.get_buffer()
+		self.set_buffer(buffer, as_list)
+
+		# Toggle off
+		start = buffer.get_iter_at_line(0)
+		end = buffer.get_iter_at_line(3) # empty line !
+		buffer.select_range(start, end)
+		press(view, '*')
+		self.assertBufferEqual(buffer, not_as_list)
+
+		# Toggle on
+		start = buffer.get_iter_at_line(0)
+		end = buffer.get_iter_at_line(3) # empty line !
+		buffer.select_range(start, end)
+		press(view, '*')
+		self.assertBufferEqual(buffer, as_list)
+
+	def testBackSpaceListUnindentAndDeleteBullet(self):
+		view = self.get_view()
+		buffer = view.get_buffer()
+		self.set_buffer(buffer, '''\
+<li indent="0" style="bullet-list">\u2022 Item 1
+</li><li indent="1" style="bullet-list">\u2022 Item 1.1
+\u2022 Item 1.2
+</li>
+''')
+
+		# Un-indent item 1.1
+		iter = buffer.get_iter_at_line(1)
+		buffer.place_cursor(iter)
+		press(view, (KEYVALS_BACKSPACE[0],))
+		self.assertBufferEqual(buffer, '''\
+<li indent="0" style="bullet-list">\u2022 Item 1
+\u2022 Item 1.1
+</li><li indent="1" style="bullet-list">\u2022 Item 1.2
+</li>
+''')
+
+		# Delete bullet item 1.1 (including bullet whitespace)
+		press(view, (KEYVALS_BACKSPACE[0],))
+		self.assertBufferEqual(buffer, '''\
+<li indent="0" style="bullet-list">\u2022 Item 1
+</li>Item 1.1
+<li indent="1" style="bullet-list">\u2022 Item 1.2
+</li>
+''')
 
 
 class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
@@ -2523,14 +2089,10 @@ class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 			self._assertInsertNewLine(input + '\n', mywanted, line=-2)
 
 	def _assertInsertNewLine(self, input, wanted, line=-1):
-		input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
-		tree = tests.new_parsetree_from_xml(input)
-		self.buffer.set_parsetree(tree)
-		self.assertBufferEquals(self.buffer, input) # Ensure we got what we asked
+		self.set_buffer(self.buffer, input)
+		self.assertBufferEqual(self.buffer, input) # Ensure we got what we asked
 		self.typeNewLine(line)
-		#print("GOT:", self.buffer.get_parsetree(raw=True).tostring())
-		self.assertBufferEquals(self.buffer, wanted)
+		self.assertBufferEqual(self.buffer, wanted)
 
 	def testInsertNewLine(self):
 		# Simple test to ensure inserting newline works unaffected
@@ -2549,126 +2111,126 @@ class TestDoEndOfLine(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertInsertNewLine('<code>---</code>', '<code>---</code>\n')
 
 	def testFormatLine(self):
-		self.assertInsertNewLine('aaa\n-----', 'aaa\n<line>--------------------</line>\n')
+		self.assertInsertNewLine('aaa\n-----', 'aaa\n<line />\n')
 
 	def testAddBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="0"> </li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="0"> \n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n\u2022 </li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n\u2022 \n</li>'
 		)
 
 	def testRemoveEmptyBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="0"> </li>',
-			'<li bullet="*" indent="0"> foo\n</li>\n'
+			'<li indent="0" style="bullet-list">\u2022 foo\n\u2022 </li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li>\n'
 		)
 
 	def testAddSubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> </li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> \n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar\n\u2022 </li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar\n\u2022 \n</li>'
 		)
 
 	def testRemoveEmptySubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> </li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li>\n'
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar\n\u2022 </li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar\n</li>\n'
 		)
 
 	def testAddSubBulletAtTopOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> \n</li><li bullet="*" indent="1"> bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 \n\u2022 bar</li>',
 			line=0
 		)
 
 	def testAddSubBulletAtBottomOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="0"> next</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="*" indent="1"> bar\n</li><li bullet="*" indent="1"> \n</li><li bullet="*" indent="0"> next</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar\n</li><li indent="0" style="bullet-list">\u2022 next</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="bullet-list">\u2022 bar\n\u2022 \n</li><li indent="0" style="bullet-list">\u2022 next</li>',
 			line=1
 		)
 
 	def testAddNumberedBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo</li>',
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="2." indent="0"> </li>',
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="2." indent="0"> \n</li>'
+			'<li indent="0" style="numbered-list">1. foo</li>',
+			'<li indent="0" style="numbered-list">1. foo\n2. </li>',
+			'<li indent="0" style="numbered-list">1. foo\n2. \n</li>'
 		)
 
 	def testRemoveEmptyNumberedBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="2." indent="0"> </li>',
-			'<li bullet="1." indent="0"> foo\n</li>\n',
+			'<li indent="0" style="numbered-list">1. foo\n2. </li>',
+			'<li indent="0" style="numbered-list">1. foo\n</li>\n',
 		)
 
 	def testAddNumberedSubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar</li>',
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li><li bullet="b." indent="1"> </li>',
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li><li bullet="b." indent="1"> \n</li>'
+			'<li indent="0" style="numbered-list">1. foo\n</li><li indent="1" style="numbered-list">a. bar</li>',
+			'<li indent="0" style="numbered-list">1. foo\n</li><li indent="1" style="numbered-list">a. bar\nb. </li>',
+			'<li indent="0" style="numbered-list">1. foo\n</li><li indent="1" style="numbered-list">a. bar\nb. \n</li>'
 		)
 
 	def testRemoveEmptyNumberedSubBullet(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li><li bullet="b." indent="1"> </li>',
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar\n</li>\n',
+			'<li indent="0" style="numbered-list">1. foo\n</li><li indent="1" style="numbered-list">a. bar\nb. </li>',
+			'<li indent="0" style="numbered-list">1. foo\n</li><li indent="1" style="numbered-list">a. bar\n</li>\n',
 		)
 
 	def testAddNumberedSubBulletAtTopOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> bar</li>',
-			'<li bullet="1." indent="0"> foo\n</li><li bullet="a." indent="1"> \n</li><li bullet="b." indent="1"> bar</li>',
+			'<li indent="0" style="numbered-list">1. foo\n</li><li indent="1" style="numbered-list">a. bar</li>',
+			'<li indent="0" style="numbered-list">1. foo\n</li><li indent="1" style="numbered-list">a. \nb. bar</li>',
 			line=0
 		)
 
 	def testAddCheckbox(self):
 		self.assertInsertNewLine(
-			'<li bullet="unchecked-box" indent="0"> foo</li>',
-			'<li bullet="unchecked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> </li>',
-			'<li bullet="unchecked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> \n</li>'
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo</li>',
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo\n<icon stock="zim-unchecked-box" /> </li>',
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo\n<icon stock="zim-unchecked-box" /> \n</li>'
 		)
 		self.assertInsertNewLine(
-			'<li bullet="checked-box" indent="0"> foo</li>',
-			'<li bullet="checked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> </li>',
-			'<li bullet="checked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> \n</li>'
+			'<li indent="0" style="checked-box"><icon stock="zim-checked-box" /> foo</li>',
+			'<li indent="0" style="checked-box"><icon stock="zim-checked-box" /> foo\n</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> </li>',
+			'<li indent="0" style="checked-box"><icon stock="zim-checked-box" /> foo\n</li><li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> \n</li>'
 		)
 
 	def testRemoveEmptyCheckbox(self):
 		self.assertInsertNewLine(
-			'<li bullet="unchecked-box" indent="0"> foo\n</li><li bullet="unchecked-box" indent="0"> </li>',
-			'<li bullet="unchecked-box" indent="0"> foo\n</li>\n',
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo\n<icon stock="zim-unchecked-box" /> </li>',
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> foo\n</li>\n',
 		)
 
 	def testAddSubCheckbox(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> </li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> \n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> bar\n<icon stock="zim-unchecked-box" /> </li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> bar\n<icon stock="zim-unchecked-box" /> \n</li>'
 		)
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> </li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> \n</li>'
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> bar\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> </li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> bar\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> \n</li>'
 		)
 
 	def testRemoveEmptySubCheckbox(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li><li bullet="unchecked-box" indent="1"> </li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar\n</li>\n',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> bar\n<icon stock="zim-unchecked-box" /> </li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> bar\n</li>\n',
 		)
 
 	def testAddSubCheckboxAtTopOfSublist(self):
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> \n</li><li bullet="unchecked-box" indent="1"> bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> \n<icon stock="zim-unchecked-box" /> bar</li>',
 			line=0
 		)
 		self.assertInsertNewLine(
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="checked-box" indent="1"> bar</li>',
-			'<li bullet="*" indent="0"> foo\n</li><li bullet="unchecked-box" indent="1"> \n</li><li bullet="checked-box" indent="1"> bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> bar</li>',
+			'<li indent="0" style="bullet-list">\u2022 foo\n</li><li indent="1" style="unchecked-box"><icon stock="zim-unchecked-box" /> \n</li><li indent="1" style="checked-box"><icon stock="zim-checked-box" /> bar</li>',
 			line=0
 		)
 
@@ -2695,7 +2257,7 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 
 	def assertTyping(self, text, wanted):
 		press(self.view, text)
-		self.assertBufferEquals(self.buffer, wanted)
+		self.assertBufferEqual(self.buffer, wanted)
 
 	def set_textview_preference(self, key, value):
 		orig = self.view.preferences[key]
@@ -2703,7 +2265,7 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.addCleanup(lambda: self.view.preferences.__setitem__(key, orig))
 
 	def testAutoFormatTag(self):
-		self.assertTyping('@test ', '<tag name="test">@test</tag> ')
+		self.assertTyping('@test ', '<tag name="None">@test</tag> ')
 
 	def testAutoFormatAnchor(self):
 		self.assertTyping('##test ', '<anchor name="test" /> ')
@@ -2719,82 +2281,82 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping('##test ', '##test ')
 
 	def testAutoFormatAnchorLink(self):
-		self.assertTyping('#test ', '<link href="">#test</link> ')
+		self.assertTyping('#test ', '<link href="None">#test</link> ')
 
 	def testAutoFormatAnchorLink1(self):
-		self.assertTyping('#test-1 ', '<link href="">#test-1</link> ')
+		self.assertTyping('#test-1 ', '<link href="None">#test-1</link> ')
 
 	def testAutoFormatAnchorLink2(self):
-		self.assertTyping('#test_2 ', '<link href="">#test_2</link> ')
+		self.assertTyping('#test_2 ', '<link href="None">#test_2</link> ')
 
 	def testNoAutoFormatAnchorLinkPref(self):
 		self.set_textview_preference('autolink_anchor', False)
 		self.assertTyping('#test ', '#test ')
 
 	def testAutoFormatPageWithAnchorLink(self):
-		self.assertTyping('foo#test ', '<link href="">foo#test</link> ')
+		self.assertTyping('foo#test ', '<link href="None">foo#test</link> ')
 
 	def testAutoFormatPageWithAnchorLinkWithoutAnchorPref(self):
 		# With page prefix, this is switched by 'autolink_page' preference
 		self.set_textview_preference('autolink_anchor', False)
-		self.assertTyping('foo#test ', '<link href="">foo#test</link> ')
+		self.assertTyping('foo#test ', '<link href="None">foo#test</link> ')
 
 	def testNoAutoFormatPageWithAnchorLinkPref(self):
 		self.set_textview_preference('autolink_page', False)
 		self.assertTyping('foo#test ', 'foo#test ')
 
 	def testAutoFormatURL(self):
-		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
+		self.assertTyping('http://test.com ', '<link href="None">http://test.com</link> ')
 
 	def testAutoFormatURLLocalHost(self):
-		self.assertTyping('http://localhost ', '<link href="">http://localhost</link> ')
+		self.assertTyping('http://localhost ', '<link href="None">http://localhost</link> ')
 
 	def testAutoFormatURLTrailingPunctuation(self):
-		self.assertTyping('www.commonmark.org/a.b. ', '<link href="">www.commonmark.org/a.b</link>. ')
+		self.assertTyping('www.commonmark.org/a.b. ', '<link href="None">www.commonmark.org/a.b</link>. ')
 
 	def testAutoFormatURLMatchingBracket(self):
-		self.assertTyping('(www.google.com/search?q=Markup+(business)) ', '(<link href="">www.google.com/search?q=Markup+(business)</link>) ')
+		self.assertTyping('(www.google.com/search?q=Markup+(business)) ', '(<link href="None">www.google.com/search?q=Markup+(business)</link>) ')
 
 	def testAutoFormatURLQuotes(self):
-		self.assertTyping('"http://test.com" ', '"<link href="">http://test.com</link>" ')
+		self.assertTyping('"http://test.com" ', '"<link href="None">http://test.com</link>" ')
 
 	def testAutoStripURLQuotes(self):
 		# If the link already exists and we type trailing punctuation, it should
 		# be stripped from the link
-		self.set_buffer(self.buffer, '"<link href="">http://test.com</link>')
-		self.assertTyping('" ', '"<link href="">http://test.com</link>" ')
+		self.set_buffer(self.buffer, '"<link href="None">http://test.com</link>')
+		self.assertTyping('" ', '"<link href="None">http://test.com</link>" ')
 
 	def testAutoFormatURLPunctuation(self):
-		self.assertTyping('http://test.com. ', '<link href="">http://test.com</link>. ')
+		self.assertTyping('http://test.com. ', '<link href="None">http://test.com</link>. ')
 
 	def testAutoStripURLPunctuation(self):
 		# If the link already exists and we type trailing punctuation, it should
 		# be stripped from the link
-		self.set_buffer(self.buffer, '<link href="">http://test.com</link>')
-		self.assertTyping('. ', '<link href="">http://test.com</link>. ')
+		self.set_buffer(self.buffer, '<link href="None">http://test.com</link>')
+		self.assertTyping('. ', '<link href="None">http://test.com</link>. ')
 
 	def testAutoFormatEmail(self):
-		self.assertTyping('hello+xyz@mail.example ', '<link href="">hello+xyz@mail.example</link> ')
+		self.assertTyping('hello+xyz@mail.example ', '<link href="None">hello+xyz@mail.example</link> ')
 
 	def testAutoFormatPageLink(self):
-		self.assertTyping('Foo:Bar ', '<link href="">Foo:Bar</link> ')
+		self.assertTyping('Foo:Bar ', '<link href="None">Foo:Bar</link> ')
 
 	def testNoAutoFormatPageLinkPref(self):
 		self.set_textview_preference('autolink_page', False)
 		self.assertTyping('Foo:Bar ', 'Foo:Bar ')
 
 	def testAutoFormatPageLinkWithAnchor(self):
-		self.assertTyping('Foo:Bar#anchor ', '<link href="">Foo:Bar#anchor</link> ')
+		self.assertTyping('Foo:Bar#anchor ', '<link href="None">Foo:Bar#anchor</link> ')
 
 	def testAutoFormatSubPageLink(self):
-		self.assertTyping('+Foo ', '<link href="">+Foo</link> ')
+		self.assertTyping('+Foo ', '<link href="None">+Foo</link> ')
 
 	def testAutoFormatSubPageLinkWithAnchor(self):
-		self.assertTyping('+Foo#anchor ', '<link href="">+Foo#anchor</link> ')
+		self.assertTyping('+Foo#anchor ', '<link href="None">+Foo#anchor</link> ')
 
 	def testAutoFormatTopLevelPageLink(self):
 		# edge case for time detection - see #2469
-		self.assertTyping(':Foo ', '<link href="">:Foo</link> ')
+		self.assertTyping(':Foo ', '<link href="None">:Foo</link> ')
 
 	def testNoAutoFormatTimeAsPageLink1(self):
 		self.assertTyping('10:20 ', '10:20 ')
@@ -2806,30 +2368,30 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping('10:20 +0200 ', '10:20 +0200 ')
 
 	def testEndOfWordBreaksLink(self):
-		self.set_buffer(self.buffer, '<link href="">Foo</link>')
-		self.assertTyping(' http://test.com ', '<link href="">Foo</link> <link href="">http://test.com</link> ')
+		self.set_buffer(self.buffer, '<link href="None">Foo</link>')
+		self.assertTyping(' http://test.com ', '<link href="None">Foo</link> <link href="None">http://test.com</link> ')
 
 	def testNoAutoFormatLinkInLink(self):
-		self.set_buffer(self.buffer, '<link href="">Foo Bar</link>')
+		self.set_buffer(self.buffer, '<link href="None">Foo Bar</link>')
 		self.buffer.place_cursor(self.buffer.get_iter_at_offset(4))
-		self.assertTyping('http://test.com ', '<link href="">Foo http://test.com Bar</link>')
+		self.assertTyping('http://test.com ', '<link href="None">Foo http://test.com Bar</link>')
 
 	def testAutoFormatInterWikiLink(self):
-		self.assertTyping('wp?Test ', '<link href="">wp?Test</link> ')
+		self.assertTyping('wp?Test ', '<link href="None">wp?Test</link> ')
 
 	def testNoAutoFormatInterWikiLinkPref(self):
 		self.set_textview_preference('autolink_interwiki', False)
 		self.assertTyping('wp?Test ', 'wp?Test ')
 
 	def testAutoFormatCamelCaseLink(self):
-		self.assertTyping('FooBar ', '<link href="">FooBar</link> ')
+		self.assertTyping('FooBar ', '<link href="None">FooBar</link> ')
 
 	def testNoAutoFormatCamelCaseLinkPref(self):
 		self.set_textview_preference('autolink_camelcase', False)
 		self.assertTyping('FooBar ', 'FooBar ')
 
 	def testAutoFormatFileLinkWithAutolinkFilesPrefEnabled(self):
-		self.assertTyping('./test.pdf ', '<link href="">./test.pdf</link> ')
+		self.assertTyping('./test.pdf ', '<link href="None">./test.pdf</link> ')
 
 	def testAutoFormatFileLinkWithAutolinkFilesPrefDisabled(self):
 		self.set_textview_preference('autolink_files', False)
@@ -2869,8 +2431,8 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping('_{2} _{2} ', '_{2} _{2} ')
 
 	def testNoAutoFormatStyleInLink(self):
-		self.set_buffer(self.buffer, '<link href="">Foo</link>')
-		self.assertTyping('__Bar__ ', '<link href="">Foo__Bar__</link> ')
+		self.set_buffer(self.buffer, '<link href="None">Foo</link>')
+		self.assertTyping('__Bar__ ', '<link href="None">Foo__Bar__</link> ')
 
 	def testAutoFormatStyleInLinkWithText(self):
 		self.set_buffer(self.buffer, '<link href="Test">Foo</link>')
@@ -2881,8 +2443,8 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping(' dus\'\' ', '<code>test foo dus</code> ')
 
 	def testNoAutoFormatCodeOverTag(self):
-		self.set_buffer(self.buffer, '\'\'test <tag name="foo">@foo</tag>')
-		self.assertTyping(' dus\'\' ', '\'\'test <tag name="foo">@foo</tag> dus\'\' ')
+		self.set_buffer(self.buffer, '\'\'test <tag name="None">@foo</tag>')
+		self.assertTyping(' dus\'\' ', '\'\'test <tag name="None">@foo</tag> dus\'\' ')
 
 	def testNoAutoFormatInPre(self):
 		self.set_buffer(self.buffer, '<pre>test\n</pre>')
@@ -2895,27 +2457,27 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping(' @test ', '<code>test @test </code>')
 
 	def testAutoFormatBullet(self):
-		self.assertTyping('* Test', '<li bullet="*" indent="0"> Test</li>')
+		self.assertTyping('* Test', '<li indent="0" style="bullet-list">\u2022 Test</li>')
 
 	def testAutoFormatCheckbox(self):
-		self.assertTyping('[] Test', '<li bullet="unchecked-box" indent="0"> Test</li>')
+		self.assertTyping('[] Test', '<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Test</li>')
 
 	def testAutoFormatNumbered(self):
-		self.assertTyping('3. Test', '<li bullet="3." indent="0"> Test</li>')
+		self.assertTyping('3. Test', '<li indent="0" style="numbered-list">3. Test</li>')
 
 	def testAutoFormatBulletWithinList(self):
-		self.set_buffer(self.buffer, '<li bullet="unchecked-box" indent="0"> Test</li>')
+		self.set_buffer(self.buffer, '<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Test</li>')
 		iter = self.buffer.get_start_iter()
 		iter.forward_chars(2) # put it behind the checkbox
 		self.buffer.place_cursor(iter)
-		self.assertTyping('* ', '<li bullet="*" indent="0"> Test</li>')
+		self.assertTyping('* ', '<li indent="0" style="bullet-list">\u2022 Test</li>')
 
 	def testNoAutoFormatNumberedWithinList(self):
-		self.set_buffer(self.buffer, '<li bullet="unchecked-box" indent="0"> Test</li>')
+		self.set_buffer(self.buffer, '<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Test</li>')
 		iter = self.buffer.get_start_iter()
 		iter.forward_chars(2) # put it behind the checkbox
 		self.buffer.place_cursor(iter)
-		self.assertTyping('1. ', '<li bullet="unchecked-box" indent="0"> 1. Test</li>')
+		self.assertTyping('1. ', '<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> 1. Test</li>')
 
 	def testNoAutoFormatBulletInHeading(self):
 		self.set_buffer(self.buffer, '<h level="1">test\n</h>')
@@ -2927,7 +2489,7 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertTyping('* Test ', '<code>* Test </code>')
 
 	#def testUnicodeCamelCase(self):
-	#	self.assertTyping('ВаняИванов', '<link href="">ВаняИванов</link>')
+	#	self.assertTyping('ВаняИванов', '<link href="None">ВаняИванов</link>')
 
 	def testUnicodeLinks(self):
 		# Different style test framework, probably needs locale settings to
@@ -2958,6 +2520,53 @@ class TestDoEndOfWord(tests.TestCase, TextBufferTestCaseMixin):
 			'<link href="ВаняИванов:foo">ВаняИванов:foo</link>\n'
 			'</p></zim-tree>'
 		)
+
+
+class TestCamelCase(tests.TestCase):
+
+	def testLatin(self):
+		for text in (
+			'CamelCase', 'AbbA',
+			'ĚěščřžýáíéúůŮěščřžýáíéúů'
+		):
+			self.assertTrue(
+				camelcase(str(text)),
+				msg='"%s" should be CamelCase' % text
+			)
+
+		for text in (
+			'A', 'AAAA', 'aaaa', 'Aaaaa', 'AAAAaaa', 'aAAAAA', 'aaaAAA',
+			'123', 'A123A123',
+			'ĚŠČŘŽÝÁÍÉÚŮ', 'ěščřžýáíéúů',
+		):
+			self.assertFalse(
+				camelcase(str(text)),
+				msg='"%s" should NOT be CamelCase' % text
+			)
+
+	def testArabic(self):
+		# Arabic text should never be CamelCase,
+		# letters test as neither upper not lower case
+		for text in (
+			'سلام',
+			'کهکشان',
+			'روزانه',
+			'ذائقه',
+			'آبادی',
+			'انشاء',
+			'محَبّت',
+			'اَعْداد',
+			'حتماً',
+			'ماوراء‌الطبیعه',
+			'پشتک‌وارو',
+			'راه‌راه',
+			' یاپ کارزنبرگ',
+		):
+			assert isinstance(text, str)
+			self.assertFalse(
+				camelcase(str(text)),
+				msg='"%s" should NOT be CamelCase' % text
+			)
 
 
 class TestPageView(tests.TestCase, TextBufferTestCaseMixin):
@@ -3103,12 +2712,12 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 	def testApplyFormatHeadingWithSelection(self):
 		self.buffer.select_line(0)
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3">Test 123\n</h>')
+		self.assertBufferEqual(self.buffer, '<h level="3">Test 123\n</h>')
 
 	def testApplyFormatHeadingNoSelection(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3">Test 123\n</h>')
+		self.assertBufferEqual(self.buffer, '<h level="3">Test 123\n</h>')
 		self.assertFalse(self.buffer.get_has_selection())
 		cursor = self.buffer.get_insert_iter().get_offset()
 		self.assertEqual(cursor, 0)
@@ -3118,12 +2727,12 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.activate('apply_format_h3')
 		self.buffer.select_line(0)
 		self.activate('apply_format_h4')
-		self.assertBufferEquals(self.buffer, '<h level="4">Test 123\n</h>')
+		self.assertBufferEqual(self.buffer, '<h level="4">Test 123\n</h>')
 
 	def testApplyFormatHeadingNoSelection(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3">Test 123\n</h>')
+		self.assertBufferEqual(self.buffer, '<h level="3">Test 123\n</h>')
 
 	def testApplyFormatHeadingWithFormatting(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
@@ -3131,7 +2740,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.activate('apply_format_strong')
 		self.buffer.select_line(0)
 		self.activate('apply_format_h3')
-		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123\n</h>')
+		self.assertBufferEqual(self.buffer, '<h level="3"><strong>Test</strong> 123\n</h>')
 
 	def testApplyFormattingOnHeading(self):
 		self.buffer.select_line(0)
@@ -3139,22 +2748,22 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123\n</h>')
+		self.assertBufferEqual(self.buffer, '<h level="3"><strong>Test</strong> 123\n</h>')
 
 	def testApplyFormatStrong(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 
 	def testApplyFormatStrongNoSelectionBeginOfWord(self):
 		# Only one-way toggle of word, no auto-select for un-toggling
 		# because cursor is at boundary of formatting
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 
 	def testApplyFormatStrongNoSelectionMiddleOfWord(self):
 		# Both ways the word is auto-selected and toggles
@@ -3162,9 +2771,9 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		iter.forward_cursor_positions(2)
 		self.buffer.place_cursor(iter)
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, 'Test 123\n')
+		self.assertBufferEqual(self.buffer, 'Test 123\n')
 
 	def testApplyFormatStrongNoSelectionEndOfWord(self):
 		# No auto-select at end of word - so test nothing happens both ways
@@ -3172,37 +2781,37 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		iter.forward_cursor_positions(4)
 		self.buffer.place_cursor(iter)
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, 'Test 123\n')
+		self.assertBufferEqual(self.buffer, 'Test 123\n')
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 		self.buffer.place_cursor(iter)
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 
 	def testApplyFormatEmphasis(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_emphasis')
-		self.assertBufferEquals(self.buffer, '<emphasis>Test</emphasis> 123\n')
+		self.assertBufferEqual(self.buffer, '<emphasis>Test</emphasis> 123\n')
 
 	def testApplyFormatMark(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_mark')
-		self.assertBufferEquals(self.buffer, '<mark>Test</mark> 123\n')
+		self.assertBufferEqual(self.buffer, '<mark>Test</mark> 123\n')
 
 	def testApplyFormatStrike(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_strike')
-		self.assertBufferEquals(self.buffer, '<strike>Test</strike> 123\n')
+		self.assertBufferEqual(self.buffer, '<strike>Test</strike> 123\n')
 
 	def testApplyFormatCode(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, '<code>Test</code> 123\n')
+		self.assertBufferEqual(self.buffer, '<code>Test</code> 123\n')
 
 	def testApplyFormatVerbatimForLines(self):
 		# Automatic conversion of "code" to "verbatim"
@@ -3211,7 +2820,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		end = self.buffer.get_iter_at_line(2)
 		self.buffer.select_range(start, end)
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, 'line1\n<pre>line2\n</pre>line3\n')
+		self.assertBufferEqual(self.buffer, 'line1\n<pre>line2\n</pre>line3\n')
 
 	def testNotApplyFormatVerbatimForHalfLines(self):
 		# No conversion if not selected up to and *including* line end
@@ -3223,7 +2832,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		end.backward_chars(1)
 		self.buffer.select_range(start, end)
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, 'line1\n<code>line2</code>\nline3\n')
+		self.assertBufferEqual(self.buffer, 'line1\n<code>line2</code>\nline3\n')
 
 	def testApplyFormatVerbatimForLinesPreservesWhitespaceIndent(self):
 		self.buffer.set_text('line1\n    line2\nline3\n')
@@ -3231,7 +2840,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		end = self.buffer.get_iter_at_line(2)
 		self.buffer.select_range(start, end)
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, 'line1\n<pre>    line2\n</pre>line3\n')
+		self.assertBufferEqual(self.buffer, 'line1\n<pre>    line2\n</pre>line3\n')
 		self.assertEqual(''.join(self.pageview.page.dump('wiki')), "line1\n'''\n    line2\n'''\nline3\n")
 
 	def testApplyFormatVerbatimOnStyle(self):
@@ -3239,57 +2848,57 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
 		self.buffer.select_word()
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, 'line1\n<strong>line2</strong>\nline3\n')
+		self.assertBufferEqual(self.buffer, 'line1\n<strong>line2</strong>\nline3\n')
 		bounds = self.buffer.get_bounds()
 		self.buffer.select_range(*bounds)
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
+		self.assertBufferEqual(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
 
 	def testApplyStyleOnFormatVerbatim(self):
 		self.buffer.set_text('line1\nline2\nline3\n')
 		bounds = self.buffer.get_bounds()
 		self.buffer.select_range(*bounds)
 		self.activate('apply_format_code')
-		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
+		self.assertBufferEqual(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
 		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
 		self.buffer.select_word()
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
+		self.assertBufferEqual(self.buffer, '<pre>line1\nline2\nline3\n</pre>')
 
 	def testApplyFormatSup(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_sup')
-		self.assertBufferEquals(self.buffer, '<sup>Test</sup> 123\n')
+		self.assertBufferEqual(self.buffer, '<sup>Test</sup> 123\n')
 
 	def testApplyFormatSub(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('apply_format_sub')
-		self.assertBufferEquals(self.buffer, '<sub>Test</sub> 123\n')
+		self.assertBufferEqual(self.buffer, '<sub>Test</sub> 123\n')
 
 	def testApplyFormatMultiple(self):
 		self.buffer.select_line(0)
 		self.activate('apply_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test 123</strong>\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test 123</strong>\n')
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_strike')
-		self.assertBufferEquals(self.buffer, '<strong><strike>Test</strike> 123</strong>\n')
+		self.assertBufferEqual(self.buffer, '<strong><strike>Test</strike> 123</strong>\n')
 
 	def testToggleFormatStrongSelection(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('toggle_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 		self.assertFalse(self.buffer.get_has_selection())
 		cursor = self.buffer.get_insert_iter().get_offset()
 		self.assertEqual(cursor, 0)
 		self.activate('toggle_format_strong')
-		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertBufferEqual(self.buffer, '<strong>Test</strong> 123\n')
 			# no selection, no change
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.buffer.select_word()
 		self.activate('toggle_format_strong')
-		self.assertBufferEquals(self.buffer, 'Test 123\n')
+		self.assertBufferEqual(self.buffer, 'Test 123\n')
 
 	def testToggleFormatStrongInsertMode(self):
 		self.buffer.set_text('')
@@ -3298,7 +2907,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.buffer.insert_at_cursor('bold')
 		self.activate('toggle_format_strong')
 		self.buffer.insert_at_cursor(' text')
-		self.assertBufferEquals(self.buffer, 'Test <strong>bold</strong> text')
+		self.assertBufferEqual(self.buffer, 'Test <strong>bold</strong> text')
 
 	def testMultiFormatInsertMode(self):
 		self.buffer.set_text('')
@@ -3309,7 +2918,7 @@ class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 		self.activate('toggle_format_strong')
 		self.activate('toggle_format_emphasis')
 		self.buffer.insert_at_cursor(' text')
-		self.assertBufferEquals(self.buffer, 'Test <emphasis><strong>bolditalic</strong></emphasis> text')
+		self.assertBufferEqual(self.buffer, 'Test <emphasis><strong>bolditalic</strong></emphasis> text')
 
 
 class TestPageViewActions(tests.TestCase):
@@ -3999,53 +3608,6 @@ dus bar bazzz baz
 		dialog.form.widgets['text'].set_text('Baz') # Now they match again
 		dialog.form.widgets['href'].set_text('Foo:Bar')
 		self.assertEqual(dialog.form.widgets['text'].get_text(), 'Bar') # Updated automatically
-
-
-class TestCamelCase(tests.TestCase):
-
-	def testLatin(self):
-		for text in (
-			'CamelCase', 'AbbA',
-			'ĚěščřžýáíéúůŮěščřžýáíéúů'
-		):
-			self.assertTrue(
-				camelcase(str(text)),
-				msg='"%s" should be CamelCase' % text
-			)
-
-		for text in (
-			'A', 'AAAA', 'aaaa', 'Aaaaa', 'AAAAaaa', 'aAAAAA', 'aaaAAA',
-			'123', 'A123A123',
-			'ĚŠČŘŽÝÁÍÉÚŮ', 'ěščřžýáíéúů',
-		):
-			self.assertFalse(
-				camelcase(str(text)),
-				msg='"%s" should NOT be CamelCase' % text
-			)
-
-	def testArabic(self):
-		# Arabic text should never be CamelCase,
-		# letters test as neither upper not lower case
-		for text in (
-			'سلام',
-			'کهکشان',
-			'روزانه',
-			'ذائقه',
-			'آبادی',
-			'انشاء',
-			'محَبّت',
-			'اَعْداد',
-			'حتماً',
-			'ماوراء‌الطبیعه',
-			'پشتک‌وارو',
-			'راه‌راه',
-			' یاپ کارزنبرگ',
-		):
-			assert isinstance(text, str)
-			self.assertFalse(
-				camelcase(str(text)),
-				msg='"%s" should NOT be CamelCase' % text
-			)
 
 
 class TestDragAndDropFunctions(tests.TestCase):

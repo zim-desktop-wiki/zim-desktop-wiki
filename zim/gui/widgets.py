@@ -64,6 +64,7 @@ from zim.notebook import Notebook, Path, HRef, PageNotFoundError
 from zim.parse.links import link_type
 from zim.signals import ConnectorMixin
 from zim.notebook.index import IndexNotFoundError
+from zim.notebook.layout import FILE_TYPE_PAGE_SOURCE
 from zim.actions import action
 
 logger = logging.getLogger('zim.gui')
@@ -721,10 +722,16 @@ class BrowserTreeView(SingleClickTreeView):
 			return Gtk.TreeView.do_key_press_event(self, event)
 
 
-def widget_set_css(widget, name, css):
-	text = '#%s {%s}' % (name, css)
+def widget_set_css(widget: Gtk.Widget, name: str, css: str) -> None:
+	'''Set the widget name and CSS style
+	@param widget: a C{Gtk.Widget}
+	@param name: the name for the widget, can be used in CSS as `#name`
+	@param css: the CSS for this widget, if it contains a `{` it is taken as "raw" CSS, 
+	else it is wrapped in a template like `#name {..}`
+	'''
+	css = css if '{' in css else '#%s {%s}' % (name, css)
 	css_provider = Gtk.CssProvider()
-	css_provider.load_from_data(text.encode('UTF-8'))
+	css_provider.load_from_data(css.encode('UTF-8'))
 	widget_style = widget.get_style_context()
 	widget_style.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 	widget.set_name(name)
@@ -732,11 +739,11 @@ def widget_set_css(widget, name, css):
 
 def button_set_statusbar_style(button):
 	# Set up a style for the statusbar variant to decrease spacing of the button
-	widget_set_css(button, 'zim-statusbar-button',	'''
-													border: none;
-													border-radius: 0px;
-													padding: 0px 8px 0px 8px;
-													''')
+	widget_set_css(button, 'zim-statusbar-button',
+		'border: none; '
+		'border-radius: 0px; '
+		'padding: 0px 8px 0px 8px; '
+	)
 	button.set_relief(Gtk.ReliefStyle.NONE)
 
 
@@ -1580,6 +1587,12 @@ class FSPathEntry(InputEntry):
 		'''Run a dialog to browse for a file or folder.
 		Used by the 'browse' button in input forms.
 		'''
+		dialog = self.create_popup_dialog()
+		file = dialog.run()
+		if file is not None:
+			FSPathEntry.set_path(self, file)
+
+	def create_popup_dialog(self):
 		window = self.get_toplevel()
 		if self.action == Gtk.FileChooserAction.SELECT_FOLDER:
 			title = _('Select Folder') # T: dialog title
@@ -1604,10 +1617,7 @@ class FSPathEntry(InputEntry):
 		elif self.notebook:
 			dialog.set_current_dir(self.notebook.folder)
 
-
-		file = dialog.run()
-		if not file is None:
-			FSPathEntry.set_path(self, file)
+		return dialog
 
 
 class FileEntry(FSPathEntry):
@@ -1972,6 +1982,31 @@ class LinkEntry(PageEntry, FileEntry):
 		PageEntry.__init__(self, notebook, path)
 		self.action = Gtk.FileChooserAction.OPEN
 		self.file_type_hint = None
+
+	def popup_dialog(self):
+		'''Run a dialog to browse for a file or folder.
+		Used by the 'browse' button in input forms.
+		'''
+		dialog = self.create_popup_dialog()
+		file = dialog.run()
+		if file is not None:
+			self.set_file_path(file)
+
+	def set_file_path(self, file):
+		'''Set a file path in the entry but translate to page if it maps to source
+
+		This method is intended to help users who are (unintended) using file browser to
+		select a page.
+		'''
+		try:
+			page_path, file_type = self.notebook.layout.map_file(file)
+		except ValueError:
+			file_type = None
+
+		if file_type == FILE_TYPE_PAGE_SOURCE:
+			PageEntry.set_path(self, page_path)
+		else:
+			FSPathEntry.set_path(self, file)
 
 	def get_path(self):
 		# TODO: proper check link syntax, including achor part instead

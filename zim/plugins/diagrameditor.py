@@ -41,7 +41,7 @@ This is a core plugin shipping with zim.
 		(
 			'default_text',
 			'string',
-			_('Default text'),
+			_('Default text'), # T: Plugin preference for diagram editor
 			''
 		),
 	)

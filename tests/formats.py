@@ -566,7 +566,7 @@ hmmm
 		text = '{{id: test}}'
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><anchor name="test">test</anchor></p></zim-tree>'''
+<zim-tree><p><anchor name="test" /></p></zim-tree>'''
 		tree = self.format.Parser().parse(text)
 		self.assertEqual(tree.tostring(), xml)
 

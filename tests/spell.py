@@ -124,13 +124,13 @@ class TestReplaceWordWithFormatting(TextBufferTestCaseMixin, tests.TestCase):
 		new_word = "misspelled"
 		start, end = buffer.get_iter_at_offset(0), buffer.get_iter_at_offset(8)
 		self.replace_word(buffer, start, end, new_word)
-		self.assertBufferEquals(buffer,
+		self.assertBufferEqual(buffer,
 			'<strong>misspelled</strong>\n'
 			'<emphasis>here misplled here as well</emphasis>\n\n'
 		)
 		start, end = buffer.get_iter_at_offset(16), buffer.get_iter_at_offset(24)
 		self.replace_word(buffer, start, end, new_word)
-		self.assertBufferEquals(buffer,
+		self.assertBufferEqual(buffer,
 			'<strong>misspelled</strong>\n'
 			'<emphasis>here misspelled here as well</emphasis>\n\n'
 		)

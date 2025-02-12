@@ -1,5 +1,5 @@
 
-# Copyright 2012-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2025 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -13,7 +13,7 @@ logger = logging.getLogger('zim.plugins.tableofcontents')
 
 
 from zim.plugins import PluginClass
-from zim.signals import ConnectorMixin, DelayedCallback
+from zim.signals import ConnectorMixin, DelayedCallback, SIGNAL_AFTER
 from zim.parse.tokenlist import tokens_to_text, collect_until_end_token
 from zim.formats import HEADING, LINE
 
@@ -59,29 +59,30 @@ def select_heading(buffer, n, include_hr):
 		return False
 
 
-def get_headings(parsetree, include_hr):
-	tokens = parsetree.iter_tokens()
-	stack = [(0, None, [])]
-	for t in tokens:
-		if t[0] == HEADING:
-			level = int(t[1]['level'])
-			text = tokens_to_text(
-						collect_until_end_token(tokens, HEADING) ).strip()
+def get_headings(buffer, include_hr):
+	iter = buffer.get_start_iter()
+	stack = [(0, None, None, [])] # level, text, line, children
+	while True:
+		level, text = buffer.get_heading(iter.get_line())
+		if level is not None: # Is heading
 			assert level > 0 # just to be sure
 			while stack[-1][0] >= level:
 				stack.pop()
-			node = (level, text, [])
-			stack[-1][2].append(node)
+			node = (level, text, iter.get_line(), [])
+			stack[-1][-1].append(node)
 			stack.append(node)
-		elif include_hr and t[0] == LINE:
+		elif include_hr and buffer.get_anchor_object_at_iter(iter, LineSeparatorAnchor):
 			while stack[-1][0] >= LINE_LEVEL:
 				stack.pop()
-			node = (LINE_LEVEL, '\u2500\u2500\u2500\u2500', [])
+			node = (LINE_LEVEL, '\u2500\u2500\u2500\u2500', iter.get_line(), [])
 				# \u2500 == "BOX DRAWINGS LIGHT HORIZONTAL"
-			stack[-1][2].append(node)
+			stack[-1][-1].append(node)
 			stack.append(node)
 		else:
 			pass
+
+		if not iter.forward_line():
+			break
 
 	return stack[0][-1]
 
@@ -146,6 +147,7 @@ class ToCPageViewExtension(PageViewExtension):
 
 
 TEXT_COL = 0
+LINE_COL = 1
 
 class ToCTreeView(BrowserTreeView):
 
@@ -170,11 +172,28 @@ class ToCTreeView(BrowserTreeView):
 		if fontsize != 0:
 			self._cell_renderer.set_property('size-points', fontsize)
 
+	def select_heading_for_line(self, line: int):
+		'''Select the heading to which C{line} belongs'''
+		selection = self.get_selection()
+		selection.unselect_all()
+		model = self.get_model()
+
+		previous = None
+		for i in model.walk():
+			if model[i][1] > line: # LINE_COL
+				break
+			else:
+				previous = i
+
+		if previous is not None:
+			treepath = model.get_path(previous)
+			selection.select_path(treepath)
+
 
 class ToCTreeModel(Gtk.TreeStore):
 
 	def __init__(self):
-		Gtk.TreeStore.__init__(self, str) # TEXT_COL
+		Gtk.TreeStore.__init__(self, str, int) # TEXT_COL, LINE_COL
 		self.is_empty = True
 		self.hidden_h1 = False
 
@@ -210,7 +229,7 @@ class ToCTreeModel(Gtk.TreeStore):
 		and len(headings) == 1 \
 		and headings[0][0] == 1:
 			# do not show first heading
-			headings = headings[0][2]
+			headings = headings[0][-1]
 			self.hidden_h1 = True
 		else:
 			self.hidden_h1 = False
@@ -228,10 +247,10 @@ class ToCTreeModel(Gtk.TreeStore):
 
 	def _update_headings(self, headings, parent=None):
 		iter = self.iter_children(parent)
-		for level, text, children in headings:
+		for level, text, line, children in headings:
 			if iter:
 				# Compare to model
-				self[iter] = (text,)
+				self[iter] = (text, line) # TEXT_COL, LINE_COL
 				if children:
 					if self.iter_has_child(iter):
 						self._update_headings(children, iter)
@@ -245,7 +264,7 @@ class ToCTreeModel(Gtk.TreeStore):
 				iter = self.iter_next(iter)
 			else:
 				# Model ran out
-				myiter = self.append(parent, (text,))
+				myiter = self.append(parent, (text, line)) # TEXT_COL, LINE_COL
 				if children:
 					self._insert_headings(children, myiter)
 
@@ -261,8 +280,8 @@ class ToCTreeModel(Gtk.TreeStore):
 				pass
 
 	def _insert_headings(self, headings, parent=None):
-		for level, text, children in headings:
-			iter = self.append(parent, (text,))
+		for level, text, line, children in headings:
+			iter = self.append(parent, (text, line)) # TEXT_COL, LINE_COL
 			if children:
 				self._insert_headings(children, iter)
 
@@ -278,18 +297,20 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		self.show_h1 = show_h1
 		self.include_hr = include_hr
 		self.fontsize = fontsize
+		self._active_line = None
+		self._connected_to_textbuffer = False # HACK to ensure we initialize correctly
 
 		self.treeview = ToCTreeView(ellipsis, fontsize)
 		self.treeview.connect('row-activated', self.on_heading_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.add(self.treeview)
 
-		self.connectto(pageview, 'page-changed')
-		self.connectto(pageview.notebook, 'store-page')
-
 		self.pageview = pageview
-		if self.pageview.page:
-			self.on_page_changed(self.pageview, self.pageview.page)
+		self.connectto(pageview, 'page-changed')
+		self.connectto(pageview, 'textbuffer-changed')
+		self.connectto(pageview.notebook, 'store-page')
+		self.on_textbuffer_changed(self.pageview, None, self.pageview.textview.get_buffer())
+		self.on_page_changed(self.pageview, self.pageview.page)
 
 	def set_preferences(self, show_h1, include_hr, fontsize):
 		changed = (show_h1, include_hr, fontsize) != (self.show_h1, self.include_hr, self.fontsize)
@@ -310,13 +331,27 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 	def load_page(self, page):
 		model = self.treeview.get_model()
-		tree = page.get_parsetree()
-		if tree is None:
-			model.clear()
+		if model is None:
+			return
+		textview = self.pageview.textview
+		buffer = textview.get_buffer()
+		if buffer.hascontent:
+			model.update(get_headings(buffer, self.include_hr), self.show_h1)
+			self.treeview.select_heading_for_line(buffer.get_insert_iter().get_line())
 		else:
-			if model is not None:
-				model.update(get_headings(tree, self.include_hr), self.show_h1)
+			model.clear()
 		self.emit('changed')
+
+	def on_textbuffer_changed(self, pageview, oldbuffer, newbuffer):
+		if oldbuffer is not None:
+			self.disconnect_from(oldbuffer)
+		self.connectto(newbuffer, 'mark-set', order=SIGNAL_AFTER)
+
+	def on_mark_set(self, textbuffer, iter, mark):
+		# Update selection in widget, but avoid doing it unless line changed
+		if mark.get_name() == 'insert' and iter.get_line() != self._active_line:
+			self._active_line = iter.get_line()
+			self.treeview.select_heading_for_line(self._active_line)
 
 	def on_heading_activated(self, treeview, path, column):
 		self.select_heading(path)
@@ -343,14 +378,6 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		'''
 		model = self.treeview.get_model()
 		n = model.get_nth_heading(path)
-
-		nextpath = Gtk.TreePath(path[:-1] + [path[-1] + 1])
-		try:
-			aiter = model.get_iter(nextpath)
-		except ValueError:
-			endtext = None
-		else:
-			endtext = model[aiter][TEXT_COL]
 
 		textview = self.pageview.textview
 		buffer = textview.get_buffer()
@@ -381,7 +408,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		anchor = buffer.get_anchor_for_location(hd_iter)
 		if not anchor:
 			return None
-		heading_text = buffer.get_heading_text(hd_iter)
+		lvl, heading_text = buffer.get_heading(hd_iter.get_line())
 		if not heading_text:
 			return None
 		return anchor, heading_text

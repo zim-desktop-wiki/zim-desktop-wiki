@@ -7,6 +7,9 @@ import logging
 logger = logging.getLogger('zim.gui.pageview.undo')
 
 
+from .serialize import *
+
+
 class UndoActionGroup(list):
 	'''Group of actions that should un-done or re-done in a single step
 
@@ -69,7 +72,7 @@ class UndoStackManager:
 	    C{ACTION_APPLY_TAG}, C{ACTION_REMOVE_TAG}
 	  - C{start_iter}: a C{Gtk.TextIter}
 	  - C{end_iter}: a C{Gtk.TextIter}
-	  - C{data}: either a (raw) L{ParseTree} or a C{Gtk.TextTag}
+	  - C{data}: either a L{TextBufferInternalContents} or a C{Gtk.TextTag}
 
 	These actions are low level operations, so they are
 
@@ -157,6 +160,14 @@ class UndoStackManager:
 		#~ self.buffer.connect_object('set-mark',
 			#~ self.__class__._flush_if_typing, self)
 
+	def clear_undostack(self):
+		'''Clear all recorded information - intended for testing only'''
+		self.stack = [] # stack of actions & action groups
+		self.group = UndoActionGroup() # current group of actions
+		self.interactive = False # interactive edit or not
+		self.insert_pending = False # whether we need to call flush insert or not
+		self.undo_count = 0 # number of undo steps that were done
+
 	def block(self):
 		'''Stop listening to events from the L{TextBuffer} until
 		the next call to L{unblock()}. Any change in between will not
@@ -225,8 +236,8 @@ class UndoStackManager:
 			start_iter = buffer.get_iter_at_offset(start)
 			end_iter = buffer.get_insert_iter()
 			end = end_iter.get_offset()
-			tree = self.buffer.get_parsetree((start_iter, end_iter), raw=True)
-			self.group.append((self.ACTION_INSERT, start, end, tree))
+			data = textbuffer_internal_serialize_range(self.buffer, start_iter, end_iter)
+			self.group.append((self.ACTION_INSERT, start, end, data))
 
 	def do_insert_text(self, buffer, iter, text, length):
 		# Handle insert text event
@@ -275,21 +286,21 @@ class UndoStackManager:
 		'''Flush all pending actions and store them on the stack
 
 		The reason for this method is that because of the possibility of
-		merging actions we do not immediatly request the parse tree for
+		merging actions we do not immediatly request the serialization for
 		each single character insert. Instead we first group inserts
-		based on cursor positions and then request the parse tree for
+		based on cursor positions and then request the serialization for
 		the group at once. This method proceses all such delayed
 		requests.
 		'''
 		def _flush_group(group):
 			for i in reversed(list(range(len(group)))):
-				action, start, end, tree = group[i]
-				if action == self.ACTION_INSERT and tree is None:
+				action, start, end, data = group[i]
+				if action == self.ACTION_INSERT and data is None:
 					bounds = (self.buffer.get_iter_at_offset(start),
 								self.buffer.get_iter_at_offset(end))
-					tree = self.buffer.get_parsetree(bounds, raw=True)
-					#~ print('FLUSH %i to %i\n\t%s' % (start, end, tree.tostring()))
-					group[i] = (self.ACTION_INSERT, start, end, tree)
+					data = textbuffer_internal_serialize_range(self.buffer, *bounds)
+					#~ print('FLUSH %i to %i\n\t%s' % (start, end, data))
+					group[i] = (self.ACTION_INSERT, start, end, data)
 				else:
 					return False
 			return True
@@ -308,11 +319,10 @@ class UndoStackManager:
 		elif self.insert_pending:
 			self.flush_insert()
 
-		bounds = (start, end)
-		tree = self.buffer.get_parsetree(bounds, raw=True)
+		data = textbuffer_internal_serialize_range(self.buffer, start, end)
 		start, end = start.get_offset(), end.get_offset()
-		#~ print('DELETE RANGE from %i to %i\n\t%s' % (start, end, tree.tostring()))
-		self.group.append((self.ACTION_DELETE, start, end, tree))
+		#~ print('DELETE RANGE from %i to %i\n\t%s' % (start, end, data))
+		self.group.append((self.ACTION_DELETE, start, end, data))
 		self.group.can_merge = False
 
 	def do_change_tag(self, buffer, tag, start, end, action):
@@ -382,32 +392,31 @@ class UndoStackManager:
 	def _replay(self, actiongroup):
 		self.block()
 
-		#~ print('='*80)
+		#print('='*80)
 		for action, start, end, data in actiongroup:
+			#print(action, start, end, data)
 			iter = self.buffer.get_iter_at_offset(start)
 			bound = self.buffer.get_iter_at_offset(end)
 
 			if action == self.ACTION_INSERT:
-				#~ print('INSERTING', data.tostring())
 				self.buffer.place_cursor(iter)
-				self.buffer.insert_parsetree_at_cursor(data)
+				textbuffer_internal_insert_at_cursor(self.buffer, data)
 			elif action == self.ACTION_DELETE:
-				#~ print('DELETING', data.tostring())
 				self.buffer.place_cursor(iter)
-				tree = self.buffer.get_parsetree((iter, bound), raw=True)
-				#~ print('REAL', tree.tostring())
+				current_data = textbuffer_internal_serialize_range(self.buffer, iter, bound)
+				if current_data != data:
+					if current_data.to_xml() != data.to_xml():
+						logger.warning('Mismatch in undo stack\nGOT: %s\nEXP: %s\n', current_data, data)
+					else:
+						pass # to_xml() flattens e.g. integer arguments to string, ignore such differences here
 				with self.buffer.user_action:
-					self.buffer._raw_delete_ongoing = True # XXX
-					self.buffer.delete(iter, bound)
-					self.buffer._raw_delete_ongoing = False # XXX
-				if tree.tostring() != data.tostring():
-					logger.warning('Mismatch in undo stack\n%s\n%s\n', tree.tostring(), data.tostring())
+					with self.buffer.do_pre_delete_range.blocked():
+						with self.buffer.do_post_delete_range.blocked():
+							self.buffer.delete(iter, bound)
 			elif action == self.ACTION_APPLY_TAG:
-				#~ print('APPLYING', data)
 				self.buffer.apply_tag(data, iter, bound)
 				self.buffer.place_cursor(bound)
 			elif action == self.ACTION_REMOVE_TAG:
-				#~ print('REMOVING', data)
 				self.buffer.remove_tag(data, iter, bound)
 				self.buffer.place_cursor(bound)
 			else:

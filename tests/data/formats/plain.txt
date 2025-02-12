@@ -57,10 +57,10 @@ Foo Bar
 
 Tags: @foo @bar
 
-Anchors: [id: foo]  #foo  page#foo
+Anchors:   #foo  page#foo
 
 
-head 4 [id: head-4-anchor]
+head 4 
 
 * item 1
 * item 2

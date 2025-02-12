@@ -4,6 +4,8 @@
 import tests
 from tests import os_native_path
 
+import os
+
 from zim.fs import adapt_from_oldfs
 from zim.newfs import LocalFile, LocalFolder
 from zim.notebook import Path
@@ -249,10 +251,20 @@ class TestLinkEntry(TestPageEntry, TestFileEntry):
 
 	entryklass = LinkEntry
 
-	def runTest(self):
+	def testMain(self):
 		'''Test LinkEntry widget'''
 		#TestPageEntry.runTest(self) # TODO - no longer works because it uses get_path() - alternative coverage needed ?
 		TestFileEntry.runTest(self)
+
+	def testFileToPageMapping(self):
+		updir = self.notebook.layout.root.parent()
+		for file, wanted in (
+			(self.notebook.resolve_file('./Test/doc.pdf'), tests.os_native_path('../doc.pdf')), # file outside notebook, relative to 'Test:foo'
+			(updir.file('Test.text'), tests.os_native_path(updir.file('Test.text').userpath)), # file attachment inside notebook
+			(self.notebook.resolve_file('./Test.txt'), ':Test'), # file mapping to page source
+		):
+			self.entry.set_file_path(file)
+			self.assertEqual(self.entry.get_text(), wanted)
 
 
 class TestInputForm(tests.TestCase):
@@ -347,6 +359,7 @@ class TestFileDialog(tests.TestCase):
 	## and still it fails at random :(
 	## Maybe fixes in Gtk3 - let's see if we encounter more failures
 
+	@tests.expectedFailureIf(os.name == 'nt') # Fails at random in automated tests
 	def runTest(self):
 		tmp_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 

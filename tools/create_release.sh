@@ -68,9 +68,12 @@ echo "Updating xdg/org.zim_wiki.Zim.appdata.xml"
 echo "Building ..."
 
 python3 ./test.py package || exit 1
+make clean
+
 ./setup.py sdist
 make builddeb
 make clean
+
 ./tools/build_website.sh
 
 lintian -Ivi ../zim_$DEBNEW\_*.changes

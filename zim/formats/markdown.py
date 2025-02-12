@@ -61,8 +61,13 @@ class Dumper(TextDumper):
 		return TextDumper.dump(self, tree)
 
 	def dump_indent(self, tag, attrib, strings):
-		# OPEN ISSUE: no indent for para
-		return strings
+		# Prefix lines with one or more tabs
+		if attrib and 'indent' in attrib:
+			prefix = '> ' * int(attrib['indent'])
+			return self.prefix_lines(prefix, strings)
+			# TODO enforces we always end such a block with \n unless partial
+		else:
+			return strings
 
 	dump_p = dump_indent
 	dump_div = dump_indent
@@ -98,6 +103,10 @@ class Dumper(TextDumper):
 	def dump_pre(self, tag, attrib, strings):
 		# OPEN ISSUE: no indent for verbatim blocks
 		return self.prefix_lines('\t', strings)
+
+	def dump_anchor(self, tag, attrib, strings=None):
+		# Syntax of the pandoc header attributes extension
+		return ('{#%s}' % attrib['name'],)
 
 	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \

@@ -196,6 +196,11 @@ class BackwardImageGeneratorModel(ImageGeneratorModelBase):
 			else:
 				self.set_from_generator(text, image_file)
 
+	def find_simple_match(self, query: 'FindQuery') -> bool:
+		# Default behavior checks data field, but this is empty for this model type
+		text = self.get_text()
+		return (query.regex.search(text) is not None) if text else False
+
 	def get_text(self):
 		if self.image_file is not None and self.script_file.exists():
 			text = self.script_file.read()

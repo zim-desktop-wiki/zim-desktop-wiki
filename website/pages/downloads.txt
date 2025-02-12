@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.75.2 - Jul 2023 =====
+===== Latest release: 0.76.1 - Jan 2025 =====
 
 **This program depends on a number of prerequisites.** Most Linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier than compiling them manually.
 
@@ -37,7 +37,7 @@ A Windows installer can also be found [[/downloads/|here]]. This installer is bu
 
 {{/images/zim_macos.png}}
 
-A macOS app can be found [[https://gitlab.com/dehesselle/zim_macos/-/releases|here]]. It supports macOS High Sierra up to macOS Monterey.
+A macOS app can be found [[https://gitlab.com/dehesselle/zim_macos/-/releases|here]]. It supports macOS Big Sur up to macOS Sequoia.
 See the configuration section in the [[https://gitlab.com/dehesselle/zim_macos/-/blob/master/README.md|readme]] on where to find configuration files and how to get plugins to recognize external dependencies.
 
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**

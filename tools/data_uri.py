@@ -1,19 +1,23 @@
 #!/usr/bin/python3
 
 import base64
+import sys
 
-from zim.fs import File
+from zim.gui.applications import get_mimetype
+from zim.newfs import LocalFile
+
 
 def data_uri(file):
-	if file.basename.endswith('.png'):
-		mime = 'image/png'
-	else:
-		mime = file.get_mimetype()
-	data64 = ''.join(base64.encodestring(file.raw()).splitlines())
-	return 'data:%s;base64,%s' % (mime, data64)
+	mimetype = get_mimetype(file)
+	data64 = base64.b64encode(file.read_binary()).decode('utf-8')
+	return f'data:{mimetype};base64,{data64}'
+
+
+def main():
+	file = LocalFile(sys.argv[1])
+	assert file.exists(), f'File \'{file}\' does not exist'
+	print(data_uri(file))
 
 
 if __name__ == '__main__':
-	import sys
-	file = File(sys.argv[1])
-	print(data_uri(file))
+	main()

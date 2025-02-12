@@ -72,8 +72,12 @@ class Command(object):
 		options = ''
 		long_options = []
 		options_map = {}
+		requires_arg = set()
 		for l, s, desc in self.default_options + self.options:
 			long_options.append(l)
+			if l.endswith('='):
+				requires_arg.add(l.strip('='))
+
 			if s and l.endswith('='):
 				options += s + ':'
 				options_map[s] = l.strip('=')
@@ -87,7 +91,7 @@ class Command(object):
 		for o, a in optlist:
 			key = o.strip('-')
 			key = options_map.get(key, key)
-			if a == '':
+			if a == '' and key not in requires_arg: # implies boolean flag
 				self.opts[key] = True
 			elif key in self.opts and isinstance(self.opts[key], list):
 				self.opts[key].append(a)

@@ -30,7 +30,7 @@ this should be sufficient.
 
 Note that the regexes are compiles using the flags C{re.U}, C{re.M},
 and C{re.X}. This means any whitespace in the expression is ignored,
-and a literal space need to be written as "C{\ }". In general you need
+and a literal space need to be written as "C{\\ }". In general you need
 to use the "r" string prefix to ensure those backslashes make it
 through to the final expression.
 '''
@@ -226,7 +226,7 @@ class Rule(object):
 	this function is called with the whole match.
 	The default function will use the C{tag} and C{descent}
 	attributes
-	@ivar decent: optional function (or object) to recursively parse the
+	@ivar descent: optional function (or object) to recursively parse the
 	text matched by this rule. Called in the same way as C{process}.
 	'''
 

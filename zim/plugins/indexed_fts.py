@@ -5,8 +5,10 @@ It borrows a lot from the task list plugin which also needs to index all
 page contents.
 '''
 
+import contextlib
 import sqlite3
 import logging
+import json
 
 from zim.plugins import PluginClass
 from zim.notebook import NotebookExtension, Path
@@ -39,27 +41,39 @@ def compare_version(curv, minv):
 class IndexedFTSPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Indexed Full-Text Search'),
+		'name': _('Indexed Full-Text Search'), # T: plugin name
 		'description': _('''\
 This plugin provides full-text indexing of
 page contents for fast full-text search,
 based on the FTS5 virtual table module of
 sqlite.
-'''),
+'''), # T: plugin description
 		'author': 'Nimrod Maclomhair',
 		'help': 'Plugins:Indexed Full Text Search'
 	}
 
+	plugin_preferences = (
+		# key, type, label, default
+		('remove_diacritics', 'bool', _('Remove diacritics before indexing'), False),
+		('tokenchars', 'string', _('Additional token characters'), ''),
+	)
+
 	@classmethod
 	def check_dependencies(klass):
-		conn = sqlite3.connect(":memory:")
-		has_fts5 = (
-			len(conn.execute(
-				"SELECT name FROM pragma_module_list() "
-				"WHERE name = ?;", ("fts5",)
-				).fetchall()
-			) == 1
-		)
+		with contextlib.closing(sqlite3.connect(':memory:')) as connection:
+			with connection:
+				try:
+					with contextlib.closing(connection.cursor()) as cursor:
+						cursor.execute('SELECT name FROM pragma_module_list() WHERE name = ?;', ('fts5',))
+						data = cursor.fetchall()
+						has_fts5 = ('fts5',) in data
+				except sqlite3.Error:
+					with contextlib.closing(connection.cursor()) as cursor:
+						cursor.execute('pragma compile_options;')
+						data = cursor.fetchall()
+						has_fts5 = ('ENABLE_FTS5',) in data
+
+		# this is the smallest version with available feature ``contentless-delete tables``
 		has_min_version = compare_version(
 			sqlite3.sqlite_version_info, (3, 43, 0)
 		)
@@ -87,11 +101,50 @@ sqlite.
 
 		# All keywords passed to this functions are content-related so
 		# we don't need to check the term.keyword property.
-		# Beware: FTS5 supports a complex search syntax, including "*"
-		# expansion, but we cannot use this for counting the occurences.
-		# Instead, we use the GLOB operator for counting occurences,
-		# which also understands "*" expansion but might otherwise
-		# provide different results.
+
+		# We need to escape all keywords manually for use in the FTS5
+		# search query
+		def escape_for_fts(keyword):
+			return '"' + keyword.replace('"', '""') + '"'
+
+		# zim search syntax supports "*" but not the "?" glob operator,
+		# so this needs to be escaped, too.
+		def escape_for_glob(keyword):
+			return keyword.translate({
+				"?": "%?",
+				"%": "%%"
+			})
+
+		# Protect against a possibly long-running query if accidentally
+		# searching for "*"
+		if term.string == "*":
+			return SearchSelection(None)
+
+		# Beware: FTS5 only supports "*" expansion at the end of a word
+		# while we want to support it in the beginning and the middle as well
+		# We can emulate the globbing behavior by constructing an equivalent
+		# query containing all tokens that match the expansion
+		if "*" in term.string:
+			# We need to find all tokens that match the search
+			query_token_result = db.execute(
+				"SELECT DISTINCT term FROM pages_ftsv WHERE term GLOB ?;",
+				(escape_for_glob(term.string.lower()),)
+			).fetchall()
+			query_token_list = [
+				escape_for_fts(row["term"])
+				for row in query_token_result
+			]
+			query_string = ' OR '.join(query_token_list)
+
+		else:
+			query_string = escape_for_fts(term.string.lower())
+
+
+		logger.debug("Full-Text Search for query %s", query_string)
+
+		# We use the GLOB operator for counting occurences,
+		# which also understands "*" expansion so we don't need the full list
+		# of tokens
 		query_results = db.execute(
 			"SELECT p.name AS name, count(v.offset) as score "
 			"FROM pages_fts(?) as f "
@@ -100,7 +153,7 @@ sqlite.
 			"JOIN pages_ftsv AS v ON f.rowid = v.doc "
 			"WHERE v.term GLOB ? "
 			"GROUP BY p.name;",
-			(term.string, term.string.lower())
+			(query_string, escape_for_glob(term.string.lower()))
 		).fetchall()
 
 		myscores = {}
@@ -142,23 +195,33 @@ class FTSIndexer(IndexerBase):
 	the FTS index up-to-date.
 	'''
 	PLUGIN_NAME = "IndexedFTS"
-	PLUGIN_DB_FORMAT = "0.1"
+	PLUGIN_CONFIG_KEY = "IndexedFTS_configuration"
+	PLUGIN_DB_FORMAT = "0.2"
+	_TABLE_DROP_STATEMENTS = """
+		DROP TABLE IF EXISTS pages_fts;
+		DROP TABLE IF EXISTS pages_ftsv;
+		DROP TABLE IF EXISTS keys_pages_fts;
+	"""
 
 	__signals__ = {}
 
 	@classmethod
 	def teardown(cls, db):
-		db.execute("DROP TABLE IF EXISTS pages_fts;")
-		db.execute("DROP TABLE IF EXISTS keys_pages_fts;")
+		db.executescript(cls._TABLE_DROP_STATEMENTS)
 		db.execute("DELETE FROM zim_index WHERE key = ?;", (cls.PLUGIN_NAME,))
+		db.execute("DELETE FROM zim_index WHERE key = ?;", (cls.PLUGIN_CONFIG_KEY,))
 
-	def __init__(self, db, pages_indexer):
+	def __init__(self, db, pages_indexer, plugin_preferences):
 		IndexerBase.__init__(self, db)
 		self.db = db
+
+		# Version checks are performed by IndexedFTSNotebookExtension
+		# before we are instantiated (it's easier there)
+
 		self.db.executescript('''
 			CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
 				page_content,
-				tokenize = 'unicode61 remove_diacritics 2',
+				tokenize = "unicode61 remove_diacritics {0} tokenchars '{1}'",
 				content = '',
 				contentless_delete = 1
 			);
@@ -170,10 +233,16 @@ class FTSIndexer(IndexerBase):
 				fts_id INTEGER REFERENCES pages_fts(rowid)
 			);
 			CREATE INDEX IF NOT EXISTS keys_pages_fts_rowid ON keys_pages_fts(fts_id);
-		''')
+		'''.format(
+			'2' if plugin_preferences['remove_diacritics'] else '0',
+
+			plugin_preferences['tokenchars'].replace('"', '""')
+				if plugin_preferences['tokenchars'] is not None else ''
+		))
 		self.db.execute(
-			"INSERT OR REPLACE INTO zim_index VALUES (?, ?);",
-			(self.PLUGIN_NAME, self.PLUGIN_DB_FORMAT)
+			"INSERT OR REPLACE INTO zim_index VALUES (?, ?), (?, ?);",
+			(self.PLUGIN_NAME, self.PLUGIN_DB_FORMAT,
+			self.PLUGIN_CONFIG_KEY, json.dumps(plugin_preferences),)
 		)
 
 		self.connectto_all(pages_indexer, (
@@ -254,15 +323,42 @@ class IndexedFTSNotebookExtension(NotebookExtension):
 			self.index.flag_reindex()
 
 		self.indexer = None
-		self.setup_indexer(self.index, self.index.update_iter)
+		self.setup_indexer()
 		self.index.connect('new-update-iter', self.setup_indexer)
 
-	def setup_indexer(self, index, update_iter):
+		self.plugin.preferences.connect('changed', self.on_preferences_changed)
+
+
+	def setup_indexer(self):
 		if self.indexer is not None:
 			self.indexer.disconnect_all()
 
-		self.indexer = FTSIndexer(index._db, update_iter.pages)
-		update_iter.add_indexer(self.indexer)
+		self.indexer = FTSIndexer(self.index._db,
+			self.index.update_iter.pages, self.plugin.preferences)
+
+		self.index.update_iter.add_indexer(self.indexer)
+
+	def on_preferences_changed(self, preferences):
+		"""Callback to update index when plugin preferences are changed
+		This method assumes self.plugin.preferences is up-to-date anyway
+		"""
+		stored_prefs = self.index.get_property(FTSIndexer.PLUGIN_CONFIG_KEY)
+		if stored_prefs is None:
+			FTSIndexer.teardown(self.index._db)
+			self.index.flag_reindex()
+			self.setup_indexer()
+			return
+
+		stored_prefs = json.loads(stored_prefs)
+
+		for key, value in preferences.items():
+			if stored_prefs[key] != value:
+				FTSIndexer.teardown(self.index._db)
+				self.index.flag_reindex()
+				self.setup_indexer()
+				return
+
+
 
 	def teardown(self):
 		'''This should be called when the plugin is disabled.

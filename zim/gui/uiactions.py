@@ -227,8 +227,7 @@ class UIActions(object):
 
 	@action(_('_Quit'), '<Primary>Q') # T: Menu item
 	def quit(self):
-		'''Menu action for quitting the application
-		'''
+		'''Menu action for quitting the application'''
 		application = self.widget.get_toplevel().get_application()
 		application.quit()
 

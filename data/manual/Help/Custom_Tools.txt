@@ -24,8 +24,8 @@ When defining a command, you can use the following parameters to supply the exte
 * **%p**	for the page name
 * **%n**	for the notebook location (file or folder)
 * **%D**	for the document root (if any)
-* **%t** 	for the selected text or word under cursor
-* **%T** 	for the selected text or word under cursor including wiki formatting
+* **%t**	for the selected text or word under cursor
+* **%T**	for the selected text or word under cursor including wiki formatting
 
 The quoting of the command should follow the "XDG Desktop Entry" specification. See [[Default Applications]] for a summary.
 

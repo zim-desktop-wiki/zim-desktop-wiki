@@ -6,16 +6,17 @@ test_times.csv
 locale/
 man/
 html/
+!data/templates/html/
 xdg/hicolor/
 debian/pycompat
 debian/.debhelper
+debian/debhelper-build-stamp
 debian/files
 debian/zim
 debian/zim.*
 windows/build/
 windows/version-and-date.nsi
 MANIFEST
-tests/tmp/
 test_*
 coverage/
 
@@ -98,7 +99,6 @@ ENV/
 /site
 
 # debian pybuild
-.pybuild/
 debian/python-module-stampdir/
 
 # PyCharm

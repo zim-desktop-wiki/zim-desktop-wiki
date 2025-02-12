@@ -181,7 +181,7 @@ class TextView(Gtk.TextView):
 		Gtk.TextView.set_buffer(self, buffer)
 
 		# Connect new widgets
-		for anchor in buffer.list_objectanchors():
+		for iter, anchor in buffer.list_objectanchors():
 			self.on_insert_object(buffer, anchor)
 
 		buffer.connect('insert-objectanchor', self.on_insert_object)
@@ -285,12 +285,10 @@ class TextView(Gtk.TextView):
 
 			anchor = iter.get_child_anchor()
 			if iter.get_child_anchor():
-				widgets = anchor.get_widgets()
-				assert len(widgets) == 1, 'TODO: support multiple views of same buffer'
-				widget = widgets[0]
-				if widget.has_cursor():
-					widget.grab_cursor(position)
-					return None
+				for widget in anchor.get_widgets():
+					if widget.is_ancestor(self) and widget.has_cursor():
+						widget.grab_cursor(position)
+						return None
 
 		return Gtk.TextView.do_move_cursor(self, step_size, count, extend_selection)
 
@@ -458,7 +456,7 @@ class TextView(Gtk.TextView):
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
-			and not buffer.get_iter_in_verbatim(iter):
+			and not buffer.get_iter_in_verbatim_block(iter):
 				bullet = buffer.get_bullet_at_iter(home)
 				indent = buffer.get_indent(home.get_line())
 				if keyval in KEYVALS_BACKSPACE \

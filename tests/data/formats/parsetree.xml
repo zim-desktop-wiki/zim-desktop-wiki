@@ -58,10 +58,10 @@ and also <strike>strike through</strike>
 </p>
 <p>Tags: <tag name="foo">@foo</tag> <tag name="bar">@bar</tag>
 </p>
-<p>Anchors: <anchor name="foo">foo</anchor>  <link href="#foo">#foo</link>  <link href="page#foo">page#foo</link>
+<p>Anchors: <anchor name="foo" />  <link href="#foo">#foo</link>  <link href="page#foo">page#foo</link>
 </p>
 
-<h level="4">head 4 <anchor name="head-4-anchor">head-4-anchor</anchor>
+<h level="4">head 4 <anchor name="head-4-anchor" />
 </h>
 <p><ul><li bullet="*">item 1
 </li><li bullet="*">item 2

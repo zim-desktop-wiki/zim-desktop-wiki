@@ -38,11 +38,12 @@ epydoc:
 
 clean:
 	$(PYTHON) setup.py clean
-	rm -rf build/ MANIFEST tests/tmp/ locale/ man/ xdg/hicolor test_report.html
+	rm -rf build/ MANIFEST tests/tmp/ locale/ man/ xdg/hicolor test_report.html coverage/ html/
 	find . -name '*.pyc' -delete
 	find . -name '*.pyo' -delete
 	find . -name '*~' -delete
 	rm -fr debian/zim* debian/files debian/python-module-stampdir/
 	rm -fr debian/.debhelper
+	rm -fr debian/debhelper-build-stamp
 	rm -fr .pybuild/
 

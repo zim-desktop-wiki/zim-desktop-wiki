@@ -508,7 +508,7 @@ class WikiParser(object):
 
 	@staticmethod
 	def parse_anchor(builder, name, *a):
-		builder.append(ANCHOR, {'name': name}, name)
+		builder.append(ANCHOR, {'name': name})
 
 	@staticmethod
 	def parse_line(builder, text):

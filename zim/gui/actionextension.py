@@ -17,7 +17,7 @@ except ImportError:
 
 
 if sys.platform == "darwin" or os.name == 'nt':
-	# default headerbar off on Windows and Mac OS, see issue #2007
+	# default headerbar off on Windows and macOS, see issue #2007
 	os_default_headerbar = False
 else:
 	os_default_headerbar = True

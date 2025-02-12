@@ -90,6 +90,13 @@ and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
 
 
 
+# Silence gtkspellcheck logging, it is very verbose
+mylogger = logging.getLogger('gtkspellcheck')
+mylogger.setLevel(logging.INFO)
+#####
+
+
+
 class SpellPlugin(PluginClass):
 
 	plugin_info = {

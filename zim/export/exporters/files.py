@@ -106,8 +106,8 @@ class MultiFileExporter(FilesExporterBase):
 					yield file
 					# XXX FIXME remove need for notebook here
 			except:
-				raise
 				logger.exception('Error while exporting: %s', page.name)
+				raise
 
 		if self.index_page:
 			try:

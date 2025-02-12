@@ -1,10 +1,14 @@
-from zim.gui.insertedobjects import InsertedObjectWidget
+# Copyright 2008-2023 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+import weakref
 
 from gi.repository import GObject
 from gi.repository import Gtk
 
+from zim.gui.insertedobjects import InsertedObjectWidget
+
 from .constants import LINE, OBJECT
+from .find import PluginInsertedObjectFindMixin
 
 
 class InsertedObjectAnchor(Gtk.TextChildAnchor):
@@ -19,6 +23,10 @@ class InsertedObjectAnchor(Gtk.TextChildAnchor):
 
 
 class LineSeparatorAnchor(InsertedObjectAnchor):
+
+	def __init__(self):
+		GObject.GObject.__init__(self)
+		self.objectmodel = None
 
 	def create_widget(self):
 		return LineSeparator()
@@ -40,7 +48,7 @@ class LineSeparator(InsertedObjectWidget):
 		self.add(widget)
 
 
-class TableAnchor(InsertedObjectAnchor):
+class TableAnchor(PluginInsertedObjectFindMixin, InsertedObjectAnchor):
 	# HACK - table support is native in formats, but widget is still in plugin
 	#        so we need to "glue" the table tokens to the plugin widget
 
@@ -48,24 +56,30 @@ class TableAnchor(InsertedObjectAnchor):
 		GObject.GObject.__init__(self)
 		self.objecttype = objecttype
 		self.objectmodel = objectmodel
+		self.widgets = weakref.WeakSet()
 
 	def create_widget(self):
-		return self.objecttype.create_widget(self.objectmodel)
+		widget = self.objecttype.create_widget(self.objectmodel)
+		self.widgets.add(widget)
+		return widget
 
 	def dump(self, builder):
 		self.objecttype.dump(builder, self.objectmodel)
 
 
-class PluginInsertedObjectAnchor(InsertedObjectAnchor):
+class PluginInsertedObjectAnchor(PluginInsertedObjectFindMixin, InsertedObjectAnchor):
 
 	def __init__(self, objecttype, objectmodel):
 		GObject.GObject.__init__(self)
 		self.objecttype = objecttype
 		self.objectmodel = objectmodel
 		self.is_inline = objecttype.is_inline
+		self.widgets = weakref.WeakSet()
 
 	def create_widget(self):
-		return self.objecttype.create_widget(self.objectmodel)
+		widget = self.objecttype.create_widget(self.objectmodel)
+		self.widgets.add(widget)
+		return widget
 
 	def dump(self, builder):
 		attrib, data = self.objecttype.data_from_model(self.objectmodel)

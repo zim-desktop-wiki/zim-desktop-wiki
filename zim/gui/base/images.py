@@ -55,8 +55,8 @@ def image_file_load_pixels(file: LocalFile, width_override=-1, height_override=-
 				need_switch_to_fallback = False
 
 	if need_switch_to_fallback:
+		error_message = f'No available fallback for load this image: {file.path}'
 		if not fail_silent:
-			error_message = f'No available fallback for load this image: {file.path}'
 			logger.debug(error_message)
 		raise TypeError(error_message)
 

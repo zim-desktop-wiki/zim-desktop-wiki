@@ -558,10 +558,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@ivar preferences: a L{ConfigDict} with preferences
 
 	@signal: C{modified-changed ()}: emitted when the page is edited
-	@signal: C{textstyle-changed (style)}:
-	Emitted when textstyle at the cursor changes, gets the list of text styles or None.
-	@signal: C{activate-link (link, hints)}: emitted when a link is opened,
-	stops emission after the first handler returns C{True}
+	@signal: C{textstyle-changed (style)}: emitted when textstyle at the cursor changes, gets the list of text styles or None.
+	@signal: C{activate-link (link, hints)}: emitted when a link is opened, stops emission after the first handler returns C{True}
+	@signal: C{textbuffer-changed (TextBuffer, TextBuffer}: emitted when during page change the L{TextBuffer} is changed,
+	Arguments provided are old and new TextBuffer. Main use is to disconnect and connect signals.
+	@signal: C{page-changed (Page)}: emitted when page is changed
+	@signal: C{link-caret-enter (link)}: emitted when cursor enters a link region
+	@signal: C{link-caret-leave (link)}: emitted when cursor leaves a link region
+	@signal: C{readonly-changed (bool)}: readonly property change
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
@@ -572,6 +576,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	__gsignals__ = {
 		'modified-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'textbuffer-changed': (GObject.SignalFlags.RUN_LAST, None, (object, object)),
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-caret-enter': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-caret-leave': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -819,6 +824,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				for k in section._input if k in TextBuffer.tag_attributes]
 			section.define(defs)
 			tag = key[4:]
+			tag = tag.replace('-checkbox', '-box') # backward compatibility after renaming constants
 
 			try:
 				if not tag in TextBuffer.tag_styles:
@@ -910,6 +916,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		If cursor is C{None} the cursor is set at the start of the page
 		for existing pages or to the end of the template when the page
 		does not yet exist.
+
+		@emits: textbuffer-changed
 		'''
 		if self.page is None:
 			# first run - bootstrap HACK
@@ -917,7 +925,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		# Teardown connection with current page buffer
 		prev_buffer = self.textview.get_buffer()
-		finderstate = prev_buffer.finder.get_state()
 		for id in self._buffer_signals:
 			prev_buffer.disconnect(id)
 		self._buffer_signals = ()
@@ -955,11 +962,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				buffer.connect_after('mark-set', self.do_mark_set),
 			)
 
-			buffer.finder.set_state(*finderstate) # maintain state
-
 			self.set_sensitive(True)
 			self._update_readonly()
 
+			self.emit('textbuffer-changed', prev_buffer, buffer)
 			self.emit('page-changed', self.page)
 
 	def _create_textbuffer(self, parsetree=None):
@@ -1191,42 +1197,42 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			buffer.insert_at_cursor(''.join(text))
 
 	def do_mark_set(self, buffer, iter, mark):
-		'''
+		'''Update state after cursor position changes
 		@emits link-caret-enter
 		@emits link-caret-leave
 		'''
-
-		# Update menu items relative to cursor position
-		if self.readonly or mark.get_name() != 'insert':
+		if mark.get_name() != 'insert':
 			return
 
 		# Set sensitivity of various menu options
-		line = iter.get_line()
-		bullet = buffer.get_bullet(line)
-		if bullet and bullet in CHECKBOXES:
-			self.actiongroup.get_action('uncheck_checkbox').set_sensitive(True)
-			self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
-			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
-			self.actiongroup.get_action('migrate_checkbox').set_sensitive(True)
-			self.actiongroup.get_action('transmigrate_checkbox').set_sensitive(True)
-		else:
-			self.actiongroup.get_action('uncheck_checkbox').set_sensitive(False)
-			self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
-			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
-			self.actiongroup.get_action('migrate_checkbox').set_sensitive(False)
-			self.actiongroup.get_action('transmigrate_checkbox').set_sensitive(False)
+		if not self.readonly:
+			line = iter.get_line()
+			bullet = buffer.get_bullet(line)
 
-		if buffer.get_link_tag(iter):
-			self.actiongroup.get_action('remove_link').set_sensitive(True)
-			self.actiongroup.get_action('edit_object').set_sensitive(True)
-		elif buffer.get_image_data(iter):
-			self.actiongroup.get_action('remove_link').set_sensitive(False)
-			self.actiongroup.get_action('edit_object').set_sensitive(True)
-		else:
-			self.actiongroup.get_action('edit_object').set_sensitive(False)
-			self.actiongroup.get_action('remove_link').set_sensitive(False)
+			if bullet and bullet in CHECKBOXES:
+				self.actiongroup.get_action('uncheck_checkbox').set_sensitive(True)
+				self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
+				self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
+				self.actiongroup.get_action('migrate_checkbox').set_sensitive(True)
+				self.actiongroup.get_action('transmigrate_checkbox').set_sensitive(True)
+			else:
+				self.actiongroup.get_action('uncheck_checkbox').set_sensitive(False)
+				self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
+				self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
+				self.actiongroup.get_action('migrate_checkbox').set_sensitive(False)
+				self.actiongroup.get_action('transmigrate_checkbox').set_sensitive(False)
 
-		self.actiongroup.get_action('move_text').set_sensitive(buffer.get_has_selection())
+			if buffer.get_link_tag(iter):
+				self.actiongroup.get_action('remove_link').set_sensitive(True)
+				self.actiongroup.get_action('edit_object').set_sensitive(True)
+			elif buffer.get_image_data(iter):
+				self.actiongroup.get_action('remove_link').set_sensitive(False)
+				self.actiongroup.get_action('edit_object').set_sensitive(True)
+			else:
+				self.actiongroup.get_action('edit_object').set_sensitive(False)
+				self.actiongroup.get_action('remove_link').set_sensitive(False)
+
+			self.actiongroup.get_action('move_text').set_sensitive(buffer.get_has_selection())
 
 		# Emit signal if passing through a link
 		link = buffer.get_link_data(iter)
@@ -1411,7 +1417,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _link to this location')) # T: menu item to copy link to achor location in page
 		anchor = buffer.get_anchor_for_location(iter)
 		if anchor:
-			heading_text = buffer.get_heading_text(iter) # can be None if not a heading
+			lvl, heading_text = buffer.get_heading(iter.get_line()) # can be None if not a heading
 			item.connect('activate', _copy_link_to_anchor, anchor, heading_text)
 		else:
 			item.set_sensitive(False)
@@ -1439,7 +1445,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				return # No link or image
 
 		if file:
-			file = self.notebook.resolve_file(file, self.page)
+			try:
+				file = self.notebook.resolve_file(file, self.page)
+			except:
+				logger.exception('Could not resolve file link: %s', file)
+				file = None
 
 		menu.prepend(Gtk.SeparatorMenuItem())
 
@@ -2054,17 +2064,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer = self.textview.get_buffer()
 		MoveTextDialog(self, self.notebook, self.page, buffer, self.navigation).run()
 
-	def find(self, string, flags=0):
-		'''Find some string in the text, scroll there and select it
-
-		@param string: the text to find
-		@param flags: options for find behavior, see L{TextFinder.find()}
-		'''
-		self.hide_find() # remove previous highlighting etc.
-		buffer = self.textview.get_buffer()
-		buffer.finder.find(string, flags)
-		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
-
 	@action(_('_Find...'), '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
 	def show_find(self, string=None, flags=0, highlight=False):
 		'''Show the L{FindBar} widget
@@ -2076,10 +2075,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.find_bar.show()
 		if string:
 			self.find_bar.find(string, flags, highlight)
-			self.textview.grab_focus()
-		else:
-			self.find_bar.set_from_buffer()
-			self.find_bar.grab_focus()
+		self.find_bar.grab_focus()
 
 	def hide_find(self):
 		'''Hide the L{FindBar} widget'''
@@ -2089,8 +2085,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('Find Ne_xt'), accelerator='<Primary>G', alt_accelerator='F3') # T: Menu item
 	def find_next(self):
 		'''Menu action to skip to next match'''
-		self.find_bar.show()
-		self.find_bar.find_next()
+		if not self.find_bar.get_visible():
+			self.find_bar.show() # Show will already trigger find on next occurence
+		else:
+			self.find_bar.find_next()
 
 	@action(_('Find Pre_vious'), accelerator='<Primary><shift>G', alt_accelerator='<shift>F3') # T: Menu item
 	def find_previous(self):
@@ -2102,7 +2100,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def show_find_and_replace(self):
 		'''Menu action to show the L{FindAndReplaceDialog}'''
 		dialog = FindAndReplaceDialog.unique(self, self, self.textview)
-		dialog.set_from_buffer()
+		# TODO copy settings from find bar if "pop-out" action ?
 		dialog.present()
 
 	@action(_('Word Count...')) # T: Menu item

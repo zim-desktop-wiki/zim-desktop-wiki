@@ -43,7 +43,7 @@ def data_dirs(path=None, include_non_existing=False):
 	'''Generator listing paths that contain zim data files in the order
 	that they should be searched. These will be the equivalent of
 	e.g. "~/.local/share/zim", "/usr/share/zim", etc.
-	@param path: a file path relative to to the data dir, including this
+	@param path: a file path relative to the data dir, including this
 	will list sub-folders with this relative path.
 	@param include_non_existing: if C{False} only existing folders are returned
 	@returns: yields L{LocalFolder} objects for the data dirs
@@ -89,7 +89,7 @@ def data_file(path):
 	'''Get a data file. Will look up C{path} relative to all data dirs
 	and return the first one that exists. Use this function to find
 	any files from the "data/" folder in the source package.
-	@param path:  a file path relative to to the data dir (e.g. "zim.png")
+	@param path:  a file path relative to the data dir (e.g. "zim.png")
 	@returns: a L{File} object or C{None}
 	'''
 	for dir in data_dirs():

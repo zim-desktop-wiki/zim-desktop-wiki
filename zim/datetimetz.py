@@ -235,7 +235,7 @@ def strftime(format, date):
 	# to strftime under Windows we get a UnicodeEncodeError exception.
 	# To avoid this, we convert all non-ASCII characters to their \uXXXXXX representations,
 	# then pass to the strftime function and convert back to a Unicode string.
-	return date.strftime(format.encode('unicode-escape').decode()).encode().decode('unicode-escape')
+	return date.strftime(format.encode('unicode-escape').decode('utf-8')).encode('raw-unicode-escape').decode('unicode-escape')
 
 
 if __name__ == '__main__': #pragma: no cover

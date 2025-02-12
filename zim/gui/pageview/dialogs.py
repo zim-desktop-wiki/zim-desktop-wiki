@@ -546,7 +546,7 @@ class InsertLinkDialog(Dialog):
 		else:
 			title = _('Insert Link') # T: Dialog title
 
-		Dialog.__init__(self, parent, title, button=_('_Link'))  # T: Dialog button
+		Dialog.__init__(self, parent, title, button=_('_Link'), help='Help:Links')  # T: Dialog button
 
 		self.uistate.setdefault('short_links', pageview.notebook.config['Notebook']['short_links'])
 		self.add_form(

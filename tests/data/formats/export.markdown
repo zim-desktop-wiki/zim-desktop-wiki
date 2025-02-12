@@ -8,13 +8,13 @@ reprehenderit in voluptate velit esse cillum dolore eu fugiat
 nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.
 
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat
-nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
-sunt in culpa qui officia deserunt mollit anim id est laborum.
+> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+> eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+> ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+> aliquip ex ea commodo consequat. Duis aute irure dolor in
+> reprehenderit in voluptate velit esse cillum dolore eu fugiat
+> nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+> sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 head 2
 ------
@@ -59,10 +59,10 @@ External links like <http://nongnu.org> and [foo@bar.org](mailto:foo@bar.org) ar
 
 Tags: @foo @bar
 
-Anchors: [id: foo]  [#foo](#foo)  [page#foo](page#foo)
+Anchors: {#foo}  [#foo](#foo)  [page#foo](page#foo)
 
 
-#### head 4 [id: head-4-anchor]
+#### head 4 {#head-4-anchor}
 
 
 * item 1

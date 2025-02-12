@@ -1,3 +1,5 @@
+name: Tests
+
 on:
   # Trigger the workflow on push or pull request, but only for the develop branch
   push:
@@ -24,10 +26,11 @@ jobs:
 
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
@@ -41,6 +44,7 @@ jobs:
         run: |
           pip install PyGObject
           pip install pyxdg
+          pip install setuptools
 
       - name: Configure git
         run: |
@@ -52,10 +56,11 @@ jobs:
 
 
   test_macos:
-    runs-on: macos-12
-    name: Python 3.11 on macos-12
+    runs-on: macos-14
+    name: Python 3.11 on macos-14
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Configure git
         run: |
@@ -64,7 +69,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install pygobject3 gtk+3
+          brew install pygobject3 gtk+3 python@3.11
 
       # FIXME: this needs to be investigated
       - name: Disable TestPlugins() as they segfault
@@ -78,7 +83,7 @@ jobs:
 
       - name: Run test suite
         run: |
-          /usr/local/opt/python@3.11/libexec/bin/python test.py
+          /opt/homebrew/opt/python@3.11/libexec/bin/python test.py
 
 
 
@@ -89,7 +94,8 @@ jobs:
 
     name: MSYS2 Python 3.x on windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install MSYS2
         uses: msys2/setup-msys2@v2
@@ -97,7 +103,7 @@ jobs:
       - name: Install system dependencies
         shell: msys2 {0}
         run: |
-          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python-xdg
+          pacman -S --noconfirm git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python-xdg mingw-w64-x86_64-python-setuptools
 
       - name: Configure git
         shell: msys2 {0}

@@ -606,6 +606,7 @@ class TestUIActions(tests.TestCase):
 		with tests.DialogContext(check_backlinks):
 			self.uiactions.show_search_backlinks()
 
+	@tests.expectedFailureIf(os.name == 'nt') # Fails at random in automated tests
 	def testShowRecentChangesDialog(self):
 
 		def use_recent_changes(dialog):
@@ -631,7 +632,7 @@ class TestUIActions(tests.TestCase):
 		with tests.DialogContext(use_recent_changes):
 			self.uiactions.show_recent_changes()
 
-		# self.assertEqual(self.navigation.lastMethodCall, ('open_page', Path('NewPage'))) # FIXME: fails at random in automated tests
+		self.assertEqual(self.navigation.lastMethodCall, ('open_page', Path('NewPage')))
 
 	def testShowServerDialog(self):
 		application = tests.MockObject(methods=('add_window',))
@@ -678,15 +679,12 @@ class TestUIActions(tests.TestCase):
 		self.uiactions.show_help()
 		self.assertEqual(self.navigation.lastMethodCall, ('open_manual', None))
 
-	@tests.expectedFailure  # page opened after window.present
 	def testOpenHelpFAQ(self):
 		self.testOpenHelp(page='FAQ')
 
-	@tests.expectedFailure  # page opened after window.present
 	def testOpenHelpKeys(self):
 		self.testOpenHelp(page='Help:Key Bindings')
 
-	@tests.expectedFailure  # page opened after window.present
 	def testOpenHelpBugs(self):
 		self.testOpenHelp(page='Bugs')
 
@@ -963,6 +961,7 @@ class TestUIActionsRealFile(tests.TestCase):
 				with tests.DialogContext(ErrorDialog):
 					self.uiactions.open_document_root()
 
+	@tests.expectedFailureIf(os.name == 'nt') # Fails at random in automated tests
 	def testEditPageSource(self):
 		from zim.gui.widgets import MessageDialog
 		from zim.newfs import LocalFile

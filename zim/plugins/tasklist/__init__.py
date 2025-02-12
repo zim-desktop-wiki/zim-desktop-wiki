@@ -190,6 +190,9 @@ class TaskListNotebookViewExtension(NotebookViewExtension):
 		self._task_list_window = None
 
 	def on_preferences_changed(self, preferences):
+		if self._task_list_window:
+			self._task_list_window.destroy() # make sure it gets refreshed with new settings
+
 		if not preferences['embedded']:
 			if self._widget:
 				self.remove_sidepane_widget(self._widget)

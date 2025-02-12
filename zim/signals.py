@@ -40,6 +40,8 @@ class SignalHandler(object):
 				with self.on_changed.blocked():
 					... # do something that results in a "changed" signal
 
+	When using this handler, make sure to connect the _bound_ method to the signal,
+	not the _unbound_ class method.
 	'''
 
 	def __init__(self, func):

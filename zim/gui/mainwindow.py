@@ -65,10 +65,9 @@ if sys.platform == "darwin":
 #: Preferences for the user interface
 ui_preferences = (
 	# key, type, category, label, default
-	('prefer-dark-theme', 'bool', 'Interface', _('Prefer dark theme')
-		+ '\n' + _('This option requires a Gtk theme supporting a dark variant')
-		+ '\n' + _('This option requires restart of the application'), False),
-		# T: option for preferences dialog
+	('prefer-dark-theme', 'bool', 'Interface', _('Prefer dark theme') # T: option for preferences dialog
+		+ '\n' + _('This option requires a Gtk theme supporting a dark variant') # T: info text for preferences dialog
+		+ '\n' + _('This option requires restart of the application'), False), # T: info text for preferences dialog
 	('show_headerbar', 'bool', 'Interface', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), os_default_headerbar),
 		# T: option for preferences dialog
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING + '<Space>'), False),

@@ -90,7 +90,7 @@ def init_logging():
 
 
 def init_macOS():
-	# MacOS: Set the bundle name so that the application menu shows 'Zim'
+	# macOS: Set the bundle name so that the application menu shows 'Zim'
 	# instead of 'Python' (this requires the pyobjc package)
 	try:
 		from Foundation import NSBundle

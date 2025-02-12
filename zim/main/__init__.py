@@ -668,7 +668,6 @@ def build_command(args, pwd=None):
 	@raises UsageError: if args is not correct
 	'''
 	args = list(args)
-
 	if args and args[0] == '--plugin':
 		args.pop(0)
 		try:

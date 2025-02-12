@@ -35,6 +35,14 @@ import unittest
 from unittest import skip, skipIf, skipUnless, expectedFailure
 
 
+def expectedFailureIf(condition):
+	'''Decorator to do a conditional expected failure'''
+	if condition:
+		return expectedFailure
+	else:
+		return lambda method: method # do nothing
+
+
 os.environ['LANGUAGE'] = 'C.UTF-8'
 gettext.install('zim', names=('_', 'gettext', 'ngettext'))
 
@@ -55,7 +63,7 @@ __all__ = [
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'import_files', 'www', 'search',
 	# Core application
-	'widgets', 'pageview', 'save_page', 'clipboard', 'uiactions',
+	'widgets', 'pageview', 'save_page', 'find', 'clipboard', 'uiactions',
 	'mainwindow', 'notebookdialog',
 	'preferencesdialog', 'searchdialog', 'customtools', 'templateeditordialog',
 	'main', 'plugins',
@@ -589,16 +597,25 @@ def _expand_manifest(names):
 
 _cache = {}
 
+
+def new_page_as_wiki_text():
+	'''Returns data from C{tests/data/formats/wiki.txt}'''
+	if 'new_page_as_wiki_text' not in _cache:
+		root = os.environ['ZIM_TEST_ROOT']
+		with open(root + '/tests/data/formats/wiki.txt', encoding='UTF-8') as file:
+			_cache['new_page_as_wiki_text'] = file.read()
+
+	return _cache['new_page_as_wiki_text']
+
+
 def new_parsetree():
 	'''Returns a new ParseTree object for testing
 	Uses data from C{tests/data/formats/wiki.txt}
 	'''
 	if 'new_parsetree' not in _cache:
-		root = os.environ['ZIM_TEST_ROOT']
-		with open(root + '/tests/data/formats/wiki.txt', encoding='UTF-8') as file:
-			text = file.read()
-
 		import zim.formats.wiki
+
+		text = new_page_as_wiki_text()
 		parser = zim.formats.wiki.Parser()
 		tree = parser.parse(text)
 

@@ -197,6 +197,7 @@ sdfsdf
 		self.assertEqual(get_tree(), without_h1)
 
 		# Test empty page
+		widget.pageview.textview.get_buffer().set_text('')
 		emptypage = tests.MockObject(return_values={'get_parsetree': None})
 		widget.on_page_changed(window, emptypage)
 		self.assertEqual(get_tree(), [])
@@ -215,9 +216,9 @@ def get_headings(model, parent=None, level=1):
 	headings = []
 	iter = model.iter_children(parent)
 	while iter:
-		text = model[iter][0]
+		text, lineno = model[iter][TEXT_COL], model[iter][LINE_COL]
 		children = get_headings(model, iter, level+1) if model.iter_has_child(iter) else []
-		headings.append((level, text, children))
+		headings.append((level, text, lineno, children))
 		iter = model.iter_next(iter)
 	return headings
 
@@ -226,14 +227,15 @@ class TestToCModel(tests.TestCase):
 
 	def testGetNthHeadingWithH1(self):
 		headings = [
-			(1, 'a', [
-				(2, 'b1', []),
-				(2, 'b2', [
-					(3, 'c1', []),
-					(3, 'c2', []),
-					(3, 'c3', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, [
+				(2, 'b1', 2, []),
+				(2, 'b2', 2, [
+					(3, 'c1', 3, []),
+					(3, 'c2', 4, []),
+					(3, 'c3', 5, []),
 				]),
-				(2, 'b3', []),
+				(2, 'b3', 6, []),
 			]),
 		]
 
@@ -265,13 +267,14 @@ class TestToCModel(tests.TestCase):
 
 	def testGetNthHeadingWithoutH1(self):
 		headings = [
-			(1, 'b1', []),
-			(1, 'b2', [
-				(2, 'c1', []),
-				(2, 'c2', []),
-				(2, 'c3', []),
+			# level, text, linenumber, children
+			(1, 'b1', 1, []),
+			(1, 'b2', 2, [
+				(2, 'c1', 3, []),
+				(2, 'c2', 4, []),
+				(2, 'c3', 5, []),
 			]),
-			(1, 'b3', []),
+			(1, 'b3', 6, []),
 		]
 
 		model = ToCTreeModel()
@@ -301,82 +304,90 @@ class TestToCModel(tests.TestCase):
 
 	def testSimpleUpdate(self):
 		headings = [
-			(1, 'a', []),
-			(1, 'b', []),
-			(1, 'c', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, []),
+			(1, 'b', 2, []),
+			(1, 'c', 3, []),
 		]
 		model = ToCTreeModel()
 		model.update(headings, show_h1=True)
 		self.assertEqual(get_headings(model), headings)
 		headings = [
-			(1, 'a', []),
-			(1, 'bbb', []),
-			(1, 'c', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, []),
+			(1, 'bbb', 2, []),
+			(1, 'c', 3, []),
 		]
 		model.update(headings, show_h1=True)
 		self.assertEqual(get_headings(model), headings)
 
 	def testUpdateShorter(self):
 		headings = [
-			(1, 'a', []),
-			(1, 'b', []),
-			(1, 'c', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, []),
+			(1, 'b', 2, []),
+			(1, 'c', 3, []),
 		]
 		model = ToCTreeModel()
 		model.update(headings, show_h1=True)
 		self.assertEqual(get_headings(model), headings)
 		headings = [
-			(1, 'a', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, []),
 		]
 		model.update(headings, show_h1=True)
 		self.assertEqual(get_headings(model), headings)
 
 	def testUpdateLonger(self):
 		headings = [
-			(1, 'a', []),
-			(1, 'b', []),
-			(1, 'c', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, []),
+			(1, 'b', 2, []),
+			(1, 'c', 3, []),
 		]
 		model = ToCTreeModel()
 		model.update(headings, show_h1=True)
 		self.assertEqual(get_headings(model), headings)
 		headings = [
-			(1, 'a', []),
-			(1, 'b', []),
-			(1, 'c', []),
-			(1, 'd', []),
-			(1, 'e', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, []),
+			(1, 'b', 2, []),
+			(1, 'c', 3, []),
+			(1, 'd', 4, []),
+			(1, 'e', 5, []),
 		]
 		model.update(headings, show_h1=True)
 		self.assertEqual(get_headings(model), headings)
 
 	def testUpdateWithChildren(self):
 		headings = [
-			(1, 'a', [
-				(2, 'a1', []),
-				(2, 'a2', []),
-				(2, 'a3', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, [
+				(2, 'a1', 2, []),
+				(2, 'a2', 3, []),
+				(2, 'a3', 4, []),
 			]),
-			(1, 'b', [
-				(2, 'b1', []),
-				(2, 'b2', []),
-				(2, 'b3', []),
+			(1, 'b', 5, [
+				(2, 'b1', 6, []),
+				(2, 'b2', 7, []),
+				(2, 'b3', 8, []),
 			]),
-			(1, 'c', []),
+			(1, 'c', 9, []),
 		]
 		model = ToCTreeModel()
 		model.update(headings, show_h1=True)
 		self.assertEqual(get_headings(model), headings)
 		headings = [
-			(1, 'a', []),	# remove
-			(1, 'b', [		# change
-				(2, 'b1', []),
-				(2, 'bbbb', []),
-				(2, 'b3', []),
+			# level, text, linenumber, children
+			(1, 'a', 1, []),	# remove
+			(1, 'b', 2, [		# change
+				(2, 'b1', 3, []),
+				(2, 'bbbb', 4, []),
+				(2, 'b3', 5, []),
 			]),
-			(1, 'c', [		# insert
-				(2, 'c1', []),
-				(2, 'c2', []),
+			(1, 'c', 6, [		# insert
+				(2, 'c1', 7, []),
+				(2, 'c2', 8, []),
 			]),
 		]
 		model.update(headings, show_h1=True)

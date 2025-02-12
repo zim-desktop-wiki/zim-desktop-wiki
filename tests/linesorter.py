@@ -87,6 +87,35 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		self.extension.move_line_up()
 		self.assertEqual(self.get_text(), 'B line\nA line\nC line\n')
 
+	def testMoveUpStyledTextIntoCheckboxList(self):
+		self.set_buffer(self.buffer,
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Checkbox #1\n'
+			'<icon stock="zim-unchecked-box" /> Checkbox #2\n</li>'
+			'Line with <strong>bold</strong> text\n'
+		)
+		self.place_cursor(32)
+		self.extension.move_line_up()
+		self.print_buffer(self.buffer)
+		self.assertBufferEqual(self.buffer,
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Checkbox #1\n</li>'
+			'Line with <strong>bold</strong> text\n'
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Checkbox #2\n</li>'
+		)
+
+	def testMoveUpLineWithPageLinkIntoList(self):
+		self.set_buffer(self.buffer,
+			'<li indent="0" style="bullet-list">\u2022 List item #1\n'
+			'\u2022 List item #2\n</li>'
+			'Line containing a <link href="None">page link</link>\n'
+		)
+		self.place_cursor(32)
+		self.extension.move_line_up()
+		self.assertBufferEqual(self.buffer,
+			'<li indent="0" style="bullet-list">\u2022 List item #1\n</li>'
+			'Line containing a <link href="None">page link</link>\n'
+			'<li indent="0" style="bullet-list">\u2022 List item #2\n</li>'
+		)
+
 	def testMoveDownNoSelection(self):
 		self.set_text('A line\nB line\nC line\n')
 		self.place_cursor(10)
@@ -171,16 +200,16 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		# in the test suite.
 		# Doubles as test for content other than pure text
 		self.set_buffer(self.buffer, '''\
-<li bullet="*" indent="0"> line A
-</li><li bullet="*" indent="0"> line B
+<li indent="0" style="bullet-list">\u2022 line A
+\u2022 line B
 </li><h level="2">Heading</h>
 ''')
 		self.place_cursor(10)
 		self.extension.duplicate_line()
-		self.assertBufferEquals(self.buffer, '''\
-<li bullet="*" indent="0"> line A
-</li><li bullet="*" indent="0"> line B
-</li><li bullet="*" indent="0"> line B
+		self.assertBufferEqual(self.buffer, '''\
+<li indent="0" style="bullet-list">\u2022 line A
+\u2022 line B
+\u2022 line B
 </li><h level="2">Heading</h>
 '''
 )

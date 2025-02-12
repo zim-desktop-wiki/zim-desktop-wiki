@@ -55,12 +55,20 @@ class InsertedObjectWidget(Gtk.EventBox):
 		self._vbox = Gtk.VBox()
 		Gtk.EventBox.add(self, self._vbox)
 		if widget_style == 'inline':
-			self._vbox.set_name('zim-inserted-object-inline')
+			widget_set_css(self._vbox, 'zim-inserted-object-inline',
+				'#zim-inserted-object-inline.find_match {border: 1px solid #38d878} '
+				'#zim-inserted-object-inline.find_highlight {border: 1px solid magenta} '
+			)
 		else:
 			self.set_border_width(3)
-			widget_set_css(self._vbox, 'zim-inserted-object', 'border: 1px solid #ccc')
-				# Choosen #ccc because it should give contract with both light and
+			widget_set_css(self._vbox, 'zim-inserted-object',
+				'#zim-inserted-object {border: 1px solid #ccc} '
+				'#zim-inserted-object.find_match {border: 2px solid #38d878} '
+				'#zim-inserted-object.find_highlight {border: 2px solid magenta} '
+			)
+				# Choosen #ccc because it should give contrast with both light and
 				# dark theme, but less than the text color itself
+				# Other colors taken from textbuffer default style
 				# Can be overruled in user css is really conflicts with theme
 
 	def add(self, widget):

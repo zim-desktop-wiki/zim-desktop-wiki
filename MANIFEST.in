@@ -16,5 +16,8 @@ graft cgi-bin
 graft contrib
 graft tests
 prune tests/tmp
+prune coverage
 graft tools
+prune html
+prune website
 global-exclude *~ *.bak *.swp *.pyc

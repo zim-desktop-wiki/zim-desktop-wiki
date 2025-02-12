@@ -56,12 +56,19 @@ class TestCompileAll(tests.TestCase):
 			self.assertIsNotNone(module)
 
 
+try:
+	from setup import fix_dist
+except ImportError:
+	fix_dist = None
+
+
 @tests.slowTest
+@tests.skipIf(fix_dist is None, 'Import error in setup.py')
 class TestDist(tests.TestCase):
 
 	def runTest(self):
 		# Check build_dist script
-		from setup import fix_dist
+
 		fix_dist()
 
 		# Check desktop file

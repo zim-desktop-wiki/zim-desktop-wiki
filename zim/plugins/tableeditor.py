@@ -21,7 +21,9 @@ from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_RUN_LAST
 from zim.base.naturalsort import natural_sort_key
 from zim.config import String
 from zim.formats import ElementTreeModule as ElementTree
-from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
+from zim.formats import END, TEXT, \
+	TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA, \
+	EMPHASIS, STRONG, MARK, VERBATIM, STRIKE, SUBSCRIPT, SUPERSCRIPT, LINK, ANCHOR, TAG
 from zim.formats.wiki import Parser as WikiParser
 
 from zim.gui.pageview import PageViewExtension
@@ -42,9 +44,9 @@ SYNTAX_WIKI_PANGO2 = [
 	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
 	(r'<strike>\1</strike>', r'<s>\1</s>', r'~~\1~~'),
 	# Link url without link text  - Link url has always size = 1 to stay hidden FIXME: hacky
-	(r'<link href="\1">\1</link>', r'<span foreground="blue">\1<span size="1">\1</span></span>', r'[[\1]]'),
+	(r'<link href="\1">\1</link>', r'<span foreground="blue"><span size="1">\1</span>\1</span>', r'[[\1]]'),
 	# Link url with link text  - Link url has always size = 1 to stay hidden FIXME: hacky
-	(r'<link href="\1">\2</link>', r'<span foreground="blue">\2<span size="1">\1</span></span>', r'[[\2|\1]]'),
+	(r'<link href="\1">\2</link>', r'<span foreground="blue"><span size="1">\1</span>\2</span>', r'[[\1|\2]]'),
 	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//')
 ]
 
@@ -67,6 +69,43 @@ def reg_replace(string):
 
 # Regex compiled search patterns
 SYNTAX_WIKI_PANGO = [tuple(map(reg_replace, expr_list)) for expr_list in SYNTAX_WIKI_PANGO2]
+
+
+_pango_for_token = {
+	EMPHASIS: ('<i>', '</i>'),
+	STRONG: ('<b>', '</b>'),
+	MARK: ('<span background="yellow">', '</span>'),
+	VERBATIM: ('<tt>', '</tt>'),
+	STRIKE: ('<s>', '</s>'),
+	SUBSCRIPT: ('<sub>', '</sub>'),
+	SUPERSCRIPT: ('<sup>', '</sup>'),
+	LINK: (None, '</span>'), # Start special case in function below
+	#TAG - TODO
+	#ANCHOR - TODO
+	#TODO what about inline images, objects?
+}
+
+
+
+def tokens_to_pango_markup(tokens):
+	'''Convert to Pango markup xml, only supports inline formatting'''
+	text = []
+	for t in tokens:
+		if t[0] == TEXT:
+			text.append(t[1])
+		elif t[0] == LINK:
+			# Special handling of href, url has size = 1 to stay hidden FIXME: hacky
+			text.append('<span foreground="blue"><span size="1">%s</span>' % t[1]['href'])
+		elif t[0] in _pango_for_token:
+			text.append(_pango_for_token[t[0]][0])
+		elif t[0] == END and t[1] in _pango_for_token:
+			text.append(_pango_for_token[t[1]][1])
+		else:
+			if not t[0] == END:
+				logger.warn('Unhandled token in table content: %s', t)
+			pass
+
+	return ''.join(text)
 
 
 class TableEditorPlugin(PluginClass):
@@ -210,6 +249,43 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 			rows.append(row)
 		return headers, rows
 
+	def model_from_tokens(self, token_iter):
+		attrib = {}
+		headers = []
+		rows = []
+		current_row = None
+		for t in token_iter:
+			if t[0] == TABLE:
+				attrib = t[1].copy() # shallow copy to prevent modification
+			elif t[0] == HEADROW:
+				current_row = headers
+			elif t[0] == TABLEROW:
+				rows.append([])
+				current_row = rows[-1]
+			elif t[0] in (HEADDATA, TABLEDATA):
+				assert current_row is not None, 'Malformed tokens, %r outside of row' % (t,)
+				current_row.append([])
+			elif t[0] == END and t[1] in (TABLE, HEADROW, TABLEROW, HEADDATA, TABLEDATA):
+				if t[1] == TABLE:
+					break
+				elif t[1] in (HEADROW, TABLEROW):
+					current_row = None
+				else:
+					pass
+			else:
+				# any other formatted content inside table cell
+				assert current_row, 'Malformed tokens, %r outside of table cell' % t
+				current_row[-1].append(t)
+
+		headers = [tokens_to_pango_markup(h) for h in headers]
+		rows = [[tokens_to_pango_markup(c) for c in row] for row in rows]
+		return TableModel(attrib, headers, rows)
+
+	def data_from_model(self, model):
+		# XXX incomplete stub to enable find interface - do not use for actual serializing
+		headers, attrib, rows = model.get_object_data()
+		return {'type': 'table'}, '\n'.join('|'.join(r) for r in rows)
+
 	def create_widget(self, model):
 		widget = TableViewWidget(model)
 		widget.set_preferences(self.preferences)
@@ -223,17 +299,17 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 	def dump(self, builder, model):
 		headers, attrib, rows = model.get_object_data()
 		def append(tag, text):
-			builder.start(tag, {})
+			builder.start(tag, None)
 			builder.data(text)
 			builder.end(tag)
 
 		builder.start(TABLE, dict(attrib))
-		builder.start(HEADROW, {})
+		builder.start(HEADROW, None)
 		for header in headers:
 			append(HEADDATA, header)
 		builder.end(HEADROW)
 		for row in rows:
-			builder.start(TABLEROW, {})
+			builder.start(TABLEROW, None)
 			for cell in row:
 				append(TABLEDATA, cell)
 			builder.end(TABLEROW)

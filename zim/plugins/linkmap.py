@@ -21,11 +21,17 @@ logger = logging.getLogger('zim.plugins')
 
 try:
 	import xdot
-	from xdot import DotWidget
+	from xdot.ui import DotWidget
 except ImportError:
-	xdot = None
-	class DotWidget:  # workaround
-		pass
+	try:
+		# Fallback to older version import path
+		import xdot
+		from xdot import DotWidget
+	except ImportError:
+		xdot = None
+		class DotWidget:  # workaround
+			pass
+
 
 class LinkMapPlugin(PluginClass):
 
