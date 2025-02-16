@@ -1,11 +1,13 @@
 
 # Copyright 2009-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2025 Nimrod Maclomair <nimrod4garoa@gmail.com>
 
 import glob
 
 from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import \
-	ImageGeneratorClass, BackwardImageGeneratorObjectType
+	ImageGeneratorClass, BackwardImageGeneratorObjectType, \
+	ImageGeneratorObjectType
 
 from zim.newfs import LocalFile, TmpFile
 from zim.templates import get_template
@@ -21,6 +23,8 @@ class InsertEquationPlugin(PluginClass):
 		'name': _('Insert Equation'), # T: plugin name
 		'description': _('''\
 This plugin provides an equation editor for zim based on latex.
+Equations are stored as separate files in the attachments folder,
+or in the wiki page itself.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
@@ -46,7 +50,7 @@ This is a core plugin shipping with zim.
 class BackwardEquationImageObjectType(BackwardImageGeneratorObjectType):
 
 	name = 'image+equation'
-	label = _('Equation') # T: menu item
+	label = _('Equation as file') # T: menu item
 	syntax = 'latex'
 	scriptname = 'equation.tex'
 	widget_style = 'inline'
@@ -60,6 +64,18 @@ class BackwardEquationImageObjectType(BackwardImageGeneratorObjectType):
 				return ['\\begin{math}\n', text, '\n\\end{math}']
 
 		raise ValueError('missing source') # parent class will fall back to image
+
+
+class EquationImageObjectType(ImageGeneratorObjectType):
+
+	name = 'equationembedded'
+	label = _('Equation') # T: menu item
+	syntax = 'latex'
+	widget_style = 'inline'
+	is_inline = True
+
+	def format_latex(self, dumper, attrib, data):
+		return ['\\begin{math}\n', data, '\n\\end{math}']
 
 
 class EquationGenerator(ImageGeneratorClass):

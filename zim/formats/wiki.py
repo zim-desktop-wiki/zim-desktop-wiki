@@ -670,6 +670,12 @@ class Dumper(TextDumper):
 
 		if not strings:
 			strings = []
+
+		# Ensure the terminating }}} are on a new line (the regex assumes that)
+		concatenated_strings = ''.join(strings)
+		if len(concatenated_strings) == 0 or concatenated_strings[-1] != '\n':
+			strings.append('\n')
+
 		return ['{{{', attrib['type'], ':'] + opts + ['\n'] + strings + ['}}}\n']
 
 		# TODO put content in attrib, use text for caption (with full recursion)

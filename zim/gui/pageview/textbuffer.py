@@ -1146,6 +1146,16 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 
 	def insert_object_model_at_cursor(self, objecttype, model):
 		if objecttype.is_inline:
+			current_position_iter = self.get_insert_iter()
+			if current_position_iter.starts_line() and \
+				not objecttype.name.startswith("image+") and \
+				not objecttype.name == "unknown-image":
+
+				# image+... objects don't need this, they can be parsed as inline elements
+				end_of_line_iter = current_position_iter.copy()
+				end_of_line_iter.backward_char()
+				self.delete(end_of_line_iter, current_position_iter)
+
 			self._insert_object_model_at_cursor(objecttype, model)
 		else:
 			if not self.get_insert_iter().starts_line():
@@ -2573,6 +2583,14 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 				anchor = iter.get_child_anchor() # iter may have moved
 				if isinstance(anchor, InsertedObjectAnchor):
 					if anchor.is_inline:
+						if hasattr(anchor, "objecttype") and \
+							not anchor.objecttype.name.startswith("image+") and \
+							not anchor.objecttype.name == "unknown-image":
+
+							# We removed the trailing newline when we added the inline
+							# block object, now we need to add it again
+							builder.data('\n')
+
 						anchor.dump(builder)
 						iter.forward_char()
 					else:

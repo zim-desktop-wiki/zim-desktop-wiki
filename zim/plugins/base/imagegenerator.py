@@ -21,6 +21,7 @@ from zim.config import String
 from zim.errors import show_error, Error
 from zim.applications import ApplicationError
 from zim.formats import IMAGE
+from zim.newfs.base import FileExistsError
 
 from zim.gui.widgets import \
 	Dialog, ImageView, QuestionDialog, LogFileDialog, \
@@ -140,13 +141,13 @@ class ImageGeneratorModel(ImageGeneratorModelBase):
 			self.image_file.remove()
 
 	def _new_image_file(self):
-		cache_dir = self.notebook.folder.folder('_images')
+		cache_dir = self.notebook.cache_dir.folder('images')
 		if self.data:
 			content = []
 			for k, v in sorted(self.attrib.items()):
-				content.extend([k, v])
+				content.extend([k, str(v)])
 			content.append(self.data)
-			basename = hashlib.md5(''.join(content).encode()).hexdigest() + self.generator.imagefile_extension
+			basename = hashlib.sha224(''.join(content).encode()).hexdigest() + self.generator.imagefile_extension
 		else:
 			basename = 'empty_image' + self.generator.imagefile_extension
 		file = cache_dir.file(basename)
@@ -159,7 +160,11 @@ class ImageGeneratorModel(ImageGeneratorModelBase):
 		# TODO: use index table to keep track and clean up when ref count is zero ?
 		self.data = text
 		self.image_file = self._new_image_file()
-		image_file.moveto(self.image_file)
+		try:
+			image_file.moveto(self.image_file)
+		except FileExistsError:
+			pass
+
 		self.emit('changed')
 
 
