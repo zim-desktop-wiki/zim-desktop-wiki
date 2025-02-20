@@ -145,6 +145,11 @@ class ToCPageViewExtension(PageViewExtension):
 			preferences['fontsize']
 		)
 
+	@action('', accelerator='<ctrl>grave', menuhints='accelonly')
+	def toggle_floating_size(self):
+		# toggle collapsed/expanded size of floating ToC, same as mouse click
+		if isinstance(self.tocwidget, FloatingToC):
+			self.tocwidget.on_toggle()
 
 TEXT_COL = 0
 LINE_COL = 1
