@@ -312,7 +312,7 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 
 		if not _GLOBAL_INDICATOR:
 			_GLOBAL_INDICATOR = AppIndicator.Indicator.new(
-				'zim-desktop-wiki', 'zim',
+				'zim-desktop-wiki', 'org.zim_wiki.Zim',
 				AppIndicator.IndicatorCategory.APPLICATION_STATUS
 			)
 
