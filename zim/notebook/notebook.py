@@ -305,9 +305,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.tags = TagsView.new_from_index(self.index)
 
 		def on_page_row_changed(o, row, oldrow):
-			if row['name'] in self._page_cache:
-				self._page_cache[row['name']].haschildren = row['n_children'] > 0
-				self.emit('page-info-changed', self._page_cache[row['name']])
+			page_name = row['name']
+			if page_name in self._page_cache:
+				self._page_cache[page_name].haschildren = row['n_children'] > 0
+				self._page_cache[page_name].set_page_identifier(row['page_identifier'])
+				self.emit('page-info-changed', self._page_cache[page_name])
 
 		def on_page_row_deleted(o, row):
 			if row['name'] in self._page_cache:
@@ -413,10 +415,13 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				pass
 				# TODO trigger indexer here if page exists !
 			else:
-				if indexpath and indexpath.haschildren:
-					page.haschildren = True
-				# page might be the parent of a placeholder, in that case
-				# the index knows it has children, but the store does not
+				if indexpath:
+					if indexpath.haschildren:
+						page.haschildren = True
+						# page might be the parent of a placeholder, in that case
+						# the index knows it has children, but the store does not
+					if not indexpath.page_identifier() is None:
+						page.set_page_identifier(indexpath.page_identifier())
 
 			# TODO - set haschildren if page maps to a store namespace
 			self._page_cache[path.name] = page

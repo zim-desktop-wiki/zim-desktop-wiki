@@ -7,6 +7,7 @@ from typing import Generator, Optional
 
 import sqlite3
 import logging
+import uuid
 
 logger = logging.getLogger('zim.notebook.index')
 
@@ -76,7 +77,8 @@ class PagesIndexer(IndexerBase):
 				mtime TIMESTAMP,
 
 				source_file INTEGER REFERENCES files(id),
-				is_link_placeholder BOOLEAN DEFAULT 0
+				is_link_placeholder BOOLEAN DEFAULT 0,
+				page_identifier TEXT UNIQUE,
 
 				CONSTRAINT no_self_ref CHECK (parent <> id)
 			);
@@ -87,9 +89,9 @@ class PagesIndexer(IndexerBase):
 		row = self.db.execute('SELECT * FROM pages WHERE id == 1').fetchone()
 		if row is None:
 			c = self.db.execute(
-				'INSERT INTO pages(parent, name, lowerbasename, sortkey, source_file) '
-				'VALUES (?, ?, ?, ?, ?)',
-				(0, '', '', '', 1)
+				'INSERT INTO pages(parent, name, lowerbasename, sortkey, source_file, page_identifier) '
+				'VALUES (?, ?, ?, ?, ?, ?)',
+				(0, '', '', '', 1, str(uuid.uuid4()))
 			)
 			assert c.lastrowid == 1 # ensure we start empty
 
@@ -200,9 +202,9 @@ class PagesIndexer(IndexerBase):
 		sortkey = natural_sort_key(pagename.basename)
 		try:
 			self.db.execute(
-				'INSERT INTO pages(name, lowerbasename, sortkey, parent, is_link_placeholder, source_file)'
-				'VALUES (?, ?, ?, ?, ?, ?)',
-				(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id)
+				'INSERT INTO pages(name, lowerbasename, sortkey, parent, is_link_placeholder, source_file, page_identifier)'
+				'VALUES (?, ?, ?, ?, ?, ?, ?)',
+				(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id, None)
 			)
 		except sqlite3.IntegrityError:
 			# This can occur in rare edge cases when resolve_page failed to
@@ -260,14 +262,41 @@ class PagesIndexer(IndexerBase):
 				newrow = self._select(parentname)
 				self.emit('page-row-changed', newrow, oldrow or row)
 
-	def update_page(self, pagename, mtime, content):
-		self.db.execute(
-			'UPDATE pages SET mtime=? WHERE name=?',
-			(mtime, pagename.name),
-		)
+	def update_page(self, pagename, mtime, tree):
+		logger.debug( 'update_page: pagename: "%s".', pagename)
+
+		if 'Page-Identifier' in tree.meta:
+			page_identifier = tree.meta['Page-Identifier']
+
+			# Last page has preference. It can happen that an imported page
+			# already has an identifier, which is also in use by another page.
+			# Zim currently does not prevent this from happening - it is
+			# something that requires user intervention.
+			#
+			# Another situation is the existence of "ephimeral" pages. That is,
+			# pages which are present in the database, but not on the
+			# filesystem. This happens when a page is moved, and some other page
+			# refers to it, but its link is not updated.
+			#
+			# TODO Handle duplicate page identifiers on another level.
+			self.db.execute(
+				'UPDATE pages SET mtime=?, page_identifier=NULL WHERE page_identifier=?',
+				(mtime, page_identifier),
+			)
+
+			self.db.execute(
+				'UPDATE pages SET mtime=?, page_identifier=? WHERE name=?',
+				(mtime, page_identifier, pagename.name),
+			)
+		else:
+			self.db.execute(
+				'UPDATE pages SET mtime=? WHERE name=?',
+				(mtime, pagename.name),
+			)
 
 		row = self._select(pagename)
-		self.emit('page-changed', row, content)
+
+		self.emit('page-changed', row, tree)
 		self.emit('page-row-changed', row, row)
 
 	def remove_page(self, pagename, allow_cleanup=lambda r: True):
@@ -336,6 +365,7 @@ class PageIndexRecord(Path):
 	def exists(self):
 		return not self._row['is_link_placeholder']
 
+	def page_identifier(self): return self._row['page_identifier']
 
 class PagesViewInternal(object):
 	'''This class defines private methods used by L{PagesView},
@@ -527,6 +557,15 @@ class PagesView(IndexView):
 			raise IndexNotFoundError
 		else:
 			return PageIndexRecord(r)
+
+	def lookup_by_page_identifier(self, identifier) -> PageIndexRecord:
+		r = self.db.execute(
+			'SELECT * FROM pages WHERE page_identifier=?', (identifier,)
+		).fetchone()
+		if not r is None:
+			return PageIndexRecord(r)
+		else:
+			return None
 
 	def list_pages(self, path: Optional[Path] = None) -> Generator[PageIndexRecord, None, None]:
 		'''Generator for child pages of C{path}

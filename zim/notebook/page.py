@@ -5,6 +5,7 @@
 import re
 import logging
 import itertools
+import uuid
 
 from typing import Generator, Generic, List, Optional, Union
 
@@ -476,6 +477,8 @@ class Page(Path, SignalEmitter):
 			self.format = format
 		self.source_file = file
 		self.attachments_folder = folder
+		
+		self._page_identifier = None
 
 	@property
 	def readonly(self):
@@ -516,6 +519,16 @@ class Page(Path, SignalEmitter):
 		else:
 			self._modified = False
 		self.emit('modified-changed')
+		
+	@property
+	def page_identifier(self):
+		return self._page_identifier
+	
+	def set_page_identifier(self, identifier):
+		self._page_identifier = identifier
+
+		if not self._meta is None:
+			self._meta['Page-Identifier'] = identifier
 
 	def on_buffer_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
@@ -536,21 +549,27 @@ class Page(Path, SignalEmitter):
 	def _store_tree(self, tree):
 		if tree and tree.hascontent:
 			if self._meta is not None:
-				tree.meta.update(self._meta) # Preserver headers
+				tree.meta.update(self._meta) # Preserve headers.
 			elif self.source_file.exists():
-				# Try getting headers from file
+				# Try getting headers from file.
 				try:
 					text = self.source_file.read()
 				except zim.newfs.FileNotFoundError:
-					return None
+					return
 				else:
 					parser = self.format.Parser()
 					tree = parser.parse(text)
 					self._meta = tree.meta
-					tree.meta.update(self._meta) # Preserver headers
+					tree.meta.update(self._meta) # Preserve headers.
 			else: # not self.source_file.exists()
-				now = datetime.now()
-				tree.meta['Creation-Date'] = now.isoformat()
+				tree.meta['Creation-Date'] = datetime.now().isoformat()
+
+			# A unique identifier should be present on all pages.
+			if 'Page-Identifier' not in tree.meta:
+				if self._page_identifier is None:
+					self._page_identifier = str(uuid.uuid4())
+
+				tree.meta['Page-Identifier'] = self._page_identifier
 
 			lines = self.format.Dumper().dump(tree, file_output=True)
 			self._last_etag = self.source_file.writelines_with_etag(lines, self._last_etag)
@@ -752,7 +771,7 @@ class Page(Path, SignalEmitter):
 		else:
 			return []
 
-	def parse(self, format, text, append=False):
+	def parse(self, format, text, append=False, file_input=False):
 		'''Store formatted text in the page
 
 		Convenience method that parses text and sets the parse tree
@@ -763,6 +782,8 @@ class Page(Path, SignalEmitter):
 		@param text: text as a string or as a list of lines
 		@param append: if C{True} the text is appended instead of
 		replacing current content.
+		@param file_input: if C{True}, considers the text to be 
+		taken from a file.
 		'''
 		if isinstance(format, str):
 			format = zim.formats.get_format(format)
@@ -770,7 +791,7 @@ class Page(Path, SignalEmitter):
 		if append:
 			self.append_parsetree(format.Parser().parse(text))
 		else:
-			self.set_parsetree(format.Parser().parse(text))
+			self.set_parsetree(format.Parser().parse(text, file_input))
 
 	def get_title(self):
 		tree = self.get_parsetree()

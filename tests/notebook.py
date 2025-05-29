@@ -1350,6 +1350,7 @@ class TestPage(TestPath):
 		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
 		self.assertEqual(lines[1][:11], 'Wiki-Format')
 		self.assertEqual(lines[2][:13], 'Creation-Date')
+		self.assertEqual(lines[3][:15], 'Page-Identifier')
 
 		self.assertEqual(page.get_parsetree(), tree)
 
@@ -1366,7 +1367,7 @@ class TestPage(TestPath):
 
 		### Custom header should be preserved
 		### Also when setting new ParseTree - e.g. after edting
-		file.writelines(lines[0:3] + ['X-Custom-Header: MyTest'] + lines[3:])
+		file.writelines(lines[0:4] + ['X-Custom-Header: MyTest'] + lines[4:])
 		page = Page(Path('Foo'), False, file, folder, 'wiki')
 		tree = page.get_parsetree()
 		page.set_parsetree(tree)
@@ -1375,7 +1376,8 @@ class TestPage(TestPath):
 		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
 		self.assertEqual(lines[1][:11], 'Wiki-Format')
 		self.assertEqual(lines[2][:13], 'Creation-Date')
-		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
+		self.assertEqual(lines[3][:15], 'Page-Identifier')
+		self.assertEqual(lines[4], 'X-Custom-Header: MyTest\n')
 
 		newtree = ParseTree().fromstring('<zim-tree>Test 123</zim-tree>')
 		page.set_parsetree(newtree)
@@ -1384,7 +1386,8 @@ class TestPage(TestPath):
 		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
 		self.assertEqual(lines[1][:11], 'Wiki-Format')
 		self.assertEqual(lines[2][:13], 'Creation-Date')
-		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
+		self.assertEqual(lines[3][:15], 'Page-Identifier')
+		self.assertEqual(lines[4], 'X-Custom-Header: MyTest\n')
 		###
 
 	def testReloadOnChanged(self):
@@ -1425,6 +1428,7 @@ class TestPage(TestPath):
 			'Content-Type: text/x-zim-wiki\n'
 			'Wiki-Format: zim 0.6\n'
 			'Creation-Date: 2015-11-01T16:28:31+01:00\n'
+			'Page-Identifier: 04294a09-7759-4f4e-a053-8122ab1027c8\n'
 			'\n'
 		)
 

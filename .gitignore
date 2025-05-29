@@ -106,3 +106,17 @@ debian/python-module-stampdir/
 
 # Rider
 .vs
+
+# Eclipse.
+.project
+.pydevproject
+.settings
+
+# PyLint.
+pylintrc
+
+# Flake8.
+setup.cfg
+
+# Indeed. Tags.
+tags
