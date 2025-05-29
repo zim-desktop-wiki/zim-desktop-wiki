@@ -265,8 +265,6 @@ class PagesIndexer(IndexerBase):
 	def update_page(self, pagename, mtime, tree):
 		logger.debug( 'update_page: pagename: "%s".', pagename)
 
-		row = self._select(pagename)
-
 		if 'Page-Identifier' in tree.meta:
 			page_identifier = tree.meta['Page-Identifier']
 
