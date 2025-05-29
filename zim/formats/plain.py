@@ -34,7 +34,7 @@ class Parser(ParserClass):
 
 	# TODO parse markdown style headers
 
-	def parse(self, input):
+	def parse(self, input, file_input=False):
 		if not isinstance(input, str):
 			input = ''.join(input)
 

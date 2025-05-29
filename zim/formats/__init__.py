@@ -870,7 +870,7 @@ class ParserClass(object):
 	'Parser' which inherits from this base class.
 	'''
 
-	def parse(self, input):
+	def parse(self, input, file_input=False):
 		'''ABSTRACT METHOD: needs to be overloaded by sub-classes.
 
 		This method takes a text or an iterable with lines and returns
