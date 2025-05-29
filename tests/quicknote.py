@@ -61,3 +61,4 @@ class TestQuickNotePlugin(tests.TestCase):
 
 	# TODO: other commandline args
 	# TODO: widget interaction - autcomplete etc.
+	# TODO: cursor placement by template instruction

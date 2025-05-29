@@ -7,18 +7,18 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-30 19:15+0100\n"
-"PO-Revision-Date: 2025-01-05 19:31+0000\n"
+"POT-Creation-Date: 2025-02-14 15:34+0100\n"
+"PO-Revision-Date: 2025-02-28 23:25+0000\n"
 "Last-Translator: Milo Ivir <mail@milotype.de>\n"
-"Language-Team: Croatian <https://hosted.weblate.org/projects/zim/develop/hr/"
-">\n"
+"Language-Team: Croatian <https://hosted.weblate.org/projects/zim/develop/hr/>"
+"\n"
 "Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Weblate 5.10-dev\n"
+"X-Generator: Weblate 5.10.3-dev\n"
 
 #. Error message when external application could not be found, %s is the command
 #: zim/applications.py:133
@@ -552,7 +552,7 @@ msgstr "_Idi"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3055
+#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3084
 msgid "_Help"
 msgstr "Po_moć"
 
@@ -630,7 +630,7 @@ msgstr "Fokusiraj bočnu ploču"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3006
+#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3035
 msgid "_Close"
 msgstr "_Zatvori"
 
@@ -667,7 +667,7 @@ msgstr "_Skoči na …"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3931
+#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3960
 msgid "_Back"
 msgstr "Na_trag"
 
@@ -678,7 +678,7 @@ msgstr "Idi natrag"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3935
+#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3964
 msgid "_Forward"
 msgstr "_Dalje"
 
@@ -744,7 +744,7 @@ msgstr "Skoči na stranicu"
 #. Column heading in 'open notebook' dialog | 
 #. Field in web server gui | 
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:58
+#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:59
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:196
 msgid "Notebook"
 msgstr "Bilježnica"
@@ -857,8 +857,8 @@ msgid "Filename"
 msgstr "Ime datoteke"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1060
-#: zim/gui/widgets.py:1084
+#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1061
+#: zim/gui/widgets.py:1085
 msgid "_Browse"
 msgstr "_Pretraži"
 
@@ -869,12 +869,12 @@ msgstr "Prepiši"
 
 #. Button label
 #: zim/gui/pageview/dialogs.py:324 zim/gui/pageview/__init__.py:284
-#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:91
+#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:92
 msgid "_Cancel"
 msgstr "O_dustani"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:92
+#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:93
 msgid "_OK"
 msgstr "_U redu"
 
@@ -1370,7 +1370,7 @@ msgstr "Otvori u novom _prozoru"
 #. menu item to open a link or file | 
 #. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3609
+#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3638
 #: zim/plugins/attachmentbrowser/filebrowser.py:407
 msgid "_Open"
 msgstr "_Otvori"
@@ -1404,7 +1404,7 @@ msgstr "Postavi kao neoznačeno"
 #. Menu item | 
 #. Button label | 
 #. button label
-#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3611
+#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3640
 #: zim/plugins/versioncontrol/__init__.py:752
 msgid "_Save"
 msgstr "_Spremi"
@@ -1817,8 +1817,12 @@ msgstr "Preferiraj kratka imena za poveznice stranica"
 msgid "Do not use system trash for this notebook"
 msgstr "Nemoj koristiti smeće sustava za ovu bilježnicu"
 
+#: zim/gui/propertiesdialog.py:23
+msgid "Filename template for pasted images"
+msgstr "Predložak imena datoteke za umetnute slike"
+
 #. Dialog title
-#: zim/gui/propertiesdialog.py:30
+#: zim/gui/propertiesdialog.py:31
 msgid "Properties"
 msgstr "Svojstva"
 
@@ -2283,95 +2287,95 @@ msgid "translator-credits"
 msgstr "Milo Ivir <mail@milotype.de>"
 
 #. dialog title
-#: zim/gui/widgets.py:518 zim/gui/widgets.py:1595
+#: zim/gui/widgets.py:519 zim/gui/widgets.py:1602
 msgid "Select File"
 msgstr "Odaberi datoteku"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:646
+#: zim/gui/widgets.py:647
 msgid "Expand _All"
 msgstr "_Rasklopi sve"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:648
+#: zim/gui/widgets.py:649
 msgid "_Collapse All"
 msgstr "_Sklopi sve"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1453
+#: zim/gui/widgets.py:1454
 msgid "Clear"
 msgstr "Poništi"
 
 #. dialog title
-#: zim/gui/widgets.py:1591
+#: zim/gui/widgets.py:1598
 msgid "Select Folder"
 msgstr "Odaberi mapu"
 
 #. dialog title
-#: zim/gui/widgets.py:1593
+#: zim/gui/widgets.py:1600
 msgid "Select Image"
 msgstr "Odaberi sliku"
 
 #. default text for empty page section selection
-#: zim/gui/widgets.py:1723
+#: zim/gui/widgets.py:1727
 msgid "<Top>"
 msgstr "<Vrh>"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2052
+#: zim/gui/widgets.py:2081
 msgid "Left Side Pane"
 msgstr "Lijeva bočna ploča"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2053
+#: zim/gui/widgets.py:2082
 msgid "Right Side Pane"
 msgstr "Desna bočna ploča"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2054
+#: zim/gui/widgets.py:2083
 msgid "Bottom Pane"
 msgstr "Donja ploča"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2055
+#: zim/gui/widgets.py:2084
 msgid "Top Pane"
 msgstr "Gornja ploča"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2064
+#: zim/gui/widgets.py:2093
 msgid "Top"
 msgstr "Gore"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2065
+#: zim/gui/widgets.py:2094
 msgid "Bottom"
 msgstr "Dolje"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2066 zim/plugins/tableeditor.py:54
+#: zim/gui/widgets.py:2095 zim/plugins/tableeditor.py:54
 #: zim/plugins/tableeditor.py:945
 msgid "Left"
 msgstr "Lijevo"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2067 zim/plugins/tableeditor.py:56
+#: zim/gui/widgets.py:2096 zim/plugins/tableeditor.py:56
 msgid "Right"
 msgstr "Desno"
 
 #. label for menu item which opens preferences dialog
-#: zim/gui/widgets.py:2377
+#: zim/gui/widgets.py:2406
 msgid "Preferences..."
 msgstr "Postavke..."
 
 #. Menu item
-#: zim/gui/widgets.py:2813
+#: zim/gui/widgets.py:2842
 msgid "_All Panes"
 msgstr "_Sve ploče"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3360
+#: zim/gui/widgets.py:3389
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2380,23 +2384,23 @@ msgstr ""
 "uključi dolje navedene podatke"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3742
+#: zim/gui/widgets.py:3771
 msgid "All Files"
 msgstr "Sve datoteke"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3769
+#: zim/gui/widgets.py:3798
 msgid "Images"
 msgstr "Slike"
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3865
+#: zim/gui/widgets.py:3894
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr "{count} od {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3887
+#: zim/gui/widgets.py:3916
 msgid "Log file"
 msgstr "Datoteka zapisnika"
 
@@ -2483,38 +2487,38 @@ msgid "Updating index"
 msgstr "Aktualiziranje indeksa"
 
 #. message for PageNotFoundError
-#: zim/notebook/notebook.py:113
+#: zim/notebook/notebook.py:114
 #, python-format
 msgid "No such page: %s"
 msgstr "Stranica ne postoji: %s"
 
 #. message for PageNotAllowedError
-#: zim/notebook/notebook.py:117
+#: zim/notebook/notebook.py:118
 #, python-format
 msgid "Page not allowed: %s"
 msgstr "Stranica nije dozvoljena: %s"
 
 #. description for PageNotAllowedError
-#: zim/notebook/notebook.py:118
+#: zim/notebook/notebook.py:119
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr ""
 "Ovo se ime stranice ne može koristiti zbog tehničkih ograničenja spremišta"
 
 #. message for PageNotAvailableError
-#: zim/notebook/notebook.py:123
+#: zim/notebook/notebook.py:124
 #, python-format
 msgid "Page not available: %s"
 msgstr "Stranica nije dostupna: %s"
 
 #. description for PageNotAvailableError
-#: zim/notebook/notebook.py:124
+#: zim/notebook/notebook.py:125
 msgid "This page name cannot be used due to a conflicting file in the storage"
 msgstr ""
 "Ovo se ime stranice ne može koristiti zbog konflikta s datotekom u spremištu"
 
 #. message for PageExistsError
-#: zim/notebook/notebook.py:133
+#: zim/notebook/notebook.py:134
 #, python-format
 msgid "Page already exists: %s"
 msgstr "Stranica već postoji: %s"
@@ -3046,11 +3050,11 @@ msgstr ""
 
 #: zim/plugins/indexed_fts.py:57
 msgid "Remove diacritics before indexing"
-msgstr ""
+msgstr "Ukloni dijakritičke znakove prije indeksiranja"
 
 #: zim/plugins/indexed_fts.py:58
 msgid "Additional token characters"
-msgstr ""
+msgstr "Dodatni znakovi za token"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -3180,12 +3184,12 @@ msgid "%A %d %B %Y"
 msgstr "%A, %d. %B %Y."
 
 #. plugin name
-#: zim/plugins/linesorter.py:20
+#: zim/plugins/linesorter.py:21
 msgid "Line Sorter"
 msgstr "Razvrstavanje redaka"
 
 #. plugin description
-#: zim/plugins/linesorter.py:21
+#: zim/plugins/linesorter.py:22
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3198,32 +3202,32 @@ msgstr ""
 "dupliciraj ili ukloni retke teksta.\n"
 
 #. Error message for linesorter plugin
-#: zim/plugins/linesorter.py:35
+#: zim/plugins/linesorter.py:36
 msgid "Please select more than one line of text"
 msgstr "Odaberi više od jednog retka"
 
 #. menu item
-#: zim/plugins/linesorter.py:65
+#: zim/plugins/linesorter.py:66
 msgid "_Sort lines"
 msgstr "_Razvrstaj retke"
 
 #. Menu item
-#: zim/plugins/linesorter.py:169
+#: zim/plugins/linesorter.py:171
 msgid "_Move Line Up"
 msgstr "_Premjesti redak gore"
 
 #. Menu item
-#: zim/plugins/linesorter.py:175
+#: zim/plugins/linesorter.py:177
 msgid "_Move Line Down"
 msgstr "_Premjesti redak dolje"
 
 #. Menu item
-#: zim/plugins/linesorter.py:181
+#: zim/plugins/linesorter.py:183
 msgid "_Duplicate Line"
 msgstr "_Dupliciraj redak"
 
 #. Menu item
-#: zim/plugins/linesorter.py:191
+#: zim/plugins/linesorter.py:194
 msgid "_Remove Line"
 msgstr "_Ukloni redak"
 

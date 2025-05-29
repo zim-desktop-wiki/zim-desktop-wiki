@@ -38,6 +38,8 @@ from zim.formats.html import html_encode
 
 from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
 from zim.gui.insertedobjects import TextViewWidget
+from zim.gui.pageview.find import TextBufferFindMixin
+
 
 if GtkSource:
 	lm = GtkSource.LanguageManager()
@@ -208,11 +210,12 @@ else:
 	_bufferclass = object # avoid import error
 
 
-class SourceViewBuffer(_bufferclass):
+class SourceViewBuffer(TextBufferFindMixin, _bufferclass):
 
 	def __init__(self, attrib, text):
 		#logger.debug("SourceViewBuffer attrib=%r", attrib)
 		GtkSource.Buffer.__init__(self)
+		TextBufferFindMixin.__init__(self)
 		self.set_highlight_matching_brackets(True)
 		if attrib['lang']:
 			self._set_language(attrib['lang'])

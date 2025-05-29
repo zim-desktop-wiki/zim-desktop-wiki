@@ -7,10 +7,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-30 19:15+0100\n"
-"PO-Revision-Date: 2024-12-24 02:00+0000\n"
-"Last-Translator: 大王叫我来巡山 <hamburger2048@users.noreply.hosted.weblate."
-"org>\n"
+"POT-Creation-Date: 2025-02-14 15:34+0100\n"
+"PO-Revision-Date: 2025-02-18 17:28+0000\n"
+"Last-Translator: 大王叫我来巡山 "
+"<hamburger2048@users.noreply.hosted.weblate.org>\n"
 "Language-Team: Chinese (Simplified Han script) <https://hosted.weblate.org/"
 "projects/zim/develop/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.10-dev\n"
+"X-Generator: Weblate 5.10.1-dev\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -547,7 +547,7 @@ msgstr "转到(_G)"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3055
+#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3084
 msgid "_Help"
 msgstr "帮助(_H)"
 
@@ -625,7 +625,7 @@ msgstr "聚焦侧面板"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3006
+#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3035
 msgid "_Close"
 msgstr "关闭(_C)"
 
@@ -662,7 +662,7 @@ msgstr "跳转到(_J)..."
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3931
+#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3960
 msgid "_Back"
 msgstr "后退(_B)"
 
@@ -673,7 +673,7 @@ msgstr "返回"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3935
+#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3964
 msgid "_Forward"
 msgstr "前进(_F)"
 
@@ -737,7 +737,7 @@ msgstr "跳转到页面"
 #. Column heading in 'open notebook' dialog | 
 #. Field in web server gui | 
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:58
+#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:59
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:196
 msgid "Notebook"
 msgstr "记事本"
@@ -850,8 +850,8 @@ msgid "Filename"
 msgstr "文件名"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1060
-#: zim/gui/widgets.py:1084
+#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1061
+#: zim/gui/widgets.py:1085
 msgid "_Browse"
 msgstr "浏览(_B)"
 
@@ -862,12 +862,12 @@ msgstr "覆写"
 
 #. Button label
 #: zim/gui/pageview/dialogs.py:324 zim/gui/pageview/__init__.py:284
-#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:91
+#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:92
 msgid "_Cancel"
 msgstr "取消(_C)"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:92
+#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:93
 msgid "_OK"
 msgstr "确认(_O)"
 
@@ -1359,7 +1359,7 @@ msgstr "在新窗口中打开(_W)"
 #. menu item to open a link or file | 
 #. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3609
+#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3638
 #: zim/plugins/attachmentbrowser/filebrowser.py:407
 msgid "_Open"
 msgstr "_打开"
@@ -1393,7 +1393,7 @@ msgstr "取消选中复选框"
 #. Menu item | 
 #. Button label | 
 #. button label
-#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3611
+#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3640
 #: zim/plugins/versioncontrol/__init__.py:752
 msgid "_Save"
 msgstr "保存(_S)"
@@ -1804,8 +1804,12 @@ msgstr "页面链接首选短名称"
 msgid "Do not use system trash for this notebook"
 msgstr "不要对这个笔记本使用系统回收站"
 
+#: zim/gui/propertiesdialog.py:23
+msgid "Filename template for pasted images"
+msgstr "所粘贴图像的文件名模板"
+
 #. Dialog title
-#: zim/gui/propertiesdialog.py:30
+#: zim/gui/propertiesdialog.py:31
 msgid "Properties"
 msgstr "属性"
 
@@ -2296,95 +2300,95 @@ msgstr ""
 "  宝刀没开刃 https://launchpad.net/~xkhome"
 
 #. dialog title
-#: zim/gui/widgets.py:518 zim/gui/widgets.py:1595
+#: zim/gui/widgets.py:519 zim/gui/widgets.py:1602
 msgid "Select File"
 msgstr "选择文件"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:646
+#: zim/gui/widgets.py:647
 msgid "Expand _All"
 msgstr "展开所有(_A)内容"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:648
+#: zim/gui/widgets.py:649
 msgid "_Collapse All"
 msgstr "折叠所有(_C)内容"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1453
+#: zim/gui/widgets.py:1454
 msgid "Clear"
 msgstr "清除"
 
 #. dialog title
-#: zim/gui/widgets.py:1591
+#: zim/gui/widgets.py:1598
 msgid "Select Folder"
 msgstr "选择文件夹"
 
 #. dialog title
-#: zim/gui/widgets.py:1593
+#: zim/gui/widgets.py:1600
 msgid "Select Image"
 msgstr "选择图片"
 
 #. default text for empty page section selection
-#: zim/gui/widgets.py:1723
+#: zim/gui/widgets.py:1727
 msgid "<Top>"
 msgstr "<Top>"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2052
+#: zim/gui/widgets.py:2081
 msgid "Left Side Pane"
 msgstr "左侧窗格"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2053
+#: zim/gui/widgets.py:2082
 msgid "Right Side Pane"
 msgstr "右侧窗格"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2054
+#: zim/gui/widgets.py:2083
 msgid "Bottom Pane"
 msgstr "底部窗格"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2055
+#: zim/gui/widgets.py:2084
 msgid "Top Pane"
 msgstr "顶部窗格"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2064
+#: zim/gui/widgets.py:2093
 msgid "Top"
 msgstr "顶部"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2065
+#: zim/gui/widgets.py:2094
 msgid "Bottom"
 msgstr "底部"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2066 zim/plugins/tableeditor.py:54
+#: zim/gui/widgets.py:2095 zim/plugins/tableeditor.py:54
 #: zim/plugins/tableeditor.py:945
 msgid "Left"
 msgstr "左对齐"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2067 zim/plugins/tableeditor.py:56
+#: zim/gui/widgets.py:2096 zim/plugins/tableeditor.py:56
 msgid "Right"
 msgstr "右对齐"
 
 #. label for menu item which opens preferences dialog
-#: zim/gui/widgets.py:2377
+#: zim/gui/widgets.py:2406
 msgid "Preferences..."
 msgstr "首选项…"
 
 #. Menu item
-#: zim/gui/widgets.py:2813
+#: zim/gui/widgets.py:2842
 msgid "_All Panes"
 msgstr "所有窗格(_A)"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3360
+#: zim/gui/widgets.py:3389
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2393,23 +2397,23 @@ msgstr ""
 "以下文本框中的信息"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3742
+#: zim/gui/widgets.py:3771
 msgid "All Files"
 msgstr "所有文件"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3769
+#: zim/gui/widgets.py:3798
 msgid "Images"
 msgstr "图片"
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3865
+#: zim/gui/widgets.py:3894
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr "{total} 的 {count}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3887
+#: zim/gui/widgets.py:3916
 msgid "Log file"
 msgstr "日志"
 
@@ -2495,36 +2499,36 @@ msgid "Updating index"
 msgstr "更新索引"
 
 #. message for PageNotFoundError
-#: zim/notebook/notebook.py:113
+#: zim/notebook/notebook.py:114
 #, python-format
 msgid "No such page: %s"
 msgstr "没有这样的页面： %s"
 
 #. message for PageNotAllowedError
-#: zim/notebook/notebook.py:117
+#: zim/notebook/notebook.py:118
 #, python-format
 msgid "Page not allowed: %s"
 msgstr "不允许的页面：%s"
 
 #. description for PageNotAllowedError
-#: zim/notebook/notebook.py:118
+#: zim/notebook/notebook.py:119
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr "由于存储的技术限制，无法使用此页面名称"
 
 #. message for PageNotAvailableError
-#: zim/notebook/notebook.py:123
+#: zim/notebook/notebook.py:124
 #, python-format
 msgid "Page not available: %s"
 msgstr "页面不可用：%s"
 
 #. description for PageNotAvailableError
-#: zim/notebook/notebook.py:124
+#: zim/notebook/notebook.py:125
 msgid "This page name cannot be used due to a conflicting file in the storage"
 msgstr "由于存储中有冲突的文件，无法使用此页名"
 
 #. message for PageExistsError
-#: zim/notebook/notebook.py:133
+#: zim/notebook/notebook.py:134
 #, python-format
 msgid "Page already exists: %s"
 msgstr "页面已存在：%s"
@@ -3050,11 +3054,11 @@ msgstr ""
 
 #: zim/plugins/indexed_fts.py:57
 msgid "Remove diacritics before indexing"
-msgstr ""
+msgstr "索引前删除变音符号"
 
 #: zim/plugins/indexed_fts.py:58
 msgid "Additional token characters"
-msgstr ""
+msgstr "附加的令牌字符"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -3184,12 +3188,12 @@ msgid "%A %d %B %Y"
 msgstr "%A %d %B %Y"
 
 #. plugin name
-#: zim/plugins/linesorter.py:20
+#: zim/plugins/linesorter.py:21
 msgid "Line Sorter"
 msgstr "行排序"
 
 #. plugin description
-#: zim/plugins/linesorter.py:21
+#: zim/plugins/linesorter.py:22
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3202,32 +3206,32 @@ msgstr ""
 "重复或删除文本行。\n"
 
 #. Error message for linesorter plugin
-#: zim/plugins/linesorter.py:35
+#: zim/plugins/linesorter.py:36
 msgid "Please select more than one line of text"
 msgstr "请选择一行以上文字"
 
 #. menu item
-#: zim/plugins/linesorter.py:65
+#: zim/plugins/linesorter.py:66
 msgid "_Sort lines"
 msgstr "排序行"
 
 #. Menu item
-#: zim/plugins/linesorter.py:169
+#: zim/plugins/linesorter.py:171
 msgid "_Move Line Up"
 msgstr "向上移动行(_M)"
 
 #. Menu item
-#: zim/plugins/linesorter.py:175
+#: zim/plugins/linesorter.py:177
 msgid "_Move Line Down"
 msgstr "向下移动行(_M)"
 
 #. Menu item
-#: zim/plugins/linesorter.py:181
+#: zim/plugins/linesorter.py:183
 msgid "_Duplicate Line"
 msgstr "复制行(_D)"
 
 #. Menu item
-#: zim/plugins/linesorter.py:191
+#: zim/plugins/linesorter.py:194
 msgid "_Remove Line"
 msgstr "删除行(_R)"
 

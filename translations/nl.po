@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-30 19:15+0100\n"
-"PO-Revision-Date: 2024-12-22 20:28+0000\n"
+"POT-Creation-Date: 2025-02-14 15:34+0100\n"
+"PO-Revision-Date: 2025-01-31 16:52+0000\n"
 "Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
 "Language-Team: Dutch <https://hosted.weblate.org/projects/zim/develop/nl/>\n"
 "Language: nl\n"
@@ -550,7 +550,7 @@ msgstr "_Ga naar"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3055
+#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3084
 msgid "_Help"
 msgstr "_Hulp"
 
@@ -561,17 +561,14 @@ msgstr "_Checkbox"
 
 #. option for preferences dialog
 #: zim/gui/mainwindow.py:68
-#, fuzzy
-#| msgid "Use font color for dark theme"
 msgid "Prefer dark theme"
 msgstr "Gebruik een donker kleuren thema"
 
 #. info text for preferences dialog
 #: zim/gui/mainwindow.py:69
-#, fuzzy
-#| msgid "This option requires restart of the application"
 msgid "This option requires a Gtk theme supporting a dark variant"
-msgstr "Deze optie heeft een herstart van de applicatie nodig"
+msgstr ""
+"Deze optie heeft een Gtk thema nodig dat een donkere variant ondersteund"
 
 #. info text for preferences dialog | 
 #. option for preferences dialog
@@ -632,7 +629,7 @@ msgstr "Focus zij-paneel"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3006
+#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3035
 msgid "_Close"
 msgstr "Sl_uiten"
 
@@ -669,7 +666,7 @@ msgstr "Pagina..."
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3931
+#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3960
 msgid "_Back"
 msgstr "_Terug"
 
@@ -680,7 +677,7 @@ msgstr "Ga terug"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3935
+#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3964
 msgid "_Forward"
 msgstr "_Vooruit"
 
@@ -745,7 +742,7 @@ msgstr "Ga naar pagina"
 #. Column heading in 'open notebook' dialog | 
 #. Field in web server gui | 
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:58
+#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:59
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:196
 msgid "Notebook"
 msgstr "Notitieboek"
@@ -859,8 +856,8 @@ msgid "Filename"
 msgstr "Bestandsnaam"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1060
-#: zim/gui/widgets.py:1084
+#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1061
+#: zim/gui/widgets.py:1085
 msgid "_Browse"
 msgstr "_Bladeren"
 
@@ -871,12 +868,12 @@ msgstr "Overschrijf"
 
 #. Button label
 #: zim/gui/pageview/dialogs.py:324 zim/gui/pageview/__init__.py:284
-#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:91
+#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:92
 msgid "_Cancel"
 msgstr "Af_breken"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:92
+#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:93
 msgid "_OK"
 msgstr "_Ok"
 
@@ -1104,7 +1101,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:87
 msgid "Preview link destination in overlay"
-msgstr ""
+msgstr "Preview link eindpunt in overlay"
 
 #. option in preferences dialog
 #: zim/gui/pageview/__init__.py:90
@@ -1371,7 +1368,7 @@ msgstr "Openen in _Nieuw Venster"
 #. menu item to open a link or file | 
 #. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3609
+#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3638
 #: zim/plugins/attachmentbrowser/filebrowser.py:407
 msgid "_Open"
 msgstr "_Openen"
@@ -1405,7 +1402,7 @@ msgstr "Reset Checkbox"
 #. Menu item | 
 #. Button label | 
 #. button label
-#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3611
+#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3640
 #: zim/plugins/versioncontrol/__init__.py:752
 msgid "_Save"
 msgstr "_Opslaan"
@@ -1820,8 +1817,14 @@ msgstr "Gebruik korte namen voor links"
 msgid "Do not use system trash for this notebook"
 msgstr "Gebruik de standaard afvalbak niet voor dit notitieboek"
 
+#: zim/gui/propertiesdialog.py:23
+#, fuzzy
+#| msgid "Folder with templates for attachment files"
+msgid "Filename template for pasted images"
+msgstr "Map met sjablonen voor bijlagen"
+
 #. Dialog title
-#: zim/gui/propertiesdialog.py:30
+#: zim/gui/propertiesdialog.py:31
 msgid "Properties"
 msgstr "Eigenschappen"
 
@@ -1872,10 +1875,8 @@ msgstr "_Beperk de zoekactie tot de huidige pagina en sub-paginas"
 
 #. placeholder label when search has started
 #: zim/gui/searchdialog.py:67
-#, fuzzy
-#| msgid "_Search..."
 msgid "Searching ..."
-msgstr "_Zoeken..."
+msgstr "Zoeken..."
 
 #. placeholder label when search has no results
 #: zim/gui/searchdialog.py:68
@@ -2087,8 +2088,6 @@ msgstr "Start _Web Server"
 
 #. menu item
 #: zim/gui/uiactions.py:352
-#, fuzzy
-#| msgid "View debug log"
 msgid "View Debug Log"
 msgstr "Bekijk debug log"
 
@@ -2302,97 +2301,95 @@ msgstr ""
 "  user109519 https://launchpad.net/~cumulus-007"
 
 #. dialog title
-#: zim/gui/widgets.py:518 zim/gui/widgets.py:1595
+#: zim/gui/widgets.py:519 zim/gui/widgets.py:1602
 msgid "Select File"
 msgstr "Bestand Selecteren"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:646
+#: zim/gui/widgets.py:647
 msgid "Expand _All"
 msgstr "_Alles uitvouwen"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:648
+#: zim/gui/widgets.py:649
 msgid "_Collapse All"
 msgstr "Alles _inklappen"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1453
+#: zim/gui/widgets.py:1454
 msgid "Clear"
 msgstr "Wissen"
 
 #. dialog title
-#: zim/gui/widgets.py:1591
+#: zim/gui/widgets.py:1598
 msgid "Select Folder"
 msgstr "Map Selecteren"
 
 #. dialog title
-#: zim/gui/widgets.py:1593
+#: zim/gui/widgets.py:1600
 msgid "Select Image"
 msgstr "Kies een afbeelding"
 
 #. default text for empty page section selection
-#: zim/gui/widgets.py:1723
+#: zim/gui/widgets.py:1727
 msgid "<Top>"
 msgstr "<Top>"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2052
+#: zim/gui/widgets.py:2081
 msgid "Left Side Pane"
 msgstr "Linker zijpaneel"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2053
+#: zim/gui/widgets.py:2082
 msgid "Right Side Pane"
 msgstr "Rechter zijpaneel"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2054
+#: zim/gui/widgets.py:2083
 msgid "Bottom Pane"
 msgstr "Onderste paneel"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2055
+#: zim/gui/widgets.py:2084
 msgid "Top Pane"
 msgstr "Bovenste paneel"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2064
+#: zim/gui/widgets.py:2093
 msgid "Top"
 msgstr "Top"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2065
+#: zim/gui/widgets.py:2094
 msgid "Bottom"
 msgstr "Onderaan"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2066 zim/plugins/tableeditor.py:54
+#: zim/gui/widgets.py:2095 zim/plugins/tableeditor.py:54
 #: zim/plugins/tableeditor.py:945
 msgid "Left"
 msgstr "Links"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2067 zim/plugins/tableeditor.py:56
+#: zim/gui/widgets.py:2096 zim/plugins/tableeditor.py:56
 msgid "Right"
 msgstr "Rechts"
 
 #. label for menu item which opens preferences dialog
-#: zim/gui/widgets.py:2377
-#, fuzzy
-#| msgid "Preferences"
+#: zim/gui/widgets.py:2406
 msgid "Preferences..."
-msgstr "Voorkeuren"
+msgstr "Voorkeuren..."
 
 #. Menu item
-#: zim/gui/widgets.py:2813
+#: zim/gui/widgets.py:2842
 msgid "_All Panes"
 msgstr "_Alle panelen"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3360
+#: zim/gui/widgets.py:3389
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2401,23 +2398,23 @@ msgstr ""
 "dan de onderstaande informatie toe"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3742
+#: zim/gui/widgets.py:3771
 msgid "All Files"
 msgstr "Alle bestanden"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3769
+#: zim/gui/widgets.py:3798
 msgid "Images"
 msgstr "Afbeeldingen"
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3865
+#: zim/gui/widgets.py:3894
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr "{count} van {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3887
+#: zim/gui/widgets.py:3916
 msgid "Log file"
 msgstr "Logboek"
 
@@ -2506,19 +2503,19 @@ msgid "Updating index"
 msgstr "Index aan het herladen"
 
 #. message for PageNotFoundError
-#: zim/notebook/notebook.py:113
+#: zim/notebook/notebook.py:114
 #, python-format
 msgid "No such page: %s"
 msgstr "Pagina bestaat niet: %s"
 
 #. message for PageNotAllowedError
-#: zim/notebook/notebook.py:117
+#: zim/notebook/notebook.py:118
 #, python-format
 msgid "Page not allowed: %s"
 msgstr "Pagina niet toegestaan: %s"
 
 #. description for PageNotAllowedError
-#: zim/notebook/notebook.py:118
+#: zim/notebook/notebook.py:119
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr ""
@@ -2526,20 +2523,20 @@ msgstr ""
 "data opslag"
 
 #. message for PageNotAvailableError
-#: zim/notebook/notebook.py:123
+#: zim/notebook/notebook.py:124
 #, python-format
 msgid "Page not available: %s"
 msgstr "Pagina niet beschikbaar: %s"
 
 #. description for PageNotAvailableError
-#: zim/notebook/notebook.py:124
+#: zim/notebook/notebook.py:125
 msgid "This page name cannot be used due to a conflicting file in the storage"
 msgstr ""
 "Deze paginanaam kan niet worden gebruik vanwege een bestand dat al bestaat "
 "in de opslag folder"
 
 #. message for PageExistsError
-#: zim/notebook/notebook.py:133
+#: zim/notebook/notebook.py:134
 #, python-format
 msgid "Page already exists: %s"
 msgstr "Pagina bestaat al: %s"
@@ -2580,7 +2577,7 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/arithmetic.py:28
 msgid "Output precision"
-msgstr ""
+msgstr "Precisie van resultaten"
 
 #. menu item
 #: zim/plugins/arithmetic.py:38
@@ -2693,10 +2690,8 @@ msgstr "Gebruik thumbnails voor SVG bestanden"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:130
-#, fuzzy
-#| msgid "Attachments"
 msgid "Atta_chments"
-msgstr "Bijlagen"
+msgstr "_Bijlagen"
 
 #. placeholder label for sidepane
 #: zim/plugins/attachmentbrowser/__init__.py:147
@@ -2705,13 +2700,11 @@ msgstr "Geen bijlagen"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser/__init__.py:198
-#, fuzzy, python-format
-#| msgid "%i Attachment"
-#| msgid_plural "%i Attachments"
+#, python-format
 msgid "%i Atta_chment"
 msgid_plural "%i Atta_chments"
-msgstr[0] "%i bestand"
-msgstr[1] "%i bestanden"
+msgstr[0] "%i _bijlage"
+msgstr[1] "%i _bijlagen"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2753,13 +2746,11 @@ msgstr "Geen referenties"
 
 #. Label for the statusbar, %i is the number of BackLinks to the current page
 #: zim/plugins/backlinkpane.py:125
-#, fuzzy, python-format
-#| msgid "%i BackLink"
-#| msgid_plural "%i BackLinks"
+#, python-format
 msgid "%i _BackLink"
 msgid_plural "%i _BackLinks"
-msgstr[0] "%i Verwijzing"
-msgstr[1] "%i Verwijzingen"
+msgstr[0] "%i _Verwijzing"
+msgstr[1] "%i _Verwijzingen"
 
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:382
@@ -2921,10 +2912,8 @@ msgstr "Maak diagrammen in SVG formaat"
 
 #. Plugin preference for diagram editor
 #: zim/plugins/diagrameditor.py:44
-#, fuzzy
-#| msgid "Default"
 msgid "Default text"
-msgstr "Standaard"
+msgstr "Standaard tekst"
 
 #. menu item
 #: zim/plugins/diagrameditor.py:58
@@ -3067,7 +3056,7 @@ msgstr "GNU R Plot"
 #. plugin name
 #: zim/plugins/indexed_fts.py:44
 msgid "Indexed Full-Text Search"
-msgstr ""
+msgstr "Zoeken met tekst index"
 
 #. plugin description
 #: zim/plugins/indexed_fts.py:45
@@ -3077,14 +3066,18 @@ msgid ""
 "based on the FTS5 virtual table module of\n"
 "sqlite.\n"
 msgstr ""
+"Deze plugin maakt zoeken sneller door\n"
+"de volledige tekst van paginas te indexen.\n"
+"Hiervoor wordt de \"FTS5\" module van\n"
+"sqlite gebruikt.\n"
 
 #: zim/plugins/indexed_fts.py:57
 msgid "Remove diacritics before indexing"
-msgstr ""
+msgstr "Verwijder diacritics voor indexen"
 
 #: zim/plugins/indexed_fts.py:58
 msgid "Additional token characters"
-msgstr ""
+msgstr "Additionele woord-tekens"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -3205,10 +3198,8 @@ msgstr "Van_daag"
 
 #. side pane title
 #: zim/plugins/journal.py:336
-#, fuzzy
-#| msgid "Journal"
 msgid "_Journal"
-msgstr "Journaal"
+msgstr "_Journaal"
 
 #. strftime format for current date label
 #: zim/plugins/journal.py:397
@@ -3216,17 +3207,12 @@ msgid "%A %d %B %Y"
 msgstr "%A, %d %B %Y"
 
 #. plugin name
-#: zim/plugins/linesorter.py:20
+#: zim/plugins/linesorter.py:21
 msgid "Line Sorter"
 msgstr "Sorteren per regel"
 
 #. plugin description
-#: zim/plugins/linesorter.py:21
-#, fuzzy
-#| msgid ""
-#| "This plugin sorts selected lines in alphabetical order.\n"
-#| "If the list is already sorted the order will be reversed\n"
-#| "(A-Z to Z-A).\n"
+#: zim/plugins/linesorter.py:22
 msgid ""
 "This plugin sorts selected lines in alphabetical order.\n"
 "If the list is already sorted the order will be reversed\n"
@@ -3236,35 +3222,37 @@ msgstr ""
 "Deze plugin voegt een functie toe om geselecteerde\n"
 "regels te sorteren op alfabetische volgorde.\n"
 "Als de lijst al gesorteerd is wordt de volgorde omgedraaid\n"
-"(A-Z naar Z-A).\n"
+"(A-Z naar Z-A). Ook zijn voegt deze plugin acties toe\n"
+"om een regel te dupliceren of omhoog/naar beneden\n"
+"te verplaatsen.\n"
 
 #. Error message for linesorter plugin
-#: zim/plugins/linesorter.py:35
+#: zim/plugins/linesorter.py:36
 msgid "Please select more than one line of text"
 msgstr "Selecteer meer dan 1 regel tekst"
 
 #. menu item
-#: zim/plugins/linesorter.py:65
+#: zim/plugins/linesorter.py:66
 msgid "_Sort lines"
 msgstr "Regels _Sorteren"
 
 #. Menu item
-#: zim/plugins/linesorter.py:169
+#: zim/plugins/linesorter.py:171
 msgid "_Move Line Up"
 msgstr "Regel om_hoog schuiven"
 
 #. Menu item
-#: zim/plugins/linesorter.py:175
+#: zim/plugins/linesorter.py:177
 msgid "_Move Line Down"
 msgstr "Regel om_laag schuiven"
 
 #. Menu item
-#: zim/plugins/linesorter.py:181
+#: zim/plugins/linesorter.py:183
 msgid "_Duplicate Line"
 msgstr "Regel _dupliceren"
 
 #. Menu item
-#: zim/plugins/linesorter.py:191
+#: zim/plugins/linesorter.py:194
 msgid "_Remove Line"
 msgstr "Regel ver_wijderen"
 
@@ -3303,44 +3291,32 @@ msgstr "Automatisch zoomen"
 
 #. preferences option
 #: zim/plugins/linkmap.py:59
-#, fuzzy
-#| msgid "Position in the window"
 msgid "Follow main window"
-msgstr "Positie in het scherm"
+msgstr "Volg navigatie in hoofd window"
 
 #. preferences option
 #: zim/plugins/linkmap.py:61
-#, fuzzy
-#| msgid "Open in New Window"
 msgid "Always open links in new windows"
-msgstr "Openen in nieuw venster"
+msgstr "Links altijd in nieuw venster openen"
 
 #. plugin name
 #: zim/plugins/mermaiddiagrameditor.py:23
-#, fuzzy
-#| msgid "Insert Diagram"
 msgid "Insert Mermaid Diagram"
-msgstr "Diagram Invoegen"
+msgstr "Mermaid Diagram Invoegen"
 
 #. plugin description
 #: zim/plugins/mermaiddiagrameditor.py:24
-#, fuzzy
-#| msgid ""
-#| "This plugin provides a sequence diagram editor for zim based on seqdiag.\n"
-#| "It allows easy editing of sequence diagrams.\n"
 msgid ""
 "This plugin provides a Mermaid diagram editor for zim.\n"
 "It allows easy editing of Mermaid diagrams.\n"
 msgstr ""
-"Deze plugin voegt een volgorde diagram toe gebasseerd op \"seqdiag\".\n"
-"Dit vergemakkelijkt het bewerken van volgorde diagrammen.\n"
+"Deze plugin voegt een Mermaid diagram toe.\n"
+"Dit vergemakkelijkt het bewerken van Mermaid diagrammen.\n"
 
 #. menu item
 #: zim/plugins/mermaiddiagrameditor.py:56
-#, fuzzy
-#| msgid "Insert Diagram"
 msgid "Mermaid Diagram"
-msgstr "Diagram Invoegen"
+msgstr "Mermaid Diagram Invoegen"
 
 #. plugin name
 #: zim/plugins/osx_menubar.py:74
@@ -3391,10 +3367,8 @@ msgstr "Gebruik tooltips"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:129
-#, fuzzy
-#| msgid "Page Index"
 msgid "Collapse Page Index"
-msgstr "Pagina index"
+msgstr "Pagina index invouwen"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:133
@@ -3403,10 +3377,8 @@ msgstr "Laat huidige pagina in de index zien"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:147
-#, fuzzy
-#| msgid "Index"
 msgid "Inde_x"
-msgstr "Index"
+msgstr "Inde_x"
 
 #. plugin name
 #: zim/plugins/pathbar.py:38
@@ -3490,10 +3462,8 @@ msgstr "_Printen"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:75
-#, fuzzy
-#| msgid "Print to Browser"
 msgid "Print tasklist to browser"
-msgstr "Printen naar webbrowser"
+msgstr "Print takenlijst naar webbrowser"
 
 #. plugin name
 #: zim/plugins/quicknote.py:143 zim/plugins/quicknote.py:178
@@ -3757,11 +3727,6 @@ msgstr "Spellingscontrole"
 
 #. plugin description
 #: zim/plugins/spell.py:104
-#, fuzzy
-#| msgid ""
-#| "Adds spell checking support using gtkspell.\n"
-#| "\n"
-#| "This is a core plugin shipping with zim.\n"
 msgid ""
 "Adds spell checking support using \n"
 "gtkspellchecker, Gspell, or gtkspell libraries.\n"
@@ -3769,7 +3734,7 @@ msgid ""
 "This is a core plugin shipping with zim.\n"
 msgstr ""
 "Deze plugin voegt een spellingscontrole toe \n"
-"gebaseerd op gtkspell.\n"
+"gebaseerd op gtkspellchecker, Gspell, of gtkspell module.\n"
 "\n"
 "Dit is een standaard plugin voor zim.\n"
 
@@ -4072,10 +4037,8 @@ msgstr "Alle taken"
 
 #. list with tasks
 #: zim/plugins/tasklist/gui.py:91
-#, fuzzy
-#| msgid "Action"
 msgid "Active"
-msgstr "Actie"
+msgstr "Actief"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:92
@@ -4084,10 +4047,8 @@ msgstr "Inbox"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:93
-#, fuzzy
-#| msgid "Action"
 msgid "Next Actions"
-msgstr "Actie"
+msgstr "Volgende taken"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:94
@@ -4096,31 +4057,23 @@ msgstr "Projecten"
 
 #. list with tasks (GTD style category)
 #: zim/plugins/tasklist/gui.py:95
-#, fuzzy
-#| msgid "Editing"
 msgid "Waiting"
-msgstr "Bewerken"
+msgstr "Wachtend"
 
 #. placeholder label for sidepane
 #: zim/plugins/tasklist/gui.py:141
-#, fuzzy
-#| msgid "Tasks"
 msgid "No tasks"
-msgstr "Taken"
+msgstr "Geen taken"
 
 #. tooltip
 #: zim/plugins/tasklist/gui.py:167
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show tasklist window"
-msgstr "Laat taken lijst in zijpaneel zien"
+msgstr "Toon taken lijst"
 
 #. label for filtering/searching tasks
 #: zim/plugins/tasklist/gui.py:212
-#, fuzzy
-#| msgid "Filter"
 msgid "Filter tasks"
-msgstr "Filter"
+msgstr "Filter taken"
 
 #. tab label for side pane
 #: zim/plugins/tasklist/gui.py:275
@@ -4145,10 +4098,8 @@ msgstr "Laat open taken zien"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:507
-#, fuzzy
-#| msgid "Only Show Active Tasks"
 msgid "Show closed tasks"
-msgstr "Laat alleen actieve taken zien"
+msgstr "Laat gesloten taken zien"
 
 #. selection menu option
 #: zim/plugins/tasklist/gui.py:508
@@ -4240,17 +4191,13 @@ msgstr "Toon einddatum in zijpaneel"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:55
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show start date in sidepane"
-msgstr "Toon einddatum in zijpaneel"
+msgstr "Toon startdatum in zijpaneel"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:57
-#, fuzzy
-#| msgid "Show tasklist in sidepane"
 msgid "Show page column in the sidepane"
-msgstr "Laat taken lijst in zijpaneel zien"
+msgstr "Laat pagina kolom in zijpaneel zien"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:63
@@ -4264,17 +4211,13 @@ msgstr "Labels die taken markeren"
 
 #. label for plugin preferences dialog - labels are e.g. "Waiting", "Planned"
 #: zim/plugins/tasklist/__init__.py:67
-#, fuzzy
-#| msgid "Labels marking tasks"
 msgid "Labels for \"waiting\" tasks"
-msgstr "Labels die taken markeren"
+msgstr "Labels voor \"wachtende\" taken"
 
 #. label for plugin preferences dialog - tags are e.g. "@waiting", "@planned"
 #: zim/plugins/tasklist/__init__.py:69
-#, fuzzy
-#| msgid "Tags for non-actionable tasks"
 msgid "Tags for \"waiting\" tasks"
-msgstr "Label voor (nog) niet actieve taken"
+msgstr "Tags voor \"wachtende\" taken"
 
 #. label for preference with multiple options
 #: zim/plugins/tasklist/__init__.py:71
@@ -4308,10 +4251,8 @@ msgstr "Sectie(s) om te negeren"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:83
-#, fuzzy
-#| msgid "Show due date in sidepane"
 msgid "Show page names in selection pane"
-msgstr "Toon einddatum in zijpaneel"
+msgstr "Toon pagina namen in zijpaneel"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:85
@@ -4350,26 +4291,19 @@ msgstr "Werkbalk"
 
 #. plugin description
 #: zim/plugins/toolbar.py:42
-#, fuzzy
-#| msgid "This plugin adds the page index pane to the main window.\n"
 msgid "This plugin allows to customize the toolbar in the main window.\n"
 msgstr ""
-"Deze plugin voegt een pagina index toe aan de zijkant \n"
-"van het applicatie scherm\n"
+"Met deze plugin kan de werkbalk van het notebook window aangepast worden\n"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:51
-#, fuzzy
-#| msgid "Show in the toolbar"
 msgid "Show toolbar"
-msgstr "In de werkbalk toevoegen"
+msgstr "Toon werkbalk"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:53
-#, fuzzy
-#| msgid "Include editing tools (classic toolbar)"
 msgid "Include formatting tools in toolbar"
-msgstr "Toon ook tekststijl knoppen (klassieke toolbar)"
+msgstr "Toon tekststijl knoppen in de werkbalk"
 
 #. option for plugin preferences
 #: zim/plugins/toolbar.py:57
@@ -4630,36 +4564,32 @@ msgstr "Rev"
 #. Option for Window Title template
 #: zim/plugins/windowtitleeditor.py:19
 msgid "Page Path - Notebook Name"
-msgstr ""
+msgstr "Pagina naam - Notitieboek naam"
 
 #. Option for Window Title template
 #: zim/plugins/windowtitleeditor.py:20
 msgid "Notebook Name - Zim"
-msgstr ""
+msgstr "Notitieboek naam - Zim"
 
 #. Option for Window Title template
 #: zim/plugins/windowtitleeditor.py:21
 msgid "Page Name — Page Title — Zim"
-msgstr ""
+msgstr "Pagina naam - Pagina title - Zim"
 
 #. Option for Window Title template
 #: zim/plugins/windowtitleeditor.py:22
 msgid "Notebook Name: Page Title (Page Source Path)"
-msgstr ""
+msgstr "Notitiebok name: Pagina titel (Pagina bron locatie)"
 
 #. Option for Window Title template
 #: zim/plugins/windowtitleeditor.py:23
-#, fuzzy
-#| msgid "Customize..."
 msgid "Custom"
-msgstr "Aanpassen..."
+msgstr "Aangepast"
 
 #. plugin name
 #: zim/plugins/windowtitleeditor.py:28
-#, fuzzy
-#| msgid "Table Editor"
 msgid "Window Title Editor"
-msgstr "Tabelleneditor"
+msgstr "Window title wijzigen"
 
 #. plugin description
 #: zim/plugins/windowtitleeditor.py:29
@@ -4669,23 +4599,26 @@ msgid ""
 "Press \"Configure\" below to choose a preset\n"
 "or to create a custom one.\n"
 msgstr ""
+"Met deze plugin kan de titel van het \n"
+"notitieboek window worden aangepast.\n"
+"\n"
+"Klik \"Configureren\" hieronder om een \n"
+"setting te kiezen of aan te passen.\n"
 
 #. window title editor preference option
 #: zim/plugins/windowtitleeditor.py:41
-#, fuzzy
-#| msgid "Template"
 msgid "Title template"
-msgstr "Template"
+msgstr "Titel Template"
 
 #. window title editor preference option
 #: zim/plugins/windowtitleeditor.py:45
 msgid "Template string for custom format"
-msgstr ""
+msgstr "Template input voor aangepast formaat"
 
 #. window title in case of critical error
 #: zim/plugins/windowtitleeditor.py:98
 msgid "Plugin error - check debug log! - Zim"
-msgstr ""
+msgstr "Plugin error - check debug log! - Zom"
 
 #. plugin name
 #: zim/plugins/zeitgeist-logger.py:33

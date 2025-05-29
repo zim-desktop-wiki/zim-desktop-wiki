@@ -400,19 +400,19 @@ class TestFS(object):
 		# Test new_file()
 		newfile1 = folder.new_file('foo.txt')
 		self.assertEqual(newfile1.dirname, folder.path)
-		self.assertEqual(newfile1.basename, 'foo001.txt')
+		self.assertEqual(newfile1.basename, 'foo-001.txt')
 
 		newfile1.touch()
 		newfile2 = folder.new_file('foo.txt')
-		self.assertEqual(newfile2.basename, 'foo002.txt')
+		self.assertEqual(newfile2.basename, 'foo-002.txt')
 
 		# Test new_folder()
 		newfolder = folder.new_folder('foo')
 		self.assertEqual(newfolder.dirname, folder.path)
-		self.assertEqual(newfolder.basename, 'foo001')
+		self.assertEqual(newfolder.basename, 'foo-001')
 
 		# Remove one by one
-		self.assertEqual(folder.list_names(), ['bar', 'bar.txt', 'foo', 'foo.txt', 'foo001.txt'])
+		self.assertEqual(folder.list_names(), ['bar', 'bar.txt', 'foo', 'foo-001.txt', 'foo.txt'])
 		self.assertRaises(FolderNotEmptyError, folder.remove)
 		self.assertTrue(folder.exists())
 

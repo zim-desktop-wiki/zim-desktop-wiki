@@ -40,6 +40,7 @@ from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parse.links import link_type
 from zim.signals import callback
 
+from zim.templates.expression import ExpressionFunction
 from zim.actions import get_gtk_actiongroup, action, get_actions, \
 	ActionClassMethod, ToggleActionClassMethod, initialize_actiongroup
 from zim.plugins import PluginManager, ExtensionBase, extendable
@@ -941,10 +942,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 			self.textview.set_buffer(buffer)
 			self._hack_on_inserted_tree()
-
-			if cursor is None:
-				cursor = -1 if buffer.showing_template else 0
-
 		except Exception as error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self._readonly_set_error = True
@@ -954,7 +951,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 
 			# Finish hooking up the new page
-			self.set_cursor_pos(cursor)
+			if cursor is not None:
+				self.set_cursor_pos(cursor)
+			elif not buffer.showing_template:
+				self.set_cursor_pos(0)
+			# else the template might already have placed it, or leave it at the end
 
 			self._buffer_signals += (
 				buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
@@ -977,8 +978,18 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if parsetree is None and not readonly:
 			# HACK: using None value instead of "hascontent" to distinguish
 			# between a page without source and an existing empty page
-			parsetree = self.notebook.get_template(self.page)
+			CURSOR_CHAR = '\ufffe' # unicode "non-character"
+			parsetree = self.notebook.get_template(self.page,
+				{'place_cursor': ExpressionFunction(lambda: CURSOR_CHAR)}
+			)
 			buffer.set_parsetree(parsetree, showing_template=True)
+			start, end = buffer.get_bounds()
+			start.forward_find_char(lambda c,x: c == CURSOR_CHAR)
+			if not start.equal(end):
+				buffer.place_cursor(start)
+				bound = start.copy()
+				bound.forward_char()
+				buffer.delete(start, bound)
 			buffer.set_modified(False)
 			# By setting this instead of providing to the TextBuffer constructor
 			# this template can be undone

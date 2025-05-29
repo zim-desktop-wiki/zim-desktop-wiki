@@ -175,6 +175,8 @@ class ToCTreeView(BrowserTreeView):
 	def select_heading_for_line(self, line: int):
 		'''Select the heading to which C{line} belongs'''
 		selection = self.get_selection()
+		if selection is None:
+			return # see bug #2772, not sure how this happens
 		selection.unselect_all()
 		model = self.get_model()
 

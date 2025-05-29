@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-30 19:15+0100\n"
+"POT-Creation-Date: 2025-02-14 15:34+0100\n"
 "PO-Revision-Date: 2021-02-15 22:50+0000\n"
 "Last-Translator: Reza Almanda <rezaalmanda27@gmail.com>\n"
 "Language-Team: Indonesian <https://hosted.weblate.org/projects/zim/master/id/"
@@ -536,7 +536,7 @@ msgstr "Bu_ka"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3055
+#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3084
 msgid "_Help"
 msgstr "_Bantuan"
 
@@ -620,7 +620,7 @@ msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3006
+#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3035
 msgid "_Close"
 msgstr "_Tutup"
 
@@ -666,7 +666,7 @@ msgstr "Lompat ke.."
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3931
+#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3960
 msgid "_Back"
 msgstr "_Mundur"
 
@@ -677,7 +677,7 @@ msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3935
+#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3964
 msgid "_Forward"
 msgstr "_Maju"
 
@@ -747,7 +747,7 @@ msgstr "Lompat ke Halaman"
 #. Column heading in 'open notebook' dialog | 
 #. Field in web server gui | 
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:58
+#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:59
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:196
 msgid "Notebook"
 msgstr "Buku Catatan"
@@ -860,8 +860,8 @@ msgid "Filename"
 msgstr "Nama Berkas"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1060
-#: zim/gui/widgets.py:1084
+#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1061
+#: zim/gui/widgets.py:1085
 msgid "_Browse"
 msgstr "Ram_ban"
 
@@ -872,12 +872,12 @@ msgstr "Timpa"
 
 #. Button label
 #: zim/gui/pageview/dialogs.py:324 zim/gui/pageview/__init__.py:284
-#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:91
+#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:92
 msgid "_Cancel"
 msgstr "_Batal"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:92
+#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:93
 msgid "_OK"
 msgstr "_OK"
 
@@ -1392,7 +1392,7 @@ msgstr "Buka di Jendela _Baru"
 #. menu item to open a link or file | 
 #. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3609
+#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3638
 #: zim/plugins/attachmentbrowser/filebrowser.py:407
 msgid "_Open"
 msgstr "_Buka"
@@ -1428,7 +1428,7 @@ msgstr "Hapus Centang Kotak Cek"
 #. Menu item | 
 #. Button label | 
 #. button label
-#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3611
+#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3640
 #: zim/plugins/versioncontrol/__init__.py:752
 msgid "_Save"
 msgstr "_Simpan"
@@ -1849,8 +1849,14 @@ msgstr ""
 msgid "Do not use system trash for this notebook"
 msgstr "Tak dapat menemukan berkas atau folder untuk buku catatan ini"
 
+#: zim/gui/propertiesdialog.py:23
+#, fuzzy
+#| msgid "Folder with templates for attachment files"
+msgid "Filename template for pasted images"
+msgstr "Folder dengan templat untuk berkas lampiran"
+
 #. Dialog title
-#: zim/gui/propertiesdialog.py:30
+#: zim/gui/propertiesdialog.py:31
 msgid "Properties"
 msgstr "Properti"
 
@@ -2327,69 +2333,69 @@ msgstr ""
 "  tunggul arif siswoyo https://launchpad.net/~tunggul"
 
 #. dialog title
-#: zim/gui/widgets.py:518 zim/gui/widgets.py:1595
+#: zim/gui/widgets.py:519 zim/gui/widgets.py:1602
 msgid "Select File"
 msgstr "Pilih Berkas"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:646
+#: zim/gui/widgets.py:647
 msgid "Expand _All"
 msgstr "Perluas Semu_a"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:648
+#: zim/gui/widgets.py:649
 msgid "_Collapse All"
 msgstr "Persempit _Semua"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1453
+#: zim/gui/widgets.py:1454
 msgid "Clear"
 msgstr "Bersihkan"
 
 #. dialog title
-#: zim/gui/widgets.py:1591
+#: zim/gui/widgets.py:1598
 msgid "Select Folder"
 msgstr "Pilih Folder"
 
 #. dialog title
-#: zim/gui/widgets.py:1593
+#: zim/gui/widgets.py:1600
 msgid "Select Image"
 msgstr "Pilih Gambar"
 
 #. default text for empty page section selection
-#: zim/gui/widgets.py:1723
+#: zim/gui/widgets.py:1727
 msgid "<Top>"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2052
+#: zim/gui/widgets.py:2081
 msgid "Left Side Pane"
 msgstr "Panel Sisi Kiri"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2053
+#: zim/gui/widgets.py:2082
 msgid "Right Side Pane"
 msgstr "Panel Sisi Kanan"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2054
+#: zim/gui/widgets.py:2083
 msgid "Bottom Pane"
 msgstr "Panel Bawah"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2055
+#: zim/gui/widgets.py:2084
 msgid "Top Pane"
 msgstr "Panel Atas"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2064
+#: zim/gui/widgets.py:2093
 #, fuzzy
 #| msgid "ToC"
 msgid "Top"
 msgstr "Daftar Isi"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2065
+#: zim/gui/widgets.py:2094
 #, fuzzy
 #| msgid "Bottom Pane"
 msgid "Bottom"
@@ -2397,31 +2403,31 @@ msgstr "Panel Bawah"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2066 zim/plugins/tableeditor.py:54
+#: zim/gui/widgets.py:2095 zim/plugins/tableeditor.py:54
 #: zim/plugins/tableeditor.py:945
 msgid "Left"
 msgstr "Kiri"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2067 zim/plugins/tableeditor.py:56
+#: zim/gui/widgets.py:2096 zim/plugins/tableeditor.py:56
 msgid "Right"
 msgstr "Kanan"
 
 #. label for menu item which opens preferences dialog
-#: zim/gui/widgets.py:2377
+#: zim/gui/widgets.py:2406
 #, fuzzy
 #| msgid "Preferences"
 msgid "Preferences..."
 msgstr "Pengaturan"
 
 #. Menu item
-#: zim/gui/widgets.py:2813
+#: zim/gui/widgets.py:2842
 msgid "_All Panes"
 msgstr "Semu_a Panel"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3360
+#: zim/gui/widgets.py:3389
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2430,23 +2436,23 @@ msgstr ""
 "informasi dari kotak teks berikut"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3742
+#: zim/gui/widgets.py:3771
 msgid "All Files"
 msgstr "Semua Berkas"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3769
+#: zim/gui/widgets.py:3798
 msgid "Images"
 msgstr "Gambar"
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3865
+#: zim/gui/widgets.py:3894
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr "{count} dari {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3887
+#: zim/gui/widgets.py:3916
 msgid "Log file"
 msgstr "Berkas log"
 
@@ -2529,19 +2535,19 @@ msgid "Updating index"
 msgstr "Mutakhirkan indeks"
 
 #. message for PageNotFoundError
-#: zim/notebook/notebook.py:113
+#: zim/notebook/notebook.py:114
 #, python-format
 msgid "No such page: %s"
 msgstr "Tak ada halaman: %s"
 
 #. message for PageNotAllowedError
-#: zim/notebook/notebook.py:117
+#: zim/notebook/notebook.py:118
 #, python-format
 msgid "Page not allowed: %s"
 msgstr "Halaman tak diizinkan: %s"
 
 #. description for PageNotAllowedError
-#: zim/notebook/notebook.py:118
+#: zim/notebook/notebook.py:119
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr ""
@@ -2549,14 +2555,14 @@ msgstr ""
 "penyimpanan"
 
 #. message for PageNotAvailableError
-#: zim/notebook/notebook.py:123
+#: zim/notebook/notebook.py:124
 #, fuzzy, python-format
 #| msgid "Page not allowed: %s"
 msgid "Page not available: %s"
 msgstr "Halaman tak diizinkan: %s"
 
 #. description for PageNotAvailableError
-#: zim/notebook/notebook.py:124
+#: zim/notebook/notebook.py:125
 #, fuzzy
 #| msgid ""
 #| "This page name cannot be used due to technical limitations of the storage"
@@ -2566,7 +2572,7 @@ msgstr ""
 "penyimpanan"
 
 #. message for PageExistsError
-#: zim/notebook/notebook.py:133
+#: zim/notebook/notebook.py:134
 #, python-format
 msgid "Page already exists: %s"
 msgstr "Halaman sudah ada: %s"
@@ -3248,12 +3254,12 @@ msgid "%A %d %B %Y"
 msgstr "%A %d %B %Y"
 
 #. plugin name
-#: zim/plugins/linesorter.py:20
+#: zim/plugins/linesorter.py:21
 msgid "Line Sorter"
 msgstr "Urutkan Baris"
 
 #. plugin description
-#: zim/plugins/linesorter.py:21
+#: zim/plugins/linesorter.py:22
 #, fuzzy
 #| msgid ""
 #| "This plugin sorts selected lines in alphabetical order.\n"
@@ -3270,32 +3276,32 @@ msgstr ""
 "(A-Z ke Z-A).\n"
 
 #. Error message for linesorter plugin
-#: zim/plugins/linesorter.py:35
+#: zim/plugins/linesorter.py:36
 msgid "Please select more than one line of text"
 msgstr "Pilih lebih dari satu baris teks"
 
 #. menu item
-#: zim/plugins/linesorter.py:65
+#: zim/plugins/linesorter.py:66
 msgid "_Sort lines"
 msgstr "Urutkan bari_s"
 
 #. Menu item
-#: zim/plugins/linesorter.py:169
+#: zim/plugins/linesorter.py:171
 msgid "_Move Line Up"
 msgstr "Naikkan _Baris"
 
 #. Menu item
-#: zim/plugins/linesorter.py:175
+#: zim/plugins/linesorter.py:177
 msgid "_Move Line Down"
 msgstr "_Turunkan Baris"
 
 #. Menu item
-#: zim/plugins/linesorter.py:181
+#: zim/plugins/linesorter.py:183
 msgid "_Duplicate Line"
 msgstr "Gan_dakan Baris"
 
 #. Menu item
-#: zim/plugins/linesorter.py:191
+#: zim/plugins/linesorter.py:194
 msgid "_Remove Line"
 msgstr "Hapus Ba_ris"
 

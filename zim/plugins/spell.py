@@ -1,5 +1,5 @@
 
-# Copyright 2008,2015,2023 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2015,2023-2025 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 import re
@@ -96,6 +96,24 @@ mylogger.setLevel(logging.INFO)
 #####
 
 
+def choose_adapter_cls():
+	if gtkspellcheck:
+		version = tuple(
+			map(int, re.findall(r'\d+', gtkspellcheck.__version__))
+		)
+		if version >= (4, 0, 3):
+			return GtkspellcheckAdapter
+		else:
+			logger.warning(
+				'Using gtkspellcheck %s. Versions before 4.0.3 might cause memory leak.',
+				gtkspellcheck.__version__
+			)
+			return OldGtkspellcheckAdapter
+	elif Gspell:
+		return GspellAdapter
+	else:
+		return GtkspellAdapter
+
 
 class SpellPlugin(PluginClass):
 
@@ -128,71 +146,31 @@ class SpellPageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, pageview):
 		PageViewExtension.__init__(self, plugin, pageview)
+		self._adapter_cls = choose_adapter_cls()
+		self.checker = None
 
-		properties = self.plugin.notebook_properties(self.pageview.notebook)
-		self._language = properties['language']
-		self.connectto(properties, 'changed', self.on_properties_changed)
-
-		self._adapter_cls = self._choose_adapter_cls()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
+
+		self.properties = self.plugin.notebook_properties(self.pageview.notebook)
+		self.on_properties_changed(self.properties)
+		self.connectto(self.properties, 'changed', self.on_properties_changed)
+
 		self.connectto(self.pageview, 'page-changed', order=SIGNAL_AFTER)
 
 	def on_properties_changed(self, properties):
-		self._language = properties['language']
+		if self.checker:
+			self.checker.teardown()
+
 		textview = self.pageview.textview
-		checker = getattr(textview, '_gtkspell', None)
-		if checker:
-			self.setup()
-
-	def _choose_adapter_cls(self):
-		if gtkspellcheck:
-			version = tuple(
-				map(int, re.findall(r'\d+', gtkspellcheck.__version__))
-			)
-			if version >= (4, 0, 3):
-				return GtkspellcheckAdapter
-			else:
-				logger.warning(
-					'Using gtkspellcheck %s. Versions before 4.0.3 might cause memory leak.',
-					gtkspellcheck.__version__
-				)
-				return OldGtkspellcheckAdapter
-		elif Gspell:
-			return GspellAdapter
-		else:
-			return GtkspellAdapter
-
-	@toggle_action(_('Check _spelling'), accelerator='F7') # T: menu item
-	def toggle_spellcheck(self, active):
-		textview = self.pageview.textview
-		checker = getattr(textview, '_gtkspell', None)
-
-		if active:
-			if checker:
-				checker.enable()
-			else:
-				self.setup()
-		elif not active:
-			if checker:
-				checker.disable()
-			# else pass
-
-		self.uistate['active'] = active
-
-	def on_page_changed(self, pageview, page):
-		textview = pageview.textview
-		checker = getattr(textview, '_gtkspell', None)
-		if checker:
-			# A new buffer may be initialized, but it could also be an existing buffer linked to page
-			checker.check_buffer_initialized()
-
-	def setup(self):
-		textview = self.pageview.textview
-		lang = self._language or locale.getdefaultlocale()[0]
+		lang = self.properties['language'] or locale.getdefaultlocale()[0]
 		logger.debug('Spellcheck language: %s', lang)
 		try:
-			checker = self._adapter_cls(textview, lang)
+			self.checker = self._adapter_cls(textview, lang)
+			if self.uistate['active']:
+				self.checker.enable()
+			else:
+				self.checker.disable()
 		except:
 			ErrorDialog(self.pageview, (
 				_('Could not load spell checking'),
@@ -200,24 +178,55 @@ class SpellPageViewExtension(PageViewExtension):
 				_('This could mean you don\'t have the proper\ndictionaries installed')
 					# T: error message explanation
 			)).run()
-		else:
-			textview._gtkspell = checker
+
+	def on_page_changed(self, pageview, page):
+		# A new buffer may be initialized, but it could also be an existing buffer linked to page
+		if self.checker:
+			self.checker.on_buffer_changed(pageview.textview, self.uistate['active'])
+
+	@toggle_action(_('Check _spelling'), accelerator='F7') # T: menu item
+	def toggle_spellcheck(self, active):
+		if self.checker:
+			if active:
+				self.checker.enable()
+			else:
+				self.checker.disable()
+
+		self.uistate['active'] = active
 
 	def teardown(self):
-		textview = self.pageview.textview
-		if hasattr(textview, '_gtkspell') \
-		and textview._gtkspell is not None:
-			textview._gtkspell.detach()
-			textview._gtkspell = None
+		if self.checker:
+			self.checker.teardown()
+		self.checker = None
 
 
 class AdapterBase(ConnectorMixin, object):
 
-	def on_begin_insert_tree(self, o, *a):
-		self._checker.disable()
+	def __init__(self, textview, language):
+		'''Contructor
+		@param textview: a C{Gtk.TextView} to apply spellchecking to
+		@param langage: a language code as string
+		'''
+		raise NotImplementedError
 
-	def on_end_insert_tree(self, o, *a):
-		self._checker.enable()
+	def on_buffer_changed(self, textview, active):
+		'''Callback for when the C{Gtk.TextBuffer} in the C{Gtk.TextView} was changed
+		@param textview: a C{Gtk.TextView} to apply spellchecking to
+		@param active: whether spellchecking is toggled on or off
+		'''
+		pass
+
+	def enable(self):
+		'''Toggle on the spell check behavior'''
+		raise NotImplementedError
+
+	def disable(self):
+		'''Toggle off the spell check behavior'''
+		raise NotImplementedError
+
+	def teardown(self):
+		'''Clean up object state before destruction'''
+		raise NotImplementedError
 
 
 class GtkspellcheckAdapter(AdapterBase):
@@ -225,40 +234,24 @@ class GtkspellcheckAdapter(AdapterBase):
 	def __init__(self, textview, lang):
 		self._lang = lang
 		self._textview = textview
-		self._textbuffer = None
-		self._checker = None
-		self._active = False
 
-		self.enable()
+		self._clean_tag_table() # Just in case
+		self._checker = gtkspellcheck.SpellChecker(self._textview, self._lang)
 
-	def check_buffer_initialized(self):
-		if self._checker and not self._check_tag_table():
+	def on_buffer_changed(self, textview, active):
+		# Check whether buffer was initialized already by inspecting tag table
+		if not self._check_tag_table():
 			self._checker.buffer_initialize()
 
 	def enable(self):
-		if self._checker:
-			self._checker.enable()
-		else:
-			self._clean_tag_table()
-			self._checker = gtkspellcheck.SpellChecker(self._textview, self._lang)
-
-		self._textbuffer = self._textview.get_buffer()
-		self.connectto_all(self._textbuffer, ('begin-insert-tree', 'end-insert-tree'))
-		self._active = True
+		self._checker.enable()
 
 	def disable(self):
-		if self._checker:
-			self._checker.disable()
-			self.disconnect_from(self._textbuffer)
-			self._textbuffer = None
+		self._checker.disable()
 
-		self._active = False
-
-	def detach(self):
-		if self._checker:
-			self.disable()
-			self._clean_tag_table()
-			self._checker = None
+	def teardown(self):
+		self._checker.disable()
+		self._clean_tag_table()
 
 	def _check_tag_table(self):
 		tags = []
@@ -281,15 +274,17 @@ class GtkspellcheckAdapter(AdapterBase):
 
 class OldGtkspellcheckAdapter(GtkspellcheckAdapter):
 
-	def check_buffer_initialized(self):
-		if self._checker and not self._check_tag_table():
-			# wanted to use checker.buffer_initialize() here,
-			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
-			if self._active:
-				self.detach()
-				self.enable()
-			else:
-				self.detach()
+	def on_buffer_changed(self, textview, active):
+		# Check whether buffer was initialized already by inspecting tag table
+		# wanted to use checker.buffer_initialize() here,
+		# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
+		# So, just re-initialize
+		if not self._check_tag_table():
+			self._checker.disable()
+			self._clean_tag_table()
+			self._checker = gtkspellcheck.SpellChecker(self._textview, self._lang)
+			if active:
+				self._checker.enable()
 
 
 class GtkspellAdapter(AdapterBase):
@@ -297,53 +292,40 @@ class GtkspellAdapter(AdapterBase):
 	def __init__(self, textview, lang):
 		self._lang = lang
 		self._textview = textview
-		self._textbuffer = None
-		self._checker = None
-		self.enable()
-
-	def check_buffer_initialized(self):
-		pass
+		self._checker = gtkspell.Checker()
+		self._checker.set_language(self._lang)
 
 	def enable(self):
-		if not self._checker:
-			self._checker = gtkspell.Checker()
-			self._checker.set_language(self._lang)
-			self._checker.attach(self._textview)
-			self._textbuffer = self._textview.get_buffer()
-			self.connectto_all(self._textbuffer, ('begin-insert-tree', 'end-insert-tree'))
+		self._checker.attach(self._textview)
 
 	def disable(self):
-		self.detach()
+		self._checker.detach()
 
-	def detach(self):
-		if self._checker:
-			self.disconnect_from(self._textbuffer)
-			self._textbuffer = None
-			self._checker.detach()
-			self._checker = None
+	def teardown(self):
+		self._checker.detach()
 
 
 class GspellAdapter(AdapterBase):
 
 	def __init__(self, textview, lang):
 		gspell_language = Gspell.language_lookup(lang)
-		checker = Gspell.Checker.new(gspell_language)
-		buffer = Gspell.TextBuffer.get_from_gtk_text_buffer(textview.get_buffer())
-		buffer.set_spell_checker(checker)
+		self._checker = Gspell.Checker.new(gspell_language)
+		self.on_buffer_changed(textview, False)
 		self._gspell_view = Gspell.TextView.get_from_gtk_text_view(textview)
 		self.enable()
 
-	def check_buffer_initialized(self):
-		pass
+	def on_buffer_changed(self, textview, active):
+		buffer = Gspell.TextBuffer.get_from_gtk_text_buffer(textview.get_buffer())
+		buffer.set_spell_checker(self._checker)
 
 	def enable(self):
 		self._gspell_view.set_inline_spell_checking(True)
 		self._gspell_view.set_enable_language_menu(True)
 		
 	def disable(self):
-		self.detach()
-
-	def detach(self):
 		self._gspell_view.set_inline_spell_checking(False)
 		self._gspell_view.set_enable_language_menu(False)
+
+	def teardown(self):
+		self.disable() # No real teardown (?)
 

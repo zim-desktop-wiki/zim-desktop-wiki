@@ -14,6 +14,7 @@ from zim.config import ConfigManager
 from zim.notebook import Path, Notebook, NotebookInfo, \
 	resolve_notebook, build_notebook
 from zim.templates import get_template
+from zim.templates.expression import ExpressionFunction
 from zim.main import GtkCommand
 
 from zim.gui.mainwindow import MainWindowExtension
@@ -275,16 +276,26 @@ class QuickNoteDialog(Dialog):
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
 
 		# Initialize text from template
+		CURSOR_CHAR = '\ufffe' # unicode "non-character"
 		template = get_template('plugins', 'quicknote.txt')
 		template_options['text'] = text or ''
 		template_options.setdefault('url', '')
+		template_options['place_cursor'] = ExpressionFunction(lambda: CURSOR_CHAR)
 
 		lines = []
 		template.process(lines, template_options)
+		text = ''.join(lines)
+
 		buffer = self.textview.get_buffer()
-		buffer.set_text(''.join(lines))
-		begin, end = buffer.get_bounds()
-		buffer.place_cursor(end)
+		try:
+			i = text.index(CURSOR_CHAR)
+			text = text.replace(CURSOR_CHAR, '')
+			buffer.set_text(text)
+			iter = buffer.get_iter_at_offset(i)
+			buffer.place_cursor(iter)
+		except:
+			buffer.set_text(text)
+			buffer.place_cursor(buffer.get_end_iter())
 
 		buffer.set_modified(False)
 

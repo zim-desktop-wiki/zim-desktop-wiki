@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-30 19:15+0100\n"
+"POT-Creation-Date: 2025-02-14 15:34+0100\n"
 "PO-Revision-Date: 2019-11-28 04:34+0000\n"
 "Last-Translator: Jonatan Nyberg <Unknown>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -548,7 +548,7 @@ msgstr "_Gå"
 
 #. Menu title | 
 #. Button label
-#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3055
+#: zim/gui/mainwindow.py:57 zim/gui/widgets.py:3084
 msgid "_Help"
 msgstr "_Hjälp"
 
@@ -632,7 +632,7 @@ msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3006
+#: zim/gui/mainwindow.py:634 zim/gui/widgets.py:3035
 msgid "_Close"
 msgstr "St_äng"
 
@@ -678,7 +678,7 @@ msgstr "Ho_ppa till"
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3931
+#: zim/gui/mainwindow.py:911 zim/gui/widgets.py:3960
 msgid "_Back"
 msgstr "_Bakåt"
 
@@ -689,7 +689,7 @@ msgstr ""
 
 #. Menu item | 
 #. Button label
-#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3935
+#: zim/gui/mainwindow.py:924 zim/gui/widgets.py:3964
 msgid "_Forward"
 msgstr "_Framåt"
 
@@ -762,7 +762,7 @@ msgstr "Hoppa till sida"
 #. Column heading in 'open notebook' dialog | 
 #. Field in web server gui | 
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:58
+#: zim/gui/notebookdialog.py:192 zim/gui/propertiesdialog.py:59
 #: zim/gui/server.py:102 zim/plugins/quicknote.py:196
 msgid "Notebook"
 msgstr "Anteckningsbok"
@@ -875,8 +875,8 @@ msgid "Filename"
 msgstr "Filnamn"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1060
-#: zim/gui/widgets.py:1084
+#: zim/gui/pageview/dialogs.py:315 zim/gui/widgets.py:1061
+#: zim/gui/widgets.py:1085
 msgid "_Browse"
 msgstr "_Bläddra"
 
@@ -887,12 +887,12 @@ msgstr "Skriv över"
 
 #. Button label
 #: zim/gui/pageview/dialogs.py:324 zim/gui/pageview/__init__.py:284
-#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:91
+#: zim/gui/searchdialog.py:51 zim/gui/widgets.py:92
 msgid "_Cancel"
 msgstr "_Avbryt"
 
 #. Button label
-#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:92
+#: zim/gui/pageview/dialogs.py:325 zim/gui/widgets.py:93
 msgid "_OK"
 msgstr "_OK"
 
@@ -1404,7 +1404,7 @@ msgstr "Öppna i _nytt fönster"
 #. menu item to open a link or file | 
 #. Button label | 
 #. menu item to open file or folder
-#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3609
+#: zim/gui/pageview/__init__.py:1561 zim/gui/widgets.py:3638
 #: zim/plugins/attachmentbrowser/filebrowser.py:407
 msgid "_Open"
 msgstr "_Öppna"
@@ -1440,7 +1440,7 @@ msgstr "Avmarkera kryssruta"
 #. Menu item | 
 #. Button label | 
 #. button label
-#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3611
+#: zim/gui/pageview/__init__.py:1589 zim/gui/widgets.py:3640
 #: zim/plugins/versioncontrol/__init__.py:752
 msgid "_Save"
 msgstr "_Spara"
@@ -1869,8 +1869,14 @@ msgstr ""
 msgid "Do not use system trash for this notebook"
 msgstr "Kunde inte hitta filen eller platsen för anteckningsboken"
 
+#: zim/gui/propertiesdialog.py:23
+#, fuzzy
+#| msgid "Folder with templates for attachment files"
+msgid "Filename template for pasted images"
+msgstr "Mapp med mallar för bilagor"
+
 #. Dialog title
-#: zim/gui/propertiesdialog.py:30
+#: zim/gui/propertiesdialog.py:31
 msgid "Properties"
 msgstr "Egenskaper"
 
@@ -2361,69 +2367,69 @@ msgstr ""
 "  rylleman https://launchpad.net/~rylleman"
 
 #. dialog title
-#: zim/gui/widgets.py:518 zim/gui/widgets.py:1595
+#: zim/gui/widgets.py:519 zim/gui/widgets.py:1602
 msgid "Select File"
 msgstr "Välj fil"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:646
+#: zim/gui/widgets.py:647
 msgid "Expand _All"
 msgstr "_Visa alla"
 
 #. menu item in context menu
-#: zim/gui/widgets.py:648
+#: zim/gui/widgets.py:649
 msgid "_Collapse All"
 msgstr "_Dölj alla"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1453
+#: zim/gui/widgets.py:1454
 msgid "Clear"
 msgstr "Rensa"
 
 #. dialog title
-#: zim/gui/widgets.py:1591
+#: zim/gui/widgets.py:1598
 msgid "Select Folder"
 msgstr "Välj katalog"
 
 #. dialog title
-#: zim/gui/widgets.py:1593
+#: zim/gui/widgets.py:1600
 msgid "Select Image"
 msgstr "Välj bild"
 
 #. default text for empty page section selection
-#: zim/gui/widgets.py:1723
+#: zim/gui/widgets.py:1727
 msgid "<Top>"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2052
+#: zim/gui/widgets.py:2081
 msgid "Left Side Pane"
 msgstr "Vänster panel"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2053
+#: zim/gui/widgets.py:2082
 msgid "Right Side Pane"
 msgstr "Höger panel"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2054
+#: zim/gui/widgets.py:2083
 msgid "Bottom Pane"
 msgstr "Bottenpanel"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2055
+#: zim/gui/widgets.py:2084
 msgid "Top Pane"
 msgstr "Toppanel"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2064
+#: zim/gui/widgets.py:2093
 #, fuzzy
 #| msgid "ToC"
 msgid "Top"
 msgstr "Innehåll"
 
 #. position of widget in window
-#: zim/gui/widgets.py:2065
+#: zim/gui/widgets.py:2094
 #, fuzzy
 #| msgid "Bottom Pane"
 msgid "Bottom"
@@ -2431,31 +2437,31 @@ msgstr "Bottenpanel"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2066 zim/plugins/tableeditor.py:54
+#: zim/gui/widgets.py:2095 zim/plugins/tableeditor.py:54
 #: zim/plugins/tableeditor.py:945
 msgid "Left"
 msgstr "Vänster"
 
 #. position of widget in window | 
 #. alignment option
-#: zim/gui/widgets.py:2067 zim/plugins/tableeditor.py:56
+#: zim/gui/widgets.py:2096 zim/plugins/tableeditor.py:56
 msgid "Right"
 msgstr "Höger"
 
 #. label for menu item which opens preferences dialog
-#: zim/gui/widgets.py:2377
+#: zim/gui/widgets.py:2406
 #, fuzzy
 #| msgid "Preferences"
 msgid "Preferences..."
 msgstr "Inställningar"
 
 #. Menu item
-#: zim/gui/widgets.py:2813
+#: zim/gui/widgets.py:2842
 msgid "_All Panes"
 msgstr "_Alla paneler"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3360
+#: zim/gui/widgets.py:3389
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2464,23 +2470,23 @@ msgstr ""
 "rapporterar den här buggen"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3742
+#: zim/gui/widgets.py:3771
 msgid "All Files"
 msgstr "Alla filer"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3769
+#: zim/gui/widgets.py:3798
 msgid "Images"
 msgstr "Bilder"
 
 #. lable in progressbar giving number of items and total
-#: zim/gui/widgets.py:3865
+#: zim/gui/widgets.py:3894
 #, python-brace-format
 msgid "{count} of {total}"
 msgstr "{count} av {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/widgets.py:3887
+#: zim/gui/widgets.py:3916
 msgid "Log file"
 msgstr "Loggfil"
 
@@ -2563,33 +2569,33 @@ msgid "Updating index"
 msgstr "Uppdaterar biblioteksstruktur"
 
 #. message for PageNotFoundError
-#: zim/notebook/notebook.py:113
+#: zim/notebook/notebook.py:114
 #, python-format
 msgid "No such page: %s"
 msgstr "Ingen sådan sida: %s"
 
 #. message for PageNotAllowedError
-#: zim/notebook/notebook.py:117
+#: zim/notebook/notebook.py:118
 #, python-format
 msgid "Page not allowed: %s"
 msgstr "Sidan är inte tillåten: %s"
 
 #. description for PageNotAllowedError
-#: zim/notebook/notebook.py:118
+#: zim/notebook/notebook.py:119
 msgid ""
 "This page name cannot be used due to technical limitations of the storage"
 msgstr ""
 "Detta sidnamn kan inte användas på grund av tekniska begränsningar av lagring"
 
 #. message for PageNotAvailableError
-#: zim/notebook/notebook.py:123
+#: zim/notebook/notebook.py:124
 #, fuzzy, python-format
 #| msgid "Page not allowed: %s"
 msgid "Page not available: %s"
 msgstr "Sidan är inte tillåten: %s"
 
 #. description for PageNotAvailableError
-#: zim/notebook/notebook.py:124
+#: zim/notebook/notebook.py:125
 #, fuzzy
 #| msgid ""
 #| "This page name cannot be used due to technical limitations of the storage"
@@ -2598,7 +2604,7 @@ msgstr ""
 "Detta sidnamn kan inte användas på grund av tekniska begränsningar av lagring"
 
 #. message for PageExistsError
-#: zim/notebook/notebook.py:133
+#: zim/notebook/notebook.py:134
 #, python-format
 msgid "Page already exists: %s"
 msgstr "Sidan finns redan: %s"
@@ -3281,12 +3287,12 @@ msgid "%A %d %B %Y"
 msgstr "%A den %d %B %Y"
 
 #. plugin name
-#: zim/plugins/linesorter.py:20
+#: zim/plugins/linesorter.py:21
 msgid "Line Sorter"
 msgstr "Sortera linjer"
 
 #. plugin description
-#: zim/plugins/linesorter.py:21
+#: zim/plugins/linesorter.py:22
 #, fuzzy
 #| msgid ""
 #| "This plugin sorts selected lines in alphabetical order.\n"
@@ -3303,32 +3309,32 @@ msgstr ""
 "(från A-Ö till Ö-A).\n"
 
 #. Error message for linesorter plugin
-#: zim/plugins/linesorter.py:35
+#: zim/plugins/linesorter.py:36
 msgid "Please select more than one line of text"
 msgstr "Vänligen välj mer än en textrad"
 
 #. menu item
-#: zim/plugins/linesorter.py:65
+#: zim/plugins/linesorter.py:66
 msgid "_Sort lines"
 msgstr "_Sortera rader"
 
 #. Menu item
-#: zim/plugins/linesorter.py:169
+#: zim/plugins/linesorter.py:171
 msgid "_Move Line Up"
 msgstr "_Flytta raden upp"
 
 #. Menu item
-#: zim/plugins/linesorter.py:175
+#: zim/plugins/linesorter.py:177
 msgid "_Move Line Down"
 msgstr "_Flytta raden ner"
 
 #. Menu item
-#: zim/plugins/linesorter.py:181
+#: zim/plugins/linesorter.py:183
 msgid "_Duplicate Line"
 msgstr "_Duplicera rad"
 
 #. Menu item
-#: zim/plugins/linesorter.py:191
+#: zim/plugins/linesorter.py:194
 msgid "_Remove Line"
 msgstr "_Ta bort rad"
 

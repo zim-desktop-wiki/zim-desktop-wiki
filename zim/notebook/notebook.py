@@ -57,6 +57,7 @@ class NotebookConfig(INIConfigFile):
 			('document_root', String(None)), # XXX should be dir, but resolves relative
 			('short_links', Boolean(False)),
 			('shared', Boolean(True)),
+			('paste_image_template', String('pasted_image_%y%m%d')),
 			('endofline', Choice(endofline, {'dos', 'unix'})),
 			('disable_trash', Boolean(False)),
 			('default_file_format', String('zim-wiki')),
@@ -1134,9 +1135,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		return self.layout.get_attachments_folder(path)
 
-	def get_template(self, path):
+	def get_template(self, path, context=None):
 		'''Get a template for the intial text on new pages
 		@param path: a L{Path} object
+		@param context: optional dict with additional context parameters
 		@returns: a L{ParseTree} object
 		'''
 		# FIXME hardcoded that template must be wiki format
@@ -1144,7 +1146,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		template = self.get_page_template_name(path)
 		logger.debug('Got page template \'%s\' for %s', template, path)
 		template = zim.templates.get_template('wiki', template)
-		return self.eval_new_page_template(path, template)
+		return self.eval_new_page_template(path, template, context)
 
 	def get_page_template_name(self, path=None):
 		'''Returns the name of the template to use for a new page.
@@ -1152,9 +1154,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		return self.emit_return_first('get-page-template', path or Path(':')) or 'Default'
 
-	def eval_new_page_template(self, path, template):
+	def eval_new_page_template(self, path, template, context=None):
 		lines = []
-		context = {
+		mycontext = {
 			'page': {
 				'name': path.name,
 				'basename': path.basename,
@@ -1162,8 +1164,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				'namespace': path.namespace, # backward compat
 			}
 		}
+		if context:
+			mycontext.update(context)
 		self.emit('init-page-template', path, template) # plugin hook
-		template.process(lines, context)
+		template.process(lines, mycontext)
 
 		parser = zim.formats.get_parser('wiki')
 		return parser.parse(lines)

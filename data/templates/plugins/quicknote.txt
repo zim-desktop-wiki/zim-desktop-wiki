@@ -1,4 +1,4 @@
-[% text %]
+[% text %][% place_cursor() %]
 
 [% IF url -%]
 Source: [% url %]

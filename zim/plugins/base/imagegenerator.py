@@ -12,8 +12,7 @@ logger = logging.getLogger('zim.plugins')
 
 from gi.repository import Gtk
 
-import hashlib
-
+from zim.newfs.base import md5_for_unsave_usage
 from zim.fs import adapt_from_oldfs
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.signals import SignalEmitter, SIGNAL_RUN_FIRST
@@ -146,7 +145,7 @@ class ImageGeneratorModel(ImageGeneratorModelBase):
 			for k, v in sorted(self.attrib.items()):
 				content.extend([k, v])
 			content.append(self.data)
-			basename = hashlib.md5(''.join(content).encode()).hexdigest() + self.generator.imagefile_extension
+			basename = md5_for_unsave_usage(''.join(content).encode()).hexdigest() + self.generator.imagefile_extension
 		else:
 			basename = 'empty_image' + self.generator.imagefile_extension
 		file = cache_dir.file(basename)

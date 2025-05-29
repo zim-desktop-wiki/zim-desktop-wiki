@@ -12,6 +12,7 @@ from zim.config import ConfigManager
 from zim.formats import get_format
 from zim.notebook import HRef, PageNotFoundError
 from zim.parse.links import link_type
+from zim.templates.expression import ExpressionFunction
 from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, BrowserTreeView, ScrolledWindow
 from zim.gui.base.images import image_file_get_dimensions
 from zim.gui.applications import edit_config_file, open_folder
@@ -808,7 +809,9 @@ class MoveTextDialog(Dialog):
 			return False
 
 		if not newpage.exists():
-			template = self.notebook.get_template(newpage)
+			template = self.notebook.get_template(newpage,
+				{'place_cursor': ExpressionFunction(lambda: '')} # FIXME, ideal would be to insert new content at cursor location
+			)
 			newpage.set_parsetree(template)
 
 		parsetree = self.buffer.get_parsetree(self.bounds)

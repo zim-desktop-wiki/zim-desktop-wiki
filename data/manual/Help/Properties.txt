@@ -18,3 +18,6 @@ The **Document Root** is a special folder containing documents that can be linke
 The property **Prefer short names for page links** controls the behavior e.g. when pasting a page link. When enabled a link like "''CustomerA:ProjectB''" will be inserted with "''ProjectB''" as link text.
 
 When the property **Do not use system trash for this notebook** is enabled, the "//Delete page//" menu action will perform a permanent delete instead of a moving files to trash.
+
+The property **Filename template for pasted images** gives a base name to save image files when images are pasted into a page. This string can contain `strftime` codes for date and time.
+ 

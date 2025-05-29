@@ -252,15 +252,15 @@ class TestFindWithFormattedTextBuffer(TestFindWithGtkTextBuffer):
 		start, end = self.buffer.get_bounds()
 		self.TEXT = start.get_text(end)
 		query = FindQuery('text', FIND_WHOLE_WORD)
-		matches = _get_text_matches(self.TEXT, query)
-		assert len(matches) == 3, 'Should be 3 text matches'
-		self.ALL_MATCHES_FOR_HIGHLIGHT = [m[0:2] for m in matches] # Text matches only
+		text_matches = _get_text_matches(self.TEXT, query)
+		assert len(text_matches) == 3, 'Should be 3 text matches'
+		self.ALL_MATCHES_FOR_HIGHLIGHT = [m[0:2] for m in text_matches] # Text matches only
 
-		matches += _find_object_matches(self.buffer, query)
-		matches.sort()
-		assert len(matches) == 4, 'Should be 1 object match'
-		self.FORWARD_MATCHES_FROM_LINE_TWO = tuple(matches)
-		self.BACKWARD_MATCHES_FROM_LINE_TWO = tuple(reversed(matches))
+		object_matches = list(_find_object_matches(self.buffer, query))
+		assert len(object_matches) == 1, 'Should be 1 object match'
+		self.FORWARD_MATCHES_FROM_LINE_TWO = tuple(sorted(text_matches + object_matches))
+		rev_object_matches = [(l, c+1, m) for l, c, m in object_matches] # cursor *behind* object
+		self.BACKWARD_MATCHES_FROM_LINE_TWO = tuple(reversed(sorted(text_matches + rev_object_matches)))
 
 		self.TEXT_REPLACE_ONE = re.sub('\\btext\\b', 'mytext', self.TEXT, count=1)
 		self.TEXT_REPLACE_ALL = re.sub('\\btext\\b', 'mytext', self.TEXT)

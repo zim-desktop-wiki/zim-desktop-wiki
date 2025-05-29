@@ -236,6 +236,8 @@ page
 	.basename
 '''
 
+In addition the ''place_cursor()'' the method results in the cursor being placed at that location in the text
+
 See also the [[Plugins:Journal|Journal Plugin]] for some properties available for journal pages
 
 ==== Export templates ====

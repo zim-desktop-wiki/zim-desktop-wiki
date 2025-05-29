@@ -94,7 +94,7 @@ class TestImportFile(tests.TestCase):
 		self.assertEqual(page1.dump('wiki'), ['Existing file 123\n'])
 		file1 = self.notebook.folder.file('Not_yet_a_page.txt~')
 		self.assertEqual(file1.read(), 'Some other file 123\n')
-		file2 = self.notebook.folder.file('Not_yet_a_page001.txt~')
+		file2 = self.notebook.folder.file('Not_yet_a_page-001.txt~')
 		self.assertEqual(file2.read(), 'Existing file 123\n')
 
 

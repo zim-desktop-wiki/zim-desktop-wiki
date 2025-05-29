@@ -15,6 +15,8 @@ from gi.repository import GdkPixbuf
 import logging
 
 
+import zim.datetimetz as datetime
+
 from zim.fs import adapt_from_oldfs
 from zim.parse.encode import url_encode, URL_ENCODE_READABLE
 from zim.newfs import FilePath, LocalFile, LocalFolder
@@ -157,6 +159,13 @@ def deserialize_urilist(register_buf, content_buf, iter, data, length, create_ta
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
+
+def _get_paste_image_file(dir, notebook, extension):
+	tmpl = notebook.config['Notebook'].get('paste_image_template', 'pasted_image')
+	name = datetime.strftime(tmpl, datetime.now()).rstrip('.') + '.' + extension
+	return dir.new_file(name)
+
+
 def deserialize_image(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	# Implementation note: we follow gtk_selection_get_pixbuf() in usage of
 	# Gtk.PixbufLoader to capture clipboard data in a pixbuf object.
@@ -183,7 +192,7 @@ def deserialize_image(register_buf, content_buf, iter, data, length, create_tags
 		# but is quite large to store, so compress by using png
 		format, extension = 'png', 'png'
 
-	file = dir.new_file('pasted_image.%s' % extension)
+	file = _get_paste_image_file(dir, notebook, extension)
 	logger.debug("Saving image from clipboard to %s", file)
 	file.touch() # notify version control
 	pixbuf.savev(file.path, format, [], [])
@@ -271,7 +280,7 @@ def parsetree_from_selectiondata(selectiondata, notebook, path=None, text_format
 			# but is quite large to store, so compress by using png
 			format, extension = 'png', 'png'
 
-		file = dir.new_file('pasted_image.%s' % extension)
+		file = _get_paste_image_file(dir, notebook, extension)
 		logger.debug("Saving image from clipboard to %s", file)
 		file.touch() # notify version control
 		pixbuf.savev(file.path, format, [], [])

@@ -437,6 +437,7 @@ class TextView(Gtk.TextView):
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
 			and not buffer.get_iter_in_verbatim_block(iter):
+				buffer.emit('undo-save-cursor', iter)
 				row, mylist = TextBufferList.new_from_line(buffer, iter.get_line())
 				if mylist and self.preferences['recursive_indentlist']:
 					mylist.indent(row)
@@ -457,6 +458,7 @@ class TextView(Gtk.TextView):
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
 			and not buffer.get_iter_in_verbatim_block(iter):
+				buffer.emit('undo-save-cursor', iter)
 				bullet = buffer.get_bullet_at_iter(home)
 				indent = buffer.get_indent(home.get_line())
 				if keyval in KEYVALS_BACKSPACE \

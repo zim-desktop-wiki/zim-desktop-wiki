@@ -26,3 +26,12 @@ The "Quick Note" plugin offers a dialog for inserting quick notes into a noteboo
 --option url=STRING    Set template parameter
 '''
 
+===== Template =====
+The plugin uses a template for the note text. The following template parameters are supported
+
+* ''text'' this is replaced by the input text (either from the ''--text'' argument, clipboard or stdin input
+* ''place_cursor()'' the method results in the cursor being placed at that location in the dialog
+
+In addition any '''--option'' key-value pair that is given on the commandline will be available to the template as a field. The default example is to provide an url for the source of the note. Which will be filled in in the template for the ''url'' field.
+
+See [[Help:Templates]] for standard methods availble in templates, like ''strftime''

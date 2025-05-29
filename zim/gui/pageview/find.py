@@ -83,6 +83,10 @@ class FindInterface():
 	Vice versa, a change to the highlighting will reset any matches in the buffer or object.
 	'''
 
+	def find_has_active_match(self) -> bool:
+		'''True if there is an active match on the current cursor location'''
+		raise NotImplementedError
+
 	def find_next(self, query: FindQuery, wrap: bool = True) -> bool:
 		'''Go to the next match and highlight it
 		If a match happens directly at the current cursor position, it will only match if
@@ -93,6 +97,15 @@ class FindInterface():
 		'''
 		raise NotImplementedError
 
+	def find_next_from_start(self, query: FindQuery) -> bool:
+		'''Like C{find_next()} but intended for nested objects
+		Behavior is statefull:
+		If there is a match in the object, continue to find the next match from there;
+		if there is no match in the object, look for a match from the start.
+		Should not wrap around.
+		'''
+		raise NotImplementedError
+
 	def find_previous(self, query: FindQuery, wrap: bool = True) -> bool:
 		'''Go to the previous match and highlight it
 		If a match happens directly at the current cursor position, it will only match if
@@ -100,6 +113,15 @@ class FindInterface():
 		@param query: string with search query
 		@param wrap: if C{True}, wrap around at the start of the buffer and match from the end
 		@returns: C{True} if successful
+		'''
+		raise NotImplementedError
+
+	def find_previous_from_end(self, query: FindQuery) -> bool:
+		'''Like C{find_previous()} but intended for nested objects
+		Behavior is statefull:
+		If there is a match in the object, continue to find the previous match from there;
+		if there is no match in the object, look for a match from the start.
+		Should not wrap around.
 		'''
 		raise NotImplementedError
 
@@ -233,10 +255,6 @@ class TextBufferFindMixin(FindInterface):
 		self._find_signals = ()
 		self.remove_tag(self._find_match_tag, *self.get_bounds())
 
-	def _find_match_at_cursor(self):
-		iter = self.get_iter_at_mark(self.get_insert())
-		return self._find_match_tag in iter.get_toggled_tags(toggled_on=True)
-
 	def _find_clear_on_new_query(self, query):
 		if self._find_highlight_all_query and not self._find_highlight_all_query == query:
 			self.find_clear()
@@ -246,12 +264,27 @@ class TextBufferFindMixin(FindInterface):
 
 	# Implementation of FindInterface based on above methods
 
+	def find_has_active_match(self):
+		iter = self.get_iter_at_mark(self.get_insert())
+		return self._find_match_tag in iter.get_toggled_tags(toggled_on=True)
+
 	def find_next(self, query, wrap=True):
 		assert isinstance(query, FindQuery)
 
 		iter = self.get_iter_at_mark(self.get_insert())
-		if self._find_match_at_cursor():
+		if self.find_has_active_match():
 			iter.forward_char() # avoid match at current location
+		elif hasattr(self, 'get_objectanchor'): # specific for zim TextBuffer
+			# maybe last action was a find_previous with an object match,
+			# check whether we are behind an object with an active match
+			tmp = iter.copy()
+			tmp.backward_char()
+			anchor = self.get_objectanchor(tmp)
+			if anchor and isinstance(anchor, FindInterface) \
+				and anchor.find_has_active_match() and anchor.find_next(query, wrap=False):
+					self._find_clear_on_new_query(query)
+					return True
+
 		self._find_clear_on_new_query(query)
 
 		bstart, bend = self.get_bounds()
@@ -266,8 +299,7 @@ class TextBufferFindMixin(FindInterface):
 		for mstart, mend, match in matches:
 			if isinstance(match, FindInterface):
 				# Object match
-				# TODO if object supports cursor, set cursor at start of object
-				if match.find_next(query):
+				if match.find_next_from_start(query):
 					self.place_cursor(mstart)
 					return True
 			else:
@@ -277,8 +309,23 @@ class TextBufferFindMixin(FindInterface):
 		else:
 			return False
 
+	def find_next_from_start(self, query):
+		if not self.find_has_active_match():
+			self.place_cursor(self.get_start_iter())
+		return self.find_next(query, wrap=False)
+
 	def find_previous(self, query, wrap=True):
 		assert isinstance(query, FindQuery)
+
+		if hasattr(self, 'get_objectanchor'): # specific for zim TextBuffer
+			# maybe last action was a find_next with an object match,
+			# check whether we are in front of an object with an active match
+			anchor = self.get_objectanchor_at_cursor()
+			if anchor and isinstance(anchor, FindInterface) \
+				and anchor.find_has_active_match() and anchor.find_previous(query, wrap=False):
+					self._find_clear_on_new_query(query)
+					return True
+
 		self._find_clear_on_new_query(query)
 
 		iter = self.get_iter_at_mark(self.get_insert())
@@ -295,9 +342,8 @@ class TextBufferFindMixin(FindInterface):
 		for mstart, mend, match in matches:
 			if isinstance(match, FindInterface):
 				# Object match
-				# TODO if object supports cursor, set cursor at end of object
-				if match.find_previous(query):
-					self.place_cursor(mstart)
+				if match.find_previous_from_end(query):
+					self.place_cursor(mend)
 					return True
 			else:
 				# Regex text match
@@ -305,6 +351,11 @@ class TextBufferFindMixin(FindInterface):
 				return True
 		else:
 			return False
+
+	def find_previous_from_end(self, query):
+		if not self.find_has_active_match():
+			self.place_cursor(self.get_end_iter())
+		return self.find_previous(query, wrap=False)
 
 	def find_highlight_all(self, query):
 		assert isinstance(query, FindQuery)
@@ -444,30 +495,54 @@ class PluginInsertedObjectFindMixin(FindInterface):
 
 	# Implementation of FindInterface based on above methods
 
-	def _find_next_previous(self, query, wrap=True):
+	def find_has_active_match(self):
 		if isinstance(self.objectmodel, FindInterface):
-			ok = self.objectmodel.find_next(query, wrap)
+			return self.objectmodel.find_has_active_match()
 		else:
-			if self._find_match_highlight_state & FIND_HAS_MATCH \
-				and self._find_match_query == query:
-					ok = False # Skip if already matched
-					self._find_set_match_highlight_state(self._find_match_highlight_state ^ FIND_HAS_MATCH, query)
-			else:
-				ok = self._find_simple_match(query)
-				if ok:
-					if self._find_match_highlight_state & FIND_HAS_HIGHLIGHT \
-						and self._find_match_query == query:
-							new_state = FIND_HAS_MATCH | FIND_HAS_HIGHLIGHT
-					else:
-						new_state = FIND_HAS_MATCH
-					self._find_set_match_highlight_state(new_state, query)
+			return self._find_match_highlight_state & FIND_HAS_MATCH
+
+	def find_next(self, query, wrap=True):
+		if isinstance(self.objectmodel, FindInterface):
+			return self.objectmodel.find_next(query, wrap)
+		else:
+			return self._find_any(query)
+
+	def find_next_from_start(self, query):
+		if isinstance(self.objectmodel, FindInterface):
+			return self.objectmodel.find_next_from_start(query)
+		else:
+			return self._find_any(query)
+
+	def find_previous(self, query, wrap=True):
+		if isinstance(self.objectmodel, FindInterface):
+			return self.objectmodel.find_previous(query, wrap)
+		else:
+			return self._find_any(query)
+
+	def find_previous_from_end(self, query):
+		if isinstance(self.objectmodel, FindInterface):
+			return self.objectmodel.find_previous_from_end(query)
+		else:
+			return self._find_any(query)
+
+	def _find_any(self, query):
+		if self._find_match_highlight_state & FIND_HAS_MATCH \
+			and self._find_match_query == query:
+				ok = False # Skip if already matched
+				self._find_set_match_highlight_state(self._find_match_highlight_state ^ FIND_HAS_MATCH, query)
+		else:
+			ok = self._find_simple_match(query)
+			if ok:
+				if self._find_match_highlight_state & FIND_HAS_HIGHLIGHT \
+					and self._find_match_query == query:
+						new_state = FIND_HAS_MATCH | FIND_HAS_HIGHLIGHT
 				else:
-					self._find_set_match_highlight_state(0, None)
+					new_state = FIND_HAS_MATCH
+				self._find_set_match_highlight_state(new_state, query)
+			else:
+				self._find_set_match_highlight_state(0, None)
 
 		return ok
-
-	find_next = _find_next_previous
-	find_previous = _find_next_previous
 
 	def find_highlight_all(self, query):
 		if isinstance(self.objectmodel, FindInterface):

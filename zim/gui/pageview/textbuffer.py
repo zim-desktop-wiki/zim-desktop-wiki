@@ -1191,7 +1191,7 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 
 	def get_objectanchor_at_cursor(self):
 		iter = self.get_insert_iter()
-		return self.get_object_achor(iter)
+		return self.get_objectanchor(iter)
 
 	def get_objectanchor(self, iter):
 		anchor = iter.get_child_anchor()

@@ -107,18 +107,18 @@ class TestBackwardImageGeneratorWithPlugin(TestBackwardImageGeneratorNoPlugins):
 
 		for name in (
 			'equation.png', 'equation.tex',
-			'equation001.png', 'equation001.tex',
-			'equation002.tex',
-			'equation003.png',
-			'equation004.png', 'equation004.tex',
+			'equation-001.png', 'equation-001.tex',
+			'equation-002.tex',
+			'equation-003.png',
+			'equation-004.png', 'equation-004.tex',
 		):
 			attachment_dir.file(name).touch()
 
 
 		otype = PluginManager.insertedobjects['image+equation']
 		model = otype.model_from_data(notebook, page, {}, '')
-		self.assertEqual(model.image_file.basename, 'equation005.png')
-		self.assertEqual(model.script_file.basename, 'equation005.tex')
+		self.assertEqual(model.image_file.basename, 'equation-005.png')
+		self.assertEqual(model.script_file.basename, 'equation-005.tex')
 
 
 

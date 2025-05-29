@@ -41,7 +41,6 @@
 
 
 import os
-import hashlib
 import time
 import threading
 
@@ -58,6 +57,8 @@ logger = logging.getLogger('zim.plugins.attachmentbrowser')
 
 
 import zim
+
+from zim.newfs.base import md5_for_unsave_usage
 
 from zim.config import XDG_CACHE_HOME
 from zim.fs import adapt_from_oldfs
@@ -231,7 +232,7 @@ class ThumbnailManager(object):
 		@param size: thumbnail size in pixels (C{THUMB_SIZE_NORMAL}, C{THUMB_SIZE_LARGE}, or integer)
 		@returns: a L{File} object
 		'''
-		basename = hashlib.md5(file.uri.encode('ascii')).hexdigest() + '.png'
+		basename = md5_for_unsave_usage(file.uri.encode('ascii')).hexdigest() + '.png'
 			# file.uri should already be URL encoded for unicode characters - use 'ascii' to check
 		if size <= THUMB_SIZE_NORMAL:
 			return LOCAL_THUMB_STORAGE_NORMAL.file(basename)

@@ -37,6 +37,27 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release date="2025-03-28" version="0.76.3">
+      <description>
+        <ul>
+          <li>Add seperator to template for new files</li>
+          <li>Fix spellcheck state at startup</li>
+          <li>Fix cursor position after undo indent</li>
+          <li>Fix test suite release 0.76.2</li>
+        </ul>
+      </description>
+    </release>
+    <release date="2025-03-13" version="0.76.2">
+      <description>
+        <ul>
+          <li>Let new page and quicknote templates place cursor</li>
+          <li>Let find match within sourceview blocks</li>
+          <li>Add property with template for filename of pasted images</li>
+          <li>In InsertLinkDialog translate file to page link</li>
+          <li>Fix issue with GSPell support</li>
+        </ul>
+      </description>
+    </release>
     <release date="2025-01-31" version="0.76.1">
       <description>
         <ul>
