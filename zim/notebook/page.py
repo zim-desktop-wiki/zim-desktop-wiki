@@ -530,8 +530,6 @@ class Page(Path, SignalEmitter):
 		if not self._meta is None:
 			self._meta['Page-Identifier'] = identifier
 
-		self._store()
-
 	def on_buffer_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
 		# but do not set page.modified False again when buffer goes
