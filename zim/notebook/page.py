@@ -768,7 +768,7 @@ class Page(Path, SignalEmitter):
 		else:
 			return []
 
-	def parse(self, format, text, append=False):
+	def parse(self, format, text, append=False, file_input=False):
 		'''Store formatted text in the page
 
 		Convenience method that parses text and sets the parse tree
@@ -779,6 +779,8 @@ class Page(Path, SignalEmitter):
 		@param text: text as a string or as a list of lines
 		@param append: if C{True} the text is appended instead of
 		replacing current content.
+		@param file_input: if C{True}, considers the text to be 
+		taken from a file.
 		'''
 		if isinstance(format, str):
 			format = zim.formats.get_format(format)
@@ -786,7 +788,7 @@ class Page(Path, SignalEmitter):
 		if append:
 			self.append_parsetree(format.Parser().parse(text))
 		else:
-			self.set_parsetree(format.Parser().parse(text))
+			self.set_parsetree(format.Parser().parse(text, file_input))
 
 	def get_title(self):
 		tree = self.get_parsetree()
