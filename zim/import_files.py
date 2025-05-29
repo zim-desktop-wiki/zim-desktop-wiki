@@ -82,7 +82,7 @@ def import_file(file, notebook, path, format='wiki'):
 	page = notebook.get_new_page(path)
 	assert not page.exists()
 
-	page.parse(format, file.readlines())
+	page.parse(format, file.readlines(), False, True)
 	notebook.store_page(page)
 	return page
 
