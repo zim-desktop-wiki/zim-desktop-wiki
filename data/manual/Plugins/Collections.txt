@@ -1,0 +1,39 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-05-18T09:13:24+02:00
+
+====== Collections ======
+Created Sunday 18 May 2025
+
+Many users maintain central notes(often called hubs or MoCs) with collections of links to better organize their notes. These notes act as maps, linking to related content without containing any original material themselves. Hubs help users efficiently gather, navigate, and retrieve related content, making their notes more structured. For background, see Zettelkarsten or Linking Your Thinking.
+
+The plugin enhances this workflow in Zim. It pulls all links from existing hubs and displays them in a side pane for quick access and easy navigation, similar to the Index. The key features are:
+	* **Dedicated Collections Pane:** A new pane alongside the Index and Tags, where users can manage their collections of links pulled from their existing hubs.
+	* **Auto-Generation:** Users can define queries to dynamically add matching notes to the hubs, saving time and effort.
+===== Why Collections? =====
+	* Think of collections as //non-intrusive overlays//—they organize your existing notes without altering the notes themselves. For example, I might build a collection of books I want to recommend to my friend Rick, and then another collection for Lisa. Some books may appear in both collections, but the collections themselves can change, grow, or be removed without any updates necessary to the pages about a particular book themselves.
+	* Tags can serve various purposes, such as marking note types (e.g., ''@book'' or ''@person''), topics (e.g., ''@history_of_music''), statuses (e.g., ''@postponed''), or actions. Collections can help separate these roles, e.g. organize by topic with collections while using tags for status. For example, you can tag book review notes with  ''@book'' and notes about authors with ''@author'', while using collections to organize books about a war or all books by a specific author.
+	* Unlike flat-level tags, hubs can include other hubs, introducing hierarchy. However, unlike a hierarchical index, the same page can belong to multiple collections. Collections blend features both of a strict hierarchy and flat tags.
+	* Zim offers hierarchical index and tags for organization, but with this plugin, users can also mix an match tags with collections or index with collections for their organization methods.
+===== Atomic Notes =====
+This plugin is built around atomic notes—self-contained pieces of information or insights that focus on a single idea or concept. Since Zim shows only one page at a time, it’s impractical to have a dedicated page for each atomic note, especially if they are short. To overcome this, the plugin works at the heading level instead of the whole page, allowing different sections of the same page to belong to different collections. A single page can contain several hubs as well without conflict. Importantly, tags and links below a heading are considered to be part of that section, not the entire page.
+===== Collections Hierarchy =====
+If a hub links to another hub, the corresponding collections of links form a parent-child relationship, creating a hierarchy—or rather a lattice, since a single collection can have multiple parent collections. Each collection in the Collections pane shows parent or child collections in addition to the actual member pages, enabling navigation within the lattice.
+===== Hub Tags =====
+All pages tagged with any of the hub tags (as specified in the configuration page) are automatically recognized as hubs, creating corresponding collections.
+===== Archived Pages =====
+Pages tagged as archived (using tags specified in the configuration page) or their descendants are always listed at the end of a collection and grayed out to signal low importance visually.
+===== Styling =====
+The Collections pane supports color coding of pages based on their tags. Use the Styling dialog to assign colors to different tags.
+===== Auto-Generation =====
+To avoid the manually adding links to hubs, users can specify a query to dynamically add links to all matching pages in the hub. The syntax is somewhat similar to the Search syntax. Auto-generation can be viewed as saved search queries, eliminating the need for repetitive manual searches, saving thus time and effort.
+
+Users are free to customize and decorate the auto-generated list, such as highlighting important entries, adding supporting information, or using different formatting styles. Auto-generation runs automatically but does not interfere with existing links in the hub; it only adds new links if found.
+Auto-generation can be enabled in the New Collection or Edit dialogs by checking the “Enable Autogeneration” checkbox. This will display a dedicated tab to edit a query.
+===== Auto-Generation Syntax =====
+The query syntax is similar to the Search syntax but is simplified. It consists of one or several commands separated by spaces as follows:
+	* ''+tag:XXX''– Required tag; the matching page must have all specified tags.
+	* ''?tag:XXX''– Optional tag; the matching page must have at least one of the specified optional tags.
+	* ''-tag:XXX''– Excluded tag; the matching page must not have any of the excluded tags.
+	* ''links:XXX'' or ''linksfrom:XXX'' – Matches all pages that are linked by a certain page.
+	* ''linksto:XXX'' – Matches all pages that link to a certain page. Can appear only once in a query.
