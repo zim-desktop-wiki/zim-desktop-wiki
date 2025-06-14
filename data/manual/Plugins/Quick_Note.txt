@@ -12,17 +12,22 @@ The "Quick Note" plugin offers a dialog for inserting quick notes into a noteboo
 **Options:**
 
 '''
+--help, -h             Print this help text and exit
 --notebook URI         Select the notebook in the dialog
---page STRING          Fill in full page name
---section STRING       Fill in the page section in the dialog
---basename STRING      Fill in the page name in the dialog
+--page STRING          Fill in full page name (e.g. "PageA:PageB") (--append=true)
+--section STRING       Fill in the full page name under which the new page will be added (--append=false)
+--title STRING         Fill in the page or section title (requires --append=false)
+--namespace STRING     (deprecated) Same as "--section"
+--basename STRING      (deprecated) Same as "--title"
 --append [true|false]  Set whether to append or create new page
 --text TEXT            Provide the text directly
 --input stdin          Provide the text on stdin
 --input clipboard      Take the text from the clipboard
 --encoding base64      Text is encoded in base64
---encoding url         Text is url encoded (In both cases expects UTF-8 after decoding)
---attachments FOLDER   Import all files in FOLDER as attachments, wiki input can refer these files relatively
+--encoding url         Text is url encoded
+                       (In both cases expects UTF-8 after decoding)
+--attachments FOLDER   Import all files in FOLDER as attachments,
+                       wiki input can refer these files relatively
 --option url=STRING    Set template parameter
 '''
 
