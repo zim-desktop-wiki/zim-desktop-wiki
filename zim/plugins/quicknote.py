@@ -34,9 +34,9 @@ class QuickNotePluginCommand(GtkCommand):
 		('notebook=', '', 'Select the notebook in the dialog'),
 		('page=', '', 'Fill in full page name (e.g. "PageA:PageB")'),
 		('section=', '', 'Fill in the full page name under which the new page will be added.'),
-		('pagetitle=', '', 'Fill in the title of the new page'),
+		('title=', '', 'Fill in the title of the new page'),
 		('namespace=', '', '(deprecated) Same as "--section"'),
-		('basename=', '', '(deprecated) Same as "--pagetitle"'),
+		('basename=', '', '(deprecated) Same as "--title"'),
 		('append=', '', 'Set whether to append or create new page ("true" or "false")'),
 		('text=', '', 'Provide the text directly'),
 		('input=', '', 'Provide the text on stdin ("stdin") or take the text from the clipboard ("clipboard")'),
@@ -53,9 +53,9 @@ Options:
   --notebook URI         Select the notebook in the dialog
   --page STRING          Fill in full page name (e.g. "PageA:PageB") (--append=true)
   --section STRING       Fill in the full page name under which the new page will be added (--append=false)
-  --pagetitle STRING     Fill in the page or section title (requires --append=false)
+  --title STRING         Fill in the page or section title (requires --append=false)
   --namespace STRING     (deprecated) Same as "--section"
-  --basename STRING      (deprecated) Same as "--pagetitle"
+  --basename STRING      (deprecated) Same as "--title"
   --append [true|false]  Set whether to append or create new page
   --text TEXT            Provide the text directly
   --input stdin          Provide the text on stdin
@@ -95,8 +95,8 @@ Options:
 		if 'section' in self.opts:
 			self.opts['namespace'] = self.opts['section']
 				
-		if 'pagetitle' in self.opts:
-			self.opts['basename'] = self.opts['pagetitle']
+		if 'title' in self.opts:
+			self.opts['basename'] = self.opts['title']
 
 		if self.opts.get('attachments', None):
 			folderpath = LocalFolder(self.pwd).get_abspath(self.opts['attachments'])
@@ -137,6 +137,7 @@ Options:
 		dialog = QuickNoteDialog(None,
 			notebook=notebook,
 			namespace=self.opts.get('namespace'),
+			page=self.opts.get('page'),
 			basename=self.opts.get('basename'),
 			append=self.opts.get('append'),
 			text=self.opts.get('text', ''),
@@ -180,8 +181,6 @@ class QuickNoteDialog(Dialog):
 		page=None, namespace=None, basename=None,
 		append=None, text=None, template_options=None, attachments=None
 	):
-		assert page is None, 'TODO'
-
 		self.config = ConfigManager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
@@ -211,27 +210,30 @@ class QuickNoteDialog(Dialog):
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
 		self.form.attach(self.notebookcombobox, 1, 2, 0, 1)
 
-		self._init_inputs(namespace, basename, append, text, template_options)
+		self._init_inputs(namespace, basename, append, text, template_options, page)
 
 		self.uistate['lastnotebook'] = notebook
 		self._set_autocomplete(notebook)
 
-	def _init_inputs(self, namespace, basename, append, text, template_options, custom=None):
+	def _init_inputs(self, namespace, basename, append, text, template_options, pageToAppendTo=None, custom=None):
 		if template_options is None:
 			template_options = {}
 		else:
 			template_options = template_options.copy()
 
-		if namespace is not None and basename is not None:
-			page = namespace + ':' + basename
+		if pageToAppendTo is not None:
+			page = pageToAppendTo
 		else:
-			page = namespace or basename
+			if namespace is not None and basename is not None:
+				page = namespace + ':' + basename
+			elif pageToAppendTo is None:
+				page = namespace or basename
 
 		self.form.add_inputs((
 				('page', 'page', _('Page')), # T: text entry field; used if new_page is false.
 				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox; if a new page should be created or not.
 				('namespace', 'namespace', _('Page section')), # T: text entry field; section when creating a new page.
-				('basename', 'string', _('Title')) # T: text entry field; pagetitle when creating a new page.
+				('basename', 'string', _('Title')) # T: text entry field; title when creating a new page.
 			))
 		self.form.update({
 				'page': page,

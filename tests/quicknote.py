@@ -61,7 +61,7 @@ class TestQuickNotePlugin(tests.TestCase):
 		
 		# Field assignments.
 		cmd = QuickNotePluginCommand('quicknote')
-		cmd.parse_options('--section', 'TheSection', '--pagetitle', 'TheTitle')
+		cmd.parse_options('--section', 'TheSection', '--title', 'TheTitle')
 		self.assertEqual(cmd.opts['namespace'], 'TheSection')
 		self.assertEqual(cmd.opts['basename'], 'TheTitle')
 		
@@ -73,7 +73,7 @@ class TestQuickNotePlugin(tests.TestCase):
 		
 		# Field assignments, new options should override the deprecated ones.
 		cmd = QuickNotePluginCommand('quicknote')
-		cmd.parse_options('--namespace', 'TheNamespace', '--basename', 'Thebasename', '--section', 'TheSection', '--pagetitle', 'TheTitle')
+		cmd.parse_options('--namespace', 'TheNamespace', '--basename', 'Thebasename', '--section', 'TheSection', '--title', 'TheTitle')
 		self.assertEqual(cmd.opts['namespace'], 'TheSection')
 		self.assertEqual(cmd.opts['basename'], 'TheTitle')
 
