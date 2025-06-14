@@ -32,10 +32,11 @@ class QuickNotePluginCommand(GtkCommand):
 
 	options = (
 		('notebook=', '', 'Select the notebook in the dialog'),
-		('page=', '', 'Fill in full page name'),
-		('section=', '', 'Fill in the page section in the dialog'),
-		('namespace=', '', 'Fill in the page section in the dialog'), # backward compatibility
-		('basename=', '', 'Fill in the page name in the dialog'),
+		('page=', '', 'Fill in full page name (e.g. "PageA:PageB")'),
+		('section=', '', 'Fill in the full page name under which the new page will be added.'),
+		('pagetitle=', '', 'Fill in the title of the new page'),
+		('namespace=', '', '(deprecated) Same as "--section"'),
+		('basename=', '', '(deprecated) Same as "--pagetitle"'),
 		('append=', '', 'Set whether to append or create new page ("true" or "false")'),
 		('text=', '', 'Provide the text directly'),
 		('input=', '', 'Provide the text on stdin ("stdin") or take the text from the clipboard ("clipboard")'),
@@ -50,9 +51,11 @@ usage: zim --plugin quicknote [OPTIONS]
 Options:
   --help, -h             Print this help text and exit
   --notebook URI         Select the notebook in the dialog
-  --page STRING          Fill in full page name
-  --section STRING       Fill in the page section in the dialog
-  --basename STRING      Fill in the page name in the dialog
+  --page STRING          Fill in full page name (e.g. "PageA:PageB") (--append=true)
+  --section STRING       Fill in the full page name under which the new page will be added (--append=false)
+  --pagetitle STRING     Fill in the page or section title (requires --append=false)
+  --namespace STRING     (deprecated) Same as "--section"
+  --basename STRING      (deprecated) Same as "--pagetitle"
   --append [true|false]  Set whether to append or create new page
   --text TEXT            Provide the text directly
   --input stdin          Provide the text on stdin
@@ -88,6 +91,12 @@ Options:
 		if 'append' in self.opts:
 			self.opts['append'] = \
 				self.opts['append'].lower() == 'true'
+				
+		if 'section' in self.opts:
+			self.opts['namespace'] = self.opts['section']
+				
+		if 'pagetitle' in self.opts:
+			self.opts['basename'] = self.opts['pagetitle']
 
 		if self.opts.get('attachments', None):
 			folderpath = LocalFolder(self.pwd).get_abspath(self.opts['attachments'])
@@ -219,10 +228,10 @@ class QuickNoteDialog(Dialog):
 			page = namespace or basename
 
 		self.form.add_inputs((
-				('page', 'page', _('Page')),
-				('namespace', 'namespace', _('Page section')), # T: text entry field
-				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox in Quick Note dialog
-				('basename', 'string', _('Title')) # T: text entry field
+				('page', 'page', _('Page')), # T: text entry field; used if new_page is false.
+				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox; if a new page should be created or not.
+				('namespace', 'namespace', _('Page section')), # T: text entry field; section when creating a new page.
+				('basename', 'string', _('Title')) # T: text entry field; pagetitle when creating a new page.
 			))
 		self.form.update({
 				'page': page,
@@ -237,23 +246,19 @@ class QuickNoteDialog(Dialog):
 		if basename:
 			self.uistate['new_page'] = True # Be consistent with input
 
-		# Set up the inputs and set page/ namespace to switch on
-		# toggling the checkbox
-		self.form.widgets['page'].set_no_show_all(True)
-		self.form.widgets['namespace'].set_no_show_all(True)
 		if append is None:
 			self.form['new_page'] = bool(self.uistate['new_page'])
 		else:
 			self.form['new_page'] = not append
 
-		def switch_input(*a):
+		def switch_input(*_):
 			if self.form['new_page']:
-				self.form.widgets['page'].hide()
-				self.form.widgets['namespace'].show()
+				self.form.widgets['page'].set_sensitive(False)
+				self.form.widgets['namespace'].set_sensitive(True)
 				self.form.widgets['basename'].set_sensitive(True)
 			else:
-				self.form.widgets['page'].show()
-				self.form.widgets['namespace'].hide()
+				self.form.widgets['page'].set_sensitive(True)
+				self.form.widgets['namespace'].set_sensitive(False)
 				self.form.widgets['basename'].set_sensitive(False)
 
 		switch_input()
@@ -319,7 +324,7 @@ class QuickNoteDialog(Dialog):
 			try:
 				if isinstance(notebook, str):
 					notebook = NotebookInfo(notebook)
-				obj, x = build_notebook(notebook)
+				obj, _ = build_notebook(notebook)
 				self.form.widgets['namespace'].notebook = obj
 				self.form.widgets['page'].notebook = obj
 				logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)

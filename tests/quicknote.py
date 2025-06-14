@@ -58,6 +58,24 @@ class TestQuickNotePlugin(tests.TestCase):
 		cmd = QuickNotePluginCommand('quicknote')
 		cmd.parse_options('--option', 'url=foo')
 		self.assertEqual(cmd.template_options, {'url': 'foo'})
+		
+		# Field assignments.
+		cmd = QuickNotePluginCommand('quicknote')
+		cmd.parse_options('--section', 'TheSection', '--pagetitle', 'TheTitle')
+		self.assertEqual(cmd.opts['namespace'], 'TheSection')
+		self.assertEqual(cmd.opts['basename'], 'TheTitle')
+		
+		# Field assignments.
+		cmd = QuickNotePluginCommand('quicknote')
+		cmd.parse_options('--namespace', 'TheSection', '--basename', 'TheTitle')
+		self.assertEqual(cmd.opts['namespace'], 'TheSection')
+		self.assertEqual(cmd.opts['basename'], 'TheTitle')
+		
+		# Field assignments, new options should override the deprecated ones.
+		cmd = QuickNotePluginCommand('quicknote')
+		cmd.parse_options('--namespace', 'TheNamespace', '--basename', 'Thebasename', '--section', 'TheSection', '--pagetitle', 'TheTitle')
+		self.assertEqual(cmd.opts['namespace'], 'TheSection')
+		self.assertEqual(cmd.opts['basename'], 'TheTitle')
 
 	# TODO: other commandline args
 	# TODO: widget interaction - autcomplete etc.
