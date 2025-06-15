@@ -242,7 +242,7 @@ class QuickNoteDialog(Dialog):
 				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox; if a new page should be created or not.
 				('namespace', 'namespace', _('Page section')), # T: text entry field; section when creating a new page.
 				('basename', 'string', _('Title')), # T: text entry field; title when creating a new page.
-				('open_page', 'bool', _('Open page')), # T: checkbox; open page.
+				('open_page', 'bool', _('Open _page')), # T: checkbox; open page.
 			))
 		self.form.update({
 				'page': page,
