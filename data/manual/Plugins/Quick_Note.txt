@@ -20,6 +20,7 @@ The "Quick Note" plugin offers a dialog for inserting quick notes into a noteboo
 --namespace STRING     (deprecated) Same as "--section"
 --basename STRING      (deprecated) Same as "--title"
 --append [true|false]  Set whether to append or create new page
+--open [true|false]    Open the page on which the note was placed
 --text TEXT            Provide the text directly
 --input stdin          Provide the text on stdin
 --input clipboard      Take the text from the clipboard
