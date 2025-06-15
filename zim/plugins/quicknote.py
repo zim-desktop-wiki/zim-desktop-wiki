@@ -38,6 +38,7 @@ class QuickNotePluginCommand(GtkCommand):
 		('namespace=', '', '(deprecated) Same as "--section"'),
 		('basename=', '', '(deprecated) Same as "--title"'),
 		('append=', '', 'Set whether to append or create new page ("true" or "false")'),
+		('open=', '', 'Open the page on which the note was placed.'),
 		('text=', '', 'Provide the text directly'),
 		('input=', '', 'Provide the text on stdin ("stdin") or take the text from the clipboard ("clipboard")'),
 		('encoding=', '', 'Text encoding ("base64" or "url")'),
@@ -57,6 +58,7 @@ Options:
   --namespace STRING     (deprecated) Same as "--section"
   --basename STRING      (deprecated) Same as "--title"
   --append [true|false]  Set whether to append or create new page
+  --open [true|false]    Open the page on which the note was placed
   --text TEXT            Provide the text directly
   --input stdin          Provide the text on stdin
   --input clipboard      Take the text from the clipboard
@@ -91,6 +93,10 @@ Options:
 		if 'append' in self.opts:
 			self.opts['append'] = \
 				self.opts['append'].lower() == 'true'
+
+		if 'open' in self.opts:
+			self.opts['open'] = \
+				self.opts['open'].lower() == 'true'
 				
 		if 'section' in self.opts:
 			self.opts['namespace'] = self.opts['section']
@@ -137,9 +143,10 @@ Options:
 		dialog = QuickNoteDialog(None,
 			notebook=notebook,
 			namespace=self.opts.get('namespace'),
-			page=self.opts.get('page'),
+			page_to_append_to=self.opts.get('page'),
 			basename=self.opts.get('basename'),
 			append=self.opts.get('append'),
+			open_page=self.opts.get('open'),
 			text=self.opts.get('text', ''),
 			template_options=self.template_options,
 			attachments=self.opts.get('attachments')
@@ -178,8 +185,9 @@ class QuickNoteMainWindowExtension(MainWindowExtension):
 class QuickNoteDialog(Dialog):
 
 	def __init__(self, window, notebook=None,
-		page=None, namespace=None, basename=None,
-		append=None, text=None, template_options=None, attachments=None
+		page_to_append_to=None, namespace=None, basename=None,
+		append=None, text=None, template_options=None, attachments=None,
+		open_page=None
 	):
 		self.config = ConfigManager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
@@ -210,39 +218,41 @@ class QuickNoteDialog(Dialog):
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
 		self.form.attach(self.notebookcombobox, 1, 2, 0, 1)
 
-		self._init_inputs(namespace, basename, append, text, template_options, page)
+		self._init_inputs(namespace, basename, append, text, open_page, page_to_append_to, template_options)
 
 		self.uistate['lastnotebook'] = notebook
 		self._set_autocomplete(notebook)
 
-	def _init_inputs(self, namespace, basename, append, text, template_options, pageToAppendTo=None, custom=None):
+	def _init_inputs(self, namespace, basename, append, text, open_page, page_to_append_to, template_options):
 		if template_options is None:
 			template_options = {}
 		else:
 			template_options = template_options.copy()
 
-		if pageToAppendTo is not None:
-			page = pageToAppendTo
+		if page_to_append_to is not None:
+			page = page_to_append_to
 		else:
 			if namespace is not None and basename is not None:
 				page = namespace + ':' + basename
-			elif pageToAppendTo is None:
+			elif page_to_append_to is None:
 				page = namespace or basename
 
 		self.form.add_inputs((
 				('page', 'page', _('Page')), # T: text entry field; used if new_page is false.
 				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox; if a new page should be created or not.
 				('namespace', 'namespace', _('Page section')), # T: text entry field; section when creating a new page.
-				('basename', 'string', _('Title')) # T: text entry field; title when creating a new page.
+				('basename', 'string', _('Title')), # T: text entry field; title when creating a new page.
+				('open_page', 'bool', _('Open page')), # T: checkbox; open page.
 			))
 		self.form.update({
 				'page': page,
 				'namespace': namespace,
 				'new_page': True,
 				'basename': basename,
+				'open_page': True,
 			})
 
-		self.uistate.setdefault('open_page', True)
+		# New page.
 		self.uistate.setdefault('new_page', True)
 
 		if basename:
@@ -252,6 +262,14 @@ class QuickNoteDialog(Dialog):
 			self.form['new_page'] = bool(self.uistate['new_page'])
 		else:
 			self.form['new_page'] = not append
+
+		# Open page.
+		self.uistate.setdefault('open_page', True)
+
+		if open_page is None:
+			self.form['open_page'] = bool(self.uistate['open_page'])
+		else:
+			self.form['open_page'] = open_page
 
 		def switch_input(*_):
 			if self.form['new_page']:
@@ -265,12 +283,6 @@ class QuickNoteDialog(Dialog):
 
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
-
-		self.open_page_check = Gtk.CheckButton.new_with_mnemonic(_('Open _Page')) # T: Option in quicknote dialog
-			# Don't use "O" as accelerator here to avoid conflict with "Ok"
-		self.open_page_check.set_active(self.uistate['open_page'])
-		self.action_area.pack_start(self.open_page_check, False, True, 0)
-		self.action_area.set_child_secondary(self.open_page_check, True)
 
 		# Add the main textview and hook up the basename field to
 		# sync with first line of the textview
@@ -308,7 +320,7 @@ class QuickNoteDialog(Dialog):
 
 		self.connect('delete-event', self.do_delete_event)
 
-	def on_notebook_changed(self, o):
+	def on_notebook_changed(self, _):
 		notebook = self.notebookcombobox.get_notebook()
 		if not notebook or notebook == self.uistate['lastnotebook']:
 			return
@@ -370,7 +382,7 @@ class QuickNoteDialog(Dialog):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
 		self.uistate['new_page'] = self.form['new_page']
-		self.uistate['open_page'] = self.open_page_check.get_active()
+		self.uistate['open_page'] = self.form['open_page']
 		if notebook is not None:
 			if self.uistate['new_page']:
 				self.config['Namespaces'][notebook] = self.form['namespace']
@@ -440,7 +452,7 @@ class QuickNoteDialog(Dialog):
 		if self.attachments:
 			self.import_attachments(notebook, path, self.attachments)
 
-		if self.open_page_check.get_active():
+		if self.form['open_page']:
 			self.hide()
 			self.get_application().open_notebook(notebook, path)
 
@@ -448,7 +460,7 @@ class QuickNoteDialog(Dialog):
 
 	def _get_notebook(self):
 		uri = self.notebookcombobox.get_notebook()
-		notebook, x = build_notebook(LocalFolder(uri))
+		notebook, _ = build_notebook(LocalFolder(uri))
 		return notebook
 
 	def create_new_page(self, notebook, path, text):
