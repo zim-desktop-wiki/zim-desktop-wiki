@@ -39,6 +39,7 @@ import makeman # helper script
 
 PO_FOLDER = 'translations'
 LOCALE_FOLDER = 'locale'
+ICON_SIZES = ('16', '22', '24', '32', '48')
 
 
 # Helper routines
@@ -109,10 +110,14 @@ def collect_data_files():
 	]
 
 	# xdg/hicolor -> PREFIX/share/icons/hicolor
-	for dir, dirs, files in os.walk('xdg/hicolor'):
-		if files:
-			target = os.path.join('share', 'icons', dir[4:])
-			files = [os.path.join(dir, f) for f in files]
+	sizes = [s + 'x' + s for s in ICON_SIZES] + ['scalable']
+	for size in sizes:
+		for kind, basename in (('apps', 'org.zim_wiki.Zim'),
+		                       ('mimetypes', 'application-x-zim-notebook')):
+			extension = '.svg' if size == 'scalable' else '.png'
+			filename = basename + extension
+			target = os.path.join('share', 'icons', 'hicolor', size, kind)
+			files = [os.path.join('xdg', 'hicolor', size, kind, filename)]
 			data_files.append((target, files))
 
 	# mono icons -> PREFIX/share/icons/ubuntu-mono-light | -dark
@@ -167,7 +172,7 @@ def fix_dist():
 		'mimetypes/application-x-zim-notebook.svg'
 	):
 		shutil.copy('icons/zim48.svg', 'xdg/hicolor/scalable/' + name)
-	for size in ('16', '22', '24', '32', '48'):
+	for size in ICON_SIZES:
 		dir = size + 'x' + size
 		os.makedirs('xdg/hicolor/%s/apps' % dir)
 		os.makedirs('xdg/hicolor/%s/mimetypes' % dir)
