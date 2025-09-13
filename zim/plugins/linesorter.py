@@ -182,12 +182,16 @@ class LineSorterPageViewExtension(PageViewExtension):
 
 	@action(_('_Duplicate Line'), accelerator='<Primary><Shift>D', menuhints='edit')  # T: Menu item
 	def duplicate_line(self):
-		'''Menu action to dublicate line'''
+		'''Menu action to duplicate line'''
 		buffer = self.pageview.textview.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
+		# Remove newline to standardize linedata text
+		if not end.is_end():
+			end.backward_char()
 		linedata = textbuffer_internal_serialize_range(buffer, start, end)
 		with buffer.user_action:
 			buffer.place_cursor(end)
+			buffer.insert_at_cursor('\n')
 			textbuffer_internal_insert_at_cursor(buffer, linedata)
 
 

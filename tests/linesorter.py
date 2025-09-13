@@ -194,6 +194,12 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		self.extension.duplicate_line()
 		self.assertEqual(self.get_text(), 'Line A\nLine B\nLine A\nLine B\nLine C\n')
 
+	def testDuplicateLastLine(self):
+		self.set_text('Line A\nLine B\nLast Line')
+		self.place_cursor(20)
+		self.extension.duplicate_line()
+		self.assertEqual(self.get_text(), 'Line A\nLine B\nLast Line\nLast Line')
+
 	def testDuplicateLineAvoidResetHeaderForBullet(self):
 		# Test case for specific issue seen #1457
 		# Effective testing pageview behavior, so might be in the wrong place
