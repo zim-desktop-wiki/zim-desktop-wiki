@@ -47,54 +47,14 @@ You will at least need the following:
 
 To verify that zim is working properly on your system, you can run the test suite using `./test.py`. Failures do not have to be critical, but in principle, all tests should pass.
 
-Zim can be installed from source using:
+Once you have the dependencies installed, run:
 
     ./setup.py install
 
-If you are installing Zim from source in a Python virtual environment,
-you need to tell Zim where to load necessary data files by
-`export XDG_DATA_DIRS=<where-your-virtual-environment-root-folder-is>/share:$XDG_DATA_DIRS`.
-Please refer to the `Install Paths` section for more details about the XDG paths.
+Most plugins have additional requirements. These are listed in the plugin
+descriptions.
 
-Most plugins have additional requirements. These are listed in the plugin descriptions.
-
-### Ubuntu
-
-On Ubuntu or other Debian derived systems, the following packages should be installed:
-
-* python3
-* gir1.2-gtk-3.0
-* python3-gi
-* python3-xdg
-* python3-pillow
-
-### Windows
-
-Download, install and update [MSYS2](https://www.msys2.org/) 64-bit by following the instructions on their website.
-
-Open "MSYS2 MSYS" terminal from the Start Menu and install GTK3, Python3 and Python bindings for GTK:
-
-`pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject`
-
-The Windows drive is mounted on `/c`, browse your Windows user folder using:
-
-`cd "/c/Users/$USERNAME"`
-
-You can now run Zim from the MSYS terminal using:
-
-`/mingw64/bin/python3 zim.py`
-
-Or from any Windows terminal using:
-
-`C:\msys64\mingw64\bin\python3.exe zim.py`
-
-For more details see [GTK installation instructions for Windows](https://www.gtk.org/docs/installations/windows/) and [PyGObject Getting Started](https://pygobject.readthedocs.io/en/latest/getting_started.html).
-
-*Note:* installation of the "msys" environment offers a "32" and a "64" bit
-shell. When you installed the "64" packages for Gtk, they will only run from
-the "64" shell.
-
-### macOS
+### Installing on macOS
 
 You can use a package manager like [Homebrew](https://brew.sh) (instructions [here](https://formulae.brew.sh/formula/zim)) or [MacPorts](https://www.macports.org) (instructions [here](https://ports.macports.org/port/zim/)) to install Zim and its dependencies. Please note that we do not have the resources to offer any support for this.
 
@@ -138,3 +98,5 @@ The following files were included from other sources:
 * `pixmaps/calendar.png` (was: `stock_calendar-view-month.png`)
   Copyright 2007 by Jakub Steiner, released under GPL
   modifications copyright 2009 by Gabriel Hurley
+
+Contributed by Ardelyo for GitHub Achievement
