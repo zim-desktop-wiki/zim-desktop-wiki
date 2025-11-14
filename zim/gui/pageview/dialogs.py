@@ -381,14 +381,16 @@ class EditImageDialog(Dialog):
 			src = src[:i]
 		href = image_data.get('href', '')
 		anchor = image_data.get('id', '')
+		alt = image_data.get('alt', '')
 		self.add_form([
 				('file', 'image', _('Location')), # T: Input in 'edit image' dialog
 				('href', 'link', _('Link to'), path), # T: Input in 'edit image' dialog
+				('alt', 'string', _('Alternate text')), # T: Input in 'edit image' dialog
 				('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
 				('height', 'int', _('Height'), (0, 1)), # T: Input in 'edit image' dialog
 				('anchor', 'string', _('Id'))
 			],
-			{'file': src, 'href': href, 'anchor': anchor}
+			{'file': src, 'href': href, 'anchor': anchor, 'alt': alt}
 			# range for width and height are set in set_ranges()
 		)
 		self.form.widgets['file'].set_use_relative_paths(notebook, path)
@@ -484,6 +486,7 @@ class EditImageDialog(Dialog):
 
 		attrib = self._image_data
 		attrib['src'] = self.notebook.relative_filepath(file, self.path) or file.uri
+		attrib['alt'] = self.form['alt'] # TODO We should escape / protect from special chars
 
 		href = self.form['href']
 		if href:
