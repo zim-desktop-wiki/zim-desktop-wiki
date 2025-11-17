@@ -23,6 +23,7 @@ import zim.main
 from zim.newfs import FilePath, LocalFile, LocalFolder
 from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
+from zim.config.manager import ConfigManager
 from zim.gui.widgets import Dialog, IconButton, encode_markup_text, ScrolledWindow, \
 	strip_boolean_result
 
@@ -98,6 +99,12 @@ class NotebookTreeModel(Gtk.ListStore):
 		else:
 			self.notebooklist = notebooklist
 
+		# Fix path foreground on dark themes
+		# Dark theme : light 5 (#9A9996)
+		# Light theme : dark 2 (#5E5C64)
+		dark_theme = ConfigManager.preferences['GtkInterface']['prefer-dark-theme']
+		self._path_color = '#9A9996' if dark_theme else '#5E5C64'
+
 		self._loading = True
 		for info in self.notebooklist:
 			self._append(info)
@@ -126,8 +133,8 @@ class NotebookTreeModel(Gtk.ListStore):
 
 	def _append(self, info):
 		path = FilePath(info.uri).path
-		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s</span>' % \
-				(encode_markup_text(info.name), encode_markup_text(path))
+		text = '<b>%s</b>\n<span foreground="%s" size="small">%s</span>' % \
+				(encode_markup_text(info.name), self._path_color, encode_markup_text(path))
 				# T: Path label in 'open notebook' dialog
 
 		if info.icon and LocalFile(info.icon).exists():
