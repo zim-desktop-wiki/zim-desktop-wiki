@@ -718,6 +718,12 @@ class TestTemplateFunctions(tests.TestCase):
 		self.assertIsInstance(func, ExpressionFunction)
 		self.assertEqual(func('/foo/bar baz'), '%2Ffoo%2Fbar%20baz')
 
+	def testValidTemplateName(self):
+		default_template = list_templates('wiki')[0][0]
+		self.assertEqual(valid_template_name('wiki', 'Foo'), default_template)
+		self.assertEqual(valid_template_name('wiki', 'Default'), 'Default')
+		self.assertEqual(valid_template_name('wiki', 'Journal'), 'Journal')
+
 
 class TestTemplate(tests.TestCase):
 
