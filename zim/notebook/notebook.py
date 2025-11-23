@@ -62,6 +62,7 @@ class NotebookConfig(INIConfigFile):
 			('disable_trash', Boolean(False)),
 			('default_file_format', String('zim-wiki')),
 			('default_file_extension', String('.txt')),
+			('default_page_template', String('Default')),
 			('notebook_layout', String('files')),
 		))
 
@@ -1147,7 +1148,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''Returns the name of the template to use for a new page.
 		(To get the contents of the template directly, see L{get_template()})
 		'''
-		return self.emit_return_first('get-page-template', path or Path(':')) or 'Default'
+		default_page_template = self.config['Notebook'].get('default_page_template', 'Default')
+		return self.emit_return_first('get-page-template', path or Path(':')) or default_page_template
 
 	def eval_new_page_template(self, path, template, context=None):
 		lines = []

@@ -90,6 +90,18 @@ def list_templates(category):
 			templates.add((name, file.basename))
 	return sorted(templates)
 
+def valid_template_name(category, name):
+	'''Retuns A valid template name for the given category. Returns the name if it is in
+	the list given by L{list_templates} or returns the name of the first item of that list.
+	
+	@param category: the template category (e.g. "html")
+	@param name: the template name.
+	'''
+	templates = list_templates(category)
+	for t in templates:
+		if name == t[0]:
+			return name
+	return templates[0][0]
 
 def get_template(category, template, pwd=None):
 	'''Returns a Template object for a template name or file path

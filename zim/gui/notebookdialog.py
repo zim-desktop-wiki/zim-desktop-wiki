@@ -25,6 +25,7 @@ from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, No
 from zim.config import data_file
 from zim.gui.widgets import Dialog, IconButton, encode_markup_text, ScrolledWindow, \
 	strip_boolean_result
+from zim.templates import list_templates
 
 logger = logging.getLogger('zim.gui.notebookdialog')
 
@@ -60,7 +61,7 @@ def prompt_notebook():
 		fields = _run_dialog_with_mainloop(AddNotebookDialog(None))
 		if fields:
 			dir = LocalFolder(fields['folder'])
-			init_notebook(dir, name=fields['name'])
+			init_notebook(dir, name=fields['name'], page_template=fields['template'])
 			list.append(NotebookInfo(dir.uri, name=fields['name']))
 			list.write()
 			return NotebookInfo(dir.uri, name=fields['name'])
@@ -372,7 +373,7 @@ class NotebookDialog(Dialog):
 		fields = AddNotebookDialog(self).run()
 		if fields:
 			dir = LocalFolder(fields['folder'])
-			init_notebook(dir, name=fields['name'])
+			init_notebook(dir, name=fields['name'], page_template=fields['template'])
 			model = self.treeview.get_model()
 			model.append_notebook(dir.uri, name=fields['name'])
 
@@ -418,13 +419,17 @@ class AddNotebookDialog(Dialog):
 			name = 'Notes'
 			folder = nb_folder + name
 		# else set below by _changed methods
+		
+		templates = [t[0] for t in list_templates('wiki')]
 
 		self.add_form((
 			('name', 'string', _('Name')), # T: input field in 'Add Notebook' dialog
 			('folder', 'dir', _('Folder')), # T: input field in 'Add Notebook' dialog
+			('template', 'choice', _('Page template'), templates),  # T: choice field in 'Add Notebook' dialog
 		), {
 			'name': name,
 			'folder': folder,
+			'template': 'Default',
 		})
 
 		self.add_help_text(_('''\
@@ -486,7 +491,7 @@ Of course you can also select an existing zim notebook folder.
 		name = self.form['name']
 		folder = self.form['folder']
 		if name and folder:
-			self.result = {'name': name, 'folder': folder}
+			self.result = {'name': name, 'folder': folder, 'template': self.form['template']}
 			return True
 		else:
 			return False
