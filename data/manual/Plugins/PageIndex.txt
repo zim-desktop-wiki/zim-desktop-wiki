@@ -29,6 +29,10 @@ restart Zim to see the correct rendering.
 The option **Use tooltips** allows toggling whether or not tooltips are shown
 for pages in the index.
 
+The option **Show tree lines** allows toggling whether or not lines are drawn to
+visually connect subsections to their parent. For the full old-school experience,
+use a Gtk theme with zebra stripes.
+
 ===== Style =====
 
 This plugin uses a widget name to allow CSS styling for the floating widget:

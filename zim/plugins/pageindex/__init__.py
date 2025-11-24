@@ -70,6 +70,8 @@ This plugin adds the page index pane to the main window.
 			# T: preferences option
 		('use_tooltip', 'bool', _('Use tooltips'), True),
 			# T: preferences option
+		('tree_lines', 'bool', _('Show tree lines'), False),
+			# T: preferences option
 	)
 
 
@@ -104,6 +106,7 @@ class PageIndexNotebookViewExtension(NotebookViewExtension):
 		self.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
 		self.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'])
+		self.treeview.set_enable_tree_lines(preferences['tree_lines'])
 
 	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)

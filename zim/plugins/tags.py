@@ -54,6 +54,8 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 			# T: preferences option
 		('use_tooltip', 'bool', _('Use tooltips'), True),
 			# T: preferences option
+		('tree_lines', 'bool', _('Show tree lines'), False),
+			# T: preferences option
 	)
 
 
@@ -90,6 +92,7 @@ class TagsNotebookViewExtension(NotebookViewExtension):
 		self.widget.treeview.set_use_ellipsize(not preferences['use_hscroll'])
 			# To use horizontal scrolling, turn off ellipsize
 		self.widget.treeview.set_autoexpand(preferences['autoexpand'], preferences['autocollapse'])
+		self.widget.treeview.set_enable_tree_lines(preferences['tree_lines'])
 
 
 class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
