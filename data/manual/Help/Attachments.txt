@@ -6,7 +6,7 @@ Creation-Date: 2012-07-18T23:27:53+02:00
 
 Pages can have attachments, e.g. image files for images that are part of the page, or documents that are referred to in the page.
 
-Attachments are typically stored in the folder one level below the page with the text of the page. This folder can be opened with the menu item "//Tools → Open Attachments Folder//". To directly copy a file to the attachment folder and insert a link use the menu item "//Tools → Attach File//"
+Attachments are typically stored in the folder one level below the page with the text of the page. This folder can be opened with the menu item "//Tools → Open Attachments Folder//". To directly copy a file to the attachment folder and insert a link use the menu item "//Insert → Attachment...//"
 
 Attachments can be created, modified, and deleted with regular applications. To link them in a zim page, just drag and drop from the window manager to the editor.
 
