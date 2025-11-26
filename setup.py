@@ -338,7 +338,7 @@ if __name__ == '__main__':
 		scripts = scripts,
 		packages = collect_packages(),
 		data_files = collect_data_files(),
-		requires = ['gi', 'xdg'],
+		requires = ['gi', 'pyxdg'],
 
 		**py2exeoptions
 	)
