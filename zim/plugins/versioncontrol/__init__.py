@@ -69,6 +69,13 @@ This is a core plugin shipping with zim.
 		('autosave_interval', 'int', _('Autosave interval in minutes'), 10, (1, 3600)), # T: Label for plugin preference
 	)
 
+	plugin_notebook_properties = (
+		('notebook_override', 'bool', _('Override global preferences'), False), # T: Label for notebook properties
+		('notebook_autosave', 'bool', _('Autosave version when the notebook is closed'), False), # T: Label for notebook preference
+		('notebook_autosave_at_interval', 'bool', _('Autosave version on regular intervals'), False), # T: Label for notebook preference
+		('notebook_autosave_interval', 'int', _('Autosave interval in minutes'), 10, (1, 3600)), # T: Label for notebook preference
+	)
+
 	@classmethod
 	def check_dependencies(klass):
 		has_bzr = VCS.check_dependencies(VCS.BZR)
@@ -83,6 +90,7 @@ class VersionControlNotebookExtension(NotebookExtension):
 
 	def __init__(self, plugin, notebook):
 		NotebookExtension.__init__(self, plugin, notebook)
+		self.properties = self.plugin.notebook_properties(notebook)
 		self.vcs = None
 		self.detect_vcs()
 
@@ -111,6 +119,15 @@ class VersionControlNotebookExtension(NotebookExtension):
 		if self.vcs:
 			self.vcs.disconnect_all()
 
+	def get_preference(self, name):
+		'''Get a preference value. It returns the notebook property if override is active or 
+		the plugin preference otherwise
+		@param name: str - name of the preference
+		@returns Value of the property / preference'''
+		if self.properties['notebook_override']:
+			return self.properties['notebook_' + name]
+		return self.plugin.preferences[name]
+
 
 class VersionControlMainWindowExtension(MainWindowExtension):
 
@@ -129,27 +146,29 @@ class VersionControlMainWindowExtension(MainWindowExtension):
 			self.on_preferences_changed(None, start=True)
 
 		def on_close(o):
-			if self.plugin.preferences['autosave'] \
-			or self.plugin.preferences['autosave_at_interval']:
+			if self.notebook_ext.get_preference('autosave') \
+			or self.notebook_ext.get_preference('autosave_at_interval'):
 				self.do_save_version()
 
 		self.window.connect('close', on_close)
 
 		self.connectto(self.plugin.preferences, 'changed',
 			self.on_preferences_changed)
+		self.connectto(self.notebook_ext.properties, 'changed',
+			self.on_preferences_changed)
 
 	def on_preferences_changed(self, o, start=False):
 		self._stop_timer()
 
-		if (start and self.plugin.preferences['autosave']) \
-		or self.plugin.preferences['autosave_at_interval']:
+		if self.notebook_ext.get_preference('autosave') \
+		or self.notebook_ext.get_preference('autosave_at_interval'):
 			self.do_save_version_async()
 
-		if self.plugin.preferences['autosave_at_interval']:
+		if self.notebook_ext.get_preference('autosave_at_interval'):
 			self._start_timer()
 
 	def _start_timer(self):
-		timeout = 60000 * self.plugin.preferences['autosave_interval']
+		timeout = 60000 * self.notebook_ext.get_preference('autosave_interval')
 		self._autosave_timer = GObject.timeout_add(
 			timeout, self.do_save_version_async)
 
