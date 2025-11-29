@@ -147,6 +147,36 @@ class TestMainWindowExtension(tests.TestCase):
 		tests.gtk_process_events()
 		assert ongoing_operation(notebook) is None
 
+@tests.skipUnless(
+	any(
+		map(VCS.check_dependencies, (VCS.BZR, VCS.GIT, VCS.HG))
+	), 'Missing dependencies')
+class TestOverridePreferences(tests.TestCase):
+	'''Testing reading plugin preferences and notebook properties override'''
+
+	def runTest(self):
+		'''Main test'''
+		plugin = PluginManager.load_plugin('versioncontrol')
+
+		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
+		notebook = self.setUpNotebook(
+			mock=tests.MOCK_ALWAYS_REAL,
+			content=('Test',),
+			folder=LocalFolder(dir.path)
+		)
+
+		notebook_ext = find_extension(notebook, NotebookExtension)
+
+		## autosave
+		plugin.preferences['autosave'] = True
+		self.assertTrue(notebook_ext.get_preference('autosave'))
+
+		## override autosave
+		notebook_ext.properties['notebook_override'] = True
+		self.assertFalse(notebook_ext.get_preference('autosave'))
+		notebook_ext.properties['notebook_autosave'] = True
+		self.assertTrue(notebook_ext.get_preference('autosave'))
+
 
 @tests.slowTest
 class TestVersionsDialog(tests.TestCase):
