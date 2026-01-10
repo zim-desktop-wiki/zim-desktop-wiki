@@ -14,6 +14,13 @@ If the option **Autosave version when the notebook is closed** is enabled zim wi
 When the option **Autosave version on regular intervals** is enabled zim will save (or "commit") a new version after a set time interval. The **Autosave interval in minutes** gives the time interval.
 Saving at regular intervals also includes at the exit and at the start of the application.
 
+===== Override options for notebooks =====
+You can override those global options for a notebook by enabling the option **Override global preferences** in the [[Help:Properties|notebook properties panel]].
+
+Then you can redefine the plugin behavior for the current notebook.
+
+A basic usage for override will be if you want to enable autosave globally (for all notebooks) but you want to disable it on a specific notebook because it is part of a project already versionned and you don't want the zim commits to "interfere" with it.
+
 ===== Usage =====
 If you want to keep track of your changes or if you want to collaborate on a Zim notebook as a team, version control is the best way to go. Zim integrates very well with existing version control software because all relevant data is stored in plain text files.
 
