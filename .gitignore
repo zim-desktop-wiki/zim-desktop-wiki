@@ -106,3 +106,6 @@ debian/python-module-stampdir/
 
 # Rider
 .vs
+
+.pylintrc
+.vscode/
