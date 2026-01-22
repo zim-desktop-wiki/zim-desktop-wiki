@@ -126,8 +126,10 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		Build a .gitignore file including the file_to_ignore_content
 		"""
-		#TODO: append the rule instead of overwrite the full content
-		self.root.file('.gitignore').write(file_to_ignore_regexp)
+		ignorefile = self.root.file('.gitignore')
+		lines = ignorefile.readlines() if ignorefile.exists() else []
+		lines.append(file_to_ignore_regexp)
+		self.root.file('.gitignore').writelines(lines)
 
 	def init_repo(self):
 		self.init()
