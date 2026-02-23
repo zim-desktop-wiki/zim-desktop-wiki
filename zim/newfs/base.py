@@ -574,7 +574,7 @@ mimetypes = None
 try:
 	import xdg.Mime as xdgmime
 	mytype = xdgmime.get_type('image.png', name_pri=80)
-	if str(mytype) != 'image/png':
+	if str(mytype) not in ('image/png', 'image/apng'):
 		# Even if xdg is installed, the database is not (always) initialized
 		logger.debug("Found 'xdg.Mime', but no database - falling back to 'mimetypes'")
 		xdgmime = None
