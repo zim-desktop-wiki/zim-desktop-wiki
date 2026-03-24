@@ -211,6 +211,7 @@ class TextView(Gtk.TextView):
 
 		self.add_child_at_anchor(widget, anchor)
 		self._object_widgets.add(widget)
+		weakref.finalize(widget, self.remove, widget)
 		widget.show_all()
 
 	def on_size_allocate(self, *a):
