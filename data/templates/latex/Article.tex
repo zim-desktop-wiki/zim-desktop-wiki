@@ -1,6 +1,17 @@
 \documentclass{scrartcl}
 \usepackage[mathletters]{ucs}
-\usepackage[utf8x]{inputenc}
+% Load appropriate packages based on compiler
+\usepackage{ifxetex,ifluatex}
+\ifxetex
+    \usepackage{fontspec}
+    \usepackage[utf8x]{inputenc}
+\else\ifluatex
+    \usepackage{fontspec}
+    \usepackage[utf8x]{inputenc}
+\else
+    \usepackage[utf8]{inputenc}
+    \usepackage[T1]{fontenc}
+\fi\fi
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage[usenames]{color}
