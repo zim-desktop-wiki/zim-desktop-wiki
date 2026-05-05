@@ -148,7 +148,7 @@ class MarkdownParser(object):
 			| Rule(LINK, r'<([a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)>', process=self.parse_autolink) # email autolink
 			| Rule(LINK, url_link_re, process=self.parse_url)
 			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_wiki_link)
-			| Rule(IMAGE,   r'!\[([^\]]*)\]\(([^)]+)\)(\{[^}]*\})?', process=self.parse_image)
+			| Rule(IMAGE,   r'!\[([^\]]*)\]\((\S+)\)(\{[^}]*\})?', process=self.parse_image)
 			| Rule(LINK, r'\[([^\]]*)\]\((\S+)\)', process=self.parse_link)
 			| Rule(ANCHOR, r'\{\#(\w[\w-]*)\}', process=self.parse_anchor)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
@@ -671,7 +671,7 @@ class Dumper(TextDumper):
 			body = TextDumper.dump(self, tree)
 			if body and not body[-1].endswith('\n'):
 				body[-1] = body[-1] + '\n'
-			return [dump_yaml_front_matter(header_meta), '\n'] + body
+			return [dump_yaml_front_matter(header_meta), ''] + body
 		else:
 			return TextDumper.dump(self, tree)
 
@@ -768,7 +768,7 @@ class Dumper(TextDumper):
 
 		if href == text:
 			if is_url_link(href):
-				return ('<', href, '>')
+				return ('', href, '')
 			else:
 				text = ''
 
