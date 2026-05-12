@@ -157,8 +157,6 @@ class ImageGeneratorModel(ImageGeneratorModelBase):
 		# any other object is using the same file
 		# TODO: use index table to keep track and clean up when ref count is zero ?
 		if image_file is None:
-			# Generator returned no image (e.g. invalid input that did not raise
-			# an Error). Keep existing state rather than crashing on attribute access.
 			logger.warning('Image generator returned no image file; keeping previous state')
 			return
 		self.data = text
@@ -217,8 +215,6 @@ class BackwardImageGeneratorModel(ImageGeneratorModelBase):
 		# FIXME: refactor the file saving sequence (save script first, generate image second); see #2112
 		self.script_file.write(text)
 		if image_file is None:
-			# Generator returned no image (e.g. invalid input that did not raise
-			# an Error). Keep existing state rather than crashing on attribute access.
 			logger.warning('Image generator returned no image file; keeping previous state')
 			self.emit('changed')
 			return
