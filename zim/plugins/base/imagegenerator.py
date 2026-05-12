@@ -156,6 +156,10 @@ class ImageGeneratorModel(ImageGeneratorModelBase):
 		# Do not clean up the existing self.image_file - we don't know if
 		# any other object is using the same file
 		# TODO: use index table to keep track and clean up when ref count is zero ?
+		if image_file is None:
+			# Generator legitimately failed to produce an image; see issue #2960
+			# and the ImageGeneratorClass.generate_image docstring.
+			return
 		self.data = text
 		self.image_file = self._new_image_file()
 		image_file.moveto(self.image_file)
@@ -211,6 +215,11 @@ class BackwardImageGeneratorModel(ImageGeneratorModelBase):
 	def set_from_generator(self, text, image_file):
 		# FIXME: refactor the file saving sequence (save script first, generate image second); see #2112
 		self.script_file.write(text)
+		if image_file is None:
+			# Generator legitimately failed to produce an image; see issue #2960
+			# and the ImageGeneratorClass.generate_image docstring.
+			self.emit('changed')
+			return
 		image_file = adapt_from_oldfs(image_file)
 		image_file._set_mtime(self.script_file.mtime())  # avoid needless regen
 

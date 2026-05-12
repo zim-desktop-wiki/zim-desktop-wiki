@@ -16,7 +16,8 @@ from zim.notebook import Path
 
 from zim.plugins import PluginManager
 from zim.plugins.base.imagegenerator import \
-	ImageGeneratorClass, ImageGeneratorDialog, BackwardImageGeneratorObjectType
+	ImageGeneratorClass, ImageGeneratorDialog, BackwardImageGeneratorObjectType, \
+	BackwardImageGeneratorModel, ImageGeneratorModel
 
 from zim.plugins.equationeditor import InsertEquationPlugin
 from zim.plugins.diagrameditor import InsertDiagramPlugin
@@ -31,6 +32,45 @@ def assertIsPNG(file):
 	with open(file.path, "rb") as fh:
 		data = fh.read(8)
 		assert data == b'\x89PNG\x0d\x0a\x1a\x0a', 'Not a PNG file: %s' % file.path
+
+
+class _StubImageGenerator(ImageGeneratorClass):
+	# Stub generator used to construct model instances without invoking
+	# external image-rendering commands.
+	imagefile_extension = '.png'
+
+	def generate_image(self, text):
+		return None, None
+
+
+class TestSetFromGeneratorAcceptsNoneImage(tests.TestCase):
+	# Regression test for #2960: when generate_image legitimately fails and
+	# returns None for the image file, set_from_generator must not crash with
+	# AttributeError. See ImageGeneratorClass.generate_image docstring, which
+	# documents that the image file may be None.
+
+	def testImageGeneratorModelSetFromGeneratorAcceptsNone(self):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		generator = _StubImageGenerator(tests.MockObject(), notebook, page)
+
+		model = ImageGeneratorModel(notebook, page, generator, {}, '')
+		# Must not raise AttributeError on None.moveto(...)
+		model.set_from_generator('some text', None)
+
+	def testBackwardImageGeneratorModelSetFromGeneratorAcceptsNone(self):
+		attachment_dir = self.setUpFolder()
+		attachment_dir.touch()
+		notebook = self.setUpNotebook()
+		notebook.get_attachments_dir = lambda *a: attachment_dir
+		page = notebook.get_page(Path('Test'))
+		generator = _StubImageGenerator(tests.MockObject(), notebook, page)
+
+		model = BackwardImageGeneratorModel(
+			notebook, page, generator, {'src': '_new_'}, '', 'test.txt'
+		)
+		# Must not raise AttributeError on None._set_mtime(...)
+		model.set_from_generator('some text', None)
 
 
 @tests.slowTest
