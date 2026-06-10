@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-09 18:44+0200\n"
-"PO-Revision-Date: 2026-04-12 15:09+0000\n"
+"PO-Revision-Date: 2026-06-10 21:47+0000\n"
 "Last-Translator: 麋麓 BigELK176 <BigELK176@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://hosted.weblate.org/"
 "projects/zim/develop/zh_Hant/>\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.17-dev\n"
+"X-Generator: Weblate 2026.6\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -774,21 +774,17 @@ msgstr "資料夾"
 
 #. choice field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:439
-#, fuzzy
-#| msgid "Default text"
 msgid "Default file format"
-msgstr "預設文字"
+msgstr "預設檔案格式"
 
 #. choice field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:439
 msgid "Experimental"
-msgstr ""
+msgstr "實驗性"
 
 #. choice field in 'Add Notebook' dialog | 
 #. label for properties dialog
 #: zim/gui/notebookdialog.py:440 zim/gui/propertiesdialog.py:28
-#, fuzzy
-#| msgid "Page Template"
 msgid "Page template"
 msgstr "頁面範本"
 
@@ -1417,10 +1413,8 @@ msgstr "連結至"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview/dialogs.py:387
-#, fuzzy
-#| msgid "Default text"
 msgid "Alternate text"
-msgstr "預設文字"
+msgstr "替代文字"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview/dialogs.py:388
@@ -2184,10 +2178,8 @@ msgstr "文字檔案"
 
 #. File filter for '*.md'
 #: zim/gui/uiactions.py:536
-#, fuzzy
-#| msgid "Markdown Files"
 msgid "Markdown Files (.md)"
-msgstr "Markdown 檔案"
+msgstr "Markdown 檔案 (.md)"
 
 #. Dialog title of file save dialog
 #: zim/gui/uiactions.py:559
@@ -3362,10 +3354,8 @@ msgstr "使用工具提示"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:73 zim/plugins/tags.py:57
-#, fuzzy
-#| msgid "_Sort lines"
 msgid "Show tree lines"
-msgstr "排序行列(_S)"
+msgstr "顯示樹階行列"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:132
@@ -3507,8 +3497,6 @@ msgstr "標題"
 
 #. checkbox; open page.
 #: zim/plugins/quicknote.py:245
-#, fuzzy
-#| msgid "Open _Page"
 msgid "Open _page"
 msgstr "開啟頁面(_P)"
 
@@ -4410,7 +4398,7 @@ msgstr "自動儲存每隔幾分鐘"
 #. Label for notebook properties
 #: zim/plugins/versioncontrol/__init__.py:73
 msgid "Override global preferences"
-msgstr ""
+msgstr "覆蓋整體偏好設定"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:220
