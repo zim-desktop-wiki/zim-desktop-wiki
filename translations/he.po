@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-09 18:44+0200\n"
-"PO-Revision-Date: 2025-02-18 17:28+0000\n"
+"PO-Revision-Date: 2026-06-14 16:01+0000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/zim/develop/he/>\n"
 "Language: he\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 5.10.1-dev\n"
+"X-Generator: Weblate 2026.7.dev0\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 
 #. Error message when external application could not be found, %s is the command
@@ -780,23 +780,19 @@ msgstr "תיקייה"
 
 #. choice field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:439
-#, fuzzy
-#| msgid "Default text"
 msgid "Default file format"
-msgstr "טקסט ברירת מחדל"
+msgstr "תסדיר קבצים כברירת מחדל"
 
 #. choice field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:439
 msgid "Experimental"
-msgstr ""
+msgstr "ניסיוני"
 
 #. choice field in 'Add Notebook' dialog | 
 #. label for properties dialog
 #: zim/gui/notebookdialog.py:440 zim/gui/propertiesdialog.py:28
-#, fuzzy
-#| msgid "Page Template"
 msgid "Page template"
-msgstr "תבנית דף"
+msgstr "תבנית עמוד"
 
 #. help text in the 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:448
@@ -1423,10 +1419,8 @@ msgstr "קישור אל"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview/dialogs.py:387
-#, fuzzy
-#| msgid "Default text"
 msgid "Alternate text"
-msgstr "טקסט ברירת מחדל"
+msgstr "טקסט חלופי"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview/dialogs.py:388
@@ -2182,7 +2176,7 @@ msgstr "ייבוא עמוד"
 #. File filter for all supported import formats (.txt, .md)
 #: zim/gui/uiactions.py:528
 msgid "All Supported Formats"
-msgstr ""
+msgstr "כל התסדירים הנתמכים"
 
 #. File filter for '*.txt'
 #: zim/gui/uiactions.py:535
@@ -2192,7 +2186,7 @@ msgstr "קובצי טקסט"
 #. File filter for '*.md'
 #: zim/gui/uiactions.py:536
 msgid "Markdown Files (.md)"
-msgstr ""
+msgstr "קובצי Markdown ‏(‎.md)"
 
 #. Dialog title of file save dialog
 #: zim/gui/uiactions.py:559
@@ -3368,10 +3362,8 @@ msgstr "להשתמש בחלוניות עצה"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:73 zim/plugins/tags.py:57
-#, fuzzy
-#| msgid "_Sort lines"
 msgid "Show tree lines"
-msgstr "_סידור השורות"
+msgstr "הצגת קווי העץ"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:132
@@ -3513,10 +3505,8 @@ msgstr "כותרת"
 
 #. checkbox; open page.
 #: zim/plugins/quicknote.py:245
-#, fuzzy
-#| msgid "Open _Page"
 msgid "Open _page"
-msgstr "פתח דף"
+msgstr "פתיחת _עמוד"
 
 #. confirm closing quick note dialog
 #: zim/plugins/quicknote.py:355
@@ -4418,7 +4408,7 @@ msgstr "מרווח בין שמירות אוטומטיות בדקות"
 #. Label for notebook properties
 #: zim/plugins/versioncontrol/__init__.py:73
 msgid "Override global preferences"
-msgstr ""
+msgstr "דריסת העדפות מקיפות"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:220
