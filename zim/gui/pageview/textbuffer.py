@@ -27,6 +27,7 @@ from .constants import *
 from .objectanchors import *
 from .lists import TextBufferList
 from .find import TextBufferFindMixin, FIND_HIGHLIGHT_TAG, FIND_MATCH_TAG
+from .undostack import UndoStackManager
 
 
 logger = logging.getLogger('zim.gui.pageview.textbuffer')
@@ -55,7 +56,9 @@ _is_inline_format_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in _
 _is_not_inline_format_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag not in _inline_format_tags
 	# Inline format tags are format tags that are not line based
 
-_is_inline_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in TextBuffer._nesting_style_tags or tag.zim_tag == LINK
+_nesting_style_tags = ('emphasis', 'strong', 'mark', 'strike', 'sub', 'sup',)
+_is_inline_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in _nesting_style_tags or tag.zim_tag == LINK
+	# also defined in .serialize to avoid circular import - if updated keep in sync
 _is_non_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code', 'tag')
 	# Nesting tags can have other formatting styles nested inside them
 	# So they are specifically not mutually exclusive
@@ -307,11 +310,6 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 	_static_tag_before_links = SUPERSCRIPT # link will be inserted with this prio +1
 	_static_tag_after_tags = VERBATIM_BLOCK # link will be inserted with this prio
 
-	#: tags that can nest in any order
-	_nesting_style_tags = (
-		'emphasis', 'strong', 'mark', 'strike', 'sub', 'sup',
-	)
-
 	tag_attributes = {
 		'weight': ConfigDefinitionConstant(None, Pango.Weight, 'PANGO_WEIGHT'),
 		'scale': Float(None),
@@ -372,12 +370,7 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 			self.set_parsetree(parsetree)
 			self.set_modified(False)
 
-		from .undostack import UndoStackManager # prevent circular import
 		self.undostack = UndoStackManager(self)
-
-	#~ def do_begin_user_action(self):
-		#~ print('>>>> USER ACTION')
-		#~ pass
 
 	@property
 	def hascontent(self):
@@ -388,7 +381,6 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 			return not start.equal(end)
 
 	def do_end_user_action(self):
-		#print('<<<< USER ACTION')
 		if self._deleted_editmode_mark is not None:
 			self.delete_mark(self._deleted_editmode_mark)
 			self._deleted_editmode_mark = None
@@ -2890,62 +2882,6 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 
 		# look for an implicit heading anchor
 		return self.find_implicit_anchor(name)
-
-	def toggle_checkbox(self, line, checkbox_type=None, recursive=False):
-		'''Toggles the state of the checkbox at a specific line, if any
-
-		@param line: the line number
-		@param checkbox_type: the checkbox type that we want to toggle:
-		one of C{CHECKED_BOX}, C{XCHECKED_BOX}, C{MIGRATED_BOX},
-		C{TRANSMIGRATED_BOX}.
-		If C{checkbox_type} is given, it toggles between this type and
-		unchecked. Otherwise it rotates through unchecked, checked
-		and xchecked.
-		As a special case when the C{checkbox_type} ir C{UNCHECKED_BOX}
-		the box is always unchecked.
-		@param recursive: When C{True} any child items in the list will
-		also be upadted accordingly (see L{TextBufferList.set_bullet()}
-
-		@returns: C{True} for success, C{False} if no checkbox was found.
-		'''
-		# For mouse click no checkbox type is given, so we cycle
-		# For <F12> and <Shift><F12> checkbox_type is given so we toggle
-		# between the two
-		bullet = self.get_bullet(line)
-		if bullet in CHECKBOXES:
-			if checkbox_type:
-				if bullet == checkbox_type:
-					newbullet = UNCHECKED_BOX
-				else:
-					newbullet = checkbox_type
-			else:
-				i = list(CHECKBOXES).index(bullet) # use list() to be python 2.5 compatible
-				next = (i + 1) % len(CHECKBOXES)
-				newbullet = CHECKBOXES[next]
-		else:
-			return False
-
-		if recursive:
-			row, clist = TextBufferList.new_from_line(self, line)
-			clist.set_bullet(row, newbullet)
-		else:
-			self.set_bullet(line, newbullet)
-
-		return True
-
-	def toggle_checkbox_for_cursor_or_selection(self, checkbox_type=None, recursive=False):
-		'''Like L{toggle_checkbox()} but applies to current line or
-		current selection. Intended for interactive use.
-
-		@param checkbox_type: the checkbox type that we want to toggle
-		@param recursive: When C{True} any child items in the list will
-		also be upadted accordingly (see L{TextBufferList.set_bullet()}
-		'''
-		if self.get_has_selection():
-			self.foreach_line_in_selection(self.toggle_checkbox, checkbox_type, recursive)
-		else:
-			line = self.get_insert_iter().get_line()
-			return self.toggle_checkbox(line, checkbox_type, recursive)
 
 	def iter_backward_word_start(self, iter):
 		'''Like C{Gtk.TextIter.backward_word_start()} but less intelligent.

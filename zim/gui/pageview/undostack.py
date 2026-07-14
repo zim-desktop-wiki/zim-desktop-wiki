@@ -131,7 +131,6 @@ class UndoStackManager:
 			('insert-child-anchor', self.do_insert_pixbuf),
 			('delete-range', self.do_delete_range),
 			('begin-user-action', self.do_begin_user_action),
-			('end-user-action', self.do_end_user_action),
 		):
 			self.recording_handlers.append(
 				self.buffer.connect(signal, handler))
@@ -154,11 +153,6 @@ class UndoStackManager:
 			('end-insert-tree', self.do_end_insert_tree),
 		):
 			self.buffer.connect_after(signal, handler)
-
-		#~ self.buffer.connect_object('edit-textstyle-changed',
-			#~ self.__class__._flush_if_typing, self)
-		#~ self.buffer.connect_object('set-mark',
-			#~ self.__class__._flush_if_typing, self)
 
 	def clear_undostack(self):
 		'''Clear all recorded information - intended for testing only'''
@@ -197,6 +191,7 @@ class UndoStackManager:
 
 	def do_begin_user_action(self, buffer):
 		# Start a group of actions that will be undone as a single action
+		#print("BEGIN USER ACTION")
 		if self.undo_count > 0:
 			self.flush_redo_stack()
 
@@ -210,6 +205,7 @@ class UndoStackManager:
 
 	def do_end_user_action(self, buffer):
 		# End a group of actions that will be undone as a single action
+		#print("END USER ACTION", self.group)
 		if self.group:
 			self.stack.append(self.group)
 			self.group = UndoActionGroup()
@@ -355,8 +351,8 @@ class UndoStackManager:
 		if self.insert_pending:
 			self.flush_insert()
 
-		#~ import pprint
-		#~ pprint.pprint( self.stack )
+		#import pprint
+		#pprint.pprint( self.stack )
 
 		l = len(self.stack)
 		if self.undo_count == l:

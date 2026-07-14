@@ -1,6 +1,85 @@
-# Copyright 2008-2023 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2026 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from .constants import *
+
+
+def toggle_checkbox_interactive(textview, line: int|None=None, state=None):
+	'''Convenience method for UI actions to toggle a checkbox
+
+	This method is intended for UI actions that want to toggle a checkbox.
+	It takes care of cursor and selection in the view and preference for recursive
+	behavior of checkboxes.
+
+	It will only affect lines that already contain a checkbox. To reformat other
+	lines please refer to the L{PageView.apply_format_checkbox_list()} action.
+
+	For multi-line it will only toggle unchecked boxes and not overwrite existing
+	toggled stated. Unless `state` is `UNCHECKED_BOX`.
+
+	It implements the `'recursive_checklist'` and `'cycle_checkbox_type'` preferences.
+	The `'cycle_checkbox_type'` preference only applies for a single line, not for selections.
+
+	@param textview: a L{TextView} object
+	@param line: optional line number, if C{None} the cursor will be used
+	@param state: optional checkbox state, if C{None} state will toggle to next logical state
+	@returns: C{True} for success, C{False} if no checkbox was found.
+	'''
+	with textview.get_buffer().user_action:
+		return _toggle_checkbox_interactive(textview, line, state)
+
+
+def _toggle_checkbox_interactive(textview, line: int|None=None, state=None):
+	# NOTE: when recursive_checklist is False we could optimize this function and remove the use
+	# of the TextBufferList and directly call `buffer.set_bullet()`. Unless performance issues are
+	# seen this is not needed. If performance issues are seen it would be best to address them in
+	# the TextBufferList to make sure we can also performe with recursive_checklist is True.
+	buffer = textview.get_buffer()
+	recurs = textview.preferences['recursive_checklist']
+	cycle = textview.preferences['cycle_checkbox_type']
+
+	if buffer.get_has_selection() and line is None:
+		# multi-line
+		start, end = buffer.get_selection_bounds()
+		clist = TextBufferList(buffer, start.get_line(), end.get_line(), recursive_checklist=recurs)
+
+		if not clist:
+			return False # nothing to do here
+
+		if state is None:
+			# look at first checkbox to decide what to do
+			for row in clist:
+				line, indent, bullet = row
+				if bullet in CHECKBOXES:
+					state = CHECKED_BOX if bullet == UNCHECKED_BOX else UNCHECKED_BOX
+					break
+			else:
+				return False # no checkboxes in list
+
+		def update_checkbox(line):
+			bullet = buffer.get_bullet(line)
+			if bullet in CHECKBOXES and (bullet == UNCHECKED_BOX or state == UNCHECKED_BOX):
+				row = clist.get_row_at_line(line)
+				clist.set_bullet(row, state)
+
+		return buffer.foreach_line_in_selection(update_checkbox, skip_empty_lines=True)
+	else:
+		# single line
+		line = buffer.get_insert_iter().get_line() if line is None else line
+		bullet = buffer.get_bullet(line)
+		if bullet not in CHECKBOXES:
+			return False
+
+		if state is None:
+			if cycle:
+				i = CHECKBOXES.index(bullet)
+				j = (i + 1) % len(CHECKBOXES)
+				state = CHECKBOXES[j]
+			else:
+				state = CHECKED_BOX if bullet == UNCHECKED_BOX else UNCHECKED_BOX
+
+		clist = TextBufferList(buffer, line, recursive_checklist=recurs)
+		clist.set_bullet(clist.get_row_at_line(line), state)
+		return True
 
 
 class TextBufferList(list):
@@ -24,63 +103,72 @@ class TextBufferList(list):
 	INDENT_COL = 1
 	BULLET_COL = 2
 
-	@classmethod
-	def new_from_line(self, textbuffer, line):
-		'''Constructor for a new TextBufferList mapping the list at a
-		specific line in the buffer
-
-		@param textbuffer: a L{TextBuffer} object
-		@param line: a line number
-
-		This line should be part of a list, the TextBufferList object
-		that is returned maps the full list, so it possibly extends
-		above and below C{line}.
-
-		@returns: a 2-tuple of a row id and a the new TextBufferList
-		object, or C{(None, None)} if C{line} is not part of a list.
-		The row id points to C{line} in the list.
-		'''
-		if textbuffer.get_bullet(line) is None:
-			return None, None
-
-		# find start of list
-		start = line
-		for myline in range(start, -1, -1):
-			if textbuffer.get_bullet(myline) is None:
-				break # TODO skip lines with whitespace
-			else:
-				start = myline
-
-		# find end of list
-		end = line
-		lastline = textbuffer.get_end_iter().get_line()
-		for myline in range(end, lastline + 1, 1):
-			if textbuffer.get_bullet(myline) is None:
-				break # TODO skip lines with whitespace
-			else:
-				end = myline
-
-		list = TextBufferList(textbuffer, start, end)
-		row = list.get_row_at_line(line)
-		#~ print('!! LIST %i..%i ROW %i' % (start, end, row))
-		#~ print('>>', list)
-		return row, list
-
-	def __init__(self, textbuffer, firstline, lastline):
+	def __init__(self, textbuffer: 'TextBuffer', firstline: int, lastline: int|None=None, recursive_checklist: bool=True):
 		'''Constructor
+
+		Based on first and last line provided in this constructor it will capture all list content
+		in between (potentially multiple lists) and extend in both directions if lines are in the
+		middle of a list. The `firstline` and `lastline` attributes of the object will therefore
+		often deviate from the values provided to the constructor.
 
 		@param textbuffer: a L{TextBuffer} object
 		@param firstline: the line number for the first line of the list
-		@param lastline: the line number for the last line of the list
+		@param lastline: the line number for the last line of the list - optional, if C{None} the
+		list around `firstline` will be captured, if not C{None} the whole region between
+		`firstline` and `lastline` is captured.
+		@param recursive_checklist: if C{True} checking a box will affect child items
+		and unchecking a box will affect parent items
 		'''
+		lastline = firstline if lastline is None else lastline
 		self.buffer = textbuffer
-		self.firstline = firstline
-		self.lastline = lastline
-		for line in range(firstline, lastline + 1):
-			bullet = self.buffer.get_bullet(line)
-			indent = self.buffer.get_indent(line)
-			if bullet:
-				self.append((line, indent, bullet))
+		self.firstline = self._find_start_of_list(textbuffer, firstline, lastline)
+		self.lastline = self._find_end_of_list(textbuffer, lastline, firstline)
+		self.recursive_checklist = recursive_checklist
+		if self.firstline is not None and self.lastline is not None:
+			for line in range(self.firstline, self.lastline + 1):
+				bullet = self.buffer.get_bullet(line)
+				indent = self.buffer.get_indent(line)
+				if bullet:
+					self.append((line, indent, bullet))
+
+	@staticmethod
+	def _find_start_of_list(textbuffer, line, end):
+		if textbuffer.get_bullet(line) is None:
+			# Walk down till we find bullet
+			for myline in range(start, end + 1, 1):
+				if textbuffer.get_bullet(myline) is not None:
+					return myline
+			else:
+				return None
+		else:
+			# Walk up to find the start
+			start = line
+			for myline in range(start, -1, -1):
+				if textbuffer.get_bullet(myline) is None:
+					break # TODO skip lines with whitespace / indented paragraph
+				else:
+					start = myline
+			return start
+
+	@staticmethod
+	def _find_end_of_list(textbuffer, line, start):
+		if textbuffer.get_bullet(line) is None:
+			# Walk up till we find bullet
+			for myline in range(line, start - 1, -1):
+				if textbuffer.get_bullet(myline) is not None:
+					return myline
+			else:
+				return None
+		else:
+			# Walk down to find end
+			end = line
+			lastline = textbuffer.get_end_iter().get_line()
+			for myline in range(end, lastline + 1, 1):
+				if textbuffer.get_bullet(myline) is None:
+					break # TODO skip lines with whitespace / indented paragraph
+				else:
+					end = myline
+			return end
 
 	def get_row_at_line(self, line):
 		'''Get the row in the list for a specific line
@@ -230,12 +318,12 @@ class TextBufferList(list):
 		assert bullet in BULLETS
 		with self.buffer.user_action:
 			self._change_bullet_type(row, bullet)
-			if bullet == BULLET:
-				pass
-			elif bullet == UNCHECKED_BOX:
+			if bullet == UNCHECKED_BOX and self.recursive_checklist:
 				self._checkbox_unchecked(row)
-			else: # CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, TRANSMIGRATED_BOX
+			elif bullet in CHECKBOXES and self.recursive_checklist:
 				self._checkbox_checked(row, bullet)
+			else:
+				pass
 
 	def _checkbox_unchecked(self, row):
 		# When a row is unchecked, it's children are untouched but

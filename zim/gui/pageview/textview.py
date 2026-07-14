@@ -20,7 +20,7 @@ from .constants import *
 from .objectanchors import LineSeparatorAnchor
 from .textbuffer import TextBuffer, increase_list_bullet, is_numbered_bullet_re
 from .textbuffer import _is_link_tag, _is_link_tag_without_href # FIXME - remove need to import these, use API instead
-from .lists import TextBufferList
+from .lists import TextBufferList, toggle_checkbox_interactive
 
 
 logger = logging.getLogger('zim.gui.pageview.textview')
@@ -314,17 +314,12 @@ class TextView(Gtk.TextView):
 		# Handle clicking a link or checkbox
 		cont = Gtk.TextView.do_button_release_event(self, event)
 		if not self.get_buffer().get_has_selection():
-			if self.get_editable():
-				if event.button == 1:
-					if self.preferences['cycle_checkbox_type']:
-						# Cycle through all states - more useful for
-						# single click input devices
-						self.click_link() or self.click_checkbox() or self.click_anchor()
-					else:
-						self.click_link() or self.click_checkbox(CHECKED_BOX) or self.click_anchor()
+			if self.get_editable() and event.button == 1:
+				# Click checkbox, link or anchor
+				self.click_link() or self.click_anchor() or self.click_checkbox()
 			elif event.button == 1:
 				# no changing checkboxes for read-only content
-				self.click_link()
+				self.click_link() or self.click_anchor()
 
 		return cont # continue emit ?
 
@@ -437,8 +432,9 @@ class TextView(Gtk.TextView):
 			if home.starts_line() and iter.compare(ourhome) < 1 \
 			and not buffer.get_iter_in_verbatim_block(iter):
 				buffer.emit('undo-save-cursor', iter)
-				row, mylist = TextBufferList.new_from_line(buffer, iter.get_line())
+				mylist = TextBufferList(buffer, iter.get_line())
 				if mylist and self.preferences['recursive_indentlist']:
+					row = mylist.get_row_at_line(iter.get_line())
 					mylist.indent(row)
 				else:
 					buffer.indent(iter.get_line(), interactive=True)
@@ -470,8 +466,9 @@ class TextView(Gtk.TextView):
 					return default
 				elif bullet:
 					# Unindent list maybe recursive
-					row, mylist = TextBufferList.new_from_line(buffer, iter.get_line())
+					mylist = TextBufferList(buffer, iter.get_line())
 					if mylist and self.preferences['recursive_indentlist']:
+						row = mylist.get_row_at_line(iter.get_line())
 						return bool(mylist.unindent(row)) or default
 					else:
 						return bool(buffer.unindent(iter.get_line(), interactive=True)) or default
@@ -654,10 +651,18 @@ class TextView(Gtk.TextView):
 		@returns: a 2-tuple of a C{Gtk.TextIter} and a C{(x, y)}
 		tupple with coordinates for the mouse pointer.
 		'''
+		if hasattr(self, '_mock_pointer_location') and self._mock_pointer_location:
+			return self._mock_pointer_location
+
 		x, y = self.get_pointer()
 		x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, x, y)
 		iter = strip_boolean_result(self.get_iter_at_location(x, y))
 		return iter, (x, y)
+
+	def _set_pointer_location(self, iter, coord):
+		# Only intended to mock internal state for test cases,
+		# do not use in application code.
+		self._mock_pointer_location = (iter, coord)
 
 	def _get_pixbuf_at_pointer(self, iter, coords):
 		'''Returns the pixbuf that is under the mouse or C{None}. The
@@ -776,19 +781,14 @@ class TextView(Gtk.TextView):
 		else:
 			return False
 
-	def click_checkbox(self, checkbox_type=None):
+	def click_checkbox(self):
 		'''Toggle the checkbox under the mouse pointer, if any
-
-		@param checkbox_type: the checkbox type to toggle between, see
-		L{TextBuffer.toggle_checkbox()} for details.
 		@returns: C{True} for success, C{False} if no checkbox was found.
 		'''
 		iter, coords = self._get_pointer_location()
 		if iter and iter.get_line_offset() < 2:
 			# Only position 0 or 1 can map to a checkbox
-			buffer = self.get_buffer()
-			recurs = self.preferences['recursive_checklist']
-			return buffer.toggle_checkbox(iter.get_line(), checkbox_type, recurs)
+			return toggle_checkbox_interactive(self, line=iter.get_line())
 		else:
 			return False
 

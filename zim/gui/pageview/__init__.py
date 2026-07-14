@@ -10,12 +10,6 @@ shows the page. The L{TextBuffer} class is the data model used by the
 L{TextView}.
 '''
 
-# TODO
-# - create "load" & "serialize" and refactor that part out of buffer
-# - refactor autoformatting end-of-word / end-of-line to helper object
-# - check TextBufferList usage - extend or limit ?
-# - check other parts of textbuffer to refactor out
-
 
 import logging
 
@@ -62,6 +56,7 @@ from .textview import TextView
 from .editbar import EditBar
 from .find import FindAndReplaceDialog, FindBar
 from .dialogs import *
+from .lists import toggle_checkbox_interactive
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -1652,45 +1647,38 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	@action(_('Un-check Checkbox'), verb_icon=STOCK_UNCHECKED_BOX, menuhints='edit') # T: Menu item
 	def uncheck_checkbox(self):
-		buffer = self.textview.get_buffer()
-		recurs = self.preferences['recursive_checklist']
-		buffer.toggle_checkbox_for_cursor_or_selection(UNCHECKED_BOX, recurs)
+		'''Menu action to toggle checkbox at the cursor or in current selected text
+		This action only affects checkboxes, lines without a checkbox will not be affected
+		'''
+		toggle_checkbox_interactive(self.textview, state=UNCHECKED_BOX)
 
 	@action(_('Toggle Checkbox \'V\''), 'F12', verb_icon=STOCK_CHECKED_BOX, menuhints='edit') # T: Menu item
 	def toggle_checkbox(self):
-		'''Menu action to toggle checkbox at the cursor or in current
-		selected text
+		'''Menu action to toggle checkbox at the cursor or in current selected text
+		This action only affects (open) checkboxes, lines without a checkbox will not be affected
 		'''
-		buffer = self.textview.get_buffer()
-		recurs = self.preferences['recursive_checklist']
-		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recurs)
+		toggle_checkbox_interactive(self.textview, state=CHECKED_BOX)
 
 	@action(_('Toggle Checkbox \'X\''), '<shift>F12', verb_icon=STOCK_XCHECKED_BOX, menuhints='edit') # T: Menu item
 	def xtoggle_checkbox(self):
-		'''Menu action to toggle checkbox at the cursor or in current
-		selected text
+		'''Menu action to toggle checkbox at the cursor or in current selected text
+		This action only affects (open) checkboxes, lines without a checkbox will not be affected
 		'''
-		buffer = self.textview.get_buffer()
-		recurs = self.preferences['recursive_checklist']
-		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
+		toggle_checkbox_interactive(self.textview, state=XCHECKED_BOX)
 
 	@action(_('Toggle Checkbox \'>\''), verb_icon=STOCK_MIGRATED_BOX, menuhints='edit') # T: Menu item
 	def migrate_checkbox(self):
-		'''Menu action to toggle checkbox at the cursor or in current
-		selected text
+		'''Menu action to toggle checkbox at the cursor or in current selected text
+		This action only affects (open) checkboxes, lines without a checkbox will not be affected
 		'''
-		buffer = self.textview.get_buffer()
-		recurs = self.preferences['recursive_checklist']
-		buffer.toggle_checkbox_for_cursor_or_selection(MIGRATED_BOX, recurs)
+		toggle_checkbox_interactive(self.textview, state=MIGRATED_BOX)
 
 	@action(_('Toggle Checkbox \'<\''), verb_icon=STOCK_TRANSMIGRATED_BOX, menuhints='edit') # T: Menu item
 	def transmigrate_checkbox(self):
-		'''Menu action to toggle checkbox at the cursor or in current
-		selected text
+		'''Menu action to toggle checkbox at the cursor or in current selected text
+		This action only affects (open) checkboxes, lines without a checkbox will not be affected
 		'''
-		buffer = self.textview.get_buffer()
-		recurs = self.preferences['recursive_checklist']
-		buffer.toggle_checkbox_for_cursor_or_selection(TRANSMIGRATED_BOX, recurs)
+		toggle_checkbox_interactive(self.textview, state=TRANSMIGRATED_BOX)
 
 	@action(_('_Edit Link or Object...'), '<Primary>E', menuhints='edit') # T: Menu item
 	def edit_object(self, iter=None):
@@ -1862,7 +1850,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	@action(_('Checkbo_x List'), menuhints='edit') # T: Menu item,
 	def apply_format_checkbox_list(self):
-		'''Menu action to format selection as checkbox list'''
+		'''Menu action to format selection as checkbox list
+		Only affects lines wihout a checkbox, does not change checked-checkboxes.
+		To un-toggle a checkbox list, use L{uncheck_checkbox()} instead.
+		'''
 		self._apply_bullet(UNCHECKED_BOX)
 
 	@action(_('_Remove List'), menuhints='edit') # T: Menu item,
@@ -1873,12 +1864,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def _apply_bullet(self, bullet_type):
 		buffer = self.textview.get_buffer()
 		bounds = buffer.get_selection_bounds()
+
+		if bullet_type in CHECKBOXES:
+			# special case for `apply_format_checkbox_list()` ignore existing checkboxes
+			def set_bullet(line, bullet_type):
+				bullet = buffer.get_bullet(line)
+				if not bullet in CHECKBOXES:
+					buffer.set_bullet(line, bullet_type)
+		else:
+			set_bullet = buffer.set_bullet
+
 		if bounds:
 			# set for selected lines & restore selection
 			start_mark = buffer.create_mark(None, bounds[0], left_gravity=True)
 			end_mark = buffer.create_mark(None, bounds[1], left_gravity=False)
 			try:
-				buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type, skip_empty_lines=True)
+				buffer.foreach_line_in_selection(set_bullet, bullet_type, skip_empty_lines=True)
 			except:
 				raise
 			else:
@@ -1891,7 +1892,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			# set for current line
 			line = buffer.get_insert_iter().get_line()
-			buffer.set_bullet(line, bullet_type)
+			set_bullet(line, bullet_type)
 
 	@action(_('Text From _File...'), menuhints='insert') # T: Menu item
 	def insert_text_from_file(self):

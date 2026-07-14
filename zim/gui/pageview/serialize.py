@@ -20,7 +20,10 @@ from zim.parse.xml import simple_token_to_xml_dumper, simple_xml_to_token_parser
 
 from .constants import PIXBUF_CHR, BULLETS_FROM_STOCK, ICON, BLOCK, LISTITEM
 from .objectanchors import InsertedObjectAnchor, LineSeparatorAnchor
-from .textbuffer import _is_inline_nesting_tag
+
+_nesting_style_tags = ('emphasis', 'strong', 'mark', 'strike', 'sub', 'sup',)
+_is_inline_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in _nesting_style_tags or tag.zim_tag == LINK
+	# redefined from .textbuffer to avoid circular import - if updated keep in sync
 
 __all__ = ('textbuffer_internal_insert_at_cursor', 'textbuffer_internal_serialize_range', 'TextBufferInternalContents')
 

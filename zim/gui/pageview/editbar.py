@@ -49,6 +49,13 @@ class EditActionMixin(object):
 
 		pageview = self.pageview
 		for action in (
+			#'>' + _('Toggle checkboxes'), # T: sub-menu in editbar
+			pageview.uncheck_checkbox,
+			pageview.toggle_checkbox,
+			pageview.xtoggle_checkbox,
+			pageview.migrate_checkbox,
+			pageview.transmigrate_checkbox,
+			'----',
 			pageview.apply_format_bullet_list,
 			pageview.apply_format_numbered_list,
 			pageview.apply_format_checkbox_list,
@@ -58,6 +65,11 @@ class EditActionMixin(object):
 			if action == '----':
 				section = Gio.Menu()
 				menu.append_section(None, section)
+			elif isinstance(action, str) and action.startswith('>'):
+				label = action.lstrip('>')
+				section = Gio.Menu()
+				#menu.append_section(None, section)
+				menu.append_submenu(label, section)
 			else:
 				section.append(action.label, 'pageview.' + action.name)
 
