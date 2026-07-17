@@ -305,12 +305,14 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		if pagelink:
 			window.open_page(Path(pagelink.names), anchor=pagelink.anchor)
 
-		geometry = self.opts.get('geometry', None)
-		if geometry is not None:
-			window.parse_geometry(geometry)
+		fullscreen = self.opts.get('fullscreen')
+		if fullscreen is not None:
+			window.toggle_fullscreen(fullscreen)
+			# window might already be fullscreen, so only toggle if explicit given
 
-		if self.opts.get('fullscreen', False):
-			window.toggle_fullscreen(True)
+		# NOTE: would like to set geometry the same way here as fullscreen
+		# but this doesn't work once we have called "set_default_size"
+		# so only supported first time we create the window
 
 	def _run_new_window(self, notebook, pagelink):
 		from gi.repository import GObject
@@ -342,12 +344,9 @@ class GuiCommand(NotebookCommand, GtkCommand):
 			preferences['plugins_list_version'] = '0.70'
 
 		page = Path(pagelink.names) if pagelink else None
-		window = MainWindow(
-			notebook,
-			page=page,
-			**self.get_options('geometry', 'fullscreen')
-		)
-		window.present()
+		window = MainWindow(notebook, page=page, geometry=self.opts.get('geometry'))
+		self._present_window(window, pagelink)
+
 		if pagelink and pagelink.anchor:
 			window.open_page(Path(pagelink.names), anchor=pagelink.anchor)
 

@@ -2699,6 +2699,9 @@ class Window(Gtk.Window):
 			raise ValueError('Widget not found in this window')
 
 	def init_uistate(self):
+		if self._uistate_initialized:
+			return
+
 		self.uistate.define((
 			('toggle_panes', ConfigDefinitionPaneToggle()),
 		))
@@ -3244,7 +3247,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 			self.uistate['windowsize'] = tuple(self.get_size())
 			self.save_uistate()
 		except:
-			logger.exception('Exception in do_response()')
+			logger.exception('Exception saving uistate')
 
 		if destroy:
 			self.destroy()

@@ -11,6 +11,8 @@ The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Pref
 
 **Show controls in the window decoration** determines whether controls are show in the window border. This implies custom window decoration; this may break some platform semantics depending on your operating system. This option requires restart of the application.
 
+**Remember window placement** if enabled, zim will remember the window placement of the main window and overrule the window manager on startup to place the window in the same location. In several cases this may mis-behave and it is better to let the window manager take care of placement. Notably, this option may place the window in an invisible location when switching between multi-monitor and single-monitor setups.
+
 **Use <Ctrl><Space> to switch to the side pane** toggles the key binding for <Ctrl><Space>. The reason to toggle this binding 'off' is usually because it is also used for input methods when using non-western scripts.
 
 **Always use last cursor position when opening a page** toggles whether pages are always opened on their last cursor position or not. When this is disabled pages only open with a cursor position when they are opened be a history reference (e.g. the "Back" button or a link from the pathbar).

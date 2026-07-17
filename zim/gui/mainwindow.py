@@ -70,6 +70,8 @@ ui_preferences = (
 		+ '\n' + _('This option requires restart of the application'), False), # T: info text for preferences dialog
 	('show_headerbar', 'bool', 'Interface', _('Show controls in the window decoration') + '\n' + _('This option requires restart of the application'), os_default_headerbar),
 		# T: option for preferences dialog
+	('remember_window_placement', 'bool', 'Interface', _('Remember window placement'), False),
+		# T: Option in the preferences dialog
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING + '<Space>'), False),
 		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 		# default value is False because this is mapped to switch between
@@ -180,6 +182,14 @@ class WindowBaseMixin(ConnectorMixin, object):
 				self._fullscreen_eventbox.hide()
 
 			self.update_toolbar()
+
+	def present(self):
+		if not self.isfullscreen:
+			super(WindowBaseMixin, self).present()
+		else:
+			logger.debug('Skip presenting window, already fullscreen')
+			# Gtk.Window.present() kicks us out of fullscreen mode
+			# assume we are sufficiently visible already in this case
 
 	def _on_fullscreen_eventbox_enter(self, *a):
 		if self._headerbar is None and self._toolbar and self._toolbar.get_visible():
@@ -427,18 +437,16 @@ class MainWindow(WindowBaseMixin, Window):
 		'close': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, notebook, page=None, fullscreen=False, geometry=None):
+	def __init__(self, notebook, page=None, geometry=None):
 		'''Constructor
 		@param notebook: the L{Notebook} to show in this window
 		@param page: a C{Path} object to open
-		@param fullscreen: if C{True} the window is shown fullscreen,
-		if C{None} the previous state is restored
-		@param geometry: the window geometry as string in format
-		"C{WxH+X+Y}", if C{None} the previous state is restored
+		@param geometry: window placement request in `wxh+x+y` format
 		'''
 		Window.__init__(self)
 		self.notebook = notebook
 		self.page = None # will be set later by open_page
+		self._set_geometry = geometry
 		self.navigation = NavigationModel(self)
 		self.hideonclose = False
 
@@ -469,6 +477,7 @@ class MainWindow(WindowBaseMixin, Window):
 
 		# setup uistate
 		self.uistate = notebook.state['MainWindow']
+		self.uistate.setdefault('windowpos', None, check=value_is_coord)
 		self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 		self.uistate.setdefault('windowmaximized', False)
 		self.uistate.setdefault('active_tabs', None, tuple)
@@ -496,17 +505,6 @@ class MainWindow(WindowBaseMixin, Window):
 		self.add(self.pageview)
 
 		self.do_preferences_changed()
-
-		self._geometry_set = False
-		self._set_fullscreen = False
-		if geometry:
-			try:
-				self.parse_geometry(geometry)
-				self._geometry_set = True
-			except:
-				logger.exception('Parsing geometry string failed:')
-		elif fullscreen:
-			self._set_fullscreen = True
 
 		# Init mouse settings
 		self.preferences.setdefault('mouse_nav_button_back', 8)
@@ -717,18 +715,30 @@ class MainWindow(WindowBaseMixin, Window):
 		# delayed till show or show_all because all this needs real
 		# uistate to be in place and plugins to be loaded
 		# Run between loading plugins and actually presenting the window to the user
-
-		if not self._geometry_set:
-			# Ignore this if an explicit geometry was specified to the constructor
-			w, h = self.uistate['windowsize']
-			self.set_default_size(w, h)
-
-			if self.uistate['windowmaximized']:
-				self.maximize()
+		if self._uistate_initialized:
+			return
 
 		Window.init_uistate(self) # takes care of sidepane positions etc
 
-		self.toggle_fullscreen(self._set_fullscreen)
+		# Determine window size and placement
+		if self._set_geometry:
+			# Needs to be known upfront, as we can call "set_default_size" only once
+			try:
+				self.parse_geometry(self._set_geometry) \
+					or logger.warning('Parsing geometry string "%s" failed', self._set_geometry)
+			except:
+				logger.exception('Parsing geometry string "%s" failed', self._set_geometry)
+		else:
+			w, h = self.uistate['windowsize']
+			self.set_default_size(w, h)
+
+			if self.preferences['remember_window_placement'] \
+				and self.uistate['windowpos'] is not None:
+					x, y = self.uistate['windowpos']
+					self.move(x, y)
+
+			if self.uistate['windowmaximized']:
+				self.maximize()
 
 		# And hook to notebook properties
 		self.on_notebook_properties_changed(self.notebook.properties)
@@ -766,6 +776,7 @@ class MainWindow(WindowBaseMixin, Window):
 		self.history.set_state(self.page, cursor, scroll)
 
 		if self.is_visible() and not self.isfullscreen:
+			self.uistate['windowpos'] = tuple(self.get_position())
 			self.uistate['windowsize'] = tuple(self.get_size())
 			self.uistate['windowmaximized'] = self.maximized
 
