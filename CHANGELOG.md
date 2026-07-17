@@ -5,6 +5,12 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.77.1 - Fri 17 Jul 2026
+* Fix commandline search
+* Fix window geometry and positioning
+* Fix config dirs initialization for windows install
+* Add menu items in editbar to toggle checkboxes
+
 ##  0.77.0 - Thu 11 Jun 2026
 * Merge markdown support as source format for notebooks (experimental)
 * Allow multiple source formats in one notebook

@@ -37,6 +37,16 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release date="2026-07-17" version="0.77.1">
+      <description>
+        <ul>
+          <li>Fix commandline search</li>
+          <li>Fix window geometry and positioning</li>
+          <li>Fix config dirs initialization for windows install</li>
+          <li>Add menu items in editbar to toggle checkboxes</li>
+        </ul>
+      </description>
+    </release>
     <release date="2026-06-11" version="0.77.0">
       <description>
         <ul>
