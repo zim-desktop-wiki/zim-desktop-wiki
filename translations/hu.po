@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-09 18:44+0200\n"
-"PO-Revision-Date: 2026-04-18 09:09+0000\n"
+"PO-Revision-Date: 2026-07-23 18:55+0000\n"
 "Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
-"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/develop/hu/"
-">\n"
+"Language-Team: Hungarian <https://hosted.weblate.org/projects/zim/develop/"
+"hu/>\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.17.1-dev\n"
+"X-Generator: Weblate 2026.8.dev0\n"
 "X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
@@ -791,23 +791,19 @@ msgstr "Mappa"
 
 #. choice field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:439
-#, fuzzy
-#| msgid "Default text"
 msgid "Default file format"
-msgstr "Alapértelmezett szöveg"
+msgstr "Alapértelmezett fájlformátum"
 
 #. choice field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:439
 msgid "Experimental"
-msgstr ""
+msgstr "Kísérleti"
 
 #. choice field in 'Add Notebook' dialog | 
 #. label for properties dialog
 #: zim/gui/notebookdialog.py:440 zim/gui/propertiesdialog.py:28
-#, fuzzy
-#| msgid "Page Template"
 msgid "Page template"
-msgstr "Oldalsablon"
+msgstr "Oldal sablon"
 
 #. help text in the 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:448
@@ -1434,10 +1430,8 @@ msgstr "Hivatkozás"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview/dialogs.py:387
-#, fuzzy
-#| msgid "Default text"
 msgid "Alternate text"
-msgstr "Alapértelmezett szöveg"
+msgstr "Alternatív szöveg"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview/dialogs.py:388
@@ -2205,10 +2199,8 @@ msgstr "Szöveg fájlok"
 
 #. File filter for '*.md'
 #: zim/gui/uiactions.py:536
-#, fuzzy
-#| msgid "Markdown Files"
 msgid "Markdown Files (.md)"
-msgstr "Markdown fájlok"
+msgstr "Markdown fájlok (.md)"
 
 #. Dialog title of file save dialog
 #: zim/gui/uiactions.py:559
@@ -3386,10 +3378,8 @@ msgstr "Eszköztippek használata"
 
 #. preferences option
 #: zim/plugins/pageindex/__init__.py:73 zim/plugins/tags.py:57
-#, fuzzy
-#| msgid "_Sort lines"
 msgid "Show tree lines"
-msgstr "_Sorok rendezése"
+msgstr "Fastruktúra vonalainak megjelenítése"
 
 #. menu item
 #: zim/plugins/pageindex/__init__.py:132
@@ -3531,10 +3521,8 @@ msgstr "Cím"
 
 #. checkbox; open page.
 #: zim/plugins/quicknote.py:245
-#, fuzzy
-#| msgid "Open _Page"
 msgid "Open _page"
-msgstr "_Oldal megnyitása"
+msgstr "_Lap megnyitása"
 
 #. confirm closing quick note dialog
 #: zim/plugins/quicknote.py:355
@@ -4443,7 +4431,7 @@ msgstr "Automatikus mentés megadott percenként"
 #. Label for notebook properties
 #: zim/plugins/versioncontrol/__init__.py:73
 msgid "Override global preferences"
-msgstr ""
+msgstr "A globális beállítások felülírása"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:220
