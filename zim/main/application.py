@@ -21,7 +21,7 @@ from . import _application_startup, build_command, UsageError
 
 class ZimGtkApplication(Gtk.Application):
 	
-	APPLICATION_ID = 'org.zim_wiki.Zim' # For practical reasons use "_" instead of "-"
+	APPLICATION_ID = 'org.zim_wiki.Zim' # For practical reasons use "_" instead of "-", must match basename .desktop file !
 	
 	def __init__(self, non_unique=False, standalone=False):
 		'''Constructor
