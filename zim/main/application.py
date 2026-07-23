@@ -13,6 +13,7 @@ logger = logging.getLogger('zim')
 import zim.errors
 
 from gi.repository import Gio
+from gi.repository import GLib
 from gi.repository import Gtk
 
 from . import _application_startup, build_command, UsageError
@@ -30,6 +31,7 @@ class ZimGtkApplication(Gtk.Application):
 		'''
 		Gtk.Application.__init__(self)
 		self.set_application_id(self.APPLICATION_ID)
+		GLib.set_prgname(self.APPLICATION_ID)
 		self.standalone = standalone
 		if standalone or non_unique:
 			self.set_flags(Gio.ApplicationFlags.HANDLES_COMMAND_LINE|Gio.ApplicationFlags.NON_UNIQUE)
