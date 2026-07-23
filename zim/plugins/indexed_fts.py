@@ -58,8 +58,8 @@ sqlite.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('remove_diacritics', 'bool', _('Remove diacritics before indexing'), False),
-		('tokenchars', 'string', _('Additional token characters'), ''),
+		('remove_diacritics', 'bool', _('Remove diacritics before indexing'), False), # T: plugin preference for indexed search
+		('tokenchars', 'string', _('Additional token characters'), ''), # T: plugin preference for indexed search
 	)
 
 	@classmethod

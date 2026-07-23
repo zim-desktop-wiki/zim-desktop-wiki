@@ -6,6 +6,8 @@ source_files = {}
 
 comment_re = re.compile(r'\s+#\s+T:\s+(.+)\s*$')
 
+ignore_ext = ('.html', '.txt')
+
 def get_file(file):
 	if not file in source_files:
 		#~ print('Extracting comments from', file)
@@ -34,18 +36,20 @@ def extract_comment(file, line):
 		return None
 
 def extract_comments(sources):
-	sources = [s.split(':') for s in sources]
+	sources = list(filter(lambda s: not any(s[0].endswith(e) for e in ignore_ext) ,[s.split(':') for s in sources]))
 	comments = []
 	for file, line in sources:
 		comment = extract_comment(file, int(line))
 		if comment and comment not in comments:
 			comments.append(comment)
+
 	if comments:
 		return ' | \n'.join(['#. ' + c for c in comments]) + '\n'
 	else:
-		print('No translator comment for:')
-		for file, line in sources:
-			print('\t%s line %s' % (file, line))
+		if sources:
+			print('No translator comment for:')
+			for file, line in sources:
+				print('\t%s line %s' % (file, line))
 		return ''
 
 def add_comments(file):

@@ -30,7 +30,7 @@ class PropertiesDialog(Dialog):
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
 		('short_links', 'bool', _('Prefer short names for page links'), False), # T: label for properties dialog
 		('disable_trash', 'bool', _('Do not use system trash for this notebook'), False), # T: label for properties dialog
-		('paste_image_template', 'string', _('Filename template for pasted images')),
+		('paste_image_template', 'string', _('Filename template for pasted images')), # T: label for properties dialog
 		# 'shared' property is not shown in properties anymore
 	)
 
