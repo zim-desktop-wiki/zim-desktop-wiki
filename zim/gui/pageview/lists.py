@@ -133,6 +133,8 @@ class TextBufferList(list):
 
 	@staticmethod
 	def _find_start_of_list(textbuffer, line, end):
+		start = line
+
 		if textbuffer.get_bullet(line) is None:
 			# Walk down till we find bullet
 			for myline in range(start, end + 1, 1):
@@ -142,7 +144,6 @@ class TextBufferList(list):
 				return None
 		else:
 			# Walk up to find the start
-			start = line
 			for myline in range(start, -1, -1):
 				if textbuffer.get_bullet(myline) is None:
 					break # TODO skip lines with whitespace / indented paragraph
