@@ -5,7 +5,7 @@
 # by Patricio Paez <pp@pp.com.mx>
 
 import tests
-from zim.inc.arithmetic import feed
+from zim.inc.arithmetic import ParserGTK, feed
 
 
 class ArithmeticTest(tests.TestCase):
@@ -93,3 +93,34 @@ class ArithmeticTest(tests.TestCase):
 		W * Höhe=15
 		'''
 		self.assertEqual(feed(text), wanted)
+
+
+class MockTextBuffer:
+	'''Minimal stand-in for the parts of Gtk.TextBuffer used by writeResult()'''
+
+	def __init__(self):
+		self.inserted = None
+
+	def get_iter_at_line_offset(self, line, offset):
+		return (line, offset)
+
+	def insert(self, iter, text):
+		self.inserted = text
+
+
+class ArithmeticGtkGroupedResultTest(tests.TestCase):
+
+	def runTest(self):
+		'''Grouped results must not break the GTK result formatting'''
+		# AddCommas() groups thousands, so writeResult() must not feed
+		# the separators straight into float() - see issue #2994
+		for text, wanted in (
+			('1,000', '1,000'),
+			('-1,000', '-1,000'),
+			('15,625', '15,625'),
+			('1,501.5', '1,501.5'),
+			('10', '10'),
+		):
+			buffer = MockTextBuffer()
+			ParserGTK().writeResult(0, buffer, 0, 0, text)
+			self.assertEqual(buffer.inserted, wanted)
