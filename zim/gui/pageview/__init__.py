@@ -2082,9 +2082,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param query: a FindQuery for the text to find
 		@param highlight: if C{True} highlight the results
 		'''
-		self.find_bar.show()
 		if query:
+			self.find_bar.show()
 			self.find_bar.find(query, highlight)
+		else:
+			self.find_bar.set_query_from_selection()
+			self.find_bar.show() # avoid "show" changing the selection
+
 		self.find_bar.grab_focus()
 
 	def hide_find(self):
@@ -2107,10 +2111,19 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.find_bar.find_previous()
 
 	@action(_('_Replace...'), '<Primary>H', menuhints='edit') # T: Menu item
-	def show_find_and_replace(self):
+	def show_find_and_replace(self, query: 'FindQuery|None'=None, replacement: str|None=None, highlight: bool=False):
 		'''Menu action to show the L{FindAndReplaceDialog}'''
 		dialog = FindAndReplaceDialog.unique(self, self, self.textview)
-		# TODO copy settings from find bar if "pop-out" action ?
+		if replacement is not None:
+			dialog.set_input(replacement=replacement)
+
+		if query:
+			dialog.find(query, highlight)
+		elif self.find_bar.get_visible():
+			dialog.set_query(self.find_bar.get_query())
+		else:
+			dialog.set_query_from_selection()
+
 		dialog.present()
 
 	@action(_('Word Count...')) # T: Menu item

@@ -600,7 +600,7 @@ class FindWidget(object):
 		self.highlight_checkbox.connect_object(
 			'toggled', self.__class__.on_highlight_toggled, self)
 
-	def _get_query(self):
+	def get_query(self) -> FindQuery:
 		string = self.find_entry.get_text()
 		flags = SearchFlag(0)
 		if self.case_option_checkbox.get_active():
@@ -611,8 +611,31 @@ class FindWidget(object):
 			flags = flags | SEARCH_REGEX
 		return FindQuery(string, flags)
 
+	def set_query(self, query: FindQuery):
+		self.find_entry.set_text(query.string)
+		self.case_option_checkbox.set_active(SEARCH_CASE_SENSITIVE in query.flags)
+		self.word_option_checkbox.set_active(SEARCH_WHOLE_WORD in query.flags)
+		self.regex_option_checkbox.set_active(SEARCH_REGEX in query.flags)
+
+	def set_query_from_selection(self) -> bool:
+		buffer = self.textview.get_buffer()
+		bounds = buffer.get_selection_bounds()
+		if not bounds and hasattr(buffer, 'select_word'):
+			buffer.select_word()
+			bounds = buffer.get_selection_bounds()
+
+		if bounds:
+			start, end = bounds
+			text = start.get_text(end)
+			query = self.get_query() # copy checkbox state
+			query.string = ' '.join(text.strip().split())
+			self.set_query(query)
+			return True
+		else:
+			return False
+
 	def on_find_entry_changed(self, match_at_cursor=True):
-		query = self._get_query()
+		query = self.get_query()
 		buffer = self.textview.get_buffer()
 		if match_at_cursor:
 			buffer.find_clear() # prevent skipping past current cursor if cursor matches
@@ -639,27 +662,24 @@ class FindWidget(object):
 	def on_highlight_toggled(self):
 		buffer = self.textview.get_buffer()
 		if self.highlight_checkbox.get_active():
-			buffer.find_highlight_all(self._get_query())
+			buffer.find_highlight_all(self.get_query())
 		else:
 			buffer.find_clear()
 
 	def find(self, query: FindQuery, highlight: bool=False):
-		self.find_entry.set_text(query.string)
-		self.case_option_checkbox.set_active(SEARCH_CASE_SENSITIVE in query.flags)
-		self.word_option_checkbox.set_active(SEARCH_WHOLE_WORD in query.flags)
-		self.regex_option_checkbox.set_active(SEARCH_REGEX in query.flags)
+		self.set_query(query)
 		self.highlight_checkbox.set_active(highlight)
 		self.on_find_entry_changed()
 
 	def find_next(self):
 		buffer = self.textview.get_buffer()
-		ok = buffer.find_next(self._get_query())
+		ok = buffer.find_next(self.get_query())
 		if ok:
 			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 	def find_previous(self):
 		buffer = self.textview.get_buffer()
-		ok = buffer.find_previous(self._get_query())
+		ok = buffer.find_previous(self.get_query())
 		if ok:
 			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
@@ -776,14 +796,14 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 	def replace(self):
 		string = self.replace_entry.get_text()
 		buffer = self.textview.get_buffer()
-		query = self._get_query()
+		query = self.get_query()
 		if buffer.find_replace_at_cursor(query, string):
 			buffer.find_next(query)
 
 	def replace_all(self):
 		string = self.replace_entry.get_text()
 		buffer = self.textview.get_buffer()
-		buffer.find_replace_all(self._get_query(), string)
+		buffer.find_replace_all(self.get_query(), string)
 
 	def do_response(self, id):
 		Dialog.do_response(self, id)

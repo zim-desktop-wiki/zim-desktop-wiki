@@ -2828,6 +2828,22 @@ Baz
 		self.assertFalse(pageview.edit_bar.get_property('visible'))
 		self.assertFalse(pageview.find_bar.get_property('visible'))
 
+	def testShowFindWithAndWithoutSelection(self):
+		pageview = setUpPageView(self.setUpNotebook(), text='test 123\n')
+		buffer = pageview.textview.get_buffer()
+
+		buffer.place_cursor(buffer.get_start_iter())
+		pageview.show_find()
+		self.assertEqual(pageview.find_bar.find_entry.get_text(), 'test')
+
+		buffer.select_range(*buffer.get_bounds())
+		pageview.show_find()
+		self.assertEqual(pageview.find_bar.find_entry.get_text(), 'test 123')
+
+		buffer.place_cursor(buffer.get_end_iter()) # without word selection, keep as is
+		pageview.show_find()
+		self.assertEqual(pageview.find_bar.find_entry.get_text(), 'test 123')
+
 
 class TestFormatActions(tests.TestCase, TextBufferTestCaseMixin):
 
