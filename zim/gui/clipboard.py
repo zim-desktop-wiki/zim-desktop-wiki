@@ -141,7 +141,7 @@ def textbuffer_register_serialize_formats(buffer, notebook, page):
 	for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
 		buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
 
-def serialize_parse_tree(register_buf, content_buf, start, end, user_data):
+def serialize_parse_tree(register_buf, content_buf, start, end, user_data=None):
 	tree = content_buf.get_parsetree((start, end))
 	xml = tree.tostring()
 	return xml
