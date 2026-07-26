@@ -184,7 +184,7 @@ class MarkdownParser(object):
 			Rule(OBJECT, r'''
 				^[ \t]* `{3,} [ \t]* \{ (\S+) : [ \t]* (.*?) \} [ \t]* \n		# ```{type: params}
 				( (?:^.*\n)*? )													# body
-				^[ \t]* `{3,} [ \t]* \n											# closing ```
+				^[ \t]* `{3,} [ \t]* (?:\n|\Z)									# closing ```
 			''',
 				process=self.parse_object
 			),
@@ -192,7 +192,7 @@ class MarkdownParser(object):
 			Rule(VERBATIM_BLOCK, r'''
 				^[ \t]* (`{3,}) [ \t]* (.*?) \n					# opening backtick fence with optional info
 				( (?:^.*\n)*? )									# multi-line content
-				^[ \t]* `{3,} [ \t]* \n							# closing backtick fence
+				^[ \t]* `{3,} [ \t]* (?:\n|\Z)					# closing backtick fence
 			''',
 				process=self.parse_fenced_code
 			),
@@ -200,7 +200,7 @@ class MarkdownParser(object):
 			Rule(VERBATIM_BLOCK, r'''
 				^[ \t]* (~{3,}) [ \t]* (.*?) \n					# opening tilde fence with optional info
 				( (?:^.*\n)*? )									# multi-line content
-				^[ \t]* ~{3,} [ \t]* \n							# closing tilde fence
+				^[ \t]* ~{3,} [ \t]* (?:\n|\Z)					# closing tilde fence
 			''',
 				process=self.parse_fenced_code
 			),
