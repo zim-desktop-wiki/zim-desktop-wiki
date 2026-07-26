@@ -5,6 +5,12 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.77.2 - Sun 26 Jul 2026
+* Let find show selected text or word at cursor
+* Fix bug with Tab key behavior
+* Set prgname to application ID
+* Merge translations
+
 ##  0.77.1 - Fri 17 Jul 2026
 * Fix commandline search
 * Fix window geometry and positioning

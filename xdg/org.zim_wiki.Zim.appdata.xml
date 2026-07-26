@@ -37,6 +37,16 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release date="2026-07-26" version="0.77.2">
+      <description>
+        <ul>
+          <li>Let find show selected text or word at cursor</li>
+          <li>Fix bug with Tab key behavior</li>
+          <li>Set prgname to application ID</li>
+          <li>Merge translations</li>
+        </ul>
+      </description>
+    </release>
     <release date="2026-07-17" version="0.77.1">
       <description>
         <ul>
