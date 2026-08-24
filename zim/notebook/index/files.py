@@ -71,6 +71,9 @@ class FilesIndexer(SignalEmitter):
 		-- see FilesIndexChecker.check_iter() which queries per record
 		CREATE INDEX IF NOT EXISTS files_index_status
 			ON files(node_type, id) WHERE index_status > 0;
+		-- Index to look up the children of a folder, used when checking
+		-- and when updating the contents of a folder
+		CREATE INDEX IF NOT EXISTS files_parent ON files(parent);
 		''')
 		row = self.db.execute('SELECT * FROM files WHERE id == 1').fetchone()
 		if row is None:
@@ -422,6 +425,8 @@ class FilesIndexChecker(object):
 		# This method adds more robustness for detecting new / missing files
 		# in cases where the folder mtime is not reliable. This is a issue seen
 		# a few times already on cloud synced and encrypted file systems.
+		# NOTE: this runs once per folder, so it depends on the "files_parent"
+		# index to avoid scanning the whole table for each folder
 		on_disk = folder.list_names()
 		in_index = sorted(os.path.basename(r['path'])
 			for r in self.db.execute('SELECT path FROM files WHERE parent = ?', (node_id,))
