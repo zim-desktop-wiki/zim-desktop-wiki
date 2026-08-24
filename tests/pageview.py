@@ -2828,6 +2828,29 @@ Baz
 		self.assertFalse(pageview.edit_bar.get_property('visible'))
 		self.assertFalse(pageview.find_bar.get_property('visible'))
 
+	def testEditBarMenusAreMenuShells(self):
+		# Menu items in a Gtk.Popover register their mnemonics on the toplevel
+		# window instead of on the menu, because a popover is not a
+		# Gtk.MenuShell - so they shadow accelerators using the same key, also
+		# while the menu is closed. E.g. the "Heading 1" .. "Heading 5" items
+		# used to break the <Alt>1 .. <Alt>5 accelerators of the bookmarksbar
+		# plugin. See issue #2096.
+		def iter_widgets(widget):
+			yield widget
+			if isinstance(widget, Gtk.Container):
+				for child in widget.get_children():
+					yield from iter_widgets(child)
+
+		pageview = setUpPageView(self.setUpNotebook())
+		buttons = [
+			w for w in iter_widgets(pageview.edit_bar)
+				if isinstance(w, Gtk.MenuButton)
+		]
+		self.assertTrue(buttons) # ensure we are actually testing something
+		for button in buttons:
+			self.assertIsNone(button.get_popover())
+			self.assertIsInstance(button.get_popup(), Gtk.Menu)
+
 	def testShowFindWithAndWithoutSelection(self):
 		pageview = setUpPageView(self.setUpNotebook(), text='test 123\n')
 		buffer = pageview.textview.get_buffer()
