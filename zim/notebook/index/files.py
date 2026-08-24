@@ -67,6 +67,10 @@ class FilesIndexer(SignalEmitter):
 
 			CONSTRAINT no_self_ref CHECK (parent <> id)
 		);
+		-- Partial index to find records that still need to be checked,
+		-- see FilesIndexChecker.check_iter() which queries per record
+		CREATE INDEX IF NOT EXISTS files_index_status
+			ON files(node_type, id) WHERE index_status > 0;
 		''')
 		row = self.db.execute('SELECT * FROM files WHERE id == 1').fetchone()
 		if row is None:
@@ -352,6 +356,10 @@ class FilesIndexChecker(object):
 		# this makes e.g. index links more efficient and robust
 		# sort by id to ensure parents are found before children
 
+		# NOTE: this query runs once per record, so it depends on the partial
+		# index "files_index_status" to avoid scanning the whole table each
+		# time - without that index the loop below is O(n^2) on the number of
+		# records and dominates the check time for large notebooks
 		while True:
 			row = self.db.execute(
 				'SELECT id, path, node_type, mtime, index_status FROM files'
