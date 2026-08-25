@@ -527,6 +527,71 @@ class TestTaskList(tests.TestCase):
 
 		# TODO test filtering for tags, labels, string - all case insensitive
 
+	def _setUpTaskListWidget(self):
+		plugin = PluginManager.load_plugin('tasklist')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		notebook.index.check_and_update()
+
+		widget = TaskListWidget(
+			notebook.index,
+			tests.MockObject(), # opener
+			plugin.notebook_properties(notebook),
+			False, # show_inbox_next
+			notebook.state['TaskListWidget'],
+			tests.MockObject(), # show_dialog_action
+		)
+		return widget
+
+	def _listTaskIds(self, widget):
+		ids = []
+
+		def collect(model, path, iter):
+			ids.append(model[iter][TASKID_COL])
+
+		widget.tasklisttreeview.real_model.foreach(collect)
+		return ids
+
+	def _countRefresh(self, widget):
+		counts = {}
+
+		def wrap(key, view):
+			counts[key] = 0
+			original = view.refresh
+
+			def refresh():
+				counts[key] += 1
+				original()
+
+			view.refresh = refresh
+
+		wrap('tasks', widget.tasklisttreeview)
+		wrap('tags', widget.tag_list)
+		return counts
+
+	def testReloadViewRefreshesOnlyOnce(self):
+		# Each refresh() rebuilds the view from scratch, so doing it twice per
+		# reload is expensive - see reload_view()
+		widget = self._setUpTaskListWidget()
+		before = self._listTaskIds(widget)
+
+		counts = self._countRefresh(widget)
+		widget.reload_view()
+
+		self.assertEqual(counts, {'tasks': 1, 'tags': 1})
+		self.assertEqual(self._listTaskIds(widget), before)
+
+	def testReloadViewWithUnknownSelection(self):
+		# Fall back to a plain refresh when the selection key is not found,
+		# e.g. because an older version wrote it to the uistate
+		widget = self._setUpTaskListWidget()
+		widget.taskselection_type = SELECTION_ALL
+		widget.selection_list._select = lambda key: False
+
+		counts = self._countRefresh(widget)
+		widget.reload_view()
+
+		self.assertEqual(counts, {'tasks': 1, 'tags': 1})
+
 
 	#~ def testDialog(self):
 		#~ '''Check tasklist plugin dialog'''

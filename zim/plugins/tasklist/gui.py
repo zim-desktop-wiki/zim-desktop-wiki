@@ -128,8 +128,9 @@ class TaskListWidgetMixin(object):
 
 	def _set_selection_state(self, state):
 		self.status = state[1]
-		self.selection_list._select(state[0])
+		selected = self.selection_list._select(state[0])
 		self.tag_list._set_selected_labels_tags_pages(*state[2])
+		return selected
 
 	def _create_tasklisttreeview(self, opener, properties):
 		self.tasklisttreeview = TaskListTreeView(
@@ -235,11 +236,18 @@ class TaskListWidgetMixin(object):
 		)
 
 	def reload_view(self):
+		# NOTE: no explicit refresh() of the views here. Restoring the
+		# selection state below emits "row-activated" on the selection list,
+		# which ends up in set_selection() and refreshes both views with the
+		# new selection object. Refreshing first would rebuild both views
+		# twice for each reload - which is costly because both are rebuilt
+		# from scratch. Only when the selection key is not found - e.g. a
+		# stale uistate - no refresh is triggered and we need to do it here.
 		state = self._get_selection_state()
-		for view in (self.tasklisttreeview, self.tag_list):
-			if view is not None:
-				view.refresh()
-		self._set_selection_state(state)
+		if not self._set_selection_state(state):
+			for view in (self.tasklisttreeview, self.tag_list):
+				if view is not None:
+					view.refresh()
 
 	def on_selection_activated(self, listbox, boxrow):
 		label = boxrow.get_children()[0]
