@@ -73,6 +73,14 @@ class TagsIndexer(IndexerBase):
 
 				CONSTRAINT uc_TagSourceOnce UNIQUE (source, tag)
 			);
+			-- Index to look up the pages that have a given tag. The unique
+			-- constraint above only serves the opposite direction: it starts
+			-- with "source", so sqlite cannot use it to search by tag and
+			-- falls back to scanning the whole table. Selecting by tag is
+			-- used a lot - e.g. by the tree models of the Tags plugin, which
+			-- locate a page below each of its tags for every page that is
+			-- indexed. Including "source" makes the index cover those queries.
+			CREATE INDEX IF NOT EXISTS tagsources_tag ON tagsources(tag, source);
 		''')
 
 	def on_page_changed(self, pagesindexer, pagerow, doc):
