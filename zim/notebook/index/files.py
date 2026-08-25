@@ -71,6 +71,14 @@ class FilesIndexer(SignalEmitter):
 		-- see FilesIndexChecker.check_iter() which queries per record
 		CREATE INDEX IF NOT EXISTS files_index_status
 			ON files(node_type, id) WHERE index_status > 0;
+		-- Partial index to find records that still need to be updated,
+		-- see FilesIndexer._update_iter_inner() which queries per record.
+		-- The index above does not serve that query: sqlite only uses a
+		-- partial index when it can prove the query implies the index
+		-- condition, and it does not derive "index_status > 0" from
+		-- "index_status = ?". The literal below is STATUS_NEED_UPDATE.
+		CREATE INDEX IF NOT EXISTS files_need_update
+			ON files(node_type, id) WHERE index_status = 2;
 		-- Index to look up the children of a folder, used when checking
 		-- and when updating the contents of a folder
 		CREATE INDEX IF NOT EXISTS files_parent ON files(parent);
@@ -100,6 +108,11 @@ class FilesIndexer(SignalEmitter):
 		# sort folders before files: first index structure, then contents
 		# this makes e.g. index links more efficient and robust
 		# sort by id to ensure parents are found before children
+
+		# NOTE: this query runs once per record, so it depends on the partial
+		# index "files_need_update" to avoid scanning the whole table each
+		# time - without that index the loop below is O(n^2) on the number of
+		# records and dominates the time of a full re-index
 		while True:
 			row = self.db.execute(
 				'SELECT id, path, node_type FROM files'
