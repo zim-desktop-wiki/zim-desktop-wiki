@@ -636,6 +636,20 @@ class VCSApplicationBase(ConnectorMixin):
 		versions = self.log_to_revision_list(lines)
 		return versions
 
+	def revision_sort_key(self, i, rev):
+		"""Returns the key used to sort a revision in the versions dialog
+
+		@param i: the position of the revision in the list returned by
+		          L{list_versions()}, thus counting from the oldest revision
+		@param rev: the revision id
+		@returns: a str() to be used as sorting key
+		@implementation: optional, to be implemented in the child class when
+		                 the revision id does not sort by age, e.g. when it is
+		                 a hash. Note that this key is only used for sorting,
+		                 the revision id itself is what is shown to the user.
+		"""
+		return natural_sort_key(rev)
+
 	def log(self, file=None):
 		"""Returns the history related to a file.
 		@param file: a L{File} instance representing the file or None (for the entire repository)
@@ -867,7 +881,7 @@ state. Or select multiple versions to see changes between those versions.
 		vbox.pack_start(label, False, True, 0)
 
 		# Version list
-		self.versionlist = VersionsTreeView()
+		self.versionlist = VersionsTreeView(vcs.revision_sort_key)
 		self.versionlist.load_versions(vcs.list_versions())
 		scrolled = ScrolledWindow(self.versionlist)
 		vbox.add(scrolled)
@@ -1069,10 +1083,12 @@ class VersionsTreeView(SingleClickTreeView):
 	USER_COL = 3
 	MSG_COL = 4
 
-	def __init__(self):
+	def __init__(self, revision_sort_key):
 		model = Gtk.ListStore(str, str, str, str, str)
 			# REV_SORT_COL, REV_COL, DATE_COL, USER_COL, MSG_COL
 		GObject.GObject.__init__(self)
+		self.revision_sort_key = revision_sort_key
+			# See L{VCSApplicationBase.revision_sort_key()}
 		self.set_model(model)
 
 		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
@@ -1104,9 +1120,9 @@ class VersionsTreeView(SingleClickTreeView):
 		model.set_sort_column_id(self.REV_SORT_COL, Gtk.SortType.DESCENDING)
 			# By default sort by rev
 
-		for version in versions:
+		for i, version in enumerate(versions):
 			#~ print version
-			key = natural_sort_key(version[0]) # key for REV_SORT_COL
+			key = self.revision_sort_key(i, version[0]) # key for REV_SORT_COL
 			model.append((key,) + tuple(version))
 
 	def get_versions(self):

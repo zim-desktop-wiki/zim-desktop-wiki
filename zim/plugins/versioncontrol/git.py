@@ -207,6 +207,13 @@ class GITApplicationBackend(VCSApplicationBase):
 		versions.reverse()
 		return versions
 
+	def revision_sort_key(self, i, rev):
+		# Revision ids are hashes, sorting them gives a random order. Use the
+		# position in the log instead, which is ordered oldest to newest.
+		# Zero padded to sort as text; 8 digits is plenty, a repository with
+		# more revisions than that can not be listed in the dialog anyway.
+		return '%08i' % i
+
 
 	def move(self, oldpath, newpath):
 		return self.add(newpath) # move already happened
