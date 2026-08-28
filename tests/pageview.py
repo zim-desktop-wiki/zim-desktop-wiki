@@ -3184,56 +3184,72 @@ class TestPageViewActions(tests.TestCase):
 		pageview = setUpPageView(self.setUpNotebook(), '[ ] my task\n')
 		pageview.toggle_checkbox()
 		self.assertEqual(pageview.page.dump('wiki'), ['[*] my task\n'])
+		pageview.toggle_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[ ] my task\n'])
 
 	def testToggleCheckBoxSelection(self):
-		pageview = setUpPageView(self.setUpNotebook(),
-			'[*] my task\n'
-			'[ ] open task\n'
-			'\n'
-			'Some other line\n'
-			'[x] x-checked task\n'
+		input = ''.join([
+			'[*] my task\n',
+			'[ ] open task\n',
+			'\n',
+			'Some other line\n',
+			'[x] x-checked task\n',
 			'[ ] another open\n'
-		)
-		self._select_all(pageview)
-		pageview.toggle_checkbox()
-		self.assertEqual(pageview.page.dump('wiki'), [
+		])
+		toggled = [
 			'[*] my task\n',
 			'[*] open task\n',
 			'\n',
 			'Some other line\n',
 			'[x] x-checked task\n',
-			'[*] another open\n',
-		])
+			'[*] another open\n'
+		]
+		pageview = setUpPageView(self.setUpNotebook(), input)
+		self._select_all(pageview)
+		pageview.toggle_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), toggled)
+		self._select_all(pageview)
+		pageview.toggle_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), toggled) # stable for repeated calls
 
 	def testXToggleCheckBox(self):
-		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')
+		pageview = setUpPageView(self.setUpNotebook(), '[ ] my task\n')
 		pageview.xtoggle_checkbox()
 		self.assertEqual(pageview.page.dump('wiki'), ['[x] my task\n'])
+		pageview.xtoggle_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[ ] my task\n'])
 
 	def testMigrateCheckBox(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')
 		pageview.migrate_checkbox()
 		self.assertEqual(pageview.page.dump('wiki'), ['[>] my task\n'])
+		pageview.migrate_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[ ] my task\n'])
 
 	def testMigrateCheckBoxSelection(self):
-		pageview = setUpPageView(self.setUpNotebook(),
-			'[*] my task\n'
-			'[ ] open task\n'
-			'\n'
-			'Some other line\n'
-			'[x] x-checked task\n'
+		input = ''.join([
+			'[*] my task\n',
+			'[ ] open task\n',
+			'\n',
+			'Some other line\n',
+			'[x] x-checked task\n',
 			'[ ] another open\n'
-		)
-		self._select_all(pageview)
-		pageview.migrate_checkbox()
-		self.assertEqual(pageview.page.dump('wiki'), [
+		])
+		toggled = [
 			'[*] my task\n',
 			'[>] open task\n',
 			'\n',
 			'Some other line\n',
 			'[x] x-checked task\n',
 			'[>] another open\n',
-		])
+		]
+		pageview = setUpPageView(self.setUpNotebook(), input)
+		self._select_all(pageview)
+		pageview.migrate_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), toggled)
+		self._select_all(pageview)
+		pageview.toggle_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), toggled) # stable for repeated calls
 
 	def testTransmigrateCheckBox(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')

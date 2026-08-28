@@ -15,6 +15,7 @@ def toggle_checkbox_interactive(textview, line: int|None=None, state=None):
 
 	For multi-line it will only toggle unchecked boxes and not overwrite existing
 	toggled stated. Unless `state` is `UNCHECKED_BOX`.
+	For single-line it both toggles and un-toggles the checkboxes.
 
 	It implements the `'recursive_checklist'` and `'cycle_checkbox_type'` preferences.
 	The `'cycle_checkbox_type'` preference only applies for a single line, not for selections.
@@ -76,6 +77,9 @@ def _toggle_checkbox_interactive(textview, line: int|None=None, state=None):
 				state = CHECKBOXES[j]
 			else:
 				state = CHECKED_BOX if bullet == UNCHECKED_BOX else UNCHECKED_BOX
+		else:
+			if bullet == state:
+				state = UNCHECKED_BOX # allow un-toggle for single line
 
 		clist = TextBufferList(buffer, line, recursive_checklist=recurs)
 		clist.set_bullet(clist.get_row_at_line(line), state)
