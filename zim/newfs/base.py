@@ -182,7 +182,13 @@ if os.name == 'nt':
 			raise ValueError('Not an absolute path: %s' % '\\'.join(names))
 		elif re.match(r'^\w:$', names[0]): # Drive letter - e.g. file:///C:/foo
 			return 'file:///' + names[0] + '/' + url_encode('/'.join(names[1:]))
-		elif re.match(r'^\\\\\w+$', names[0]): # UNC path - e.g. file://host/share
+		else: # UNC path - e.g. file://host/share
+			# The check above already confirmed this starts with "\\" followed
+			# by a word character, so anything that isn't a drive letter at this
+			# point is a UNC host. Do not restrict the host name to \w further:
+			# e.g. WSL exposes mounts as "\\\\wsl$\\..." or
+			# "\\\\wsl.localhost\\...", where "$" and "." are not matched by \w,
+			# which used to make this function fall through and return None.
 			return 'file://' + url_encode(names[0].strip('\\') + '/' + '/'.join(names[1:]))
 
 else:
