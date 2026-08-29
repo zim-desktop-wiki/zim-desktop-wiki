@@ -15,6 +15,7 @@ with weeknumbers correctly.
 
 import re
 import locale
+locale.setlocale(locale.LC_ALL, '')
 
 from datetime import *
 
@@ -83,7 +84,7 @@ def init_first_day_of_week():
 	global FIRST_DAY_OF_WEEK
 	try:
 		import babel
-		mylocale = babel.Locale(locale.getdefaultlocale()[0])
+		mylocale = babel.Locale(locale.getlocale(locale.LC_TIME)[0])
 		if mylocale.first_week_day == 0:
 			FIRST_DAY_OF_WEEK = MONDAY
 		else:
