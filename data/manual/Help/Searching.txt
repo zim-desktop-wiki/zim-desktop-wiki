@@ -281,4 +281,4 @@ The glob expansion rules are the same as for the ''Name:'' keyword. So if you se
 === Any ===
 The keyword "''Any:''" is applied implicitly to any query term that does not have a keyword. It just runs the term through the ''Content'', ''Page'', ''Tags'', and ''Links'' keywords
 
-It can be specified explicitly if a non-keyword term would ambigous
+It can be specified explicitly if a non-keyword term would ambiguous
