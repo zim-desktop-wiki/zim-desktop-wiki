@@ -1116,6 +1116,20 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 		self.assertIn('lang="python"', xml)
 		self.assertIn('def hello():', xml)
 
+	def testParseFencedCodeAtEndOfFile(self):
+		# The closing fence may be the last line of the file, without a
+		# trailing newline - see issue #3001
+		for input in (
+			'```python\ndef hello():\n    pass\n```',
+			'~~~python\ndef hello():\n    pass\n~~~',
+		):
+			parser = self.format.Parser()
+			tree = parser.parse(input)
+			xml = tree.tostring()
+			self.assertIn('<pre', xml)
+			self.assertIn('lang="python"', xml)
+			self.assertIn('def hello():', xml)
+
 	def testParseTable(self):
 		input = '| H1 | H2 |\n|---|---|\n| A | B |\n| C | D |\n'
 		parser = self.format.Parser()
