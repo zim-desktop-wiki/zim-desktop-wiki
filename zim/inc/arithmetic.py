@@ -488,8 +488,11 @@ class ParserGTK(Parser):
 
     def writeResult(self, i, textBuffer, start, end, text):
         'Write text in line i of lines from start to end offset.'
-        # Format decimals
-        formatted = f"{float(text):.{self.output_decimals}f}"
+        # Format decimals - strip the thousands separators added by
+        # AddCommas() first, float() does not accept them
+        formatted = f"{float(text.replace(',', '')):.{self.output_decimals}f}"
+        if ',' in text:
+            formatted = AddCommas(formatted)
         # Don't add unnecessary zeros
         if len(formatted) < len(text):
             text = formatted
