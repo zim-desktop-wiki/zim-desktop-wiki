@@ -1112,10 +1112,23 @@ class VersionsTreeView(SingleClickTreeView):
 			else:
 				column.set_sort_column_id(i)
 
-			if i == self.DATE_COL:
+			if i == self.USER_COL:
 				column.set_expand(True)
+					# The date has a fixed format and the revision a fixed
+					# length, the author name is the one that varies
 
+			column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+			column.set_resizable(True)
+				# Required for fixed height mode below. Side effect is that the
+				# column width no longer grows to fit the widest value in the
+				# whole list, so make the columns resizable by the user instead
 			self.append_column(column)
+
+		self.set_fixed_height_mode(True)
+			# All rows show a single line of text, so they all have the same
+			# height. Without this the widget measures every single row after
+			# the dialog is shown, which takes seconds for a repository with
+			# many revisions.
 
 		model.set_sort_column_id(self.REV_SORT_COL, Gtk.SortType.DESCENDING)
 			# By default sort by rev

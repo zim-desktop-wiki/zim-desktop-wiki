@@ -248,6 +248,12 @@ class TestVersionsDialog(tests.TestCase):
 		self.assertEqual(revisions, [rev for rev, date, user, msg in reversed(versions)])
 			# the revision id shown is the real one, not the sorting key
 
+		self.assertTrue(dialog.versionlist.get_fixed_height_mode())
+		self.assertTrue(all(
+			c.get_sizing() == Gtk.TreeViewColumnSizing.FIXED
+				for c in dialog.versionlist.get_columns()
+		)) # fixed height mode requires all columns to be of fixed size
+
 	@tests.slowTest
 	@tests.skipUnless(VCS.check_dependencies(VCS.GIT), 'Missing dependencies')
 	def testSwitchingBetweenNotebookAndPage(self):
