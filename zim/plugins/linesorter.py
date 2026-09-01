@@ -8,11 +8,28 @@ from zim.actions import action
 from zim.base.naturalsort import natural_sort_key
 from zim.gui.pageview import PageViewExtension
 from zim.gui.pageview.serialize import textbuffer_internal_serialize_range, textbuffer_internal_insert_at_cursor
+from zim.gui.pageview.textbuffer import is_numbered_bullet_re
 
 
 #~ import logging
 
 #~ logger = logging.getLogger('zim.plugins.linesorter')
+
+
+def _numbered_bullet_kind(bullet):
+	'''Tell apart the styles of numbered bullet
+	@param bullet: a bullet, as returned by C{TextBuffer.get_bullet()}
+	@returns: C{"number"} for "1.", C{"letter"} for "a.", C{"auto"} for "#.",
+	or C{None} if this is not a numbered bullet at all
+	'''
+	if bullet is None or not is_numbered_bullet_re.match(bullet):
+		return None
+	elif bullet[0].isdigit():
+		return 'number'
+	elif bullet[0] == '#':
+		return 'auto'
+	else:
+		return 'letter'
 
 
 class LineSorterPlugin(PluginClass):
@@ -125,6 +142,17 @@ class LineSorterPageViewExtension(PageViewExtension):
 			cursor = buffer.get_insert_iter()
 			cursor_offset = cursor.get_line_offset()
 
+		# In a numbered list the bullet belongs to the position, not to the
+		# line - so remember the number of the top most line we are about to
+		# touch. Without this the moved line takes its old number along and
+		# the automatic renumbering has no way to tell what the list started
+		# with.
+		first_line = start.get_line()
+		top_line = min(first_line, first_line + offset)
+		top_bullet = buffer.get_bullet(top_line)
+		top_kind = _numbered_bullet_kind(top_bullet)
+		top_indent = buffer.get_indent(top_line)
+
 		# get copy tree
 		assert start.starts_line()
 		linedata = textbuffer_internal_serialize_range(buffer, start, end)
@@ -155,6 +183,17 @@ class LineSorterPageViewExtension(PageViewExtension):
 			iter = buffer.get_insert_iter()
 			if not iter.starts_line():
 				buffer.insert_at_cursor('\n')
+
+			# Give the top most affected line its original number back and
+			# renumber the list from there. Lines above it were not touched,
+			# so "top_line" is still valid. Only do so when the line that ended
+			# up there belongs to the same list: same indent level and same
+			# style of numbering. Else we would e.g. turn a checkbox into a
+			# number, or renumber a sub list item with the number of its parent
+			if top_kind is not None \
+			and _numbered_bullet_kind(buffer.get_bullet(top_line)) == top_kind \
+			and buffer.get_indent(top_line) == top_indent:
+				buffer.set_bullet(top_line, top_bullet) # also renumbers downward
 
 			# redo selection/place cursor at same position
 			if has_selection:
