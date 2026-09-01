@@ -963,11 +963,17 @@ state. Or select multiple versions to see changes between those versions.
 				comp_button.set_sensitive(bool(usepage and self._side_by_side_app))
 
 		def on_page_change(o):
+			if not self.page_radio.get_active():
+				return
+				# Also called when the radio button is toggled *off* and for
+				# the page entry while the notebook option is selected
 			pagesource = self._get_file()
 			if pagesource:
-				self.versionlist.load_versions(vcs.list_versions(self._get_file()))
+				self.versionlist.load_versions(vcs.list_versions(pagesource))
 
 		def on_book_change(o):
+			if not self.notebook_radio.get_active():
+				return # Also called when the radio button is toggled *off*
 			self.versionlist.load_versions(vcs.list_versions())
 
 		self.page_radio.connect('toggled', on_ui_change)

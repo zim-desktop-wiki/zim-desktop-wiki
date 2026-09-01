@@ -195,13 +195,9 @@ class TestVersionsDialog(tests.TestCase):
 	def testDialog(self):
 		pass # TODO test other dialog functions
 
-	@tests.slowTest
-	@tests.skipUnless(VCS.check_dependencies(VCS.GIT), 'Missing dependencies')
-	def testVersionList(self):
-		# The list must be sorted by age, newest first. For git the revision
-		# ids are hashes, which do not sort by age at all - the dialog relies
-		# on VCSApplicationBase.revision_sort_key() for this
-		root = get_tmp_dir('versioncontrol_TestVersionsDialog')
+	def setUpGitNotebook(self, name, numbers):
+		"""Sets up a notebook under git control with a version per number"""
+		root = get_tmp_dir(name)
 		vcs = VCS.create(VCS.GIT, root, root)
 		self.addCleanup(vcs.disconnect_all)
 		vcs.init_repo()
@@ -211,16 +207,27 @@ class TestVersionsDialog(tests.TestCase):
 			content=('Test',),
 			folder=LocalFolder(root.path)
 		)
-		mainwindow = setUpMainWindow(notebook)
 
 		file = root.folder('foo').file('bar.txt')
-		numbers = list(range(1, 7))
-			# Enough commits that sorting the hashes by chance gives the
-			# same order as sorting by age
 		for i in numbers:
 			file.write('version %i\n' % i)
 			vcs.stage()
 			vcs.commit_version('test %i' % i)
+
+		return vcs, notebook
+
+	@tests.slowTest
+	@tests.skipUnless(VCS.check_dependencies(VCS.GIT), 'Missing dependencies')
+	def testVersionList(self):
+		# The list must be sorted by age, newest first. For git the revision
+		# ids are hashes, which do not sort by age at all - the dialog relies
+		# on VCSApplicationBase.revision_sort_key() for this
+		numbers = list(range(1, 7))
+			# Enough commits that sorting the hashes by chance gives the
+			# same order as sorting by age
+		vcs, notebook = self.setUpGitNotebook(
+			'versioncontrol_TestVersionList', numbers)
+		mainwindow = setUpMainWindow(notebook)
 
 		versions = vcs.list_versions()
 		self.assertEqual(
@@ -240,6 +247,34 @@ class TestVersionsDialog(tests.TestCase):
 		revisions = [row[VersionsTreeView.REV_COL] for row in rows]
 		self.assertEqual(revisions, [rev for rev, date, user, msg in reversed(versions)])
 			# the revision id shown is the real one, not the sorting key
+
+	@tests.slowTest
+	@tests.skipUnless(VCS.check_dependencies(VCS.GIT), 'Missing dependencies')
+	def testSwitchingBetweenNotebookAndPage(self):
+		# Switching the radio buttons emits "toggled" for the option that is
+		# switched off as well - reloading the list for the option the user
+		# just left means reading the whole history for nothing
+		vcs, notebook = self.setUpGitNotebook(
+			'versioncontrol_TestSwitchingVersions', (1, 2))
+		mainwindow = setUpMainWindow(notebook)
+
+		dialog = VersionsDialog(mainwindow, vcs, notebook, page=Path('Test'))
+		self.addCleanup(dialog.destroy)
+
+		requested = []
+		list_versions = vcs.list_versions
+		def wrapper(file=None):
+			requested.append(file)
+			return list_versions(file)
+		vcs.list_versions = wrapper
+
+		dialog.page_radio.set_active(True)
+		self.assertEqual(len(requested), 1)
+		self.assertIsNotNone(requested[0]) # only the log for the page
+
+		del requested[:]
+		dialog.notebook_radio.set_active(True)
+		self.assertEqual(requested, [None]) # only the log for the notebook
 
 
 class VersionControlBackendTests(object):
