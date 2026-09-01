@@ -12,7 +12,8 @@ from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
 
 from zim.gui.pageview import PageViewExtension
-from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
+from zim.gui.uiactions import UIActions, PAGE_ACCESS_ACTIONS
+from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, \
 	WindowSidePaneWidget, StatusPage
 
 
@@ -77,6 +78,7 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 
 		self.opener = opener
 		self.preferences = preferences
+		self.notebook = None
 
 		self._stack = Gtk.Stack()
 		self.treeview = LinksTreeView()
@@ -93,6 +95,7 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 
 	def set_page(self, notebook, page):
+		self.notebook = notebook
 		model = self.treeview.get_model()
 		model.clear()
 
@@ -138,20 +141,21 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		self.opener.open_page(path)
 
 	def on_populate_popup(self, treeview, menu):
-		populate_popup_add_separator(menu)
-
-		item = Gtk.MenuItem.new_with_mnemonic(_('Open in New _Window'))
-		item.connect('activate', self.on_open_new_window, treeview)
-		menu.append(item)
-
-		# Other per page menu items do not really apply here...
-		menu.show_all()
-
-	def on_open_new_window(self, o, treeview):
 		model, iter = treeview.get_selection().get_selected()
-		if model and iter:
-			path = model[iter][PAGE_COL]
-			self.opener.open_page(path, new_window=True)
+		if model is None or iter is None:
+			return # E.g. right click below the last row
+
+		# Use the "access" actions, not the full page menu: this is a list of
+		# pages that refer to the current page, so e.g. "Delete Page" would
+		# remove the page from the notebook, not the link from the list
+		uiactions = UIActions(
+			self,
+			self.notebook,
+			model[iter][PAGE_COL],
+			self.opener,
+		)
+		uiactions.populate_menu_with_actions(PAGE_ACCESS_ACTIONS, menu)
+		menu.show_all()
 
 
 class LinksTreeView(BrowserTreeView):
