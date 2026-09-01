@@ -178,22 +178,20 @@ if os.name == 'nt':
 
 	def _joinuri(names):
 		# first element must be either drive letter or UNC host
-		if not re.match(r'^(\w:|\\\\\w)', names[0]):
-			raise ValueError('Not an absolute path: %s' % '\\'.join(names))
-		elif re.match(r'^\w:$', names[0]): # Drive letter - e.g. file:///C:/foo
+		if re.match(r'^\w:$', names[0]): # Drive letter - e.g. file:///C:/foo
 			return 'file:///' + names[0] + '/' + url_encode('/'.join(names[1:]))
 		else: # UNC path - e.g. file://host/share
 			# The check above already confirmed this starts with "\\" followed
 			# by a word character, so anything that isn't a drive letter at this
 			# point is a UNC host. Do not restrict the host name to \w further:
 			# e.g. WSL exposes mounts as "\\\\wsl$\\..." or
-			# "\\\\wsl.localhost\\...", where "$" and "." are not matched by \w,
-			# which used to make this function fall through and return None.
+			# "\\\\wsl.localhost\\...", where "$" and "." are not matched by \w
 			return 'file://' + url_encode(names[0].strip('\\') + '/' + '/'.join(names[1:]))
 
 else:
 	def _joinabspath(names, origpath=None):
 		# "origpath" is only used for better readable error message
+		# first element must be UNC host or "/"
 		if names[0].startswith('\\\\'):
 			return '\\'.join(names) # Windows share drive
 		elif names[0].startswith('/'):
@@ -204,6 +202,8 @@ else:
 	def _joinuri(names):
 		if names[0][0] == '/':
 			return 'file://' + url_encode('/'.join(names))
+		elif names[0].startswith('\\\\'):
+			return 'file://' + url_encode(names[0].strip('\\') + '/' + '/'.join(names[1:]))
 		else:
 			return 'file:///' + url_encode('/'.join(names))
 
