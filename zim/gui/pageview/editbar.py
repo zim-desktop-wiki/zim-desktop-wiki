@@ -1,6 +1,7 @@
 # Copyright 2020 - 2022 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import Pango
 from gi.repository import Gio
 
@@ -193,10 +194,16 @@ class EditBar(EditActionMixin, Gtk.ActionBar):
 		hbox.add(Gtk.Image.new_from_icon_name('pan-down-symbolic', Gtk.IconSize.BUTTON))
 		button.add(hbox)
 
-		popover = Gtk.Popover()
-		popover.bind_model(menu)
-		popover.connect('closed', lambda o: self.pageview.grab_focus())
-		button.set_popover(popover)
+		button.set_use_popover(False)
+			# Use a real Gtk.Menu instead of a Gtk.Popover - a popover is not a
+			# Gtk.MenuShell, so GTK registers the mnemonics of its menu items
+			# on the toplevel window instead of on the menu itself. There they
+			# shadow accelerators using the same key, also while the menu is
+			# closed: e.g. the "Heading _1" .. "Heading _5" items shadow the
+			# "<Alt>1" .. "<Alt>5" accelerators of the bookmarksbar plugin.
+			# See issue #2096.
+		button.set_menu_model(menu)
+		button.get_popup().connect('deactivate', lambda o: self.pageview.grab_focus())
 
 		return button
 
@@ -251,16 +258,16 @@ class ToolBarEditBarManager(EditActionMixin, ConnectorMixin):
 		button.set_tooltip_text(label.replace('_', '')+'...') # icon button should always have tooltip
 		button.set_icon_name(icon_name)
 
-		popover = Gtk.Popover()
-		popover.bind_model(menu)
-		popover.set_relative_to(button)
-		def toggle_popover(button):
+		gtkmenu = Gtk.Menu.new_from_model(menu)
+			# Use a real Gtk.Menu instead of a Gtk.Popover, see comment in
+			# EditBar._create_menu_button() and issue #2096
+		gtkmenu.attach_to_widget(button, None)
+		def toggle_menu(button):
 			if button.get_active():
-				popover.popup()
-			else:
-				popover.popdown()
-		button.connect('toggled', toggle_popover)
-		popover.connect('closed', lambda o: button.set_active(False))
-		popover.connect('closed', lambda o: self.pageview.grab_focus())
+				gtkmenu.popup_at_widget(
+					button, Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST, None)
+		button.connect('toggled', toggle_menu)
+		gtkmenu.connect('deactivate', lambda o: button.set_active(False))
+		gtkmenu.connect('deactivate', lambda o: self.pageview.grab_focus())
 
 		return button
