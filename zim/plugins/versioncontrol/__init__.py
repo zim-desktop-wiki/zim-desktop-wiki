@@ -431,10 +431,10 @@ class VCSApplicationBase(ConnectorMixin):
 			else:
 				self.add(newpath)
 		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
-			self.on_path_deleted(self, fs, oldpath)
+			self.remove(oldpath)
 
 	def on_removed(self, fs, path):
-		"""Callback when a file has been delted
+		"""Callback when a file has been deleted
 		@param fs: the watcher object
 		@param path: a L{File} or L{Folder} object
 		"""

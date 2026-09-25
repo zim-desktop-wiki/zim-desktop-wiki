@@ -166,7 +166,7 @@ def _get_paste_image_file(dir, notebook, extension):
 	return dir.new_file(name)
 
 
-def deserialize_image(register_buf, content_buf, iter, data, length, create_tags, user_data):
+def deserialize_image(register_buf, content_buf, iter, data, length, create_tags, user_data) -> bool:
 	# Implementation note: we follow gtk_selection_get_pixbuf() in usage of
 	# Gtk.PixbufLoader to capture clipboard data in a pixbuf object.
 	# We could skip this, but it allows for on-the-fly conversion of the data
@@ -178,6 +178,9 @@ def deserialize_image(register_buf, content_buf, iter, data, length, create_tags
 	loader.write(data)
 	loader.close()
 	pixbuf = loader.get_pixbuf()
+	if pixbuf is None:
+		logger.warning('Could not decode clipboard image data')
+		return False
 
 	# save it as an attachment
 	dir = notebook.get_attachments_dir(path)

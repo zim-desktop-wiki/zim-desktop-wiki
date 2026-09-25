@@ -161,7 +161,7 @@ def is_relevant_mount_point(root, path):
 		# Check none of the intermediate folders exist
 		for parent in LocalFolder(path).parents():
 			if parent.path == root.path:
-				break
+				return True
 			elif parent.exists():
 				return False
 	else:

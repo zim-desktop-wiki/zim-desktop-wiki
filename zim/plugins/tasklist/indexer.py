@@ -400,7 +400,7 @@ class ActiveTasks(AllTasks):
 		@returns: a list of tasks at this level as sqlite Row objects
 		'''
 		if parent:
-			return AllTasks.list_tasks(parent)
+			return AllTasks.list_tasks(self, parent)
 
 		# Sort:
 		#  started tasks by prio, due date, page + id to keep order in page

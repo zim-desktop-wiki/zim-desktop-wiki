@@ -201,7 +201,7 @@ class ExportLinker(BaseLinker):
 			return self.link(href) # recurs
 		else:
 			logger.warning('No URL found for interwiki link "%s"', link)
-			return None
+			return ''
 
 	def _link_notebook(self, link):
 		if link.startswith('zim+'):
@@ -225,7 +225,7 @@ class StubLayout(ExportLayout):
 
 	def __init__(self, notebook, resources_dir):
 		self.notebook = notebook
-		self.resources_dir = resources_dir
+		self._resources_dir = resources_dir
 
 	def page_file(self, page):
 		try:
@@ -238,7 +238,7 @@ class StubLayout(ExportLayout):
 		return self.notebook.get_attachments_dir(page)
 
 	def resources_dir(self):
-		return self.resources_dir
+		return self._resources_dir
 
 
 #~ def data_uri(file):

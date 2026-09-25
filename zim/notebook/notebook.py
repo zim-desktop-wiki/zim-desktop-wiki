@@ -440,7 +440,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		i = 0
 		base = path.name
-		while True:
+		while i < 100000: # arbitrary high limit
 			try:
 				page = self.get_page(path)
 			except PageNotAvailableError:
@@ -451,6 +451,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			finally:
 				i += 1
 				path = Path(base + ' %i' % i)
+		else:
+			raise PageNotAvailableError(path)
 
 	def get_home_page(self):
 		'''Returns a L{Page} object for the home page'''

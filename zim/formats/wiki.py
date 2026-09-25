@@ -295,7 +295,7 @@ class WikiParser(object):
 					for line in body.split('\n')[:-1]
 		]
 
-		n_cols = max(len(headerrow), max(len(bodyrow) for bodyrow in rows))
+		n_cols = max(len(headerrow), max((len(bodyrow) for bodyrow in rows), default=0))
 
 		aligns = []
 		for celltext in alignstyle.strip().strip('|').split('|'):

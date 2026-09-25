@@ -242,7 +242,10 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 			return self.file.read()
 		except FileNotFoundError:
 			for default in self.defaults:
-				return default.read()
+				try:
+					return default.read()
+				except FileNotFoundError:
+					continue
 			else:
 				if fail:
 					raise

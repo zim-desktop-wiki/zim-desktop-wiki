@@ -1153,18 +1153,16 @@ class File(FilePath):
 		@raises FileNotFoundError: when the file does not exist.
 		'''
 		try:
-			file = open(self.path, encoding='UTF-8')
-			lines = file.readlines()
-			self._checkoverwrite(lines)
-			return [line.lstrip('\ufeff').replace('\x00', '') for line in lines]
-				# Strip unicode byte order mark
-				# And remove any NULL byte since they screw up parsing
+			with open(self.path, encoding='UTF-8') as file:
+				lines = file.readlines()
+				self._checkoverwrite(lines)
+				return [line.lstrip('\ufeff').replace('\x00', '') for line in lines]
+					# Strip unicode byte order mark
+					# And remove any NULL byte since they screw up parsing
 		except IOError:
 			raise FileNotFoundError(self)
 		except UnicodeDecodeError as error:
 			raise FileUnicodeError(self, error)
-
-		return lines
 
 	def _write_check(self):
 		if not self.iswritable():

@@ -70,7 +70,7 @@ def dump_yaml_front_matter(meta):
 	lines = ['---\n']
 	for k, v in meta.items():
 		v = str(v).strip()
-		if ':' in v or '#' in v or "'" in v:
+		if ':' in v or '#' in v or "'" in v or '"' in v:
 			v = '"%s"' % v.replace('"', '\\"')
 		lines.append('%s: %s\n' % (k, v))
 	lines.append('---\n')

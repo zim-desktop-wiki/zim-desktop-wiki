@@ -137,23 +137,21 @@ class TextBufferList(list):
 
 	@staticmethod
 	def _find_start_of_list(textbuffer, line, end):
-		start = line
-
 		if textbuffer.get_bullet(line) is None:
 			# Walk down till we find bullet
-			for myline in range(start, end + 1, 1):
+			for myline in range(line, end + 1, 1):
 				if textbuffer.get_bullet(myline) is not None:
 					return myline
 			else:
 				return None
 		else:
 			# Walk up to find the start
-			for myline in range(start, -1, -1):
+			for myline in range(line, -1, -1):
 				if textbuffer.get_bullet(myline) is None:
-					break # TODO skip lines with whitespace / indented paragraph
-				else:
-					start = myline
-			return start
+					return myline + 1 # previous was start
+					# TODO skip lines with whitespace / indented paragraph
+			else:
+				return 0 # start of page is listitem
 
 	@staticmethod
 	def _find_end_of_list(textbuffer, line, start):

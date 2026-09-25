@@ -521,6 +521,7 @@ class DelayedCallback(object):
 	def __del__(self):
 		if self.timer_id:
 			GObject.source_remove(self.timer_id)
+			self.timer_id = None
 
 	def cancel(self):
 		'''Cancel the scheduled callback'''

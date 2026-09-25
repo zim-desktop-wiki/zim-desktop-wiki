@@ -179,7 +179,7 @@ class ExportTemplateContext(dict):
 			# Parameters
 			'generator': {
 					'name': 'Zim %s' % ZIM_VERSION,
-					'user': os.environ['USER'], # TODO allow user name in prefs ?
+					'user': os.environ.get('USER'), # TODO allow user name in prefs ?
 			},
 			'title': title,
 			'navigation': {

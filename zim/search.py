@@ -386,7 +386,7 @@ class TextProvider(ContentSearchProvider):
 			return False
 
 		if tree:
-			if not hasattr(tree, '__search_test'):
+			if not hasattr(tree, '__search_text'):
 				# Hack to buffer content
 				tree.__search_text = tokens_to_text(tree.iter_tokens())
 			count = len(self.regex.findall(tree.__search_text))

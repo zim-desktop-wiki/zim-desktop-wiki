@@ -14,7 +14,6 @@ import logging
 
 from zim.plugins import PluginClass
 from zim.actions import action
-from zim.signals import SignalHandler, ConnectorMixin
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
 from zim.notebook import Path, NotebookExtension
@@ -187,7 +186,10 @@ class JournalNotebookExtension(NotebookExtension):
 		if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
 			year, month, day = text.split('-')
 			year, month, day = list(map(int, (year, month, day)))
-			date = datetime.date(year, month, day)
+			try:
+				date = datetime.date(year, month, day)
+			except ValueError:
+				return None # invalid date
 			return self.plugin.path_from_date(notebook, date)
 		# TODO other formats
 		else:

@@ -190,7 +190,7 @@ class Dumper(DumperClass):
 		return ['<a id="%s" class="anchor"></a>' % name]
 
 	def dump_link(self, tag, attrib, strings=None):
-		href = self.linker.link(attrib['href'])
+		href = encode_xml_attrib(self.linker.link(attrib['href']))
 		type = link_type(attrib['href'])
 		if strings:
 			text = ''.join(strings)
@@ -202,7 +202,7 @@ class Dumper(DumperClass):
 				% (href, title, type, text)]
 
 	def dump_img(self, tag, attrib, strings=None):
-		src = self.linker.img(attrib['src'])
+		src = encode_xml_attrib(self.linker.img(attrib['src']))
 		opt = ''
 		if 'alt' in attrib:
 			opt += ' alt="%s"' % encode_xml_attrib(attrib['alt'])
@@ -210,7 +210,7 @@ class Dumper(DumperClass):
 			if o in attrib and int(float(attrib[o])) > 0:
 				opt += ' %s="%s"' % (o, attrib[o])
 		if 'href' in attrib:
-			href = self.linker.link(attrib['href'])
+			href = encode_xml_attrib(self.linker.link(attrib['href']))
 			return ['<a href="%s"><img src="%s"%s></a>' % (href, src, opt)]
 		else:
 			return ['<img src="%s"%s>' % (src, opt)]

@@ -26,4 +26,13 @@ class TestIndexedFTS(tests.TestCase):
 			).fetchone()[0], 0
 		)
 
+	def testEscapeFunc(self):
+		for keyword, wanted in (
+			("foo", "foo"),
+			("foo%", "foo%%"),
+			("foo?", "foo%?"),
+			("foo%?", "foo%%%?")
+		):
+			self.assertEqual(indexed_fts.escape_for_glob(keyword), wanted)
+
 ## More functional test cases part of tests/search.py ##

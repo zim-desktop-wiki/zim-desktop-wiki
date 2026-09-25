@@ -706,7 +706,7 @@ class PagesView(IndexView):
 
 		if r['n_children'] > 0:
 			r = self.db.execute(
-				'SELECT name FROM pages WHERE parent=? '
+				'SELECT * FROM pages WHERE parent=? '
 				'ORDER BY sortkey, name LIMIT 1',
 				(r['id'],)
 			).fetchone()

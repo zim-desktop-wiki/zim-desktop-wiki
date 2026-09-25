@@ -840,7 +840,7 @@ class SectionedConfigDict(ControlledDict):
 		self.emit('changed')
 
 	def __setitem__(self, k, v):
-		assert isinstance(v, self._section_klass, self._section_klass)
+		assert isinstance(v, self._section_klass)
 		ControlledDict.__setitem__(self, k, v)
 
 	def __getitem__(self, k):

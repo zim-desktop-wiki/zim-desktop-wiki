@@ -294,15 +294,20 @@ class GtkspellAdapter(AdapterBase):
 		self._textview = textview
 		self._checker = gtkspell.Checker()
 		self._checker.set_language(self._lang)
+		self._attached = False # flag to avoid calling twice attach/detach
 
 	def enable(self):
-		self._checker.attach(self._textview)
+		if not self._attached:
+			self._checker.attach(self._textview)
+			self._attached = True
 
 	def disable(self):
-		self._checker.detach()
+		if self._attached:
+			self._checker.detach()
+			self._attached = False
 
 	def teardown(self):
-		self._checker.detach()
+		self.disable()
 
 
 class GspellAdapter(AdapterBase):

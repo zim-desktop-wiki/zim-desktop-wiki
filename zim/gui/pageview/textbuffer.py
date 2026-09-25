@@ -557,10 +557,12 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 
 	# emitting textstyle-changed is skipped while loading the tree
 
-	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', textstyles=[], indent_offset=0):
+	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', textstyles=None, indent_offset=0):
 		# FIXME should load list_level from cursor position
 		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
 		list_iter = list_start
+		if textstyles is None:
+			textstyles = []
 
 		def set_indent(level, bullet=None):
 			# Need special set_indent() function here because the normal
@@ -1936,14 +1938,14 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 		# FIXME: anyway to actually find out what the TextView will render ??
 		while line >= 0:
 			start, end = self.get_line_bounds(line)
-			text = start.get_slice(start)
+			text = start.get_slice(end)
 			if not text or text.isspace():
 				break
 
 			dir = Pango.find_base_dir(text, len(text))
-			if dir == Pango.DIRECTION_LTR:
+			if dir == Pango.Direction.LTR:
 				return 'LTR'
-			elif dir == Pango.DIRECTION_RTL:
+			elif dir == Pango.Direction.RTL:
 				return 'RTL'
 			else:
 				line -= 1

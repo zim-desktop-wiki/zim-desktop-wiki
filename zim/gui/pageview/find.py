@@ -115,7 +115,7 @@ class FindInterface():
 		'''
 		raise NotImplementedError
 
-	def find_clear():
+	def find_clear(self):
 		'''Clear all find highlighting and matches'''
 		raise NotImplementedError
 
@@ -383,6 +383,7 @@ class TextBufferFindMixin(FindInterface):
 						replacement = match.expand(replacement)
 					except:
 						logger.exception('error in regex expansion')
+						# keep replacement without expansion, maybe this is what the user intended
 
 				offset = mstart.get_offset()
 

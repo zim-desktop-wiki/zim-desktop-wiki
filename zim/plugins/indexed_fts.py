@@ -14,7 +14,7 @@ from zim.plugins import PluginClass
 from zim.notebook import NotebookExtension, Path
 from zim.notebook.index.base import IndexerBase
 from zim.parse.tokenlist import tokens_to_text
-from zim.parse.searchquery import search_query_term_to_regex, SearchFlag
+from zim.parse.searchquery import SearchFlag
 from zim.search import PageSearchExtension, \
 	IndexedSearchProvider, PageSearchResult, TextProvider, \
 	EXECUTION_PRIO_MIXED, OPERATOR_EQUAL, SEARCH_WHOLE_WORD, SEARCH_CASE_SENSITIVE
@@ -102,10 +102,7 @@ def quote_for_fts(keyword):
 
 def escape_for_glob(keyword):
 	# quote glob operators not supported by zim search syntax
-	return keyword.translate({
-		"?": "%?",
-		"%": "%%"
-	})
+	return keyword.replace("%", "%%").replace("?", "%?")
 
 
 class FTSSearchProvider(IndexedSearchProvider):
