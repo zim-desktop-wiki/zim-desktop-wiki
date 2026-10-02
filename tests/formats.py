@@ -412,6 +412,30 @@ class TestWikiFormat(tests.TestCase, TestFormatMixin):
 	def setUp(self):
 		self.format = get_format('wiki')
 
+	def testParseHeaderLines(self):
+		from zim.formats.wiki import dump_header_lines, parse_header_lines
+
+		text = '''\
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+X-Foo: Some text
+	here
+Creation-Date: 2010-12-14T14:15:09.134955
+
+Blaat
+'''
+		body, meta = parse_header_lines(text)
+		self.assertEqual(dict(meta), {
+			'Content-Type': 'text/x-zim-wiki',
+			'Wiki-Format': 'zim 0.4',
+			'Creation-Date': '2010-12-14T14:15:09.134955',
+			'X-Foo': 'Some text\nhere'
+		})
+		self.assertEqual(body, 'Blaat\n')
+
+		out = dump_header_lines(meta)
+		self.assertEqual(out + '\nBlaat\n', text)
+
 	def testFormattingInsideHeading(self):
 		input = "====== heading @foo **bold** ======\n"
 		xml = '''\
@@ -1419,28 +1443,3 @@ class StubFile(object):
 
 	def read(self):
 		return self.text
-
-
-class TestParseHeaderLines(tests.TestCase):
-
-	def runTest(self):
-		text = '''\
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
-X-Foo: Some text
-	here
-Creation-Date: 2010-12-14T14:15:09.134955
-
-Blaat
-'''
-		body, meta = parse_header_lines(text)
-		self.assertEqual(dict(meta), {
-			'Content-Type': 'text/x-zim-wiki',
-			'Wiki-Format': 'zim 0.4',
-			'Creation-Date': '2010-12-14T14:15:09.134955',
-			'X-Foo': 'Some text\nhere'
-		})
-		self.assertEqual(body, 'Blaat\n')
-
-		out = dump_header_lines(meta)
-		self.assertEqual(out + '\nBlaat\n', text)

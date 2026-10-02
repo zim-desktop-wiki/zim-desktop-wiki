@@ -82,7 +82,7 @@ from functools import reduce
 
 logger = logging.getLogger('zim.formats')
 
-
+from zim.base import LastDefinedOrderedDict
 from zim.parse.encode import url_decode, url_encode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parse.links import link_type, is_url_re, is_www_link_re
 from zim.parse.tokenlist import TokenParser, topLevelLists, collect_until_end_token
@@ -1340,63 +1340,3 @@ class TableParser():
 				(lspace, rspace) = (1, maxwidth - len(val) + 1)
 			cells.append(lspace * y + val + rspace * y)
 		return cells
-
-
-from zim.base import LastDefinedOrderedDict
-
-_is_header_re = re.compile(r'^([\w\-]+):\s+(.*?)\n', re.M)
-_is_continue_re = re.compile(r'^([^\S\n]+)(.+?)\n', re.M)
-
-def parse_header_lines(text):
-	'''Read header lines in the rfc822 format.
-	Can e.g. look like::
-
-		Content-Type: text/x-zim-wiki
-		Wiki-Format: zim 0.4
-		Creation-Date: 2010-12-14T14:15:09.134955
-
-	@returns: the text minus the headers and a dict with the headers
-	'''
-	assert isinstance(text, str)
-	meta = LastDefinedOrderedDict()
-	match = _is_header_re.match(text)
-	pos = 0
-	while match:
-		header = match.group(1)
-		value = match.group(2)
-		pos = match.end()
-
-		meta[header] = value.strip()
-		match = _is_continue_re.match(text, pos)
-		while match:
-			cont = match.group(2)
-			meta[header] += '\n' + cont.strip()
-			pos = match.end()
-			match = _is_continue_re.match(text, pos)
-
-		match = _is_header_re.match(text, pos)
-	else:
-		if pos > 0:
-			try:
-				if text[pos] == '\n':
-					pos += 1
-			except IndexError:
-				pass
-			text = text[pos:]
-
-	return text, meta
-
-
-def dump_header_lines(*headers):
-	'''Return text representation of header dict'''
-	text = []
-	append = lambda k, v: text.extend((k, ': ', v.strip().replace('\n', '\n\t'), '\n'))
-
-	for h in headers:
-		if hasattr(h, 'items'):
-			for k, v in list(h.items()):
-				append(k, v)
-		else:
-			for k, v in h:
-				append(k, v)
-	return ''.join(text)

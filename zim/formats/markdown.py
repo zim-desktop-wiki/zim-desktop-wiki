@@ -43,13 +43,14 @@ info = {
 _yaml_front_matter_re = re.compile(r'\A---[ \t]*\n(.*?\n)---[ \t]*\n\n?', re.DOTALL)
 _yaml_kv_re = re.compile(r'^([\w-]+):\s+(.*?)$', re.M)
 
+from zim.base import LastDefinedOrderedDict
 
 def parse_yaml_front_matter(text):
 	'''Parse YAML front matter delimited by --- lines.
 
 	@returns: tuple of (body_text, meta_dict)
 	'''
-	meta = {}
+	meta = LastDefinedOrderedDict()
 	m = _yaml_front_matter_re.match(text)
 	if m:
 		yaml_block = m.group(1)
@@ -671,7 +672,8 @@ class Dumper(TextDumper):
 			body = TextDumper.dump(self, tree)
 			if body and not body[-1].endswith('\n'):
 				body[-1] = body[-1] + '\n'
-			return [dump_yaml_front_matter(header_meta), '\n'] + body
+			head = dump_yaml_front_matter(header_meta)
+			return [head, '\n'] + body if head else body
 		else:
 			return TextDumper.dump(self, tree)
 
