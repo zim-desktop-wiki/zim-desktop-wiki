@@ -36,7 +36,9 @@ else:
 
 
 
-class FileNotFoundError(Error):
+class FileNotFoundError(Error, FileNotFoundError):
+
+	# inherits from builtin so it tests True to isinstance of builting
 
 	# TODO - description and translation
 
@@ -46,7 +48,9 @@ class FileNotFoundError(Error):
 		Error.__init__(self, 'No such file or folder: %s' % path)
 
 
-class FileExistsError(Error):
+class FileExistsError(Error, FileExistsError):
+
+	# inherits from builtin so it tests True to isinstance of builting
 
 	# TODO - description and translation
 
@@ -292,6 +296,14 @@ class FilePath(object):
 	@property
 	def basename(self):
 		return self.pathnames[-1]
+
+	@property
+	def extension(self):
+		if '.' in self.pathnames[-1]:
+			x, ext = self.pathnames[-1].rsplit('.', 1)
+			return '.' + ext
+		else:
+			return None
 
 	@property
 	def dirname(self):

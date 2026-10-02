@@ -342,8 +342,8 @@ class TestCase(unittest.TestCase):
 		assert not folder.exists()
 		return folder
 
-	def setUpNotebook(self, name='testnotebook', mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
-		'''
+	def setUpNotebook(self, name='testnotebook', mock=MOCK_ALWAYS_MOCK, content={}, folder=None, config=None):
+		'''Create a temporary notebook for the test
 		@param name: name postfix for the folder, see L{setUpFolder}, and name for the notebook
 		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
 		@param content: dictionary where the keys are page names and the
@@ -354,16 +354,16 @@ class TestCase(unittest.TestCase):
 		when testing version control logic
 		'''
 		folder = folder or self.setUpFolder(name, mock)
-		return self._setUpNotebook(folder, content, name)
+		return self._setUpNotebook(folder, content, name, config)
 
 	@classmethod
-	def setUpClassNotebook(cls, name='testnotebook', mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
+	def setUpClassNotebook(cls, name='testnotebook', mock=MOCK_ALWAYS_MOCK, content={}, folder=None, config=None):
 		'''Like C{setUpNotebook()} but as class method'''
 		folder = folder or cls.setUpClassFolder(name, mock)
-		return cls._setUpNotebook(folder, content, name)
+		return cls._setUpNotebook(folder, content, name, config)
 
 	@staticmethod
-	def _setUpNotebook(folder, content, name):
+	def _setUpNotebook(folder, content, name, config_values):
 		import datetime
 		from zim.newfs.mock import MockFolder
 		from zim.notebook.notebook import NotebookConfig, Notebook
@@ -378,6 +378,12 @@ class TestCase(unittest.TestCase):
 
 		conffile = folder.file('notebook.zim')
 		config = NotebookConfig(conffile)
+		if config_values:
+			for k, v in config_values.items():
+				if k in config:
+					config[k].update(v) # update per section
+				else:
+					config[k] = v
 		config.write()
 		if isinstance(folder, MockFolder):
 			index = Index(':memory:', layout)
@@ -393,14 +399,26 @@ class TestCase(unittest.TestCase):
 		for name, text in list(content.items()):
 			path = Path(name) if isinstance(name, str) else name
 			file, folder = layout.map_page(path)
-			file.write(
-				(
-					'Content-Type: text/x-zim-wiki\n'
-					'Wiki-Format: %s\n'
-					'Creation-Date: %s\n\n'
-				) % (WIKI_FORMAT_VERSION, datetime.datetime.now().isoformat())
-				+ text
-			)
+			if file.path.endswith('.txt'):
+				file.write(
+					(
+						'Content-Type: text/x-zim-wiki\n'
+						'Wiki-Format: %s\n'
+						'Creation-Date: %s\n\n'
+					) % (WIKI_FORMAT_VERSION, datetime.datetime.now().isoformat())
+					+ text
+				)
+			elif file.path.endswith('.md'):
+				file.write(
+					(
+						'---\n'
+						'Creation-Date: "%s"\n'
+						'---\n\n'
+					) % datetime.datetime.now().isoformat()
+					+ text
+				)
+			else:
+				raise NotImplementedError
 
 		notebook.index.check_and_update()
 		assert notebook.index.is_uptodate

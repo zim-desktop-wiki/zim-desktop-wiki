@@ -242,7 +242,8 @@ class TestUIActions(tests.TestCase):
 
 		def renamepage(dialog):
 			dialog.set_input(name='ExistingPage')
-			self.assertRaises(PageExistsError, dialog.do_response_ok)
+			with tests.LoggingFilter('zim.notebook'):
+				self.assertRaises(PageExistsError, dialog.do_response_ok)
 
 		with tests.LoggingFilter('zim', 'Page already exists'):
 			with tests.DialogContext(renamepage):
@@ -254,7 +255,8 @@ class TestUIActions(tests.TestCase):
 
 		def renamepage(dialog):
 			dialog.set_input(name='NewName')
-			self.assertRaises(PageNotFoundError, dialog.do_response_ok)
+			with tests.LoggingFilter('zim.notebook'):
+				self.assertRaises(PageNotFoundError, dialog.do_response_ok)
 
 		with tests.LoggingFilter('zim', 'No such page'):
 			with tests.DialogContext(renamepage):
@@ -418,7 +420,8 @@ class TestUIActions(tests.TestCase):
 
 		def movepage(dialog):
 			dialog.set_input(parent=':')
-			self.assertRaises(PageExistsError, dialog.do_response_ok)
+			with tests.LoggingFilter('zim.notebook'):
+				self.assertRaises(PageExistsError, dialog.do_response_ok)
 
 		with tests.LoggingFilter('zim', 'Page already exists'):
 			with tests.DialogContext(movepage):
@@ -435,7 +438,8 @@ class TestUIActions(tests.TestCase):
 
 		def movepage(dialog):
 			dialog.set_input(parent=':')
-			self.assertRaises(PageNotAvailableError, dialog.do_response_ok)
+			with tests.LoggingFilter('zim.notebook'):
+				self.assertRaises(PageNotAvailableError, dialog.do_response_ok)
 
 		with tests.LoggingFilter('zim', 'Page not available'):
 			with tests.DialogContext(movepage):
@@ -447,7 +451,8 @@ class TestUIActions(tests.TestCase):
 
 		def movepage(dialog):
 			dialog.set_input(parent='NewParent')
-			self.assertRaises(PageNotFoundError, dialog.do_response_ok)
+			with tests.LoggingFilter('zim.notebook'):
+				self.assertRaises(PageNotFoundError, dialog.do_response_ok)
 
 		with tests.LoggingFilter('zim', 'No such page'):
 			with tests.DialogContext(movepage):

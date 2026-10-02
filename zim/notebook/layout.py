@@ -8,7 +8,7 @@ import enum
 
 from .page import Path
 
-from zim.newfs import File, Folder, _EOL, SEP, FileNotFoundError
+from zim.newfs import File, Folder, _EOL, SEP, FileNotFoundError, FileExistsError
 from zim.formats import get_format, list_formats, NATIVE_FORMAT
 
 import zim.parse.encode # we use "error=urlencode" which is registerd in this module
@@ -155,6 +155,17 @@ class FilesLayout(NotebookLayout):
 		folder = self.root.folder(path) if path else self.root
 		return file, folder
 
+	def map_page_with_fixed_format(self, pagename: Path, extension: str) -> tuple[File, Folder]:
+		'''Like L{map_page} for enforces the file extension to be used
+		Does not check for conflicts, so this method should only be used in cases where it is
+		already known whether there are conflicting files.
+		'''
+		path = encode_filename(pagename.name)
+		file = self.root.file(path + '.' + extension.strip('.'))
+		file.endofline = self.endofline ## TODO, make this auto-detect for existing files ?
+		folder = self.root.folder(path) if path else self.root
+		return file, folder
+
 	def get_attachments_folder(self, pagename: Path) -> 'FilesAttachmentFolder':
 		file, folder = self.map_page(pagename)
 		return FilesAttachmentFolder(folder, self.is_source_file)
@@ -226,6 +237,71 @@ class FilesLayout(NotebookLayout):
 			return self.supported_extensions[ext]
 		else:
 			raise AssertionError('Unknown file type for page: %s' % file.basename)
+
+	def move_page_resources(self, path: Path, newpath: Path) -> dict[File|Folder, File|Folder]:
+		'''Move page source file(s) and attachements
+		This is a low-level method that does not update the notebook index etc.
+		It should only by used when several pre-conditions are checked - e.g. the new page
+		should not already exist
+		See C{Notebook.move_page()} for high level interface.
+		@param path: current page path
+		@param newpath: destination page path
+		@returns: a dictionary of changes, mapping old file or folder to new file or folder
+		'''
+		# Implemented here as the logic here might depend on the file and folder layout
+		# and it deals with e.g. making sure new file is detected as the right format
+
+		file, folder = self.map_page(path)
+		if not (file.exists() or folder.exists()):
+			raise FileNotFoundError(file)
+
+		newfile, newfolder = self.map_page_with_fixed_format(newpath, file.extension)
+			# Preserving file extensions, because else things go wrong with
+			# the format detection next time the page is loaded
+
+		if file.path.lower() == newfile.path.lower() \
+			and (newfile.isequal(file) or newfolder.isequal(folder)):
+				pass # renaming on case-insensitive filesystem
+		elif newfile.exists():
+			raise FileExistsError(newfile)
+		elif newfolder.exists():
+			raise FileExistsError(newfolder)
+
+		# First move the dir - if it fails due to some file being locked
+		# the whole move is cancelled. Chance is bigger than the other
+		# way around, e.g. attachment open in external program.
+
+		changes = []
+
+		if folder.exists():
+			if newfolder.ischild(folder):
+				# special case where we want to move a page down
+				# into it's own namespace
+				parent = folder.parent()
+				tmp = parent.new_folder(folder.basename)
+				folder.moveto(tmp)
+				tmp.moveto(newfolder)
+			else:
+				folder.moveto(newfolder)
+
+			changes.append((folder, newfolder))
+
+			# check if we also moved the file inadvertently
+			if file.ischild(folder):
+				rel = file.relpath(folder)
+				movedfile = newfolder.file(rel)
+				if movedfile.exists() and movedfile.path != newfile.path:
+						movedfile.moveto(newfile)
+						changes.append((movedfile, newfile))
+			elif file.exists():
+				file.moveto(newfile)
+				changes.append((file, newfile))
+
+		elif file.exists():
+			file.moveto(newfile)
+			changes.append((file, newfile))
+
+		return changes
 
 
 class FilesAttachmentFolder(object):

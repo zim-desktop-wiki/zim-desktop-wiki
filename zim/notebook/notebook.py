@@ -18,7 +18,7 @@ import zim.templates
 import zim.formats
 
 from zim.fs import adapt_from_oldfs
-from zim.newfs import SEP, Folder, LocalFile, LocalFolder
+from zim.newfs import SEP, Folder, LocalFile, LocalFolder, FileNotFoundError, FileExistsError
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error
 from zim.base.naturalsort import natural_sort_key
@@ -556,7 +556,22 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		file, folder = self.layout.map_page(path)
 		if (file.exists() or folder.exists()):
-			self._move_file_and_folder(path, newpath)
+			try:
+				changes = self.layout.move_page_resources(path, newpath)
+			except FileNotFoundError:
+				logger.exception('Error in file or folder move')
+				raise PageNotFoundError(path)
+			except FileExistsError as err:
+				logger.exception('Error in file or folder move')
+				if self.layout.is_source_file(err.file):
+					raise PageExistsError(newpath)
+				else:
+					raise PageNotAvailableError(newpath, err.file)
+
+			# Process index changes after all fs changes
+			for old, new in changes:
+				self.index.file_moved(old, new)
+
 			self._reload_pages_in_cache(path)
 			self._reload_pages_in_cache(newpath)
 			self.emit('moved-page', path, newpath)
@@ -582,65 +597,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				tree.set_heading_text(newpath.basename)
 				page.set_parsetree(tree)
 				self.store_page(page)
-
-	def _move_file_and_folder(self, path, newpath):
-		file, folder = self.layout.map_page(path)
-		if not (file.exists() or folder.exists()):
-			raise PageNotFoundError(path)
-
-		newfile, newfolder = self.layout.map_page(newpath)
-		if file.path.lower() == newfile.path.lower():
-			if newfile.isequal(file) or newfolder.isequal(folder):
-				pass # renaming on case-insensitive filesystem
-			elif newfile.exists() or newfolder.exists():
-				raise PageExistsError(newpath)
-		elif newfile.exists():
-			if self.layout.is_source_file(newfile):
-				raise PageExistsError(newpath)
-			else:
-				raise PageNotAvailableError(newpath, newfile)
-		elif newfolder.exists():
-			raise PageExistsError(newpath)
-
-		# First move the dir - if it fails due to some file being locked
-		# the whole move is cancelled. Chance is bigger than the other
-		# way around, e.g. attachment open in external program.
-
-		changes = []
-
-		if folder.exists():
-			if newfolder.ischild(folder):
-				# special case where we want to move a page down
-				# into it's own namespace
-				parent = folder.parent()
-				tmp = parent.new_folder(folder.basename)
-				folder.moveto(tmp)
-				tmp.moveto(newfolder)
-			else:
-				folder.moveto(newfolder)
-
-			changes.append((folder, newfolder))
-
-			# check if we also moved the file inadvertently
-			if file.ischild(folder):
-				rel = file.relpath(folder)
-				movedfile = newfolder.file(rel)
-				if movedfile.exists() and movedfile.path != newfile.path:
-						movedfile.moveto(newfile)
-						changes.append((movedfile, newfile))
-			elif file.exists():
-				file.moveto(newfile)
-				changes.append((file, newfile))
-
-		elif file.exists():
-			file.moveto(newfile)
-			changes.append((file, newfile))
-
-		# Process index changes after all fs changes
-		# more robust if anything goes wrong in index update
-		for old, new in changes:
-			self.index.file_moved(old, new)
-
 
 	def _update_links_in_moved_page(self, oldroot, newroot):
 		# Find (floating) links that originate from the moved page
