@@ -157,7 +157,7 @@ class MarkdownParser(object):
 			| Rule(LINK, r'<(%s)>' % _md_autolink_email_pattern, process=self.parse_autolink) # email autolink
 			| Rule(LINK, url_link_re, process=self.parse_url)
 			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_wiki_link)
-			| Rule(IMAGE,   r'!\[([^\]]*)\]\(([^)]+)\)(\{[^}]*\})?', process=self.parse_image)
+			| Rule(IMAGE,   r'!\[([^\]]*)\]\((\S+)\)(\{[^}]*\})?', process=self.parse_image)
 			| Rule(LINK, r'\[([^\]]*)\]\((\S+)\)', process=self.parse_link)
 			| Rule(ANCHOR, r'\{\#(\w[\w-]*)\}', process=self.parse_anchor)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
