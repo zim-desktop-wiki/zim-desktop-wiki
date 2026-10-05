@@ -34,7 +34,7 @@ import logging
 from functools import partial
 from collections.abc import Callable
 
-from .encode import unescape_string
+from .encode import split_quoted_strings, unescape_quoted_string
 
 
 logger = logging.getLogger('zim.parsing.searchquery')
@@ -113,45 +113,6 @@ SearchFlag.from_letters_re = re.compile('^\\?([%s]+)\\:$' % ''.join(SearchFlag._
 SEARCH_CASE_SENSITIVE = SearchFlag.CASE_SENSITIVE #: Constant to find case sensitive
 SEARCH_WHOLE_WORD = SearchFlag.WHOLE_WORD #: Constant to find whole words only
 SEARCH_REGEX =  SearchFlag.REGEX #: Constant for regex search
-
-_word_re = re.compile(r'''
-	(	'(\\'|[^'])*' |  # single quoted word
-		"(\\"|[^"])*" |  # double quoted word
-		[^\s'"]+         # word without spaces or quotes
-	)''', re.X)
-
-
-def split_quoted_strings(string: str) -> list[str]:
-	'''Split a word list respecting quotes, does not remove the quotes
-
-	Allow both double and single quotes
-
-	This function always expect full words to be quoted, even if quotes
-	appear in the middle of a word, they are considered word
-	boundries.
-	'''
-	string = string.strip()
-	words = []
-	m = _word_re.match(string)
-	while m:
-		words.append(m.group(0))
-		i = m.end()
-		string = string[i:].lstrip()
-		m = _word_re.match(string)
-
-	if string:
-		words += string.split() # unmatched quote ?
-
-	return [w for w in words if w]
-
-
-def unescape_quoted_string(string: str) -> str:
-	'''Removes quotes from a string and unescapes embedded quotes'''
-	if not string:
-		return string
-	elif string[0] in ('"', "'") and string[-1] == string[0]:
-		string = string[1:-1]
-	return unescape_string(string)
 
 
 class SearchQuery:

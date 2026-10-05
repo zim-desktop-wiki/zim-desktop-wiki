@@ -56,6 +56,46 @@ def split_escaped_string(string, char):
 	return parts
 
 
+_word_re = re.compile(r'''
+	(	'(\\'|[^'])*' |  # single quoted word
+		"(\\"|[^"])*" |  # double quoted word
+		[^\s'"]+         # word without spaces or quotes
+	)''', re.X)
+
+
+def split_quoted_strings(string: str) -> list[str]:
+	'''Split a word list respecting quotes, does not remove the quotes
+
+	Allow both double and single quotes
+
+	This function always expect full words to be quoted, even if quotes
+	appear in the middle of a word, they are considered word
+	boundries.
+	'''
+	string = string.strip()
+	words = []
+	m = _word_re.match(string)
+	while m:
+		words.append(m.group(0))
+		i = m.end()
+		string = string[i:].lstrip()
+		m = _word_re.match(string)
+
+	if string:
+		words += string.split() # unmatched quote ?
+
+	return [w for w in words if w]
+
+
+def unescape_quoted_string(string: str) -> str:
+	'''Removes quotes from a string and unescapes embedded quotes'''
+	if not string:
+		return string
+	elif string[0] in ('"', "'") and string[-1] == string[0]:
+		string = string[1:-1]
+	return unescape_string(string)
+
+
 def encode_xml_text(text: str|None) -> str:
 	'''Encode text such that it can be used in xml or html attributes
 	Encodes the following characters: `& < >`

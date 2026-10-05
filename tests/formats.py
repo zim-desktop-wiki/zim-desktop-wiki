@@ -10,7 +10,7 @@ import tests
 
 from zim.formats import *
 from zim.parse.links import is_url_link
-from zim.parse.tokenlist import skip_to_end_token
+from zim.parse.tokenlist import skip_to_end_token, tokens_to_text, filter_token
 from zim.notebook import Path
 from zim.templates import Template
 
@@ -96,7 +96,7 @@ class TestFormatMixin(object):
 		result = parser.parse(input)
 		if self.format.info['native']:
 			my_reference_xml = self.hackRoundtripReference(self.reference_xml)
-			self.assertMultiLineEqual(result.tostring(), my_reference_xml)
+			self.assertMultiLineEqual(result.tostring(filter_private_attrib=True), my_reference_xml)
 		else:
 			self.assertTrue(len(result.tostring().splitlines()) > 10)
 				# Quick check that we got back *something*
@@ -1068,6 +1068,70 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 		self.assertTrue(self.format.info['export'])
 		self.assertEqual(self.format.info['extension'], 'md')
 
+	def testFencedCodeBlocks(self):
+		# Include test without final line break for end-of-file situation
+		# Include various cases with and without info string
+		for input, expect, output in (
+			('```\ndef hello():\n    pass\n```', VERBATIM_BLOCK, ''),
+			('~~~\ndef hello():\n    pass\n~~~', VERBATIM_BLOCK, ''),
+			('``` python\ndef hello():\n    pass\n```', OBJECT, ''),
+			('~~~python\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python\ndef hello():\n    pass\n~~~'),
+			('~~~ python {.numberLines}\ndef hello():\n    pass\n~~~', OBJECT, ''),
+			('~~~python {.numberLines test=True}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python {.numberLines test="True"}\ndef hello():\n    pass\n~~~'),
+			('``` python {#myId .numberLines test="True"}\ndef hello():\n    pass\n```', OBJECT, ''),
+			('```python {#myId}\ndef hello():\n    pass\n```', OBJECT, '``` python {#myId}\ndef hello():\n    pass\n```'),
+			('~~~ {.code lang="python"}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python\ndef hello():\n    pass\n~~~'),
+			('~~~ {code lang="python"}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python\ndef hello():\n    pass\n~~~'),
+			('~~~ {code lang="python" id=myId}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python {#myId}\ndef hello():\n    pass\n~~~'),
+			('~~~ {code: lang="python"}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python\ndef hello():\n    pass\n~~~'),
+		):
+			output = output.strip() or input.strip()
+			parser = self.format.Parser()
+			dumper = self.format.Dumper()
+
+			for myinput in (input, input + '\n'):
+				tree = parser.parse(myinput)
+				text = tokens_to_text(filter_token(tree.iter_tokens(), expect))
+				self.assertNotIn('def hello', text)
+					# Content does not appear after filtering out expected block type (VERBATIM_BLOCK or OBJECT)
+				result = ''.join(dumper.dump(tree))
+				self.assertEqual(result.strip(), output)
+					# Info line etc. preserved
+
+	def testFencedCodeBlocksInfoString(self):
+		parser = self.format.MarkdownParser()
+		dumper = self.format.Dumper()
+		for info, attrib in (
+			('python', {'type': 'code', 'lang': 'python'}),
+			('python {#myid}', {'type': 'code', 'lang': 'python', 'id': 'myid'}),
+			('python {#myid attr=value}', {'type': 'code', 'lang': 'python', 'id': 'myid', 'attr': 'value'}),
+			('{object: lang=python}', {'type': 'object', 'lang': 'python'}),
+			('{.object lang=python}', {'type': 'object', 'lang': 'python'}),
+			('{object lang=python #myid}', {'type': 'object', 'lang': 'python', 'id': 'myid'}),
+			('{.object .style .klass}', {'type': 'object', 'class': 'style klass'})
+		):
+			self.assertEqual(parser.parse_info_string(info), attrib)
+			new_info = dumper.dump_info_string(attrib)
+			self.assertEqual(parser.parse_info_string(new_info), attrib) # roundtrip
+
+	def testDumpFencedCodeBlocks(self):
+		# Test what happens if the block contains a fence sequence
+		dumper = self.format.Dumper()
+		for code, fence, result in (
+			("foo\n```sdfsd```\n", "```", "``````"),
+			("foo\n`sdfsd`\n", "```", "```"),
+			("foo\n```sdfsd```\n", "~~~", "~~~"),
+		):
+			self.assertEqual(dumper._find_fence(code.splitlines(True), fence), result)
+
+	def testObjects(self):
+		# Test dumping and parsing of objects
+		for markdown, xml in (
+			('``` python\ntest 123\n```\n', '<object _fence="```" lang="python" type="code">test 123\n</object>'),
+			('~~~ {.unknownobject key="value"}\ntest 123\n~~~\n', '<object _fence="~~~" key="value" type="unknownobject">test 123\n</object>')
+		):
+			self.assertParseAndDumpEquals(markdown, xml)
+
 	def testParseHeadings(self):
 		input = '# Heading 1\n\n## Heading 2\n\n### Heading 3\n'
 		parser = self.format.Parser()
@@ -1131,29 +1195,6 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 		xml = tree.tostring()
 		self.assertIn('<ol', xml)
 
-	def testParseFencedCode(self):
-		input = '```python\ndef hello():\n    pass\n```\n'
-		parser = self.format.Parser()
-		tree = parser.parse(input)
-		xml = tree.tostring()
-		self.assertIn('<pre', xml)
-		self.assertIn('lang="python"', xml)
-		self.assertIn('def hello():', xml)
-
-	def testParseFencedCodeAtEndOfFile(self):
-		# The closing fence may be the last line of the file, without a
-		# trailing newline - see issue #3001
-		for input in (
-			'```python\ndef hello():\n    pass\n```',
-			'~~~python\ndef hello():\n    pass\n~~~',
-		):
-			parser = self.format.Parser()
-			tree = parser.parse(input)
-			xml = tree.tostring()
-			self.assertIn('<pre', xml)
-			self.assertIn('lang="python"', xml)
-			self.assertIn('def hello():', xml)
-
 	def testParseTable(self):
 		input = '| H1 | H2 |\n|---|---|\n| A | B |\n| C | D |\n'
 		parser = self.format.Parser()
@@ -1197,17 +1238,6 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 		result = ''.join(dumper.dump(tree))
 		self.assertIn('**bold**', result)
 		self.assertIn('*italic*', result)
-
-	def testDumperFencedCode(self):
-		builder = ParseTreeBuilder()
-		builder.start(FORMATTEDTEXT)
-		builder.append(VERBATIM_BLOCK, {'lang': 'python'}, 'print("hello")\n')
-		builder.end(FORMATTEDTEXT)
-		tree = builder.get_parsetree()
-		dumper = self.format.Dumper()
-		result = ''.join(dumper.dump(tree))
-		self.assertIn('```python\n', result)
-		self.assertIn('print("hello")\n', result)
 
 	def testDumperCheckboxes(self):
 		builder = ParseTreeBuilder()
@@ -1270,7 +1300,7 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 			'\n'
 			'## Code\n'
 			'\n'
-			'```python\n'
+			'``` python\n'
 			'def hello():\n'
 			'    pass\n'
 			'```\n'

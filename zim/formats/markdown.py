@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger('zim.formats.markdown')
 
 from zim.parse import convert_space_to_tab, fix_unicode_whitespace
-from zim.parse.encode import escape_string, split_escaped_string, unescape_string, encode_xml_attrib, decode_xml
+from zim.parse.encode import escape_string, split_escaped_string, unescape_string, split_quoted_strings, encode_xml_attrib, decode_xml
 from zim.parse.regexparser import Rule, RegexParser
 from zim.parse.links import is_url_link, match_url_link, is_wiki_link, url_link_re, is_path_re
 
@@ -180,28 +180,19 @@ class MarkdownParser(object):
 
 	def _init_block_parser(self):
 		p = RegexParser(
-			# Zim object in fenced code block: ```{object_type: params}
-			# Must come before generic fenced code block
-			Rule(OBJECT, r'''
-				^[ \t]* `{3,} [ \t]* \{ (\S+) : [ \t]* (.*?) \} [ \t]* \n		# ```{type: params}
-				( (?:^.*\n)*? )													# body
-				^[ \t]* `{3,} [ \t]* (?:\n|\Z)									# closing ```
-			''',
-				process=self.parse_object
-			),
 			# Backtick fenced code block (``` ... ```)
 			Rule(VERBATIM_BLOCK, r'''
-				^[ \t]* (`{3,}) [ \t]* (.*?) \n					# opening backtick fence with optional info
+				^[ \t]* (?P<backticks>`{3,}) [ \t]* (.*?) \n	# opening backtick fence with optional info
 				( (?:^.*\n)*? )									# multi-line content
-				^[ \t]* `{3,} [ \t]* (?:\n|\Z)					# closing backtick fence
+				^[ \t]* (?P=backticks)`* [ \t]* (?:\n|\Z)		# closing backtick fence of at least same lenght
 			''',
 				process=self.parse_fenced_code
 			),
 			# Tilde fenced code block (~~~ ... ~~~)
 			Rule(VERBATIM_BLOCK, r'''
-				^[ \t]* (~{3,}) [ \t]* (.*?) \n					# opening tilde fence with optional info
+				^[ \t]* (?P<tildes>~{3,}) [ \t]* (.*?) \n		# opening tilde fence with optional info
 				( (?:^.*\n)*? )									# multi-line content
-				^[ \t]* ~{3,} [ \t]* (?:\n|\Z)					# closing tilde fence
+				^[ \t]* (?P=tildes)~* [ \t]* (?:\n|\Z)			# closing tilde fence of at least same lenght
 			''',
 				process=self.parse_fenced_code
 			),
@@ -269,33 +260,62 @@ class MarkdownParser(object):
 		builder.end(HEADING)
 
 	def parse_fenced_code(self, builder, fence, info, text):
-		attrib = None
-		if info and info.strip():
-			# Store language as an attribute for potential source view
-			lang = info.strip().split()[0]
-			if lang:
-				attrib = {'lang': lang}
-		if self.blockquote_indent:
-			attrib = attrib if attrib else {}
-			attrib['indent'] = self.blockquote_indent
-		builder.append(VERBATIM_BLOCK, attrib, text)
-
-	def parse_object(self, builder, otype, param, body):
-		otype = otype.strip().lower()
-		attrib = {}
-
-		from zim.formats.wiki import param_re
-		for match in param_re.finditer(param):
-			key = match.group(1).lower()
-			value = match.group(2)
-			if value.startswith('"') and len(value) > 1:
-				value = value[1:-1].replace('""', '"')
-			attrib[key] = value
-
-		attrib['type'] = otype
+		attrib = self.parse_info_string(info) if info and info.strip() else {}
+		attrib['_fence'] = fence
 		if self.blockquote_indent:
 			attrib['indent'] = self.blockquote_indent
-		builder.append(OBJECT, attrib, body)
+
+		if attrib.get('type'): # object type present
+			builder.append(OBJECT, attrib, text)
+		else:
+			builder.append(VERBATIM_BLOCK, attrib, text)
+
+	def parse_info_string(self, info: str) -> dict:
+		# Supported variants:
+		#   python
+		#   python {#myid}
+		#   python {#myid attr=value}
+		#   {object: lang=python}
+		#   {.object lang=python}
+		#   {object lang=python}
+		#   {.object .klass}
+
+		if m := re.match(r'^\s*\.?([\w-]+)', info):
+			# Special case, assuming code block with language
+			attrib = {
+				'type': 'code',
+				'lang': m.group(1)
+			}
+		else:
+			attrib = {}
+
+		if m := re.search(r'{\s*(.*?)\s*}', info):
+			# Parse classes, id and attributes
+			parts = split_quoted_strings(m.group(1))
+			while parts:
+				part = parts.pop(0)
+				if part.startswith('#'):
+					attrib['id'] = part.lstrip('#')
+				elif '=' in part:
+					k, v = part.split('=', 1)
+					if not v and parts:
+						# split_quoted_strings splits 'key="value"' into 2 words
+						v = parts.pop(0)
+					if v.startswith('"'):
+						v = v[1:-1]
+					attrib[k] = decode_xml(v)
+				else:
+					# object type / classes
+					cls = part.lstrip('.').rstrip(':')
+					if 'type' in attrib:
+						if 'class' in attrib:
+							attrib['class'] += ' ' + cls
+						else:
+							attrib['class'] = cls
+					else:
+						attrib['type'] = cls
+
+		return attrib
 
 	def parse_table(self, builder, headerline, alignstyle, body):
 		headerrow = split_escaped_string(headerline.strip().strip('|'), '|')
@@ -720,22 +740,63 @@ class Dumper(TextDumper):
 		# Get the base list item from parent - includes HACK for raw dump from textbuffer
 		return TextDumper.dump_li(self, tag, attrib, strings, indent_string='  ')
 
-	def dump_pre(self, tag, attrib, strings):
-		# Use fenced code blocks
-		lang = ''
-		if attrib and 'lang' in attrib:
-			lang = attrib['lang']
-		result = ['```%s\n' % lang]
-		result.extend(strings)
-		if result and not result[-1].endswith('\n'):
-			result[-1] = result[-1] + '\n'
-		result.append('```\n')
+	def dump_pre(self, tag, attrib, strings=None):
+		# Use fenced code blocks - either verbatim or objects
+		if not strings:
+			strings = []
 
-		if attrib and 'indent' in attrib:
+		info = self.dump_info_string(attrib) if attrib else ''
+		default_fence = '~~~' if tag == OBJECT and not attrib['type'] == 'code' else '```'
+			# Default '~~~' for OBJECT that is not a code block
+		fence = self._find_fence(strings, attrib.get('_fence', default_fence))
+		strings = [fence, info, '\n'] + strings + [fence, '\n']
+
+		if attrib and attrib.get('indent'):
 			prefix = '> ' * int(attrib['indent'])
-			return self.prefix_lines(prefix, result)
+			return self.prefix_lines(prefix, strings)
 
-		return result
+		return strings
+
+	@staticmethod
+	def _find_fence(strings, fence):
+		# find sequence for fenced code block that does not occur inside the code block
+		char = fence[0]
+		count = 0
+		for string in strings:
+			if string.startswith(char):
+				count = len(string) - len(string.lstrip(char))
+
+		if count >= len(fence):
+			return char * (count + 3)
+		else:
+			return fence
+
+	def dump_info_string(self, attrib, skip=('indent',)):
+		lang = ''
+		if attrib.get('type') == 'code' and attrib.get('lang'):
+			# Special case for syntax highlighting
+			lang = ' ' + encode_xml_attrib(attrib['lang'])
+			skip = skip + ('lang', 'type')
+
+		parts = []
+		if attrib.get('id') and not 'id' in skip:
+			parts.append('#' + encode_xml_attrib(attrib.get('id')))
+			skip = skip + ('id',)
+
+		if attrib.get('type') and not 'type' in skip:
+			parts.append('.' + encode_xml_attrib(attrib.get('type')))
+			skip = skip + ('type',)
+
+		if attrib.get('class') and not 'class' in skip:
+			parts.extend('.' + cls for cls in encode_xml_attrib(attrib.get('class')).split())
+			skip = skip + ('class',)
+
+		for key, value in sorted(list(attrib.items())):
+			if key in skip or value is None or key[0] == '_':
+				continue
+			parts.append('%s="%s"' % (key, encode_xml_attrib(str(value))))
+
+		return lang + ' {' + ' '.join(parts) + '}' if parts else lang
 
 	def dump_h(self, tag, attrib, strings):
 		level = int(attrib['level'])
@@ -811,18 +872,7 @@ class Dumper(TextDumper):
 		props = '{%s}' % (' '.join(opts)) if len(opts) > 0 else ''
 		return ['![%s](%s)%s' % (text, src, props)]
 
-	def dump_object_fallback(self, tag, attrib, strings=None):
-		assert "type" in attrib, "Undefined type of object"
-
-		opts = []
-		for key, value in sorted(list(attrib.items())):
-			if key in ('type', 'indent') or value is None:
-				continue
-			opts.append(' %s="%s"' % (key, str(value).replace('"', '""')))
-
-		if not strings:
-			strings = []
-		return ['```{', attrib['type'], ':'] + opts + ['}\n'] + strings + ['```\n']
+	dump_object_fallback = dump_pre
 
 	def dump_table(self, tag, attrib, strings):
 		table = []

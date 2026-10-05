@@ -156,19 +156,19 @@ And more text
 
 ## Some Objects
 
-```{code: lang="python" linenumbers="true"}
+``` python {linenumbers="true"}
 def dump():
 	for i in range(1, 5):
 		print i
 ```
 
 
-```{nonexistingobjecttype: foo="bar"}
+~~~ {.nonexistingobjecttype foo="bar"}
 Sing, O goddess, the rage of
 Achilles son of Peleus, that
 brought countless ills upon
 the Achaeans.
-```
+~~~
 
 ## A table
 

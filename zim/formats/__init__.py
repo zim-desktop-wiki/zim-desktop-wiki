@@ -362,7 +362,7 @@ class ParseTree(object):
 		self._etree._setroot(root)
 		return self # allow ParseTree().fromstring(..)
 
-	def tostring(self):
+	def tostring(self, filter_private_attrib=False):
 		'''Serialize the tree to a XML representation'''
 		from io import StringIO
 
@@ -372,7 +372,10 @@ class ParseTree(object):
 			myattrib = element.attrib.copy()
 			element.attrib.clear()
 			for key in sorted(myattrib.keys()):
-				element.attrib[key] = str(myattrib[key])
+				if filter_private_attrib and key[0] == '_':
+					pass
+				else:
+					element.attrib[key] = str(myattrib[key])
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
