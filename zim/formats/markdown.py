@@ -78,7 +78,7 @@ def dump_yaml_front_matter(meta):
 	return ''.join(lines)
 
 
-# ---- Markdown bullet patterns ----
+# ---- Markdown patterns ----
 
 # GFM task list: - [ ], - [x], - [X]
 # Regular bullets: -, *, +
@@ -99,6 +99,14 @@ def _has_valid_href_parenthesis(href):
 	open = len(re.findall(r'(?<!\\)\(', href))
 	close = len(re.findall(r'(?<!\\)\)', href))
 	return open == close
+
+
+_md_autolink_url_pattern = r'[a-zA-Z][a-zA-Z0-9.+-]*:[^\s>]+'
+_md_autolink_email_pattern = r'[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*'
+
+md_autolink_url_re = re.compile(_md_autolink_url_pattern + '$')
+md_autolink_email_re = re.compile(_md_autolink_email_pattern + '$')
+
 
 # ---- Markdown Parser ----
 
@@ -145,8 +153,8 @@ class MarkdownParser(object):
 
 		descent = lambda *a: self.inline_parser(*a)
 		return (
-			Rule(LINK, r'<([a-zA-Z][a-zA-Z0-9.+-]*:[^\s>]+)>', process=self.parse_autolink)
-			| Rule(LINK, r'<([a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)>', process=self.parse_autolink) # email autolink
+			Rule(LINK, r'<(%s)>' % _md_autolink_url_pattern, process=self.parse_autolink)
+			| Rule(LINK, r'<(%s)>' % _md_autolink_email_pattern, process=self.parse_autolink) # email autolink
 			| Rule(LINK, url_link_re, process=self.parse_url)
 			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_wiki_link)
 			| Rule(IMAGE,   r'!\[([^\]]*)\]\(([^)]+)\)(\{[^}]*\})?', process=self.parse_image)
@@ -830,7 +838,9 @@ class Dumper(TextDumper):
 			return ('[[', href, '|', text, ']]') if text and text != href else ('[[', href, ']]')
 
 		if href == text:
-			if is_url_link(href):
+			if self.native and is_url_link(href): # autolink extension undecorated urls
+				return (href,)
+			elif md_autolink_url_re.match(href) or md_autolink_email_re.match(href): # regular autolink
 				return ('<', href, '>')
 			else:
 				text = ''

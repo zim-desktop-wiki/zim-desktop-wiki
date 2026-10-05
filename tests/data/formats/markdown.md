@@ -34,12 +34,12 @@ And some empty space here:
 [[+foo]] links to page in a subnamespace
 [[foo|bar]] links to "foo" but display "bar"
 
-[[:foo:bar]] [](./file.png) <file:///etc/passwd>
+[[:foo:bar]] [](./file.png) file:///etc/passwd
 
-<mailto:foo@bar.org>
+mailto:foo@bar.org
 [[wp?Test]]
 
-External links like <http://nongnu.org> and <foo@bar.org> are also supported
+External links like http://nongnu.org and foo@bar.org are also supported
 
 [not:a:link]
 

@@ -32,6 +32,8 @@ Zim supports:
 ==== Links ====
 Zim supports wiki links as "''[[Page]]''" or "''[[Page|Link text]]''". These are intended only for page links, as these can only be resolved using knowledge of the notebook and therefore do not translate 1-on-1 to file links. When exporting markdown, they will be converted to a regular link.
 
+==== URLs ====
+Zim supports the auto-link extension for URLs without surrounding `<...>` as defined in GitHub Flavored Markdown
 
 ==== Lists ====
 Zim supports letters instead of numbers for numbered lists like:
@@ -46,7 +48,7 @@ Zim supports attibutes using "''{...}''" like pandoc does for:
 * Setting anchors in headings or elsewhere in the text using "''{#name}''"
 * Setting image properties like height and width like "''{width=100px}''"
 * As a special case setting the "type" attribute on images makes it behave as an inline object, e.g. for the [[Plugins:Equation Editor|equation editor plugin]]
-* Let a fenced code block become an inline object, e.g. "''{.objecttype attr=value}''". As a special case, for [[Plugins:Source View|code blocks]] the language is given outside the brackets, e.g. "''python {#snippet1}''". This special case provides compatibility with e.g. GitHub Flavored Markdown
+* Let a fenced code block become an inline object, e.g. "''{.objecttype attr=value}''" with a syntax compatibile with Pandoc. As a special case, for [[Plugins:Source View|code blocks]] the language is given outside the brackets, e.g. "''python {#snippet1}''". This special case provides compatibility with e.g. GitHub Flavored Markdown
 
 ==== Tabels ====
 Zim supports tables using the [[Plugins:Table Editor|table editor plugin]]

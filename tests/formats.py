@@ -1287,7 +1287,7 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 			'\n'
 			'[[Internal Page]]\n'
 			'\n'
-			'<http://example.com>\n'
+			'http://example.com\n'
 			'\n'
 			'## Lists\n'
 			'\n'
@@ -1380,7 +1380,7 @@ dus ja
 			('[](./foo(part1).pdf) and (this)', '<p><link href="./foo(part1).pdf">./foo(part1).pdf</link> and (this)</p>'), # balanced pair of ()
 			('[](./foo\\(part1.pdf)', '<p><link href="./foo(part1.pdf">./foo(part1.pdf</link></p>'), # escaped (
 			('[](./foo%20part1.pdf)', '<p><link href="./foo%20part1.pdf">./foo%20part1.pdf</link></p>'),
-			('<http://example.com>', '<p><link href="http://example.com">http://example.com</link></p>'),
+			('http://example.com', '<p><link href="http://example.com">http://example.com</link></p>'),
 			('[[Page]]', '<p><link href="Page">Page</link></p>'),
 			('[[Other Page|display]]', '<p><link href="Other Page">display</link></p>'),
 		):
