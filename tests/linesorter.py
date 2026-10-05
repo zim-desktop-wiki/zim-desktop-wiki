@@ -157,6 +157,74 @@ class TestLineSorterWindowExtension(tests.TestCase, TextBufferTestCaseMixin):
 		self.extension.move_line_down()
 		self.assertEqual(self.get_text(), 'C line\nA line\nB line\ntrailing text\n')
 
+	# In a numbered list the bullet belongs to the position, not to the line,
+	# so moving a line must not take its number along
+
+	NUMBERED_LIST = (
+		'<li indent="0" style="numbered-list">'
+		'1. foo\n2. bar\n3. baz\n4. x\n</li>'
+	)
+
+	def testMoveDownInNumberedList(self):
+		self.set_buffer(self.buffer, self.NUMBERED_LIST)
+		self.place_cursor(16) # on "baz"
+		self.extension.move_line_down()
+		self.assertBufferEqual(self.buffer,
+			'<li indent="0" style="numbered-list">'
+			'1. foo\n2. bar\n3. x\n4. baz\n</li>'
+		)
+
+	def testMoveUpInNumberedList(self):
+		self.set_buffer(self.buffer, self.NUMBERED_LIST)
+		self.place_cursor(16) # on "baz"
+		self.extension.move_line_up()
+		self.assertBufferEqual(self.buffer,
+			'<li indent="0" style="numbered-list">'
+			'1. foo\n2. baz\n3. bar\n4. x\n</li>'
+		)
+
+	def testMoveFirstItemOfNumberedListKeepsListStart(self):
+		# Moving the first item used to leave the list starting at "2.",
+		# which survives saving because the first bullet defines the start
+		self.set_buffer(self.buffer, self.NUMBERED_LIST)
+		self.place_cursor(3) # on "foo"
+		self.extension.move_line_down()
+		self.assertBufferEqual(self.buffer,
+			'<li indent="0" style="numbered-list">'
+			'1. bar\n2. foo\n3. baz\n4. x\n</li>'
+		)
+
+	NESTED_NUMBERED_LIST = (
+		'<li indent="0" style="numbered-list">1. foo\n2. bazooka\n</li>'
+		'<li indent="1" style="numbered-list">a. abc\nb. def\nc. hij\n</li>'
+		'<li indent="0" style="numbered-list">3. bar\n</li>'
+	)
+
+	def testMoveUpOutOfNestedNumberedList(self):
+		# The line ends up on the position of a list item one level up - its
+		# own bullet style and indent must survive that
+		self.set_buffer(self.buffer, self.NESTED_NUMBERED_LIST)
+		self.place_cursor(22) # on "abc"
+		self.extension.move_line_up()
+		self.assertEqual(self.get_text().splitlines()[:3], ['1. foo', 'a. abc', '2. bazooka'])
+		self.assertEqual(self.buffer.get_bullet(1), 'a.')
+		self.assertEqual(self.buffer.get_indent(1), 1)
+
+	def testMoveUpWithinNestedNumberedList(self):
+		self.set_buffer(self.buffer, self.NESTED_NUMBERED_LIST)
+		self.place_cursor(29) # on "def"
+		self.extension.move_line_up()
+		self.assertEqual(self.get_text().splitlines()[2:5], ['a. def', 'b. abc', 'c. hij'])
+
+	def testMoveInNumberedListIsSingleUndoStep(self):
+		# Renumbering used to add an undo group per corrected bullet
+		self.set_buffer(self.buffer, self.NUMBERED_LIST)
+		self.buffer.undostack.clear_undostack()
+		self.place_cursor(16) # on "baz"
+		self.extension.move_line_up()
+		self.buffer.undostack.undo()
+		self.assertBufferEqual(self.buffer, self.NUMBERED_LIST)
+
 	def testNothingHappensMoveUpAtStart(self):
 		self.set_text('A line\nB line\nC line\n')
 		self.select_range(3, 11)
