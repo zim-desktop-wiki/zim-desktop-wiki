@@ -24,7 +24,6 @@ from zim.formats import ElementTreeModule as ElementTree
 from zim.formats import END, TEXT, \
 	TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA, \
 	EMPHASIS, STRONG, MARK, VERBATIM, STRIKE, SUBSCRIPT, SUPERSCRIPT, LINK, ANCHOR, TAG
-from zim.formats.wiki import Parser as WikiParser
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry, gtk_popup_at_pointer
@@ -218,7 +217,7 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 		return TableModel(attrib, headers, rows)
 
 	def model_from_data(self, notebook, page, attrib, data):
-		tree = WikiParser().parse(data)
+		tree = page.format.Parser().parse(data)
 		element = tree._etree.getroot().find('table') # XXX - should use token interface instead
 		if element is not None:
 			return self.model_from_element(element.attrib, element)

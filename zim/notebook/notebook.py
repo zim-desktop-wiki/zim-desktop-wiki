@@ -1135,6 +1135,5 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		}
 		self.emit('init-page-template', path, template) # plugin hook
 		template.process(lines, mycontext)
-
-		parser = zim.formats.get_parser('wiki') # TODO: make template format flexible
+		parser = self.layout.default_format.Parser()
 		return parser.parse(lines)

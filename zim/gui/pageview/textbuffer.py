@@ -1165,7 +1165,7 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 		except KeyError:
 			# HACK - if table plugin is not loaded - show table as plain text
 			tree = ParseTree(element)
-			lines = get_dumper('wiki').dump(tree)
+			lines = self.page.format.Dumper().dump(tree)
 			self.insert_object_at_cursor({'type': 'table'}, ''.join(lines))
 		else:
 			model = obj.model_from_element(element.attrib, element)
@@ -2669,10 +2669,8 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 			# TODO format should depend on native format of source file
 			#      refactor out with ParseTree refactoring
 			#      ensure markdown also supports dump directly from textbuffer
-			from zim.formats import get_format
-			format = get_format('wiki')
-			dumper = format.Dumper()
-			parser = format.Parser()
+			dumper = self.page.format.Dumper()
+			parser = self.page.format.Parser()
 			text = dumper.dump(tree)
 			#print(">>> Wiki text:\n", ''.join(text))
 			tree = parser.parse(text)
