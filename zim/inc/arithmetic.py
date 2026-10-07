@@ -397,7 +397,6 @@ class Parser:
 
                                 except:
                                     logger.warning('exec error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
-                                    raise
                             else:                   # evaluate a variable
                                 if valorLeft in variables:
                                         resultado = variables[valorLeft]

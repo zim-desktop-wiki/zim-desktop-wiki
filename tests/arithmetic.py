@@ -8,6 +8,33 @@ import tests
 from zim.inc.arithmetic import ParserGTK, feed
 
 
+class ArithmeticInvalidAssignmentTest(tests.TestCase):
+
+	def runTest(self):
+		'''Invalid assignments are skipped instead of raising'''
+		# Anything of the form "name = ..." goes through the assignment
+		# branch. Unlike the other branches this one re-raised on
+		# evaluation errors, which crashed the plugin on any such line
+		# in the page - see issue #2870
+		text = '''
+		style="white-space: pre;"
+		a = (1
+		b = 5 x
+		c = 5
+		c + 1=
+		'''
+		wanted = '''
+		style="white-space: pre;"
+		a = (1
+		b = 5 x
+		c = 5
+		c + 1=6
+		'''
+		with tests.LoggingFilter('zim.inc.arithmetic', 'exec error') as filter:
+			self.assertEqual(feed(text), wanted)
+		self.assertEqual(len(filter.captured), 3)
+
+
 class ArithmeticTest(tests.TestCase):
 
 	def runTest(self):
