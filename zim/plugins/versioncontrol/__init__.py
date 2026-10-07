@@ -636,6 +636,20 @@ class VCSApplicationBase(ConnectorMixin):
 		versions = self.log_to_revision_list(lines)
 		return versions
 
+	def revision_sort_key(self, i, rev):
+		"""Returns the key used to sort a revision in the versions dialog
+
+		@param i: the position of the revision in the list returned by
+		          L{list_versions()}, thus counting from the oldest revision
+		@param rev: the revision id
+		@returns: a str() to be used as sorting key
+		@implementation: optional, to be implemented in the child class when
+		                 the revision id does not sort by age, e.g. when it is
+		                 a hash. Note that this key is only used for sorting,
+		                 the revision id itself is what is shown to the user.
+		"""
+		return natural_sort_key(rev)
+
 	def log(self, file=None):
 		"""Returns the history related to a file.
 		@param file: a L{File} instance representing the file or None (for the entire repository)
@@ -867,7 +881,7 @@ state. Or select multiple versions to see changes between those versions.
 		vbox.pack_start(label, False, True, 0)
 
 		# Version list
-		self.versionlist = VersionsTreeView()
+		self.versionlist = VersionsTreeView(vcs.revision_sort_key)
 		self.versionlist.load_versions(vcs.list_versions())
 		scrolled = ScrolledWindow(self.versionlist)
 		vbox.add(scrolled)
@@ -949,11 +963,17 @@ state. Or select multiple versions to see changes between those versions.
 				comp_button.set_sensitive(bool(usepage and self._side_by_side_app))
 
 		def on_page_change(o):
+			if not self.page_radio.get_active():
+				return
+				# Also called when the radio button is toggled *off* and for
+				# the page entry while the notebook option is selected
 			pagesource = self._get_file()
 			if pagesource:
-				self.versionlist.load_versions(vcs.list_versions(self._get_file()))
+				self.versionlist.load_versions(vcs.list_versions(pagesource))
 
 		def on_book_change(o):
+			if not self.notebook_radio.get_active():
+				return # Also called when the radio button is toggled *off*
 			self.versionlist.load_versions(vcs.list_versions())
 
 		self.page_radio.connect('toggled', on_ui_change)
@@ -1069,10 +1089,12 @@ class VersionsTreeView(SingleClickTreeView):
 	USER_COL = 3
 	MSG_COL = 4
 
-	def __init__(self):
+	def __init__(self, revision_sort_key):
 		model = Gtk.ListStore(str, str, str, str, str)
 			# REV_SORT_COL, REV_COL, DATE_COL, USER_COL, MSG_COL
 		GObject.GObject.__init__(self)
+		self.revision_sort_key = revision_sort_key
+			# See L{VCSApplicationBase.revision_sort_key()}
 		self.set_model(model)
 
 		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
@@ -1090,10 +1112,23 @@ class VersionsTreeView(SingleClickTreeView):
 			else:
 				column.set_sort_column_id(i)
 
-			if i == self.DATE_COL:
+			if i == self.USER_COL:
 				column.set_expand(True)
+					# The date has a fixed format and the revision a fixed
+					# length, the author name is the one that varies
 
+			column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+			column.set_resizable(True)
+				# Required for fixed height mode below. Side effect is that the
+				# column width no longer grows to fit the widest value in the
+				# whole list, so make the columns resizable by the user instead
 			self.append_column(column)
+
+		self.set_fixed_height_mode(True)
+			# All rows show a single line of text, so they all have the same
+			# height. Without this the widget measures every single row after
+			# the dialog is shown, which takes seconds for a repository with
+			# many revisions.
 
 		model.set_sort_column_id(self.REV_SORT_COL, Gtk.SortType.DESCENDING)
 			# By default sort by rev
@@ -1104,9 +1139,9 @@ class VersionsTreeView(SingleClickTreeView):
 		model.set_sort_column_id(self.REV_SORT_COL, Gtk.SortType.DESCENDING)
 			# By default sort by rev
 
-		for version in versions:
+		for i, version in enumerate(versions):
 			#~ print version
-			key = natural_sort_key(version[0]) # key for REV_SORT_COL
+			key = self.revision_sort_key(i, version[0]) # key for REV_SORT_COL
 			model.append((key,) + tuple(version))
 
 	def get_versions(self):
