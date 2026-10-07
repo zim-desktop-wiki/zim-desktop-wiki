@@ -116,6 +116,9 @@ class TaskListWidgetMixin(object):
 		self.taskselection = self.SELECTION_MAP[self.taskselection_type][1].new_from_index(index)
 		self.label_tag_filter = (None, None, None) # NOTE: Not taken from uistate since encoding&validation would be non-trivial
 
+		self._reload_pending = False
+		self.connect('map', self.on_map)
+
 		self.connectto(properties, 'changed', self.on_properties_changed)
 
 	def _init_selection_state(self):
@@ -128,8 +131,9 @@ class TaskListWidgetMixin(object):
 
 	def _set_selection_state(self, state):
 		self.status = state[1]
-		self.selection_list._select(state[0])
+		selected = self.selection_list._select(state[0])
 		self.tag_list._set_selected_labels_tags_pages(*state[2])
+		return selected
 
 	def _create_tasklisttreeview(self, opener, properties):
 		self.tasklisttreeview = TaskListTreeView(
@@ -234,12 +238,37 @@ class TaskListWidgetMixin(object):
 			show_pages=properties['show_pages']
 		)
 
+	def on_map(self, *a):
+		if self._reload_pending:
+			self.reload_view()
+
 	def reload_view(self):
+		# Rebuilding the views is expensive - both are rebuilt from scratch -
+		# so don't do it while the widget is not visible. That happens both for
+		# an inactive tab in the side pane and for the window after it was
+		# closed, since closing only hides it. Postpone to the moment the
+		# widget is shown instead. Without this the list is rebuilt for every
+		# "tasklist-changed" signal even when nobody can see it, which adds up
+		# e.g. while indexing a notebook, where the signal is emitted for every
+		# page that has tasks.
+		if not self.get_mapped():
+			self._reload_pending = True
+			return
+
+		self._reload_pending = False
+
+		# NOTE: no explicit refresh() of the views here. Restoring the
+		# selection state below emits "row-activated" on the selection list,
+		# which ends up in set_selection() and refreshes both views with the
+		# new selection object. Refreshing first would rebuild both views
+		# twice for each reload - which is costly because both are rebuilt
+		# from scratch. Only when the selection key is not found - e.g. a
+		# stale uistate - no refresh is triggered and we need to do it here.
 		state = self._get_selection_state()
-		for view in (self.tasklisttreeview, self.tag_list):
-			if view is not None:
-				view.refresh()
-		self._set_selection_state(state)
+		if not self._set_selection_state(state):
+			for view in (self.tasklisttreeview, self.tag_list):
+				if view is not None:
+					view.refresh()
 
 	def on_selection_activated(self, listbox, boxrow):
 		label = boxrow.get_children()[0]

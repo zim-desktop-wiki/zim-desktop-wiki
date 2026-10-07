@@ -13,6 +13,8 @@ from zim.plugins.tasklist.indexer import *
 from zim.plugins.tasklist.indexer import _MAX_DUE_DATE, _MIN_START_DATE
 from zim.plugins.tasklist.gui import *
 
+from gi.repository import Gtk
+
 from zim.parse.dates import old_parse_date
 from zim.parse.tokenlist import testTokenStream
 from zim.formats.wiki import Parser as WikiParser
@@ -526,6 +528,105 @@ class TestTaskList(tests.TestCase):
 		#	self.assertGreater(tags[tag], 0)
 
 		# TODO test filtering for tags, labels, string - all case insensitive
+
+	def _setUpTaskListWidget(self, show=True):
+		plugin = PluginManager.load_plugin('tasklist')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		notebook.index.check_and_update()
+
+		widget = TaskListWidget(
+			notebook.index,
+			tests.MockObject(), # opener
+			plugin.notebook_properties(notebook),
+			False, # show_inbox_next
+			notebook.state['TaskListWidget'],
+			tests.MockObject(), # show_dialog_action
+		)
+		if show:
+			self._showTaskListWidget(widget)
+		return widget
+
+	def _showTaskListWidget(self, widget):
+		# reload_view() only does work while the widget is mapped
+		window = Gtk.Window()
+		window.add(widget)
+		self.addCleanup(window.destroy)
+		window.show_all()
+		tests.gtk_process_events()
+		assert widget.get_mapped()
+
+	def _listTaskIds(self, widget):
+		ids = []
+
+		def collect(model, path, iter):
+			ids.append(model[iter][TASKID_COL])
+
+		widget.tasklisttreeview.real_model.foreach(collect)
+		return ids
+
+	def _countRefresh(self, widget):
+		counts = {}
+
+		def wrap(key, view):
+			counts[key] = 0
+			original = view.refresh
+
+			def refresh():
+				counts[key] += 1
+				original()
+
+			view.refresh = refresh
+
+		wrap('tasks', widget.tasklisttreeview)
+		wrap('tags', widget.tag_list)
+		return counts
+
+	def testReloadViewRefreshesOnlyOnce(self):
+		# Each refresh() rebuilds the view from scratch, so doing it twice per
+		# reload is expensive - see reload_view()
+		widget = self._setUpTaskListWidget()
+		before = self._listTaskIds(widget)
+
+		counts = self._countRefresh(widget)
+		widget.reload_view()
+
+		self.assertEqual(counts, {'tasks': 1, 'tags': 1})
+		self.assertEqual(self._listTaskIds(widget), before)
+
+	def testReloadViewSkippedWhenNotVisible(self):
+		# Nobody can see the widget, so rebuilding it is wasted work - e.g. an
+		# inactive tab in the side pane while the notebook is being indexed
+		widget = self._setUpTaskListWidget(show=False)
+		self.assertFalse(widget.get_mapped())
+
+		counts = self._countRefresh(widget)
+		widget.reload_view()
+
+		self.assertEqual(counts, {'tasks': 0, 'tags': 0})
+		self.assertTrue(widget._reload_pending)
+
+	def testReloadViewDoneWhenShown(self):
+		# ... but the postponed reload must happen once it becomes visible
+		widget = self._setUpTaskListWidget(show=False)
+		widget.reload_view()
+
+		counts = self._countRefresh(widget)
+		self._showTaskListWidget(widget)
+
+		self.assertEqual(counts, {'tasks': 1, 'tags': 1})
+		self.assertFalse(widget._reload_pending)
+
+	def testReloadViewWithUnknownSelection(self):
+		# Fall back to a plain refresh when the selection key is not found,
+		# e.g. because an older version wrote it to the uistate
+		widget = self._setUpTaskListWidget()
+		widget.taskselection_type = SELECTION_ALL
+		widget.selection_list._select = lambda key: False
+
+		counts = self._countRefresh(widget)
+		widget.reload_view()
+
+		self.assertEqual(counts, {'tasks': 1, 'tags': 1})
 
 
 	#~ def testDialog(self):
