@@ -91,9 +91,8 @@ class TestFormatMixin(object):
 		# Parser
 		if not hasattr(self.format, 'Parser'):
 			return
-		input = wanted
 		parser = self.format.Parser()
-		result = parser.parse(input)
+		result = parser.parse(wanted)
 		if self.format.info['native']:
 			my_reference_xml = self.hackRoundtripReference(self.reference_xml)
 			self.assertMultiLineEqual(result.tostring(filter_private_attrib=True), my_reference_xml)
@@ -1084,6 +1083,7 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 			('~~~ {code lang="python"}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python\ndef hello():\n    pass\n~~~'),
 			('~~~ {code lang="python" id=myId}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python {#myId}\ndef hello():\n    pass\n~~~'),
 			('~~~ {code: lang="python"}\ndef hello():\n    pass\n~~~', OBJECT, '~~~ python\ndef hello():\n    pass\n~~~'),
+			('~~~ python\n~~~\n', OBJECT, ''), # emptty block
 		):
 			output = output.strip() or input.strip()
 			parser = self.format.Parser()

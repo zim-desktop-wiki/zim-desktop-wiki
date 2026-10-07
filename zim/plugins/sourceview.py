@@ -31,8 +31,8 @@ try:
 except:
 	GtkSource = None
 
+from zim.formats import OBJECT
 from zim.plugins import PluginClass, InsertedObjectTypeExtension, PLUGIN_FOLDER
-from zim.actions import action
 from zim.config import String, Boolean, ConfigManager
 from zim.parse.encode import encode_xml_text, encode_xml_attrib
 
@@ -144,6 +144,7 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 			return SourceViewBuffer(attrib, '')
 
 	def model_from_data(self, notebook, page, attrib, text):
+		attrib = self.parse_attrib(attrib)
 		return SourceViewBuffer(attrib, text)
 
 	def data_from_model(self, buffer):
@@ -160,28 +161,9 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 			widget.set_preferences(preferences)
 
 	def format_markdown(self, dumper, attrib, data):
-		# Output "fenced code blocks" for markdown
-		# following gfm spec on how these work
-		info = attrib['lang']
-		lines = data.splitlines(True)
-		# find appropriate fence..
-		for i in range(3, 10):
-			fence = ('`' * i) + '\n'
-			if fence not in lines:
-				break
-			fence = ('~' * i) + '\n'
-			if fence not in lines:
-				break
-		else:
-			# we give up, just indent it
-			return ['\t' + l for l in lines]
-
-		return [
-			fence[:-1] + info + '\n',
-			data,
-			fence
-		]
-
+		# We just use the markdown fallback formatting, which has a special case for code objects
+		# However, here we have parsed attributes, so with loaded object subtile difference in result
+		return dumper.dump_object_fallback(OBJECT, attrib, data.splitlines(True))
 
 	def format_html(self, dumper, attrib, data):
 		# to use highlight.js add the following to your template:
@@ -217,6 +199,10 @@ class SourceViewBuffer(TextBufferFindMixin, _bufferclass):
 		GtkSource.Buffer.__init__(self)
 		TextBufferFindMixin.__init__(self)
 		self.set_highlight_matching_brackets(True)
+
+		attrib = {} if attrib is None else attrib
+		text = text or ''
+
 		if attrib['lang']:
 			self._set_language(attrib['lang'])
 

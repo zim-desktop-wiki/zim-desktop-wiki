@@ -156,7 +156,7 @@ class TestSourceViewObject(tests.TestCase):
 	def testDumpMarkdown(self):
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><object lang="python" linenumbers="false" type="code">def foo(a, b):
+<zim-tree><object lang="python" linenumbers="False" type="code">def foo(a, b):
 	print "FOO", a >= b
 
 </object></zim-tree>'''
@@ -165,26 +165,13 @@ class TestSourceViewObject(tests.TestCase):
 		text = dumper.dump(tree)
 		#print('>>', text)
 		self.assertIn(
-			'```python\n'
+			'``` python\n'
 			'def foo(a, b):\n'
 			'	print "FOO", a >= b\n'
 			'\n'
 			'```\n',
 			''.join(text)
 		)
-
-	def testDumpMarkdownFallback(self):
-		otype = SourceViewObjectType(MockPlugin(), MockObjectMap())
-		extreme = ''
-		for i in range(3, 12):
-			extreme = extreme + ('`' * i) + '\n'
-			extreme = extreme + ('~' * i) + '\n'
-		for data, wanted in (
-			("```\n", "~~~python\n```\n~~~\n"),
-			("```\n~~~\n", "````python\n```\n~~~\n````\n"),
-			(extreme, ''.join(['\t'+l for l in extreme.splitlines(True)])) # just indent
-		):
-			self.assertEqual(''.join(otype.format_markdown(None, {'lang': 'python'}, data)), wanted)
 
 class MockPlugin():
 	preferences = ConfigDict()

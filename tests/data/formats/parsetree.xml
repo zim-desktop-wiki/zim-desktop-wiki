@@ -150,7 +150,7 @@ A line in English, should be left aligned.
 
 <h level="2">Some Objects
 </h>
-<object lang="python" linenumbers="true" type="code">def dump():
+<object lang="python" linenumbers="True" type="code">def dump():
 	for i in range(1, 5):
 		print i
 </object>

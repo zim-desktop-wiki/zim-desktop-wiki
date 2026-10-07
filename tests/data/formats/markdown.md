@@ -156,7 +156,7 @@ And more text
 
 ## Some Objects
 
-``` python {linenumbers="true"}
+``` python {.numberLines}
 def dump():
 	for i in range(1, 5):
 		print i

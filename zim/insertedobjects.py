@@ -154,6 +154,7 @@ class InsertedObjectType(object):
 		@returns: a list of strings
 		@raises ValueError: if no specific formatting for "format" is available
 		'''
+		attrib = self.parse_attrib(attrib)
 		try:
 			method = getattr(self, 'format_' + format)
 		except AttributeError:

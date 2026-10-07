@@ -19,6 +19,8 @@ from zim.parse.encode import escape_string, split_escaped_string, unescape_strin
 from zim.parse.regexparser import Rule, RegexParser
 from zim.parse.links import is_url_link, match_url_link, is_wiki_link, url_link_re, is_path_re
 
+from zim.config import ConfigDict
+
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
@@ -322,6 +324,17 @@ class MarkdownParser(object):
 							attrib['class'] = cls
 					else:
 						attrib['type'] = cls
+
+		if attrib.get('type') == 'code':
+			# special case for pandoc compatibility "numberLines" and "number-lines" class
+			classes = attrib.get('class', '').split()
+			if 'numberLines' in classes or 'number-lines' in classes:
+				attrib['linenumbers'] = True
+				classes = [c for c in classes if c not in ('numberLines', 'number-lines')]
+				if classes:
+					attrib['class'] = ' '.join(classes)
+				else:
+					attrib.pop('class')
 
 		return attrib
 
@@ -785,6 +798,15 @@ class Dumper(TextDumper):
 			# Special case for syntax highlighting
 			lang = ' ' + encode_xml_attrib(attrib['lang'])
 			skip = skip + ('lang', 'type')
+
+			# special case for pandoc compatibility
+			attrib = dict(attrib.all_items()) if isinstance(attrib, ConfigDict) else attrib.copy()
+			classes = attrib.get('class', '').split()
+			classes = [c for c in classes if c not in ('numberLines', 'number-lines')]
+			if attrib.get('linenumbers'):
+				classes.append('numberLines')
+			attrib['class'] = ' '.join(classes) if classes else None
+			skip = skip + ('linenumbers',)
 
 		parts = []
 		if attrib.get('id') and not 'id' in skip:
