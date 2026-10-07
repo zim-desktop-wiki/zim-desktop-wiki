@@ -15,16 +15,30 @@ from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 
 from zim.gui.mainwindow import MainWindowExtension
 
-# Try if we are on Ubunutu with app-indicator support
-try:
-	import gi
-	gi.require_version('AppIndicator3', '0.1')
-	from gi.repository import AppIndicator3 as AppIndicator
-except:
-	AppIndicator = None
-
-
 logger = logging.getLogger('zim.plugins.trayicon')
+
+
+# Try if there is app-indicator support. The original "AppIndicator3" from
+# Ubuntu is no longer maintained and has been dropped by several distributions
+# in favor of the "AyatanaAppIndicator3" fork, so try that one first.
+def _import_appindicator():
+	import gi
+	import importlib
+
+	for namespace in ('AyatanaAppIndicator3', 'AppIndicator3'):
+		try:
+			gi.require_version(namespace, '0.1')
+			module = importlib.import_module('gi.repository.' + namespace)
+		except (ImportError, ValueError) as error:
+			logger.debug('No app-indicator support for "%s": %s', namespace, error)
+		else:
+			logger.debug('Using app-indicator support from "%s"', namespace)
+			return module
+
+	return None
+
+
+AppIndicator = _import_appindicator()
 
 
 
@@ -86,7 +100,7 @@ This is a core plugin shipping with zim.
 	@classmethod
 	def check_dependencies(klass):
 		return (True, [
-			('Unity appindicator', bool(AppIndicator), False),
+			('Application indicator (ayatana or unity)', bool(AppIndicator), False),
 		])
 
 	def __init__(self):
@@ -96,10 +110,7 @@ This is a core plugin shipping with zim.
 	def on_preferences_changed(self, preferences):
 		if GLOBAL_TRAYICON:
 			# Only refresh once someone else loaded it
-			application = GLOBAL_TRAYICON.get_application() if hasattr(GLOBAL_TRAYICON, 'get_application') else None
-			trayicon = set_global_trayicon(self.preferences['classic'])
-			if trayicon and application:
-				application.add_window(trayicon)
+			set_global_trayicon(self.preferences['classic'])
 
 
 class TrayIconMainWindowExtension(MainWindowExtension):
@@ -107,10 +118,7 @@ class TrayIconMainWindowExtension(MainWindowExtension):
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.window.hideonclose = True
-		icon = set_global_trayicon(plugin.preferences['classic'])
-		application = window.get_application()
-		if application:
-			application.add_window(icon)
+		set_global_trayicon(plugin.preferences['classic'])
 
 	def teardown(self):
 		global GLOBAL_TRAYICON
@@ -257,9 +265,9 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 			self.set_from_file(icon)
 
 		self.set_tooltip_text(_('Zim Desktop Wiki')) # T: tooltip for tray icon
-		self.connect('popup-menu', self.__class__.do_popup_menu)
 
 	def do_activate(self):
+		# Default handler for the "activate" signal of Gtk.StatusIcon
 		open_notebooks = list(self.list_open_notebooks())
 		if len(open_notebooks) == 0:
 			# No open notebooks, open default or prompt full list
@@ -282,7 +290,9 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 		menu.popup(None, None, None, self, button, activate_time)
 
 	def do_popup_menu(self, button=3, activate_time=0):
-		#~ print('>>', button, activate_time)
+		# Default handler for the "popup-menu" signal of Gtk.StatusIcon
+		# Do *not* connect this method to the signal as well, that would
+		# result in the menu being popped up twice per click
 		menu = self.get_trayicon_menu()
 		menu.show_all()
 		menu.popup(None, None, None, self, button, activate_time)

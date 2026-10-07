@@ -16,7 +16,9 @@ Depends: ${python3:Depends}, ${misc:Depends}, python3 (>= 3.6), libgtk-3-0 (>= 3
 # git or similar required for the version control plugin
 # scrot required for the screenshot plugin
 # dvipng required for the "equation" plugin
-Suggests: git, graphviz, scrot, dvipng
+# gir1.2-ayatanaappindicator3-0.1 required for the tray icon plugin to show an
+# application indicator instead of a (deprecated) status icon
+Suggests: git, graphviz, scrot, dvipng, gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1
 Description: Desktop Wiki Editor
  Zim is a graphical text editor used to maintain a collection of wiki pages.
  Each page can contain links to other pages, simple formatting and images.
