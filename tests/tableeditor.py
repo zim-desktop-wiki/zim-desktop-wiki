@@ -77,6 +77,15 @@ TABLE_TOKENS = [
 ]
 
 
+TABLE_WIKI_TEXT_SPECIAL_CHARS = '''\
+
+| Name & Type <b> | Value               |
+|:----------------|:--------------------|
+| a & b <i>x</i>  | [[http://x.org?a=1&b=2]] |
+
+'''
+
+
 class TestWikiSyntaxNoPlugin(tests.TestCase):
 
 	def parseAndDump(self, text):
@@ -208,6 +217,34 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 		elt = tree.find_element('table')
 		self.assertIsNone(elt)
 
+
+
+	def testSpecialCharacters(self):
+		# Characters like "&" and "<" in headers and cells are plain text
+		# and should not be interpreted as markup - see issue #3035
+		pageview = setUpPageView(
+			self.setUpNotebook(),
+			text=TABLE_WIKI_TEXT_SPECIAL_CHARS,
+		)
+		widget = list(pageview.textview.get_inserted_object_widgets())[0]
+		self.assertIsInstance(widget, TableViewWidget)
+
+		labels = [
+			col.get_widget().get_children()[0].get_text()
+				for col in widget.treeview.get_columns()
+		]
+		self.assertEqual(labels, ['Name & Type <b>', 'Value'])
+
+		cell = Gtk.CellRendererText()
+		cell.set_property('markup', widget.model.liststore[0][0])
+		self.assertEqual(cell.get_property('text'), 'a & b <i>x</i>')
+
+		pageview.textview.get_buffer().set_modified(True) # Force re-interpretation of the buffer
+		tree = pageview.page.get_parsetree()
+		self.assertEqual(
+			list(tree.iter_tokens()),
+			list(WikiParser().parse(TABLE_WIKI_TEXT_SPECIAL_CHARS).iter_tokens())
+		)
 
 
 class TestEditTable(tests.TestCase):
