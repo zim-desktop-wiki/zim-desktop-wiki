@@ -39,8 +39,23 @@ def natural_sort_key(string, numeric_padding=5):
 		# Known python issue :(
 		bytestring = string
 
-	key = ''.join(["%02x" % ord(c) for c in bytestring])
+	key = ''.join(map(_encode_sort_char, bytestring))
 	return key
+
+
+def _encode_sort_char(c):
+	# Encode a character of the transformed string such that the
+	# encoded keys sort the same as the transformed strings themselves.
+	# On some platforms (e.g. macOS) or for characters outside latin-1
+	# C{locale.strxfrm()} returns characters above 255, these can not
+	# be encoded with two hex digits. Those are encoded as "g" followed
+	# by six hex digits, which sorts after any two digit hex code.
+	# Keys that only use characters below 256 are not changed.
+	o = ord(c)
+	if o < 0x100:
+		return '%02x' % o
+	else:
+		return 'g%06x' % o
 
 
 def natural_sort(list, key=None):
