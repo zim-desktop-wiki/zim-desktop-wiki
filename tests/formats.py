@@ -1141,6 +1141,16 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 		self.assertIn('<h level="2">Heading 2\n</h>', xml)
 		self.assertIn('<h level="3">Heading 3\n</h>', xml)
 
+	def testParseTripleAsteriskStrongEmphasis(self):
+		markdown = 'An ***example***\n'
+		parser = self.format.Parser()
+		tree = parser.parse(markdown)
+		xml = tree.tostring()
+		self.assertIn('<strong><emphasis>example</emphasis></strong>', xml)
+		output = ''.join(self.format.Dumper().dump(tree))
+		self.assertEqual(output, markdown)
+		self.assertEqual(parser.parse(output).tostring(), xml)
+
 	def testParseFormatting(self):
 		input = '**bold** *italic* ~~strike~~ `code` __mark__ ~sub~ ^sup^\n'
 		parser = self.format.Parser()

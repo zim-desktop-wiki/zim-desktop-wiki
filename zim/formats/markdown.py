@@ -143,6 +143,7 @@ class MarkdownParser(object):
 		self.nested_inline_parser_below_link = (
 			Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(EMPHASIS, r'\\\*', process=self._unescape_char)
+			| Rule(STRONG, r'(?<!\*)\*\*\*(?!\*)(.+?)(?<!\*)\*\*\*(?!\*)', process=self.parse_strong_emphasis)
 			| Rule(EMPHASIS, r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', descent=descent)
 			| Rule(STRONG, r'\*\*(?!\*)(.+?)\*\*', descent=descent)
 			| Rule(MARK, r'__(?!_)(.+?)__', descent=descent)
@@ -164,6 +165,7 @@ class MarkdownParser(object):
 			| Rule(ANCHOR, r'\{\#(\w[\w-]*)\}', process=self.parse_anchor)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(EMPHASIS, r'\\\*', process=self._unescape_char)
+			| Rule(STRONG, r'(?<!\*)\*\*\*(?!\*)(.+?)(?<!\*)\*\*\*(?!\*)', process=self.parse_strong_emphasis)
 			| Rule(EMPHASIS, r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', descent=descent)
 			| Rule(STRONG, r'\*\*(?!\*)(.+?)\*\*', descent=descent)
 			| Rule(MARK, r'__(?!_)(.+?)__', descent=descent)
@@ -233,6 +235,13 @@ class MarkdownParser(object):
 	@staticmethod
 	def _unescape_char(builder, text):
 		builder.text(text[1:]) # strip leading "\"
+
+	def parse_strong_emphasis(self, builder, text):
+		builder.start(STRONG)
+		builder.start(EMPHASIS)
+		self.nested_inline_parser_below_link(builder, text)
+		builder.end(EMPHASIS)
+		builder.end(STRONG)
 
 	# --- Block-level handlers ---
 
