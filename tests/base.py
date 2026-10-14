@@ -4,10 +4,13 @@
 
 import tests
 
+import locale
+
 from copy import copy
+from unittest import mock
 
 from zim.base import LastDefinedOrderedDict, MovingWindowIter
-from zim.base.naturalsort import natural_sort, natural_sorted
+from zim.base.naturalsort import natural_sort, natural_sorted, natural_sort_key
 
 
 class TestNaturalSorting(tests.TestCase):
@@ -38,6 +41,42 @@ class TestNaturalSorting(tests.TestCase):
 		result = natural_sorted(input, key=lambda t: t[1])
 		self.assertEqual(result, wanted)
 		self.assertTrue(id(result) != id(input))
+
+
+class TestNaturalSortKey(tests.TestCase):
+
+	def assertSortKeysPreserveOrder(self, strings, transform):
+		for a in strings:
+			for b in strings:
+				self.assertEqual(
+					natural_sort_key(a) < natural_sort_key(b),
+					transform(a) < transform(b),
+					'Wrong order for %r and %r' % (a, b)
+				)
+
+	def testCharactersAbove255(self):
+		# Characters outside latin-1 should not sort before plain ascii
+		# because their hex code has more digits - see issue #3029
+		strings = ['a', 'b', 'z', 'ab', '\u0101', '\u017e', '\u03b1\u03b2', '\u4e2d', '\u4e2da', 'a\u4e2d']
+		self.assertSortKeysPreserveOrder(strings, locale.strxfrm)
+
+	def testWideStrxfrm(self):
+		# On macOS locale.strxfrm() returns collation weights above 255
+		# for some plain ascii characters, simulate that here: "a" - "f"
+		# map below 256 and "g" - "z" map above - see issue #3029
+		def wide_strxfrm(string):
+			return ''.join(chr(2 * ord(c) + 50) for c in string)
+
+		strings = ['administrivia', 'dba', 'hardware', 'operatingsystem', 'software', 'a', 'aa']
+		with mock.patch('zim.base.naturalsort.locale.strxfrm', wide_strxfrm):
+			self.assertSortKeysPreserveOrder(strings, wide_strxfrm)
+			self.assertEqual(natural_sorted(strings), sorted(strings))
+
+	def testLatin1KeysUnchanged(self):
+		# Keys for characters below 256 keep the two digit hex format
+		with mock.patch('zim.base.naturalsort.locale.strxfrm', lambda s: s):
+			self.assertEqual(natural_sort_key('ab\u00e9'), '6162e9')
+			self.assertEqual(natural_sort_key('a\u0101'), '61g000101')
 
 
 class TestLastDefinedOrderedDict(tests.TestCase):
