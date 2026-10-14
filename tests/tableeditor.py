@@ -135,6 +135,35 @@ class TestTableObjectType(tests.TestCase):
 		self.assertEqual(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
 
 
+	def testSuperscriptAndSubscriptRoundTrip(self):
+		# Superscript and subscript in a cell should survive loading and
+		# dumping the table again, see issue #3038
+		text = '''\
+| Name   | Formula |
+|:-------|:--------|
+| quetta | 10^{30} |
+| water  | H_{2}O  |
+'''
+		tree = WikiParser().parse(text)
+		element = tree._etree.getroot().find('table')
+		model = self.otype.model_from_element(element.attrib, element)
+
+		builder = BackwardParseTreeBuilderWithCleanup()
+		builder.start('zim-tree')
+		self.otype.dump(builder, model)
+		builder.end('zim-tree')
+		tree = ParseTree(builder.close())
+
+		dumped = ''.join(WikiDumper().dump(tree))
+		self.assertEqual(dumped, text)
+
+		# Export of the re-loaded page should render real tags, not escaped ones
+		html = ''.join(HtmlDumper(linker=StubLinker()).dump(WikiParser().parse(dumped)))
+		self.assertIn('10<sup>30</sup>', html)
+		self.assertIn('H<sub>2</sub>O', html)
+		self.assertNotIn('&lt;sup&gt;', html)
+
+
 class TestPageViewNoPlugin(tests.TestCase):
 
 	def setUp(self):
@@ -239,3 +268,9 @@ class TestTableFunctions(tests.TestCase):
 		self.assertEqual(CellFormatReplacer.zim_to_cell('<link href="./alink">hello</link>'),
 						 '<span foreground="blue"><span size="1">./alink</span>hello</span>')
 		self.assertEqual(CellFormatReplacer.cell_to_zim('<tt>code-block</tt>'), '<code>code-block</code>')
+		self.assertEqual(CellFormatReplacer.input_to_cell('10^{30}', with_pango=True), '10<sup>30</sup>')
+		self.assertEqual(CellFormatReplacer.input_to_cell('H_{2}O', with_pango=True), 'H<sub>2</sub>O')
+		self.assertEqual(CellFormatReplacer.cell_to_input('10<sup>30</sup>', with_pango=True), '10^{30}')
+		self.assertEqual(CellFormatReplacer.cell_to_input('H<sub>2</sub>O', with_pango=True), 'H_{2}O')
+		self.assertEqual(CellFormatReplacer.input_to_cell('__mark__ H_{2}O', with_pango=True),
+						 '<span background="yellow">mark</span> H<sub>2</sub>O')

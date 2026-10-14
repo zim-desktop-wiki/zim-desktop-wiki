@@ -43,6 +43,8 @@ SYNTAX_WIKI_PANGO2 = [
 	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
 	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
 	(r'<strike>\1</strike>', r'<s>\1</s>', r'~~\1~~'),
+	(r'<sup>\1</sup>', r'<sup>\1</sup>', r'^{\1}'),
+	(r'<sub>\1</sub>', r'<sub>\1</sub>', r'_{\1}'),
 	# Link url without link text  - Link url has always size = 1 to stay hidden FIXME: hacky
 	(r'<link href="\1">\1</link>', r'<span foreground="blue"><span size="1">\1</span>\1</span>', r'[[\1]]'),
 	# Link url with link text  - Link url has always size = 1 to stay hidden FIXME: hacky
@@ -64,6 +66,7 @@ def reg_replace(string):
 	:return:source pattern
 	'''
 	string = string.replace('*', r'\*').replace('[', r'\[').replace(']', r'\]') \
+		.replace('^', r'\^').replace('{', r'\{').replace('}', r'\}') \
 		.replace(r'\1', '(.+?)', 1).replace(r'\2', '(.+?)', 1).replace('|', r'\|')
 	return re.compile(string)
 
