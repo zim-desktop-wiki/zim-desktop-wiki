@@ -15,6 +15,14 @@ from zim.config import data_dirs
 
 
 def set_icon_search_path():
+	'''Function to set the icon search path for the default icon theme.
+
+	This function appends directories containing icons to the search path
+	of the default Gtk icon theme. It checks for directories named "icons"
+	in the data directories provided by `data_dirs()`.
+
+	Called directly when this module is loaded.
+	'''
 	icon_theme = Gtk.IconTheme.get_default()
 	for dir in data_dirs():
 		if dir.folder('icons').exists():
