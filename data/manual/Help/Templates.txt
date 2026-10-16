@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 
 ====== Templates ======
 
@@ -25,6 +25,7 @@ Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/
 For a list of templates for exporting see [[Export]] and subpages.
 
 ==== Page templates ====
+The wiki templates using the wiki syntax. 
 
 **wiki/Default.txt**
 This template is used to initialize new pages. The default contains a header with the page name and the date at which the page was created.
@@ -181,7 +182,7 @@ A BLOCK can be defined anywhere in the template and then included in other place
 
 If no block with name "name" is defined, "name" will be evaluated as a parameter. If the value of the parameter is a block name, that block will be included. If the value of the parameter is a file path a file include will be done.
 
-=== File INCLUDE ==
+=== File INCLUDE ===
 
 '''
 [% INCLUDE "path/to/file.txt" %]
