@@ -42,7 +42,8 @@ info = {
 
 # ---- YAML front matter helpers ----
 
-_yaml_front_matter_re = re.compile(r'\A---[ \t]*\n(.*?\n)---[ \t]*\n\n?', re.DOTALL)
+_yaml_front_matter_re = re.compile(r'\A---[ \t]*\n(.*?\n)(\.\.\.|---)[ \t]*\n\n?', re.DOTALL)
+	# closing "---" instead of "..." is supported to be backward compatible with error in implementation
 _yaml_kv_re = re.compile(r'^([\w-]+):\s+(.*?)$', re.M)
 
 from zim.base import LastDefinedOrderedDict
@@ -76,7 +77,7 @@ def dump_yaml_front_matter(meta):
 		if ':' in v or '#' in v or "'" in v or '"' in v:
 			v = '"%s"' % v.replace('"', '\\"')
 		lines.append('%s: %s\n' % (k, v))
-	lines.append('---\n')
+	lines.append('...\n')
 	return ''.join(lines)
 
 

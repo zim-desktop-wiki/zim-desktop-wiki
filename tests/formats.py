@@ -1271,7 +1271,7 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 			'Creation-Date: 2024-01-01\n'
 			'Content-Type: text/markdown\n'
 			'Format: markdown 1.0\n'
-			'---\n'
+			'...\n'
 			'\n'
 			'# Hello\n'
 			'\n'
