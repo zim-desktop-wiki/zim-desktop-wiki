@@ -685,7 +685,7 @@ class ConvertNotebookCommand(NotebookCommand):
 		from zim.formats import get_format
 		import time
 
-		logger.warning('!!! THIS IS AN EXPERIMENTAL FEATURE - Ctrl-C new if you don\'t have a backup !!!')
+		logger.warning('!!! THIS IS AN EXPERIMENTAL FEATURE - Ctrl-C now if you don\'t have a backup !!!')
 		time.sleep(10)
 
 		target_format_name = self.opts.get('format')

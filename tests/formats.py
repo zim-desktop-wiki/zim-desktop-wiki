@@ -1266,20 +1266,22 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 		self.assertIn('[x]', result)
 
 	def testYAMLFrontMatter(self):
+		from zim.formats.markdown import WIKI_FORMAT_VERSION
 		input = (
 			'---\n'
-			'Creation-Date: 2024-01-01\n'
-			'Content-Type: text/markdown\n'
-			'Format: markdown 1.0\n'
+			'Wiki-Format: "%s"\n'
+			'Creation-Date: "2024-01-01"\n'
+			'Custom-Header: "test123"\n'
 			'...\n'
 			'\n'
 			'# Hello\n'
 			'\n'
-			'World\n'
+			'World\n' % WIKI_FORMAT_VERSION
 		)
 		parser = self.format.Parser()
 		tree = parser.parse(input, file_input=True)
 		self.assertEqual(tree.meta.get('Creation-Date'), '2024-01-01')
+		self.assertNotIn('Wiki-Format', tree.meta) # to be used by parser and kept internal
 
 		# Dump back with file_output
 		dumper = self.format.Dumper()

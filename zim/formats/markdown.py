@@ -25,7 +25,14 @@ from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
 
-MARKDOWN_FORMAT_VERSION = 'markdown 1.0'
+WIKI_FORMAT_VERSION = 'zim markdown 0.7'
+# Value for the 'Wiki-Format' header for markdown written by zim in a notebook page.
+# Any file where the 'Wiki-Format' header starts with "zim" shall be interpreted as a zim page.
+# The format and version number can be used to detect and handle changes in the syntax.
+#
+# History:
+# - 0.7 introduced after zim 0.77.2 initial release with version header
+
 
 info = {
 	'name': 'markdown',
@@ -46,7 +53,9 @@ _yaml_front_matter_re = re.compile(r'\A---[ \t]*\n(.*?\n)(\.\.\.|---)[ \t]*\n\n?
 	# closing "---" instead of "..." is supported to be backward compatible with error in implementation
 _yaml_kv_re = re.compile(r'^([\w-]+):\s+(.*?)$', re.M)
 
+
 from zim.base import LastDefinedOrderedDict
+
 
 def parse_yaml_front_matter(text):
 	'''Parse YAML front matter delimited by --- lines.
@@ -58,25 +67,34 @@ def parse_yaml_front_matter(text):
 	if m:
 		yaml_block = m.group(1)
 		for kv in _yaml_kv_re.finditer(yaml_block):
-			meta[kv.group(1)] = kv.group(2).strip().strip('"').strip("'")
+			# Default decode as string - for now no other data types supported
+			k, v = kv.group(1), kv.group(2)
+			if v.startswith('"'):
+				v = v[1:-1].replace('\\"', '"').replace('\\\\', '\\')
+			elif v.startswith("'"):
+				v = v[1:-1].replace("''", "'")
+
+			meta[k] = v
 		text = text[m.end():]
 	return text, meta
 
 
-def dump_yaml_front_matter(meta):
+def dump_yaml_front_matter(headers):
 	'''Dump metadata as YAML front matter string.
 
-	@param meta: dict of key-value pairs
+	@param headers: dict or iterable of key-value pairs
 	@returns: string with YAML front matter block, or empty string if no meta
 	'''
-	if not meta:
+	if not headers:
 		return ''
+	elif hasattr(headers, 'items'):
+		headers = headers.items
+
 	lines = ['---\n']
-	for k, v in meta.items():
-		v = str(v).strip()
-		if ':' in v or '#' in v or "'" in v or '"' in v:
-			v = '"%s"' % v.replace('"', '\\"')
-		lines.append('%s: %s\n' % (k, v))
+	for k, v in headers:
+		# Default encode as double quoted string - for now no other data types supported
+		v = v.replace('\\', '\\\\').replace('"', '\\"')
+		lines.append('%s: "%s"\n' % (k, v))
 	lines.append('...\n')
 	return ''.join(lines)
 
@@ -732,6 +750,9 @@ class Parser(ParserClass):
 		if file_input:
 			input, meta = parse_yaml_front_matter(input)
 
+		version = meta.pop('Wiki-Format', WIKI_FORMAT_VERSION) if meta else WIKI_FORMAT_VERSION
+			# pop header that is only interesting for the parser
+
 		builder = ParseTreeBuilder()
 		markdownparser(builder, input)
 
@@ -790,15 +811,19 @@ class Dumper(TextDumper):
 		if file_output:
 			# Dump with YAML front matter, assuming native mode
 			self.set_native(True) # just to be sure
-			header_meta = {}
+			headers = [('Wiki-Format', WIKI_FORMAT_VERSION)]
 			if hasattr(tree, 'meta') and tree.meta:
-				header_meta.update(tree.meta)
+				for k, v in tree.meta.items():
+					if k != 'Wiki-Format':
+						headers.append((k, v))
+
+			head = dump_yaml_front_matter(headers)
 
 			body = TextDumper.dump(self, tree)
 			if body and not body[-1].endswith('\n'):
 				body[-1] = body[-1] + '\n'
-			head = dump_yaml_front_matter(header_meta)
-			return [head, '\n'] + body if head else body
+
+			return [head, '\n'] + body
 		else:
 			return TextDumper.dump(self, tree)
 
