@@ -289,6 +289,23 @@ digraph G {
 '''
 	invalidinput = r'sdf sdfsdf sdf'
 
+	def testInsertObjectDialogCancelled(self):
+		# A cancelled insert must not claim diagram.dot, else the next
+		# diagram on the page shares its files, see #3018
+		PluginManager.load_plugin(self.plugin)
+		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		notebook = self.setUpNotebook()
+		notebook.get_attachments_dir = lambda *a: attachment_dir
+		page = notebook.get_page(Path('Test'))
+		otype = PluginManager.insertedobjects['image+diagram']
+
+		def cancel_dialog(dialog):
+			self.assertIsInstance(dialog, ImageGeneratorDialog)
+			dialog.response(Gtk.ResponseType.CANCEL)
+
+		with tests.DialogContext(cancel_dialog):
+			self.assertRaises(ValueError, otype.new_model_interactive, None, notebook, page)
+
 
 @tests.skipUnless(InsertGNURPlotPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestGNURPlotEditor(TestImageGeneratorPluginMixin, tests.TestCase):
