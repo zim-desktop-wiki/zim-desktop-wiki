@@ -1151,6 +1151,25 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 		self.assertEqual(output, markdown)
 		self.assertEqual(parser.parse(output).tostring(), xml)
 
+	def testInlineCodeBackticks(self):
+		for markdown, code in (
+			('`code`', 'code'),
+			('``a`b``', 'a`b'),
+			('```a``b```', 'a``b'),
+			('`` `code` ``', '`code`'),
+			('`` ` ``', '`'),
+			('`  code  `', ' code '),
+			('`   `', '   '),
+		):
+			with self.subTest(markdown=markdown):
+				self.assertParseAndDumpEquals(markdown + '\n', '<p><code>%s</code>\n</p>' % code)
+
+	def testInlineCodeBackticksInLink(self):
+		self.assertParseAndDumpEquals(
+			'[``a`b``](https://example.org)\n',
+			'<p><link href="https://example.org"><code>a`b</code></link>\n</p>'
+		)
+
 	def testParseFormatting(self):
 		input = '**bold** *italic* ~~strike~~ `code` __mark__ ~sub~ ^sup^\n'
 		parser = self.format.Parser()

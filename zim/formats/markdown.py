@@ -187,6 +187,8 @@ _md_autolink_email_pattern = r'[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[
 md_autolink_url_re = re.compile(_md_autolink_url_pattern + '$')
 md_autolink_email_re = re.compile(_md_autolink_email_pattern + '$')
 
+md_code_span_pattern = r'(?<!`)(?P<code_ticks>`+)(?!`)(.+?)(?<!`)(?P=code_ticks)(?!`)'
+
 # ---- Markdown Parser ----
 
 class MarkdownParser(object):
@@ -227,8 +229,7 @@ class MarkdownParser(object):
 			| Rule(SUBSCRIPT, r'(?<!~)~(?!~)(.+?)(?<!~)~(?!~)', descent=descent)
 			| Rule(SUPERSCRIPT, r'\^(?!\^)(.+?)\^', descent=descent)
 			| Rule(STRIKE, r'~~(?!~)(.+?)~~', descent=descent)
-			| Rule(VERBATIM, r'(?<!`)``(?!`)(.+?)(?<!`)``(?!`)')
-			| Rule(VERBATIM, r'(?<!`)`(?!`)(.+?)(?<!`)`(?!`)')
+			| Rule(VERBATIM, md_code_span_pattern, process=self.parse_code_span)
 		)
 
 		descent = lambda *a: self.inline_parser(*a)
@@ -249,8 +250,7 @@ class MarkdownParser(object):
 			| Rule(SUBSCRIPT, r'(?<!~)~(?!~)(.+?)(?<!~)~(?!~)', descent=descent)
 			| Rule(SUPERSCRIPT, r'\^(?!\^)(.+?)\^', descent=descent)
 			| Rule(STRIKE, r'~~(?!~)(.+?)~~', descent=descent)
-			| Rule(VERBATIM, r'(?<!`)``(?!`)(.+?)(?<!`)``(?!`)')
-			| Rule(VERBATIM, r'(?<!`)`(?!`)(.+?)(?<!`)`(?!`)')
+			| Rule(VERBATIM, md_code_span_pattern, process=self.parse_code_span)
 		)
 
 	def _init_intermediate_parser(self):
@@ -319,6 +319,12 @@ class MarkdownParser(object):
 		self.nested_inline_parser_below_link(builder, text)
 		builder.end(EMPHASIS)
 		builder.end(STRONG)
+
+	def parse_code_span(self, builder, ticks, text):
+		# Strip one padding space at either end, except for all-space content.
+		if text.startswith(' ') and text.endswith(' ') and text.strip(' '):
+			text = text[1:-1]
+		builder.append(VERBATIM, {}, text)
 
 	# --- Block-level handlers ---
 
@@ -772,7 +778,6 @@ class Dumper(TextDumper):
 		STRONG: ('**', '**'),
 		MARK: ('__', '__'),
 		STRIKE: ('~~', '~~'),
-		VERBATIM: ('`', '`'),
 		TAG: ('', ''),  # @tag rendered as-is
 		SUBSCRIPT: ('~', '~'),
 		SUPERSCRIPT: ('^', '^'),
@@ -817,6 +822,16 @@ class Dumper(TextDumper):
 
 	dump_p = dump_indent
 	dump_div = dump_indent
+
+	def dump_code(self, tag, attrib, strings):
+		text = ''.join(strings)
+		if not text:
+			return []
+		ticks = '`' * (max((len(run) for run in re.findall(r'`+', text)), default=0) + 1)
+		if text.startswith('`') or text.endswith('`') \
+			or (text.startswith(' ') and text.endswith(' ') and text.strip(' ')):
+				text = ' ' + text + ' '
+		return [ticks, text, ticks]
 
 	def dump_list(self, tag, attrib, strings):
 		if 'indent' in attrib:
