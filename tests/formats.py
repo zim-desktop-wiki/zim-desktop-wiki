@@ -1389,20 +1389,32 @@ dus ja
 			('[](./foo(part1).pdf)', '<p><link href="./foo(part1).pdf">./foo(part1).pdf</link></p>'), # balanced pair of ()
 			('[](./foo(part1).pdf)foo', '<p><link href="./foo(part1).pdf">./foo(part1).pdf</link>foo</p>'),
 			('[](./foo(part1).pdf) and (this)', '<p><link href="./foo(part1).pdf">./foo(part1).pdf</link> and (this)</p>'), # balanced pair of ()
+			('[](./foo-part1).pdf) and (this)', '<p><link href="./foo-part1">./foo-part1</link>.pdf) and (this)</p>'), # unbalanced pair of ()
 			('[](./foo\\(part1.pdf)', '<p><link href="./foo(part1.pdf">./foo(part1.pdf</link></p>'), # escaped (
+			('[](foo((bar)', '<p>[](foo((bar)</p>'), # invalid parenthesis
 			('[](./foo%20part1.pdf)', '<p><link href="./foo%20part1.pdf">./foo%20part1.pdf</link></p>'),
 			('http://example.com', '<p><link href="http://example.com">http://example.com</link></p>'),
 			('[[Page]]', '<p><link href="Page">Page</link></p>'),
 			('[[Other Page|display]]', '<p><link href="Other Page">display</link></p>'),
+			('[](./my%20file.pdf)', '<p><link href="./my%20file.pdf">./my%20file.pdf</link></p>'),
+			('[](<./my file.pdf>)', '<p><link href="./my file.pdf">./my file.pdf</link></p>'),
+			('[](<./my file.pdf> "my title")', '<p><link href="./my file.pdf" title="my title">./my file.pdf</link></p>'),
+			('[](<./my file.pdf> my title)', '<p>[](&lt;./my file.pdf&gt; my title)</p>'), # invalid
+			('[](./myfile.pdf "my ( title")', '<p><link href="./myfile.pdf" title="my ( title">./myfile.pdf</link></p>'),
 		):
 			self.assertParseAndDumpEquals(markdown, xml)
 
-		for markdown, xml in (
+		for markdown, xml, result in (
 			# Some test cases that should parse, but dump differently
-			('[Page](Page)', '<p><link href="Page">Page</link></p>'),
-			('[display](Other%20Page)', '<p><link href="Other%20Page">display</link></p>'),
+			('[Page](Page)', '<p><link href="Page">Page</link></p>', '[[Page]]'),
+			('[display](OtherPage)', '<p><link href="OtherPage">display</link></p>', '[[OtherPage|display]]'),
+			('[some text]()', '<p><link href="">some text</link></p>', '[[some text]]'),
+			('[]()', '<p><link href="" /></p>', '[[]]'), # empty link - valid markdown, not usefull in zim
+			('[](./myfile.pdf \'my title\')', '<p><link href="./myfile.pdf" title="my title">./myfile.pdf</link></p>', '[](./myfile.pdf "my title")'),
+			('[](./myfile.pdf (my title))', '<p><link href="./myfile.pdf" title="my title">./myfile.pdf</link></p>', '[](./myfile.pdf "my title")'),
 		):
 			self.assertParseEquals(markdown, xml)
+			self.assertDumpEquals(xml, result)
 
 	def testImages(self):
 		for markdown, xml in (
@@ -1410,12 +1422,28 @@ dus ja
 			('![](./image.png){width=500px}', '<p><img src="./image.png" width="500" /></p>'),
 			('![](./image.png){#myid width=500px}', '<p><img id="myid" src="./image.png" width="500" /></p>'),
 			('![](./image.png)', '<p><img src="./image.png" /></p>'),
+			('![alt text](./image.png)', '<p><img alt="alt text" src="./image.png" /></p>'),
+			('![alt text]()', '<p><img alt="alt text" src="" /></p>'),
+			('![]()', '<p><img src="" /></p>'), # empty image - valid markdown, not usefull in zim
+			('![](foo((bar)', '<p>![](foo((bar)</p>'), # invalid parenthesis
 			('![](./image.png){href=Page}', '<p><img href="Page" src="./image.png" /></p>'),
 			('![](./image.png){href="Page Foo %quot;Bar%quot;"}', '<p><img href="Page Foo %quot;Bar%quot;" src="./image.png" /></p>'),
 			('![](./file(1).pdf)', '<p><img src="./file(1).pdf" /></p>'),
 			('![](./file(1).pdf)foo', '<p><img src="./file(1).pdf" />foo</p>'),
+			('![](./foo(part1).pdf) and (this)', '<p><img src="./foo(part1).pdf" /> and (this)</p>'), # balanced pair of ()
+			('![](./foo-part1).pdf) and (this)', '<p><img src="./foo-part1" />.pdf) and (this)</p>'), # unbalanced pair of ()
+			('![](./foo\\(part1.pdf)', '<p><img src="./foo(part1.pdf" /></p>'), # escaped (
+			('![](./my%20image.png)', '<p><img src="./my%20image.png" /></p>'),
+			('![](<./my image.png>)', '<p><img src="./my image.png" /></p>'),
+			('![](<./my image.png> "my title")', '<p><img src="./my image.png" title="my title" /></p>'),
+			('![](<./my image.png> my title)', '<p>![](&lt;./my image.png&gt; my title)</p>'), # invalid
 		):
 			self.assertParseAndDumpEquals(markdown, xml)
+
+		#for markdown, xml in (
+			# Some test cases that should parse, but dump differently
+		#):
+		#	self.assertParseEquals(markdown, xml)
 
 
 class TestRstFormat(tests.TestCase, TestFormatMixin):

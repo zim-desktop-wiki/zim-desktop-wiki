@@ -96,11 +96,88 @@ md_empty_lines_re = re.compile(r'((?:^[ \t]*\n)+)', re.M | re.U)
 
 blockquote_line_re = re.compile(r'^((?:>[ \t]?)+)(.*\n?)')
 
-def _has_valid_href_parenthesis(href):
-	# Either ensure balanced pairs of unescaped ()
-	open = len(re.findall(r'(?<!\\)\(', href))
-	close = len(re.findall(r'(?<!\\)\)', href))
-	return open == close
+
+def _parse_link_href_and_title(href: str) -> tuple[bool, str, str, int]:
+	# Strip href string to get valid parenthesis and title
+	orig_href = href
+	if m := re.match('^<(.*?)>(\s+(.+))?$', href.strip()):
+		href = m.group(1)
+		if title := m.group(3):
+			valid, title = _match_link_title(title)
+			if valid:
+				return True, href, title, 0
+			else:
+				return False, '', '', len(orig_href)
+		else:
+			return True, href, title, 0
+	else:
+		string = href
+
+		parts = string.strip().split(maxsplit=1)
+		if len(parts) == 2:
+			href = parts[0]
+			valid, title = _match_link_title(parts[1])
+			valid = valid and _has_valid_href_parenthesis(href)
+		else:
+			href, title = string.strip(), ''
+			valid = _has_valid_href_parenthesis(href)
+
+		while not valid and ')' in string:
+			# find shorter string that is valid
+			i = string.rfind(')')
+			string = string[:i]
+
+			parts = string.strip().split(maxsplit=1)
+			if len(parts) == 2:
+				href = parts[0]
+				valid, title = _match_link_title(parts[1])
+				valid = valid and _has_valid_href_parenthesis(href)
+			else:
+				href, title = string.strip(), ''
+				valid = _has_valid_href_parenthesis(href)
+
+		if valid:
+				return True, href.replace('\\(', '(').replace('\\)', ')'), title, len(orig_href) - len(string)
+		else:
+			return False, '', '', len(orig_href)
+
+
+def _match_link_title(string: str) -> tuple[bool, str]:
+	# Can be enclosed in ".." '..' or (..) with enclosing character escaped
+	if len(string) < 2:
+		return False, ''
+	elif string[0] in ('"', "'"):
+		if string[-1] != string[0] \
+			or len(re.findall(r'(!<\\)%s' % string[0], string[1:-1])) > 0:
+				return False, ''
+		# else valid - pass
+	elif string[0] == '(':
+		if string[-1] != ')' \
+			or len(re.findall(r'(!<\\)[()]', string[1:-1])) > 0:
+				return False, ''
+		# else valid - pass
+	else:
+		return False, ''
+
+	title = re.sub('\\\\([\'"()])', lambda m: m.group(1), string[1:-1])
+	return True, title
+
+
+def _has_valid_href_parenthesis(href: str) -> bool:
+	# Check for balanced pairs of unescaped ()
+	open = 0
+	for p in re.findall(r'(?<!\\)[()]', href):
+		if p == '(':
+			open += 1
+		elif p == ')':
+			if open == 0:
+				return False
+			else:
+				open -= 1
+		else:
+			pass
+
+	return open == 0
 
 
 _md_autolink_url_pattern = r'[a-zA-Z][a-zA-Z0-9.+-]*:[^\s>]+'
@@ -108,7 +185,6 @@ _md_autolink_email_pattern = r'[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[
 
 md_autolink_url_re = re.compile(_md_autolink_url_pattern + '$')
 md_autolink_email_re = re.compile(_md_autolink_email_pattern + '$')
-
 
 # ---- Markdown Parser ----
 
@@ -160,8 +236,8 @@ class MarkdownParser(object):
 			| Rule(LINK, r'<(%s)>' % _md_autolink_email_pattern, process=self.parse_autolink) # email autolink
 			| Rule(LINK, url_link_re, process=self.parse_url)
 			| Rule(LINK, r'\[\[(?!\[)(.*?\]*)\]\]', process=self.parse_wiki_link)
-			| Rule(IMAGE,   r'!\[([^\]]*)\]\((\S+)\)(\{[^}]*\})?', process=self.parse_image)
-			| Rule(LINK, r'\[([^\]]*)\]\((\S+)\)', process=self.parse_link)
+			| Rule(IMAGE,   r'!\[([^\]]*)\]\((.*)\)(\{[^}]*\})?', process=self.parse_image)
+			| Rule(LINK, r'\[([^\]]*)\]\((.*)\)', process=self.parse_link)
 			| Rule(ANCHOR, r'\{\#(\w[\w-]*)\}', process=self.parse_anchor)
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(EMPHASIS, r'\\\*', process=self._unescape_char)
@@ -550,39 +626,37 @@ class MarkdownParser(object):
 
 	def parse_link(self, builder, text, href):
 		'''Parse [text](href) links'''
-		if '(' in href or ')' in href:
-			orig_href = href
-			while ')' in href and not _has_valid_href_parenthesis(href):
-				i = href.rfind(')')
-				href = href[:i]
+		valid, href, title, delta = _parse_link_href_and_title(href)
+		if not valid:
+			builder.text('[')
+			self.inline_parser.backup_parser_offset(delta + len(text) + len(']()'))
+			return
+		elif delta > 0:
+			self.inline_parser.backup_parser_offset(delta)
 
-			if not _has_valid_href_parenthesis(href):
-				builder.text('[')
-				self.inline_parser.backup_parser_offset(len(orig_href) + len(text) + len(']()'))
-				return
-			else:
-				self.inline_parser.backup_parser_offset(len(orig_href) - len(href))
-
-			href = href.replace('\\(', '(').replace('\\)', ')')
-
-		href = href.strip()
+		attrib = {'href': href, 'title': title} if title else {'href': href}
 		text = text.strip()
-
 		if text and text != href:
-			builder.start(LINK, {'href': href})
+			builder.start(LINK, attrib)
 			self.nested_inline_parser_below_link(builder, text)
 			builder.end(LINK)
 		else:
-			builder.append(LINK, {'href': href}, text or href)
+			builder.append(LINK, attrib, text or href)
 
-	def parse_image(self, builder, alt, src, props_str=None, href=None):
+	def parse_image(self, builder, alt, src, props_str=None):
 		'''Parse ![alt](src){props} images'''
-		attrib = {'src': src.strip()}
+		valid, src, title, delta = _parse_link_href_and_title(src)
+		if not valid:
+			builder.text('![')
+			self.inline_parser.backup_parser_offset(delta + len(alt) + len(']()') + len(props_str or ''))
+			return
+		elif delta > 0:
+			self.inline_parser.backup_parser_offset(delta + len(props_str or ''))
+			props_str = None # after invalid parenthesis, so not parsed here
 
+		attrib = {'src': src.strip(), 'title': title} if title else {'src': src.strip()}
 		if alt:
 			attrib['alt'] = alt
-
-		href = href.strip() if href else None
 
 		# Parse Pandoc-style properties: {#id width=500px height=20px}
 		if props_str:
@@ -862,13 +936,13 @@ class Dumper(TextDumper):
 
 		if self.linker:
 			# Export mode: resolve links through linker and export as standard markdown
+			text = '' if text == href else text # check before linker changes href
 			href = self.linker.link(href)
-			text = text or href
 		elif is_wiki_link(href):
 			# Wiki link that cannot be resolved by other applications --> wiki link extension
-			return ('[[', href, '|', text, ']]') if text and text != href else ('[[', href, ']]')
+			return ('[[', href, '|', text, ']]') if (text and href) and text != href else ('[[', (href or text), ']]')
 
-		if href == text:
+		if not text or text == href:
 			if self.native and is_url_link(href): # autolink extension undecorated urls
 				return (href,)
 			elif md_autolink_url_re.match(href) or md_autolink_email_re.match(href): # regular autolink
@@ -876,27 +950,33 @@ class Dumper(TextDumper):
 			else:
 				text = ''
 
-		if not _has_valid_href_parenthesis(href):
+		if ' ' in href:
+			href = '<' + href + '>'
+		elif not _has_valid_href_parenthesis(href):
 			href = href.replace('(', '\\(').replace(')', '\\)')
 
-		return ['[%s](%s)' % (text, href)]
+		if 'title' in attrib:
+			title = attrib['title'].replace('"', '\\"')
+			return ['[%s](%s "%s")' % (text, href, title)]
+		else:
+			return ['[%s](%s)' % (text, href)]
 
 	def dump_img(self, tag, attrib, strings=None):
-		if self.linker:
-			src = self.linker.img(attrib['src'])
-		else:
-			src = attrib.get('src', '')
-
+		src = attrib.get('src', '')
 		text = attrib.get('alt', '')
+
+		if self.linker:
+			# Export mode: resolve links through linker and export as standard markdown
+			text = '' if text == src else text # check before linker changes src
+			src = self.linker.img(src)
 
 		# Pandoc-style dimensions: ![alt](src){width=500px height=20px}
 		opts = []
 		if 'id' in attrib:
 			opts.append('#' + attrib['id'])
 
-		items = sorted(attrib.items())
-		for k, v in items:
-			if k in ('src', 'alt', 'id') or k.startswith('_'):
+		for k, v in sorted(attrib.items()):
+			if k in ('src', 'alt', 'id', 'title') or k.startswith('_'):
 				continue
 			elif v: # skip None, "" and 0
 				if k in ('width', 'height'):
@@ -911,7 +991,17 @@ class Dumper(TextDumper):
 					opts.append('%s="%s"' % (k, data))
 
 		props = '{%s}' % (' '.join(opts)) if len(opts) > 0 else ''
-		return ['![%s](%s)%s' % (text, src, props)]
+
+		if ' ' in src:
+			src = '<' + src + '>'
+		elif not _has_valid_href_parenthesis(src):
+			src = src.replace('(', '\\(').replace(')', '\\)')
+
+		if 'title' in attrib:
+			title = attrib['title'].replace('"', '\\"')
+			return ['![%s](%s "%s")%s' % (text, src, title, props)]
+		else:
+			return ['![%s](%s)%s' % (text, src, props)]
 
 	dump_object_fallback = dump_pre
 
