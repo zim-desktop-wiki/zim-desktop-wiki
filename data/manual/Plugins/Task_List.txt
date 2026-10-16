@@ -84,7 +84,7 @@ It also allows to combine tasks from different pages that have a common name. E.
 If you want to show tasks of one specific page only, the page selection may not be what you want. In that case you can just type the full page name in the entry for filtering tasks. This works because the filter also takes into account the "page" column of the task view.
 
 ===== Search =====
-In the tasklist dialog you can put a search query to filter the tasks shown. The search query can be structured according to the same syntax as described in [[:Help:Searching]] but with different keywords:
+In the tasklist dialog you can put a search query to filter the tasks shown. The search query can be structured according to the same syntax as described in [[Help:Searching]] but with different keywords:
 
 **Keywords:**
 ''Text:''	Match the task description
