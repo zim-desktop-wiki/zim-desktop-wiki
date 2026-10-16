@@ -1121,8 +1121,29 @@ class TestMarkdownNativeFormat(tests.TestCase, TestFormatMixin):
 			("foo\n```sdfsd```\n", "```", "``````"),
 			("foo\n`sdfsd`\n", "```", "```"),
 			("foo\n```sdfsd```\n", "~~~", "~~~"),
+			("``````\n```\n", "```", "`````````"),
+			("foo\n  ```\n", "```", "``````"),
 		):
-			self.assertEqual(dumper._find_fence(code.splitlines(True), fence), result)
+			for strings in ([code], code.splitlines(True)):
+				with self.subTest(code=code, strings=strings):
+					self.assertEqual(dumper._find_fence(strings, fence), result)
+
+	def testFencedCodeContentRoundTrip(self):
+		for fence in ('```', '~~~'):
+			for code in (
+				'example\n',
+				'example\n' + fence + '\ntail\n',
+				fence * 2 + '\nexample\n' + fence + '\ntail\n',
+				'example\n  ' + fence + '\ntail\n',
+			):
+				with self.subTest(fence=fence, code=code):
+					tree = ParseTree().fromstring('<zim-tree><pre _fence="%s">%s</pre></zim-tree>' % (fence, code))
+					output = ''.join(self.format.Dumper().dump(tree))
+					roundtrip = self.format.Parser().parse(output)
+					blocks = list(roundtrip.iter_elements(VERBATIM_BLOCK))
+					self.assertEqual(len(blocks), 1)
+					self.assertEqual(tokens_to_text(blocks[0].content), code)
+					self.assertFalse(list(roundtrip.iter_elements(PARAGRAPH)))
 
 	def testObjects(self):
 		# Test dumping and parsing of objects

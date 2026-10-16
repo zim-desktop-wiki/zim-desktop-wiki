@@ -882,9 +882,10 @@ class Dumper(TextDumper):
 		# find sequence for fenced code block that does not occur inside the code block
 		char = fence[0]
 		count = 0
-		for string in strings:
+		for string in ''.join(strings).splitlines():
+			string = string.lstrip(' \t')
 			if string.startswith(char):
-				count = len(string) - len(string.lstrip(char))
+				count = max(count, len(string) - len(string.lstrip(char)))
 
 		if count >= len(fence):
 			return char * (count + 3)
