@@ -19,9 +19,39 @@ class TestBackLinksWidget(tests.TestCase):
 		self.widget = BackLinksWidget(tests.MockObject(), plugin.preferences)
 		self.widget.set_page(self.notebook, Path('Foo'))
 
+	def _getBackLinkTexts(self, name, content, show_full_paths=False):
+		notebook = self.setUpNotebook(name=name, content=content)
+		plugin = PluginManager.load_plugin('backlinkpane')
+		plugin.preferences['show_full_paths'] = show_full_paths
+		widget = BackLinksWidget(tests.MockObject(), plugin.preferences)
+		widget.set_page(notebook, Path('Foo'))
+		model = widget.treeview.get_model()
+		return [row[TEXT_COL] for row in model]
+
 	def testShowsBackLinks(self):
 		model = self.widget.treeview.get_model()
 		self.assertEqual([row[TEXT_COL] for row in model], ['Test'])
+
+	def testBackLinksNaturalSorted(self):
+		texts = self._getBackLinkTexts('backlinkpane-sorted', {
+			'Foo': 'Test page\n',
+			'Page10': 'Link to [[Foo]]\n',
+			'Page9': 'Link to [[Foo]]\n',
+			'page2': 'Link to [[Foo]]\n',
+			'Alpha': 'Link to [[Foo]]\n',
+		})
+		self.assertEqual(texts, ['Alpha', 'page2', 'Page9', 'Page10'])
+
+	def testBackLinksNaturalSortedFullPaths(self):
+		texts = self._getBackLinkTexts('backlinkpane-sorted-fullpaths', {
+			'Foo': 'Test page\n',
+			'Page10': 'Link to [[Foo]]\n',
+			'Page9': 'Link to [[Foo]]\n',
+			'page2': 'Link to [[Foo]]\n',
+			'Alpha': 'Link to [[Foo]]\n',
+			'Other:Child': 'Link to [[Foo]]\n',
+		}, show_full_paths=True)
+		self.assertEqual(texts, ['Alpha', 'Other:Child', 'page2', 'Page9', 'Page10'])
 
 	def testContextMenuHasPageActions(self):
 		# Used to be a single hard-coded "Open in New Window" item

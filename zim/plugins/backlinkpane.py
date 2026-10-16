@@ -7,6 +7,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Pango
 
+from zim.base.naturalsort import natural_sorted
 from zim.plugins import PluginClass
 from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
@@ -104,6 +105,8 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 				# XXX allow access through page object
 		except IndexNotFoundError:
 			backlinks = []
+
+		backlinks = natural_sorted(backlinks, key=lambda link: link.source.name)
 
 		if self.preferences['show_full_paths']:
 			for link in backlinks:
