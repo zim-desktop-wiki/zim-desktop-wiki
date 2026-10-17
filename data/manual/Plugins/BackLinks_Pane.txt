@@ -14,3 +14,8 @@ The option **Position in the window** determines on which side pane the browser 
 The option **Show BackLink count in title** determines whether the number of pages linking to the current page is shown in the widget's pane title. See [[Help:Links|Links]] for more details.
 
 The option **Show full Page Names** determines which are shown: the pages' full names or their shorter relative names. A page's full name includes its full hierarchy path. See [[Help:Pages|Pages]] for more details.
+
+===== Sorting =====
+By default the backlinks are listed alphabetically by page name.
+
+Right-click inside the pane and uncheck **Sort alphabetically** to list the pages in the order zim found the links, which is usually the order in which the pages were created. The choice is remembered per notebook.
