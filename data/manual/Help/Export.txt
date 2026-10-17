@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
+Wiki-Format: zim 0.6
 Creation-Date: Unknown
 
 ====== Exporting ======
@@ -19,7 +19,7 @@ When the **Include subpages** option is selected all pages below the selected pa
 ==== Step 2: Select the export format ====
 The **Format** allows the choice of the output format.
 
-The **Template** field asks you to select a template file (see below). When you select "''Other...''" in the combo box you can browse for another file in the input field below the combo box.
+The **Template** field asks you to select a template file ([[#templates|see below]]). When you select "''Other...''" in the combo box you can browse for another file in the input field below the combo box.
 
 If your notebook has a Document Root (see [[Properties]])  you can select what to do with links to files under that document root. Either **Link files under document root with full file path**, which means files will be linked by their absolute file path, or **Map document root to URL**, which will result in links with the given URL as prefix. This can be useful when you [[Usage:Publishing|publish]] pages as part of a larger website.
 
