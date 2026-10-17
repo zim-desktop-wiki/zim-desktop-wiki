@@ -17,15 +17,13 @@ Templates can either be system defaults, or custom templates in your home folder
 
 **Note:** if you try to edit, for example, an HTML template, and it opens in the web browser instead of in your default text editor, the cause is most likely that you did not explicitly configure a text editor in the preferences. Go to the [[Preferences|Preferences Dialog]] and specify your text editor.
 
-===== Templates =====
-Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default. You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
-
-==== Export templates ====
-
-For a list of templates for exporting see [[Export]] and subpages.
+===== Types of templates =====
+They are divided in page and export templates. Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default and stored as text files ''*.txt'' . You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
 
 ==== Page templates ====
-The wiki templates using the wiki syntax. 
+These are using exclusively the zim wiki markup, but you can apply the [[#template-framework|template framework]] from the next section.
+
+__Note: The syntax of your page templates are independent of your used syntax in your notebook. For example in markdown notebooks you have to use the zim wiki syntax for page templates.__ 
 
 **wiki/Default.txt**
 This template is used to initialize new pages. The default contains a header with the page name and the date at which the page was created.
@@ -33,7 +31,10 @@ This template is used to initialize new pages. The default contains a header wit
 **wiki/Journal.txt**
 This template is used to initialize new pages in the Journal section.
 
-===== Template syntax =====
+==== Export templates ====
+For a list of templates for exporting see [[Export]] and subpages. Here you can use for the wanted export format the needed syntax.
+
+===== Template framework =====
 The template is a combination of the normal document output that you want to produce (e.g. HTML or Latex) combined with template instructions. The normal text is passed on to the output unmodified, while the instructions get replaced by the output of the template processing.
 
 Template instructions can have two forms:
@@ -199,7 +200,7 @@ Most variables behave partially as objects, which means that it is possible to c
 
 Strings: '''capitalize''', '''center''', '''count''', '''endswith''', '''expandtabs''', '''ljust''', '''lower''', '''lstrip''', '''replace''', '''rjust''', '''rsplit''', '''rstrip''', '''split''', '''splitlines''', '''startswith''', '''title''', '''upper'''
 
-Lists: '''get''', '''len''', 'support for Markdown templates''reversed''', '''sorted'''
+Lists: '''get''', '''len''', '''reversed''', '''sorted'''
 
 Dictionary: '''get''', '''keys''', '''values''', '''items''', '''len''', '''reversed''', '''sorted'''
 
@@ -316,7 +317,7 @@ Functions:
 		ignore_empty: if "True" empty pages are ignored - defaults to "True".
 '''
 
-===== Template Options =====
+=== Export options ===
 For export templates, a parameter named "''options''" allows setting options for the export format. You can set an option in a template using e.g.:
 '''
 
