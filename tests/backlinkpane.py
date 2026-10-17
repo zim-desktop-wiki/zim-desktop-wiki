@@ -53,6 +53,17 @@ class TestBackLinksWidget(tests.TestCase):
 		}, show_full_paths=True)
 		self.assertEqual(texts, ['Alpha', 'Other:Child', 'page2', 'Page9', 'Page10'])
 
+	def testBackLinksNaturalSortedRelativePaths(self):
+		# Sorting should be on the visible text: 'Foo:Adam' is shown as
+		# '+Adam' and so comes before 'Eve', although by full page name
+		# it would come after
+		texts = self._getBackLinkTexts('backlinkpane-sorted-relativepaths', {
+			'Foo': 'Test page\n',
+			'Eve': 'Link to [[Foo]]\n',
+			'Foo:Adam': 'Link to [[Foo]]\n',
+		})
+		self.assertEqual(texts, ['+Adam', 'Eve'])
+
 	def testContextMenuHasPageActions(self):
 		# Used to be a single hard-coded "Open in New Window" item
 		treeview = self.widget.treeview

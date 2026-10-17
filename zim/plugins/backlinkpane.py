@@ -106,18 +106,22 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		except IndexNotFoundError:
 			backlinks = []
 
-		backlinks = natural_sorted(backlinks, key=lambda link: link.source.name)
-
+		rows = []
 		if self.preferences['show_full_paths']:
 			for link in backlinks:
-				model.append((link.source, str(link.source)))
+				rows.append((link.source, str(link.source)))
 		else:
 			for link in backlinks:
 				href = notebook.pages.create_link(link.target, link.source)
 					# relative link from target *back* to source
 				text = href.to_wiki_link().strip(':')
 				#~ model.append(None, (link.source, text))
-				model.append((link.source, text))
+				rows.append((link.source, text))
+
+		rows = natural_sorted(rows, key=lambda row: row[1])
+			# sort on the text displayed to the user, not the full page name
+		for row in rows:
+			model.append(row)
 
 		self.update_status(model)
 
