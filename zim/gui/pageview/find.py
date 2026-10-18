@@ -20,6 +20,7 @@ from typing import Optional
 
 from zim.parse.searchquery import find_string_to_regex, \
 	SearchFlag, SEARCH_CASE_SENSITIVE, SEARCH_WHOLE_WORD, SEARCH_REGEX
+from zim.gui.base import schedule_on_idle
 from zim.gui.widgets import Dialog, IconButton, InputEntry
 
 from .constants import *
@@ -655,7 +656,8 @@ class FindWidget(object):
 			button.set_sensitive(ok)
 
 		if ok:
-			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+			schedule_on_idle(
+				self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0))
 
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed(match_at_cursor=False)
@@ -676,13 +678,15 @@ class FindWidget(object):
 		buffer = self.textview.get_buffer()
 		ok = buffer.find_next(self.get_query())
 		if ok:
-			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+			schedule_on_idle(
+				self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0))
 
 	def find_previous(self):
 		buffer = self.textview.get_buffer()
 		ok = buffer.find_previous(self.get_query())
 		if ok:
-			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+			schedule_on_idle(
+				self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0))
 
 
 class FindBar(FindWidget, Gtk.ActionBar):

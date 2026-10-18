@@ -21,7 +21,7 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
 	WindowSidePaneWidget, widget_set_css
-from zim.gui.pageview import SCROLL_TO_MARK_MARGIN, LineSeparatorAnchor
+from zim.gui.pageview import LineSeparatorAnchor
 
 LINE_LEVEL = 2  # assume level 1 is page heading, level 2 is topic break within page
 
@@ -365,10 +365,9 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		n = model.get_nth_heading(path)
 
-		textview = self.pageview.textview
-		buffer = textview.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		if select_heading(buffer, n, self.include_hr):
-			textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+			self.pageview.scroll_cursor_on_screen()
 			return True
 		else:
 			return False

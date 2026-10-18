@@ -81,19 +81,6 @@ ui_preferences = (
 )
 
 
-def schedule_on_idle(function, args=()):
-	'''Helper function to schedule stuff that can be done later, it will
-	be triggered on the gtk "idle" signal.
-
-	@param function: function to call
-	@param args: positional arguments
-	'''
-	def callback():
-		function(*args)
-		return False # delete signal
-	GObject.idle_add(callback)
-
-
 class MainWindowExtension(ActionExtensionBase):
 	'''Base class for extending the L{MainWindow}
 
@@ -169,12 +156,12 @@ class WindowBaseMixin(ConnectorMixin, object):
 	def on_window_state_event(self, event):
 		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
 			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)
-			schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
+			self.pageview.scroll_cursor_on_screen()
 
 		if bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
 			self.isfullscreen = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
 			self.toggle_fullscreen.set_active(self.isfullscreen)
-			schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
+			self.pageview.scroll_cursor_on_screen()
 
 			if self.isfullscreen:
 				self._fullscreen_eventbox.show()
