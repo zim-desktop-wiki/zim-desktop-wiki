@@ -137,6 +137,28 @@ class TestPreviousNextNavigation(tests.TestCase):
 		self.assertEqual([p.name for p in historylist], list(pages) + ['A:B2', 'A:B1', 'A'])
 
 
+class TestOpenPageScrollsToAnchor(tests.TestCase):
+
+	def runTest(self):
+		# Opening a page at an anchor must scroll the anchor into view, see issue #2991
+		text = ''.join('Line %i\n' % i for i in range(300)) + '\n=== Bottom ===\nEnd\n'
+		notebook = self.setUpNotebook(content={'Source': 'Test 123\n', 'Target': text})
+		window = setUpMainWindow(notebook, path='Source')
+		window.set_default_size(600, 400)
+		window.show_all()
+		tests.gtk_process_events()
+
+		window.open_page(Path('Target'), anchor='bottom')
+		tests.gtk_process_events()
+
+		textview = window.pageview.textview
+		buffer = textview.get_buffer()
+		self.assertEqual(buffer.get_insert_iter().get_line(), 301)
+		cursor = textview.get_iter_location(buffer.get_insert_iter())
+		visible = textview.get_visible_rect()
+		self.assertTrue(visible.y <= cursor.y < visible.y + visible.height)
+
+
 class TestActions(tests.TestCase):
 
 	def testJumpToPage(self):

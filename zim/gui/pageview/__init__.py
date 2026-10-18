@@ -1333,6 +1333,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if select_line:
 			buffer.select_line()
 		textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+		# A page that was just opened may not be laid out yet, so the first
+		# scroll can stop short; scroll again once the layout is done.
+		GLib.idle_add(self.scroll_cursor_on_screen)
 
 	def do_populate_popup(self, menu):
 		buffer = self.textview.get_buffer()
