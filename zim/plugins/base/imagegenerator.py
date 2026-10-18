@@ -54,7 +54,8 @@ class ImageGeneratorObjectType(InsertedObjectTypeExtension):
 	def new_model_interactive(self, parent, notebook, page):
 		attrib, data = self.new_object()
 		model = self.model_from_data(notebook, page, attrib, data)
-		ImageGeneratorDialog.run_dialog_for_model(parent, model, self.label, self.syntax)
+		if not ImageGeneratorDialog.run_dialog_for_model(parent, model, self.label, self.syntax):
+			raise ValueError # dialog cancelled
 		return model
 
 	def model_from_data(self, notebook, page, attrib, data):
@@ -406,10 +407,12 @@ class ImageGeneratorDialog(Dialog):
 			model.get_text(),
 			syntax
 		).run()
-		if result is not None and result[0] is not None:
+		accepted = result is not None and result[0] is not None
+		if accepted:
 			text, image_file = result
 			model.set_from_generator(text, image_file)
 		model.generator.cleanup()
+		return accepted
 
 	def __init__(self, widget, label, generator, image_file:'LocalFile'=None, text='', syntax=None):
 		title = _('Edit %s') % label # T: dialog title, %s is the object name like "Equation"
