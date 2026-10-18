@@ -7,6 +7,8 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Pango
 
+from zim.base.naturalsort import natural_sorted
+from zim.config import ConfigDict
 from zim.plugins import PluginClass
 from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
@@ -14,7 +16,7 @@ from zim.notebook.index import IndexNotFoundError
 from zim.gui.pageview import PageViewExtension
 from zim.gui.uiactions import UIActions, PAGE_ACCESS_ACTIONS
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, \
-	WindowSidePaneWidget, StatusPage
+	WindowSidePaneWidget, StatusPage, populate_popup_add_separator
 
 
 class BackLinksPanePlugin(PluginClass):
@@ -49,7 +51,7 @@ class BackLinksPanePageViewExtension(PageViewExtension):
 		self.preferences = plugin.preferences
 		self.preferences.connect('changed', self.on_preferences_changed)
 
-		self.widget = BackLinksWidget(self.navigation, self.preferences)
+		self.widget = BackLinksWidget(self.navigation, self.preferences, self.uistate)
 
 		if self.pageview.page is not None:
 			self.on_page_changed(self.pageview, self.pageview.page)
@@ -71,14 +73,17 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 
 	title = _('BackLinks') # T: widget label
 
-	def __init__(self, opener, preferences):
+	def __init__(self, opener, preferences, uistate=None):
 		GObject.GObject.__init__(self)
 		self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 		self.set_shadow_type(Gtk.ShadowType.IN)
 
 		self.opener = opener
 		self.preferences = preferences
+		self.uistate = ConfigDict() if uistate is None else uistate
+		self.uistate.setdefault('sort_alphabetically', True)
 		self.notebook = None
+		self.page = None
 
 		self._stack = Gtk.Stack()
 		self.treeview = LinksTreeView()
@@ -96,6 +101,7 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 
 	def set_page(self, notebook, page):
 		self.notebook = notebook
+		self.page = page
 		model = self.treeview.get_model()
 		model.clear()
 
@@ -105,16 +111,23 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		except IndexNotFoundError:
 			backlinks = []
 
+		rows = []
 		if self.preferences['show_full_paths']:
 			for link in backlinks:
-				model.append((link.source, str(link.source)))
+				rows.append((link.source, str(link.source)))
 		else:
 			for link in backlinks:
 				href = notebook.pages.create_link(link.target, link.source)
 					# relative link from target *back* to source
 				text = href.to_wiki_link().strip(':')
 				#~ model.append(None, (link.source, text))
-				model.append((link.source, text))
+				rows.append((link.source, text))
+
+		if self.uistate['sort_alphabetically']:
+			rows = natural_sorted(rows, key=lambda row: row[1])
+				# sort on the text displayed to the user, not the full page name
+		for row in rows:
+			model.append(row)
 
 		self.update_status(model)
 
@@ -141,13 +154,21 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		self.opener.open_page(path)
 
 	def on_populate_popup(self, treeview, menu):
+		# Always allow changing the sort order, even when no row is selected
+		item = Gtk.CheckMenuItem(_('Sort alphabetically')) # T: menu option
+		item.set_active(self.uistate['sort_alphabetically'])
+		item.connect('toggled', self.on_toggle_sort_alphabetically)
+		menu.append(item)
+
 		model, iter = treeview.get_selection().get_selected()
 		if model is None or iter is None:
+			menu.show_all()
 			return # E.g. right click below the last row
 
 		# Use the "access" actions, not the full page menu: this is a list of
 		# pages that refer to the current page, so e.g. "Delete Page" would
 		# remove the page from the notebook, not the link from the list
+		populate_popup_add_separator(menu)
 		uiactions = UIActions(
 			self,
 			self.notebook,
@@ -156,6 +177,11 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACCESS_ACTIONS, menu)
 		menu.show_all()
+
+	def on_toggle_sort_alphabetically(self, menuitem):
+		self.uistate['sort_alphabetically'] = menuitem.get_active()
+		if self.notebook is not None and self.page is not None:
+			self.set_page(self.notebook, self.page)
 
 
 class LinksTreeView(BrowserTreeView):
