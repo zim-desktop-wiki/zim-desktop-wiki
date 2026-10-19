@@ -409,7 +409,8 @@ class MockFile(MockFSObjectBase, File):
 		return text
 
 	def readline(self, size=-1):
-		return self.read(size).splitlines(True)[0]
+		text = self.read(size)
+		return text.splitlines(True)[0] if text else text
 
 	def readlines(self):
 		return self.read().splitlines(True)

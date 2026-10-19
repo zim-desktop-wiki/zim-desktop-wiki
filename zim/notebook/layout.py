@@ -76,6 +76,13 @@ class NotebookLayout(object):
 	pass
 
 
+_markdown_start_re = re.compile('^---\s*\nWiki-Format:\s+["\']?zim|^---\nCreation-Date:.*\n---\n\n', re.I)
+	# First part is checking for YAML header Wiki-Format starting with "zim"
+	# Second part is rather specific to match singular Creation-Date header
+	# and error in closing of YAML block ("---" instead of "...") which
+	# is for backward compatibility for zim 0.77.0 to 0.77.3
+
+
 class FilesLayout(NotebookLayout):
 	'''Layout implementation which maps each page to a file of the same name
 
@@ -127,14 +134,21 @@ class FilesLayout(NotebookLayout):
 				return False
 
 			if self.supported_extensions[ext].info['mimetype'] == 'text/x-zim-wiki':
+				# To avoid reading all text files, check for zim specific header
 				try:
 					line = file.readline(size=50) # max size to allow for some trailing whitespace and end-of-line
 					return line.strip() == 'Content-Type: text/x-zim-wiki'
 				except FileNotFoundError:
 					return True # give file the benefit of the doubt, could be a deleted source file
+			elif self.supported_extensions[ext].info['mimetype'] == 'text/markdown':
+				# To avoid reading (and converting) all markdown files, check for zim specific header
+				try:
+					text = file.read(size=60) # max size to allow for some trailing whitespace and end-of-line
+					return bool(_markdown_start_re.match(text))
+				except FileNotFoundError:
+					return True # give file the benefit of the doubt, could be a deleted source file
 			else:
-				# Other source formats, like markdown, can still contain
-				# frontmatter, but will accept based on file extension only
+				# Other source formats are accepted based on file extension only
 				return True
 		else:
 			return False

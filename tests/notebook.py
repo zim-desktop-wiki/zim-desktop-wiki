@@ -396,12 +396,14 @@ class TestNotebook(tests.TestCase):
 		self.assertIn(Path('Test:Foo'), pages)
 
 	def testRenameMixedFormatPage(self):
-		myext = '.md' if self.notebook.config['Notebook']['default_file_extension'] == '.txt' else '.txt'
-		file = self.notebook.folder.file('MixedFormat' + myext)
-		if myext == '.txt':
-			file.write('Content-Type: text/x-zim-wiki\n\ntest 123\n')
+		if self.notebook.config['Notebook']['default_file_extension'] == '.txt':
+			myext = '.md'
+			file = self.notebook.folder.file('MixedFormat' + myext)
+			file.write('---\nWiki-Format: zim\n...\n\nTest 123\n')
 		else:
-			file.write('Test 123')
+			myext = '.txt'
+			file = self.notebook.folder.file('MixedFormat' + myext)
+			file.write('Content-Type: text/x-zim-wiki\n\ntest 123\n')
 		self.notebook.index.update_file(file)
 		self.assertIsNotNone(self.notebook.pages.lookup_by_pagename(Path('MixedFormat')))
 			# ensure indexing worked for mixed file
@@ -1672,7 +1674,12 @@ class TestFilesLayout(tests.TestCase):
 		self.assertEqual(ftype, FILE_TYPE_PAGE_SOURCE)
 
 		md_file = folder.file('foo.md')
-		md_file.touch()
+		md_file.write(
+			'---\n'
+			'Wiki-Format: zim\n'
+			'...\n\n'
+			'test 123\n'
+		)
 		page, ftype = layout.map_file(md_file)
 		self.assertEqual(page, Path('foo'))
 		self.assertEqual(ftype, FILE_TYPE_PAGE_SOURCE)
@@ -1716,11 +1723,32 @@ class TestFilesLayout(tests.TestCase):
 		layout = FilesLayout(folder, default_format='zim-wiki', default_extension='.txt')
 		self._test_page_vs_not_a_page(folder, layout, pagefile, notapagefile)
 
-	def testNoCheckFirstLineForNonTextFiles(self):
+	def testCheckFirstLineForMarkdownFiles(self):
 		folder = self.setUpFolder()
 		pagefile = folder.file('Page.md')
-		pagefile.write('Foo Bar\n')
-		notapagefile = folder.file('NotAPage.txt')
+		pagefile.write(
+			'---\n'
+			'Wiki-Format: "zim markdown 0.7"\n'
+			'...\n'
+			'\n'
+			'Foo Bar\n'
+		)
+		notapagefile = folder.file('NotAPage.md')
+		notapagefile.write('Foo Bar\n')
+		layout = FilesLayout(folder, default_format='markdown', default_extension='.md')
+		self._test_page_vs_not_a_page(folder, layout, pagefile, notapagefile)
+
+	def testCheckFirstLineForMarkdownFilesBackward(self):
+		folder = self.setUpFolder()
+		pagefile = folder.file('Page.md')
+		pagefile.write(
+			'---\n'
+			'Creation-Date: "2014-08-20T20:54:31+02:00"\n'
+			'---\n' # intentional error in YAML closing here - backward behavior depends on bug in relevant zim 0.77.0 - 0.77.2
+			'\n'
+			'Foo Bar\n'
+		)
+		notapagefile = folder.file('NotAPage.md')
 		notapagefile.write('Foo Bar\n')
 		layout = FilesLayout(folder, default_format='markdown', default_extension='.md')
 		self._test_page_vs_not_a_page(folder, layout, pagefile, notapagefile)
