@@ -1210,6 +1210,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if mark.get_name() != 'insert':
 			return
 
+		# Re-initalize the iter - apparently it is sometimes invalidated by
+		# other actions during handling of the signal.
+		# Specific during CJK (Japanese kanji) conversion leading to a Segfault
+		# on MacOs - see issue #3025
+		iter = buffer.get_iter_at_mark(mark)
+
 		# Set sensitivity of various menu options
 		if not self.readonly:
 			line = iter.get_line()
