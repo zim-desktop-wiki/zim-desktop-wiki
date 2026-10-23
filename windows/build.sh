@@ -122,7 +122,7 @@ if [[ ! "${__skip_msys_deps}" = true ]] && [[ "${MSYSTEM_CARCH:-}" ]]; then
 
 fi
 
-hash python3 2>/dev/null || emergency "Python 3.x not found. Have you started MSYS2 MinGW 64-bit?"
+hash python3 2>/dev/null || emergency "Python 3.x not found. Have you started MSYS2 UCRT 64-bit?"
 hash pkg-config 2>/dev/null || emergency "pkg-config not found"
 hash sed 2>/dev/null || emergency "sed not found"
 

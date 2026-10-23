@@ -101,13 +101,13 @@ a = Analysis( # noqa
     ['../build/venv/bin/zim_launch.py'],
     pathex=['../build'],
     binaries=[
-        (posix2win('/mingw64/bin/gspawn-win64-helper'), '.'),
-        (posix2win('/mingw64/bin/gspawn-win64-helper-console'), '.'),
+        (posix2win('/ucrt64/bin/gspawn-win64-helper'), '.'),
+        (posix2win('/ucrt64/bin/gspawn-win64-helper-console'), '.'),
     ],
     datas=[
         ('../build/venv/share', 'share'),
         ('../../zim/plugins', 'share/zim/plugins'),
-        (posix2win('/mingw64/lib/girepository-1.0/HarfBuzz-0.0.typelib'), 'gi_typelibs'), # Imported automatically with latest pyinstaller, but hardcoded as part of bug workaround
+        (posix2win('/ucrt64/lib/girepository-1.0/HarfBuzz-0.0.typelib'), 'gi_typelibs'), # Imported automatically with latest pyinstaller, but hardcoded as part of bug workaround
     ],
     hiddenimports=hiddenimports,
     hookspath=[],
