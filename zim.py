@@ -40,6 +40,8 @@ def init_environment(installdir):
 		for k, v in env_config['Environment'].items():
 			os.environ[k] = _parse_environment_param(v, installdir)
 
+	init_windows_fontconfig(installdir)
+
 	# Set data dir specific for windows installer - add to the end
 	for data_dir in (
 		os.path.normpath(os.path.join(installdir, "share")),
@@ -51,6 +53,31 @@ def init_environment(installdir):
 				os.environ["XDG_DATA_DIRS"] = dirs + os.pathsep + data_dir
 			else:
 				os.environ["XDG_DATA_DIRS"] = data_dir
+
+
+def init_windows_fontconfig(installdir):
+	# Work around missing emoji fallback with the Windows PangoCairo font map.
+	# Run before importing GTK/Pango, and respect explicit environment settings.
+	if sys.platform != 'win32':
+		return
+	if os.environ.get('PANGOCAIRO_BACKEND') not in (None, 'fc'):
+		return
+
+	if 'FONTCONFIG_FILE' in os.environ or 'FONTCONFIG_PATH' in os.environ:
+		os.environ.setdefault('PANGOCAIRO_BACKEND', 'fc')
+		return
+
+	# PyInstaller <= 5, PyInstaller >= 6, and running from the source tree.
+	for parts in (
+		('config', 'fontconfig', 'fonts.conf'),
+		('_internal', 'config', 'fontconfig', 'fonts.conf'),
+		('windows', 'src', 'fontconfig', 'fonts.conf'),
+	):
+		config_file = os.path.abspath(os.path.join(installdir, *parts))
+		if os.path.isfile(config_file):
+			os.environ.setdefault('PANGOCAIRO_BACKEND', 'fc')
+			os.environ['FONTCONFIG_FILE'] = config_file
+			break
 
 
 def _parse_environment_param(value, installdir):

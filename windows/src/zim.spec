@@ -103,8 +103,11 @@ a = Analysis( # noqa
     binaries=[
         (posix2win('/mingw64/bin/gspawn-win64-helper'), '.'),
         (posix2win('/mingw64/bin/gspawn-win64-helper-console'), '.'),
+        # The Fontconfig backend is loaded dynamically by PangoCairo.
+        (posix2win('/mingw64/bin/libpangoft2-1.0-0.dll'), '.'),
     ],
     datas=[
+        ('fontconfig/fonts.conf', 'config/fontconfig'),
         ('../build/venv/share', 'share'),
         ('../../zim/plugins', 'share/zim/plugins'),
         (posix2win('/mingw64/lib/girepository-1.0/HarfBuzz-0.0.typelib'), 'gi_typelibs'), # Imported automatically with latest pyinstaller, but hardcoded as part of bug workaround

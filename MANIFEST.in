@@ -6,6 +6,7 @@ include *.md
 include *.conf
 include Makefile
 include LICENSE
+include windows/src/fontconfig/fonts.conf
 graft translations
 graft data
 prune data/manual/.zim

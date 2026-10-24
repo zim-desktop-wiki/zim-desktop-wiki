@@ -65,7 +65,7 @@ __all__ = [
 	'widgets', 'pageview', 'save_page', 'find', 'clipboard', 'uiactions',
 	'mainwindow', 'notebookdialog',
 	'preferencesdialog', 'searchdialog', 'customtools', 'templateeditordialog',
-	'main', 'plugins',
+	'main', 'windows_fontconfig', 'plugins',
 	# Plugins
 	'pathbar', 'pageindex', 'toolbar', 'backlinkpane',
 	'journal', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
