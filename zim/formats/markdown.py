@@ -1014,8 +1014,8 @@ class Dumper(TextDumper):
 
 		# Pandoc-style dimensions: ![alt](src){width=500px height=20px}
 		opts = []
-		if 'id' in attrib:
-			opts.append('#' + attrib['id'])
+		if myid := attrib.get('id'):
+			opts.append('#' + str(myid))
 
 		for k, v in sorted(attrib.items()):
 			if k in ('src', 'alt', 'id', 'title') or k.startswith('_'):
@@ -1039,8 +1039,8 @@ class Dumper(TextDumper):
 		elif not _has_valid_href_parenthesis(src):
 			src = src.replace('(', '\\(').replace(')', '\\)')
 
-		if 'title' in attrib:
-			title = attrib['title'].replace('"', '\\"')
+		if title := attrib.get('title'):
+			title = str(title).replace('"', '\\"')
 			return ['![%s](%s "%s")%s' % (text, src, title, props)]
 		else:
 			return ['![%s](%s)%s' % (text, src, props)]
