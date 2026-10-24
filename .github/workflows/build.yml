@@ -16,6 +16,8 @@ jobs:
 
       - name: Install MSYS2
         uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
 
       - name: Install system dependencies
         shell: msys2 {0}
