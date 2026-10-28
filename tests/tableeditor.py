@@ -296,6 +296,164 @@ class TestEditTable(tests.TestCase):
 		self.assertTrue(isinstance(widget.treeview, Gtk.TreeView))
 
 
+class TestToolbarTimer(tests.TestCase):
+
+	def runTest(self):
+		model = TableModel({'aligns': 'normal,normal', 'wraps': '0,0'}, ['h1', 'h2'], [['t1', 't2']])
+		widget = TableViewWidget(model)
+
+		# Losing focus starts the timer that hides the toolbar
+		widget.on_focus_out(widget.treeview, None, widget.toolbar)
+		self.assertIsNotNone(widget._timer)
+
+		# Destroying the treeview must cancel it, or it fails on the destroyed treeview's selection
+		widget.treeview.destroy()
+		self.assertIsNone(widget._timer)
+
+
+class TableWidgetInWindowTestCase(tests.TestCase):
+	'''Shows a table in a window, as GTK only starts editing a cell in a realized treeview'''
+
+	def setUp(self):
+		self.model = TableModel(
+			{'aligns': 'normal,normal', 'wraps': '0,0'}, ['h1', 'h2'],
+			[['a1', 'a2'], ['b1', 'b2'], ['c1', 'c2']]
+		)
+		self.widget = TableViewWidget(self.model)
+		self.window = Gtk.Window()
+		self.window.add(self.widget)
+		self.window.show_all()
+		tests.gtk_process_events()
+
+	def tearDown(self):
+		self.window.destroy()
+		tests.gtk_process_events()
+
+	def start_editing(self, row, col):
+		treeview = self.widget.treeview
+		treeview.set_cursor(Gtk.TreePath.new_from_indices([row]), treeview.get_column(col), True)
+		tests.gtk_process_events()
+		return self.get_editor()
+
+	def get_editor(self):
+		entries = [c for c in self.widget.treeview.get_children() if isinstance(c, Gtk.Entry)]
+		return entries[0] if entries else None
+
+	def rows(self):
+		return [list(row) for row in self.model.liststore]
+
+
+class TestSaveCellBeforeToolbarActions(TableWidgetInWindowTestCase):
+
+	def testMoveRowKeepsEdit(self):
+		self.start_editing(0, 0).set_text('edited')
+		self.widget.on_move_row(None, 1)
+		tests.gtk_process_events()
+		self.assertEqual(self.rows(), [['b1', 'b2'], ['edited', 'a2'], ['c1', 'c2']])
+
+	def testAddRowKeepsEdit(self):
+		self.start_editing(0, 1).set_text('edited')
+		self.widget.on_add_row(None)
+		tests.gtk_process_events()
+		self.assertEqual(self.rows(), [['a1', 'edited'], ['', ''], ['b1', 'b2'], ['c1', 'c2']])
+
+	def testAutosaveSavesOnce(self):
+		writes = []
+		self.model.liststore.connect('row-changed', lambda *a: writes.append(a))
+		self.start_editing(1, 0).set_text('edited')
+		self.widget.autosave_current_cell()
+		tests.gtk_process_events()
+		self.assertEqual(self.rows()[1], ['edited', 'b2'])
+		self.assertEqual(len(writes), 1)
+		self.assertIsNone(self.get_editor())
+
+	def testCancelledEditNotSaved(self):
+		# What the editor does when Escape is pressed
+		editor = self.start_editing(1, 1)
+		editor.set_text('cancelled')
+		editor.props.editing_canceled = True
+		editor.editing_done()
+		editor.remove_widget()
+		tests.gtk_process_events()
+
+		self.widget.treeview.get_selection().select_path(Gtk.TreePath.new_from_indices([0]))
+		self.widget.on_add_row(None)
+		tests.gtk_process_events()
+		self.assertEqual(self.rows(), [['a1', 'a2'], ['', ''], ['b1', 'b2'], ['c1', 'c2']])
+
+
+class TestTabNavigation(TableWidgetInWindowTestCase):
+
+	def press(self, keyval, state=0):
+		event = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+		event.key.keyval = keyval
+		event.key.state = state
+		return self.widget.on_treeview_key_press_event(self.widget.treeview, event.key)
+
+	def wait_for_move(self):
+		# The next edit doesn't start until a frame's been drawn, so wait for its editor to appear
+		import time
+		deadline = time.time() + 2
+		while self.get_editor() is None and time.time() < deadline:
+			tests.gtk_process_events()
+			time.sleep(0.01)
+		tests.gtk_process_events()
+
+	def cursor(self):
+		path, col = self.widget.treeview.get_cursor()
+		return path.get_indices()[0], self.widget.treeview.get_columns().index(col)
+
+	def testTabSavesAndEditsNextCell(self):
+		self.start_editing(0, 1).set_text('edited')
+		self.assertTrue(self.press(Gdk.KEY_Tab))
+		self.wait_for_move()
+		self.assertEqual(self.rows()[0], ['a1', 'edited'])
+		self.assertEqual(self.cursor(), (1, 0))
+		self.assertIsNotNone(self.get_editor())
+
+	def testShiftTabGoesBack(self):
+		self.start_editing(1, 0)
+		self.assertTrue(self.press(Gdk.KEY_ISO_Left_Tab, Gdk.ModifierType.SHIFT_MASK))
+		self.wait_for_move()
+		self.assertEqual(self.cursor(), (0, 1))
+
+	def testFastTabsAreNotLost(self):
+		self.start_editing(0, 0)
+		for i in range(3):
+			self.press(Gdk.KEY_Tab)  # no main loop iterations in between
+		self.wait_for_move()
+		self.assertEqual(self.cursor(), (1, 1))
+
+	def testCtrlTabIsLeftToGtk(self):
+		self.start_editing(0, 0)
+		self.assertFalse(self.press(Gdk.KEY_Tab, Gdk.ModifierType.CONTROL_MASK))
+
+
+class TestProcessColRowMove(tests.TestCase):
+
+	def move(self, col, row, num_cols, num_rows, col_direction, row_direction=0):
+		path = Gtk.TreePath.new_from_indices([row])
+		next_col, next_path = TableViewWidget.process_col_row_move(
+			col, path, num_cols, num_rows, col_direction, row_direction)
+		return next_col, next_path.get_indices()[0]
+
+	def testForward(self):
+		self.assertEqual(self.move(0, 0, 3, 2, 1), (1, 0))
+		self.assertEqual(self.move(2, 0, 3, 2, 1), (0, 1))  # end of a row goes onto the next
+		self.assertEqual(self.move(2, 1, 3, 2, 1), (0, 0))  # last cell goes back to the first
+
+	def testBackward(self):
+		self.assertEqual(self.move(1, 1, 3, 2, -1), (0, 1))
+		self.assertEqual(self.move(0, 1, 3, 2, -1), (2, 0))  # start of a row goes onto the previous
+		self.assertEqual(self.move(0, 0, 3, 2, -1), (2, 1))  # first cell goes round to the last
+
+	def testSingleRowAndColumn(self):
+		self.assertEqual(self.move(2, 0, 3, 1, 1), (0, 0))
+		self.assertEqual(self.move(0, 0, 3, 1, -1), (2, 0))
+		self.assertEqual(self.move(0, 1, 1, 3, 1), (0, 2))
+		self.assertEqual(self.move(0, 0, 1, 3, -1), (0, 2))
+
+
 class TestTableFunctions(tests.TestCase):
 
 	def testCellFormater(self):
