@@ -1286,7 +1286,8 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 		instead of calling this method directly.
 		'''
 		insert = self.get_insert_iter()
-		assert insert.starts_line(), 'BUG: bullet not at line start'
+		if not self._insert_tree_in_progress:
+			assert insert.starts_line(), 'BUG: bullet not at line start'
 
 		assert bullet in BULLETS or is_numbered_bullet_re.match(bullet), 'Bullet: >>%s<<' % bullet
 		if self._deleted_editmode_mark is not None:
@@ -2143,6 +2144,12 @@ class TextBuffer(TextBufferFindMixin, Gtk.TextBuffer):
 				# for multi char inserts from the view - fixing that here breaks insert parsetree
 
 			string, length = end_or_protect_tags(string, length)
+
+		if not string:
+			return
+
+		if hasattr(self, 'undostack') and self.undostack.block_count == 0:
+			self.undostack.do_insert_text(self, iter, string, length)
 
 		# Call parent for the actual insert
 		Gtk.TextBuffer.do_insert_text(self, iter, string, length)

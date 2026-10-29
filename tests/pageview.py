@@ -1483,6 +1483,91 @@ class TestUndoStackManager(tests.TestCase, TextBufferTestCaseMixin):
 		self.assertBufferEqual(buffer, 'test 123')
 
 
+
+	def testMultiLocationInsertUndoRedo(self):
+		preferences = dict((p[0], p[4]) for p in ui_preferences)
+		view = TextView(preferences)
+		buffer = self.get_buffer('Line 1: AAA\nLine 2: BBB\n')
+		view.set_buffer(buffer)
+
+		iter2 = buffer.get_iter_at_line(1)
+		iter2.forward_to_line_end()
+		buffer.place_cursor(iter2)
+		press(view, 'Hello')
+
+		iter1 = buffer.get_iter_at_line(0)
+		iter1.forward_to_line_end()
+		buffer.place_cursor(iter1)
+		press(view, 'World')
+
+		self.assertBufferEqual(buffer, 'Line 1: AAAWorld\nLine 2: BBBHello\n')
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'Line 1: AAA\nLine 2: BBBHello\n')
+		press(view, '!')
+		self.assertBufferEqual(buffer, 'Line 1: AAA!\nLine 2: BBBHello\n')
+		buffer.undostack.undo()
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'Line 1: AAAWorld\nLine 2: BBBHello\n')
+		buffer.undostack.undo()
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, 'Line 1: AAA\nLine 2: BBB\n')
+		buffer.undostack.redo()
+		self.assertBufferEqual(buffer, 'Line 1: AAA\nLine 2: BBBHello\n')
+
+	def testBackspaceCheckboxMergeUndoRedo(self):
+		preferences = dict((p[0], p[4]) for p in ui_preferences)
+		view = TextView(preferences)
+		input_xml = (
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Item 1\n'
+			'<icon stock="zim-unchecked-box" /> Item 2\n</li>'
+		)
+		buffer = self.get_buffer(input_xml)
+		view.set_buffer(buffer)
+
+		buffer.place_cursor(buffer.get_iter_at_line(1))
+		view.emit('backspace')
+		self.assertBufferEqual(
+			buffer,
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Item 1Item 2\n</li>'
+		)
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, input_xml)
+		buffer.undostack.redo()
+		self.assertBufferEqual(
+			buffer,
+			'<li indent="0" style="unchecked-box"><icon stock="zim-unchecked-box" /> Item 1Item 2\n</li>'
+		)
+
+	def testInsertAtBulletLineStartUndoRedo(self):
+		preferences = dict((p[0], p[4]) for p in ui_preferences)
+		view = TextView(preferences)
+		input_xml = '<li indent="0" style="bullet-list">\u2022 Item 1\n</li>'
+		buffer = self.get_buffer(input_xml)
+		view.set_buffer(buffer)
+
+		buffer.place_cursor(buffer.get_start_iter())
+		press(view, 'X')
+		self.assertBufferEqual(buffer, '<li indent="0" style="bullet-list">\u2022 XItem 1\n</li>')
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, input_xml)
+		buffer.undostack.redo()
+		self.assertBufferEqual(buffer, '<li indent="0" style="bullet-list">\u2022 XItem 1\n</li>')
+
+	def testProtectedTagSpaceUndo(self):
+		preferences = dict((p[0], p[4]) for p in ui_preferences)
+		view = TextView(preferences)
+		input_xml = '<tag name="None">@mytag</tag> text\n'
+		buffer = self.get_buffer(input_xml)
+		view.set_buffer(buffer)
+
+		buffer.place_cursor(buffer.get_end_iter())
+		press(view, 'end')
+		buffer.place_cursor(buffer.get_iter_at_offset(3))
+		press(view, ' ')
+		buffer.undostack.undo()
+		self.assertBufferEqual(buffer, input_xml)
+
+
 class TestLists(tests.TestCase, TextBufferTestCaseMixin):
 
 	def testBulletLists(self):

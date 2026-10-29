@@ -126,7 +126,6 @@ class UndoStackManager:
 		self.recording_handlers = [] # handlers to be blocked when not recording
 		for signal, handler in (
 			('undo-save-cursor', self.do_save_cursor),
-			('insert-text', self.do_insert_text),
 			('insert-pixbuf', self.do_insert_pixbuf),
 			('insert-child-anchor', self.do_insert_pixbuf),
 			('delete-range', self.do_delete_range),
@@ -206,6 +205,9 @@ class UndoStackManager:
 	def do_end_user_action(self, buffer):
 		# End a group of actions that will be undone as a single action
 		#print("END USER ACTION", self.group)
+		if self.insert_pending and not self.group.can_merge:
+			self.flush_insert()
+
 		if self.group:
 			self.stack.append(self.group)
 			self.group = UndoActionGroup()
@@ -261,6 +263,9 @@ class UndoStackManager:
 			# we didn't merge - set flag for next
 			self.group.can_merge = True
 
+		if self.insert_pending:
+			self.flush_insert()
+
 		self.group.append((self.ACTION_INSERT, start, end, None))
 		self.insert_pending = True
 
@@ -289,6 +294,7 @@ class UndoStackManager:
 		requests.
 		'''
 		def _flush_group(group):
+			flushed_any = False
 			for i in reversed(list(range(len(group)))):
 				action, start, end, data = group[i]
 				if action == self.ACTION_INSERT and data is None:
@@ -297,14 +303,13 @@ class UndoStackManager:
 					data = textbuffer_internal_serialize_range(self.buffer, *bounds)
 					#~ print('FLUSH %i to %i\n\t%s' % (start, end, data))
 					group[i] = (self.ACTION_INSERT, start, end, data)
-				else:
-					return False
-			return True
+					flushed_any = True
+			return flushed_any
 
-		if _flush_group(self.group):
-			for i in reversed(list(range(len(self.stack)))):
-				if not _flush_group(self.stack[i]):
-					break
+		_flush_group(self.group)
+		for i in reversed(list(range(len(self.stack)))):
+			if not _flush_group(self.stack[i]):
+				break
 
 		self.insert_pending = False
 
@@ -387,40 +392,37 @@ class UndoStackManager:
 
 	def _replay(self, actiongroup):
 		self.block()
+		try:
+			#print('='*80)
+			for action, start, end, data in actiongroup:
+				#print(action, start, end, data)
+				iter = self.buffer.get_iter_at_offset(start)
+				bound = self.buffer.get_iter_at_offset(end)
 
-		#print('='*80)
-		for action, start, end, data in actiongroup:
-			#print(action, start, end, data)
-			iter = self.buffer.get_iter_at_offset(start)
-			bound = self.buffer.get_iter_at_offset(end)
+				if action == self.ACTION_INSERT:
+					self.buffer.place_cursor(iter)
+					textbuffer_internal_insert_at_cursor(self.buffer, data)
+				elif action == self.ACTION_DELETE:
+					self.buffer.place_cursor(iter)
+					current_data = textbuffer_internal_serialize_range(self.buffer, iter, bound)
+					if current_data != data:
+						if current_data.to_xml() != data.to_xml():
+							logger.warning('Mismatch in undo stack\nGOT: %s\nEXP: %s\n', current_data, data)
+						else:
+							pass # to_xml() flattens e.g. integer arguments to string, ignore such differences here
+					with self.buffer.user_action:
+						with self.buffer.do_pre_delete_range.blocked():
+							with self.buffer.do_post_delete_range.blocked():
+								self.buffer.delete(iter, bound)
+				elif action == self.ACTION_APPLY_TAG:
+					self.buffer.apply_tag(data, iter, bound)
+					self.buffer.place_cursor(bound)
+				elif action == self.ACTION_REMOVE_TAG:
+					self.buffer.remove_tag(data, iter, bound)
+					self.buffer.place_cursor(bound)
+				else:
+					assert False, 'BUG: unknown action type'
 
-			if action == self.ACTION_INSERT:
-				self.buffer.place_cursor(iter)
-				textbuffer_internal_insert_at_cursor(self.buffer, data)
-			elif action == self.ACTION_DELETE:
-				self.buffer.place_cursor(iter)
-				current_data = textbuffer_internal_serialize_range(self.buffer, iter, bound)
-				if current_data != data:
-					if current_data.to_xml() != data.to_xml():
-						logger.warning('Mismatch in undo stack\nGOT: %s\nEXP: %s\n', current_data, data)
-					else:
-						pass # to_xml() flattens e.g. integer arguments to string, ignore such differences here
-				with self.buffer.user_action:
-					with self.buffer.do_pre_delete_range.blocked():
-						with self.buffer.do_post_delete_range.blocked():
-							self.buffer.delete(iter, bound)
-			elif action == self.ACTION_APPLY_TAG:
-				self.buffer.apply_tag(data, iter, bound)
-				self.buffer.place_cursor(bound)
-			elif action == self.ACTION_REMOVE_TAG:
-				self.buffer.remove_tag(data, iter, bound)
-				self.buffer.place_cursor(bound)
-			else:
-				assert False, 'BUG: unknown action type'
-
-		if not actiongroup.cursor is None:
-			iter = self.buffer.get_iter_at_offset(actiongroup.cursor)
-			self.buffer.place_cursor(iter)
-
-		self.unblock()
+		finally:
+			self.unblock()
 
