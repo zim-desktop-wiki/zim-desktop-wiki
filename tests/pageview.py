@@ -3946,19 +3946,12 @@ dus bar bazzz baz
 
 class TestDragAndDropFunctions(tests.TestCase):
 
-	@tests.expectedFailure
-	def testSerializeParseTree(self):
-		tree = tests.new_parsetree()
+	def testNoSerializeParseTree(self):
+		# Offering this format crashes zim, see issue #3072
 		notebook = self.setUpNotebook()
-		page = notebook.get_page(Path('Test'))
-		buffer = TextBuffer(notebook, page)
-		with FilterNoSuchImageWarning():
-			buffer.insert_parsetree_at_cursor(tree)
-
-		start, end = buffer.get_bounds()
-		xml = buffer.serialize(buffer, Gdk.Atom.intern('text/x-zim-parsetree', False), start, end)
-		tree._etree.getroot().attrib['partial'] = True # HACK
-		self.assertEqual(xml, tree.tostring())
+		buffer = TextBuffer(notebook, notebook.get_page(Path('Test')))
+		formats = [atom.name() for atom in buffer.get_serialize_formats()]
+		self.assertNotIn('text/x-zim-parsetree', formats)
 
 	@tests.expectedFailure
 	def testDeserializeParseTree(self):

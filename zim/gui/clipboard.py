@@ -134,17 +134,14 @@ def unpack_urilist(text):
 
 
 def textbuffer_register_serialize_formats(buffer, notebook, page):
-	buffer.register_serialize_format('text/x-zim-parsetree', serialize_parse_tree)
+	# No serialize format for the parsetree: Gtk frees the data returned by
+	# the callback, which python can not hand over, so offering it as a
+	# selection target crashes zim when another client requests it
 	buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
 	for name in (PAGELIST_TARGET_NAME,) + URI_TARGET_NAMES:
 		buffer.register_deserialize_format(name, deserialize_urilist, (notebook, page))
 	for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
 		buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
-
-def serialize_parse_tree(register_buf, content_buf, start, end, user_data=None):
-	tree = content_buf.get_parsetree((start, end))
-	xml = tree.tostring()
-	return xml
 
 def deserialize_parse_tree(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	notebook, path = user_data
