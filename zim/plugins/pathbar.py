@@ -506,7 +506,7 @@ class PathBar(ScrolledHBox):
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
 			button.connect('popup-menu', self.on_button_popup_menu)
-			button.connect('button-release-event', self.on_button_release_event)
+			button.connect('button-press-event', self.on_button_press_event)
 			button.connect('drag-data-get', self.on_drag_data_get)
 			button.drag_source_set(
 				Gdk.ModifierType.BUTTON1_MASK,
@@ -549,7 +549,7 @@ class PathBar(ScrolledHBox):
 	def on_button_clicked(self, button):
 		self.navigation.open_page(button.zim_path)
 
-	def on_button_release_event(self, button, event):
+	def on_button_press_event(self, button, event):
 		if Gdk.Event.triggers_context_menu(event):
 			button.emit('popup-menu') # FIXME do we need to pass x/y and button ?
 			return True
