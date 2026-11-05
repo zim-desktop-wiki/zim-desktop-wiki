@@ -63,6 +63,39 @@ class TestPathBar(tests.TestCase):
 		menu = pathbar.get_button_popup(button)
 		self.assertIsInstance(menu, Gtk.Menu)
 
+	def testContextMenuOnRightClick(self):
+		# Gdk.Event.triggers_context_menu() is only true for button press
+		# events, handling it on button release means menu is never shown
+		calls = []
+
+		class RecordingPathBar(MyPathBar):
+
+			def on_button_popup_menu(self, button):
+				calls.append(button.zim_path)
+				return True
+
+		pathbar = RecordingPathBar(None, None, None)
+		window = Gtk.Window()
+		window.add(pathbar)
+		window.realize()
+		button = pathbar.get_scrolled_children()[1]
+
+		def click(button_nr):
+			for event_type, signal in (
+				(Gdk.EventType.BUTTON_PRESS, 'button-press-event'),
+				(Gdk.EventType.BUTTON_RELEASE, 'button-release-event'),
+			):
+				event = Gdk.Event.new(event_type)
+				event.button.window = window.get_window()
+				event.button.button = button_nr
+				button.emit(signal, event)
+
+		click(1)
+		self.assertEqual(calls, [])
+
+		click(3)
+		self.assertEqual(calls, [Path('bbb')])
+
 	def testResize(self):
 		pathbar = MyPathBar(None, None, None)
 		pathbar.show_all()
