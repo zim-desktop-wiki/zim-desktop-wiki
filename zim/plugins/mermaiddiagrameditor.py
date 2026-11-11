@@ -19,7 +19,8 @@ logger = logging.getLogger('zim.plugins.mermaiddiagrameditor')
 def get_cmd(fmt):
 	# On Windows, npm installs mmdc as "mmdc.cmd", which Popen won't find by its
 	# bare name, so use the full path of whichever mmdc file is on PATH
-	mmdc = (shutil.which('mmdc') if os.name == 'nt' else None) or 'mmdc'
+	mmdc = shutil.which('mmdc') if os.name == 'nt' else None
+	mmdc = os.path.abspath(mmdc) if mmdc else 'mmdc'
 	return (mmdc, '-q', '-e', fmt, '-b', 'transparent', '-i')
 
 
