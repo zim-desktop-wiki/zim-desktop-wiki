@@ -1,6 +1,8 @@
 # Copyright 2024 Radu Potop <radu@wooptoo.com>
 
 import logging
+import os
+import shutil
 
 from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import (
@@ -15,7 +17,11 @@ logger = logging.getLogger('zim.plugins.mermaiddiagrameditor')
 
 
 def get_cmd(fmt):
-	return ('mmdc', '-q', '-e', fmt, '-b', 'transparent', '-i')
+	# On Windows, npm installs mmdc as "mmdc.cmd", which Popen won't find by its
+	# bare name, so use the full path of whichever mmdc file is on PATH
+	mmdc = shutil.which('mmdc') if os.name == 'nt' else None
+	mmdc = os.path.abspath(mmdc) if mmdc else 'mmdc'
+	return (mmdc, '-q', '-e', fmt, '-b', 'transparent', '-i')
 
 
 class InsertMermaidDiagramPlugin(PluginClass):

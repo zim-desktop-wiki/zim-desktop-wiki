@@ -26,6 +26,7 @@ from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin
 from zim.plugins.scoreeditor import InsertScorePlugin
 from zim.plugins.ditaaeditor import InsertDitaaPlugin
 from zim.plugins.sequencediagrameditor import InsertSequenceDiagramPlugin
+from zim.plugins.mermaiddiagrameditor import InsertMermaidDiagramPlugin
 
 
 def assertIsPNG(file):
@@ -391,3 +392,13 @@ seqdiag {
 }
 '''
 		self.invalidinput = 'sdfsdf sdfsdf'
+
+
+@tests.skipUnless(InsertMermaidDiagramPlugin.check_dependencies_ok(), 'Missing dependencies')
+class TestMermaidDiagramEditor(TestImageGeneratorPluginMixin, tests.TestCase):
+
+	plugin = 'mermaiddiagrameditor'
+	object_types = ['image+mermaid']
+
+	validinput = 'graph TD\n  A[Start] --> B[Done]\n'
+	invalidinput = 'sdfsdf sdfsdf'
