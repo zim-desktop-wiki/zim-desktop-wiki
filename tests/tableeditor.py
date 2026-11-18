@@ -424,11 +424,6 @@ class TestTabNavigation(TableWidgetInWindowTestCase):
 		self.wait_for_move()
 		self.assertEqual(self.cursor(), (1, 1))
 
-	def testCtrlTabIsLeftToGtk(self):
-		self.start_editing(0, 0)
-		self.assertFalse(self.press(Gdk.KEY_Tab, Gdk.ModifierType.CONTROL_MASK))
-
-
 class TestProcessColRowMove(tests.TestCase):
 
 	def move(self, col, row, num_cols, num_rows, col_direction, row_direction=0):

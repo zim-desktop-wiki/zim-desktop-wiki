@@ -30,7 +30,7 @@ from zim.formats.wiki import Parser as WikiParser
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry, gtk_popup_at_pointer, \
 	encode_markup_text
-from zim.gui.insertedobjects import InsertedObjectWidget
+from zim.gui.insertedobjects import InsertedObjectWidget, POSITION_BEGIN, POSITION_END
 
 
 SYNTAX_CELL_INPUT = [
@@ -884,9 +884,15 @@ class TableViewWidget(InsertedObjectWidget):
 		''' Event handler for key-press-events in treeview '''
 		keyname = Gdk.keyval_name(event.keyval)
 
-		# Leave Ctrl+Tab to GTK, which moves focus out of the table with it
+		# Ctrl+Tab and Ctrl+Shift+Tab leave the table, putting the cursor in the page text after or before it
 		if event.state & Gdk.ModifierType.CONTROL_MASK:
-			return False
+			if keyname not in ('Tab', 'ISO_Left_Tab'):
+				return False
+			self.autosave_current_cell()
+			self._pending_cursor = None  # a queued Tab move would otherwise pull focus back into the table
+			backwards = keyname == 'ISO_Left_Tab' or event.state & Gdk.ModifierType.SHIFT_MASK
+			self.release_cursor(POSITION_BEGIN if backwards else POSITION_END)
+			return True
 
 		row_direction = 0
 		col_direction = 0
