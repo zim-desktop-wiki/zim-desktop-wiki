@@ -425,6 +425,13 @@ class TestTabNavigation(TableWidgetInWindowTestCase):
 			time.sleep(0.01)
 		tests.gtk_process_events()
 
+	def wait(self, seconds):
+		import time
+		deadline = time.time() + seconds
+		while time.time() < deadline:
+			tests.gtk_process_events()
+			time.sleep(0.01)
+
 	def cursor(self):
 		path, col = self.widget.treeview.get_cursor()
 		return path.get_indices()[0], self.widget.treeview.get_columns().index(col)
@@ -442,6 +449,22 @@ class TestTabNavigation(TableWidgetInWindowTestCase):
 		self.assertTrue(self.press(Gdk.KEY_ISO_Left_Tab, Gdk.ModifierType.SHIFT_MASK))
 		self.wait_for_move()
 		self.assertEqual(self.cursor(), (0, 1))
+
+	def testTabFollowsRowResortedBySave(self):
+		self.model.liststore.set_sort_column_id(0, Gtk.SortType.ASCENDING)
+		tests.gtk_process_events()
+		self.start_editing(0, 0).set_text('z1')  # sorts after the other rows once it's saved
+		self.press(Gdk.KEY_Tab)
+		self.wait_for_move()
+		self.assertEqual(self.rows(), [['b1', 'b2'], ['c1', 'c2'], ['z1', 'a2']])
+		self.assertEqual(self.cursor(), (2, 1))
+
+	def testTabAfterQueuedTargetRowDeleted(self):
+		self.start_editing(1, 1)
+		self.press(Gdk.KEY_Tab)  # queues a move to the last row
+		self.model.liststore.remove(self.model.liststore.get_iter(Gtk.TreePath.new_from_indices([2])))
+		self.assertTrue(self.press(Gdk.KEY_Tab))  # mustn't fail on a queued target whose row has gone
+		self.wait(0.4)
 
 	def testFastTabsAreNotLost(self):
 		self.start_editing(0, 0)
