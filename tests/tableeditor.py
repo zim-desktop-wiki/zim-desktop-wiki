@@ -216,6 +216,32 @@ class TestPageViewWithPlugin(TestPageViewNoPlugin):
 		self.assertIsNotNone(elt)
 		# FIXME: test content
 
+	def testCtrlTabMovesCursorAfterTable(self):
+		pageview = setUpPageView(self.setUpNotebook(), text=TABLE_WIKI_TEXT)
+		window = Gtk.Window()
+		window.add(pageview)
+		window.show_all()
+		tests.gtk_process_events()
+
+		buffer = pageview.textview.get_buffer()
+		anchor_iter, anchor = next(buffer.list_objectanchors())
+		widget = pageview.textview.get_inserted_object_widgets()[0]
+		widget.treeview.grab_focus()
+		tests.gtk_process_events()
+
+		event = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+		event.key.keyval = Gdk.KEY_Tab
+		event.key.state = Gdk.ModifierType.CONTROL_MASK
+		self.assertTrue(widget.on_treeview_key_press_event(widget.treeview, event.key))
+		tests.gtk_process_events()
+
+		# is_focus() rather than has_focus(), which is also false when the window isn't active, as
+		# under xvfb without a window manager
+		self.assertTrue(pageview.textview.is_focus())
+		cursor = buffer.get_iter_at_mark(buffer.get_insert())
+		self.assertEqual(cursor.get_offset(), buffer.get_iter_at_child_anchor(anchor).get_offset() + 1)
+		window.destroy()
+
 	def testInsertDialog(self):
 		window = setUpMainWindow(self.setUpNotebook(content={'Test': 'Test 123'}), path='Test')
 		action = get_gtk_action(window.uimanager, 'insert_table')
@@ -423,6 +449,21 @@ class TestTabNavigation(TableWidgetInWindowTestCase):
 			self.press(Gdk.KEY_Tab)  # no main loop iterations in between
 		self.wait_for_move()
 		self.assertEqual(self.cursor(), (1, 1))
+
+	def testCtrlTabLeavesTable(self):
+		positions = []
+		self.widget.connect('release-cursor', lambda widget, position: positions.append(position))
+		self.start_editing(0, 0).set_text('edited')
+		self.assertTrue(self.press(Gdk.KEY_Tab, Gdk.ModifierType.CONTROL_MASK))
+		self.assertTrue(self.press(Gdk.KEY_ISO_Left_Tab, Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK))
+		self.assertEqual(positions, [POSITION_END, POSITION_BEGIN])
+		self.assertEqual(self.rows()[0], ['edited', 'a2'])
+		self.assertIsNone(self.get_editor())
+
+	def testOtherCtrlKeysAreLeftToGtk(self):
+		self.start_editing(0, 0)
+		self.assertFalse(self.press(Gdk.KEY_a, Gdk.ModifierType.CONTROL_MASK))
+
 
 class TestProcessColRowMove(tests.TestCase):
 
