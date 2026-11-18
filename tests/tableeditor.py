@@ -459,6 +459,31 @@ class TestTabNavigation(TableWidgetInWindowTestCase):
 		self.assertEqual(self.rows(), [['b1', 'b2'], ['c1', 'c2'], ['z1', 'a2']])
 		self.assertEqual(self.cursor(), (2, 1))
 
+	def testQueuedMoveDroppedWhenFocusLeaves(self):
+		self.start_editing(0, 0)
+		self.press(Gdk.KEY_Tab)
+		self.window.set_focus(None)  # the user clicks into the page before the next edit opens
+		self.wait(0.4)  # past the 200 ms fallback
+		self.assertIsNone(self.get_editor())
+		self.assertIsNone(self.window.get_focus())
+
+	def testQueuedMoveDroppedWhenAnotherCellClicked(self):
+		self.start_editing(0, 0)
+		self.press(Gdk.KEY_Tab)
+		self.start_editing(2, 1)  # the user clicks another cell before the next edit opens
+		self.wait(0.4)
+		self.assertEqual(self.cursor(), (2, 1))
+		self.assertIsNotNone(self.get_editor())
+
+	def testQueuedMoveDroppedWhenCursorMoves(self):
+		self.start_editing(0, 0)
+		self.press(Gdk.KEY_Tab)
+		self.widget.on_move_row(None, 1)  # Row down doesn't take focus, but moves the cursor with the row
+		self.wait(0.4)
+		self.assertEqual(self.rows(), [['b1', 'b2'], ['a1', 'a2'], ['c1', 'c2']])
+		self.assertEqual(self.cursor(), (1, 0))
+		self.assertIsNone(self.get_editor())
+
 	def testTabAfterQueuedTargetRowDeleted(self):
 		self.start_editing(1, 1)
 		self.press(Gdk.KEY_Tab)  # queues a move to the last row
