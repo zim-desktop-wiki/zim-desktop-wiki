@@ -927,6 +927,10 @@ class TableViewWidget(InsertedObjectWidget):
 		self.autosave_current_cell()
 		if row is not None and row.valid():
 			path = row.get_path()
+		# Removing the editor only passes focus back to the treeview if the window's active, and the
+		# queued move below checks the treeview still has focus
+		if not treeview.is_focus():
+			treeview.grab_focus()
 
 		next_col, next_path = self.process_col_row_move(
 			colindex, path, len(columns), len(treeview.get_model()), col_direction, row_direction)
@@ -934,11 +938,20 @@ class TableViewWidget(InsertedObjectWidget):
 		if pending:
 			return True  # the queued move picks up the new target
 
+		# Taken after the save, so a row the save re-sorted counts as where the cursor is
+		queued_path, queued_col = treeview.get_cursor()
+
 		def start_editing_next_cell():
 			target, self._pending_cursor = self._pending_cursor, None
-			# The treeview's replaced if the columns change, and unrealized if the page is closed
-			if target and treeview is self.treeview and treeview.get_realized():
-				treeview.set_cursor(target[0], columns[target[1]], True)
+			# The treeview's replaced if the columns change, and unrealized if the page is closed.
+			# If it's lost focus, the user's clicked into the page or another cell since the Tab.
+			if not (target and treeview is self.treeview and treeview.get_realized() and treeview.is_focus()):
+				return False
+			# If its cursor's moved, by an arrow key or the Row up/down buttons say, the target's stale
+			path, col = treeview.get_cursor()
+			if path is None or queued_path is None or path.compare(queued_path) != 0 or col is not queued_col:
+				return False
+			treeview.set_cursor(target[0], columns[target[1]], True)
 			return False
 
 		# Don't start the next edit until a frame's been drawn since the last one was removed.
