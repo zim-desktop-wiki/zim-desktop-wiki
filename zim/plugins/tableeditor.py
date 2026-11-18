@@ -920,7 +920,13 @@ class TableViewWidget(InsertedObjectWidget):
 				return False
 			colindex = columns.index(col)
 
+		# Saving the cell re-sorts the rows if the table's sorted on its column, so follow the row
+		# itself and take its path again afterwards, or Tab would carry on from a different record.
+		# A queued target needn't be followed, as nothing's being edited, and its row may have gone.
+		row = Gtk.TreeRowReference.new(treeview.get_model(), path) if not pending else None
 		self.autosave_current_cell()
+		if row is not None and row.valid():
+			path = row.get_path()
 
 		next_col, next_path = self.process_col_row_move(
 			colindex, path, len(columns), len(treeview.get_model()), col_direction, row_direction)
