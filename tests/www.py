@@ -145,6 +145,21 @@ class TestWWWInterface(tests.TestCase):
 		response = call('GET', '/', auth_creds=auth_creds)
 		header, body = self.assertResponseOK(response)
 
+		# ensure that wrong credentials are rejected
+		response = call('GET', '/', auth_creds=('test_user', 'wrong'))
+		header, body = self.assertAuthenticationRequired(response)
+
+		# ensure that a password can contain a colon
+		auth_creds = ('test_user', 'test:pass:word')
+		interface = WWWInterface(notebook, template=self.template, auth_creds=auth_creds)
+		validator = wsgiref.validate.validator(interface)
+
+		response = call('GET', '/', auth_creds=auth_creds)
+		header, body = self.assertResponseOK(response)
+
+		response = call('GET', '/', auth_creds=('test_user', 'test'))
+		header, body = self.assertAuthenticationRequired(response)
+
 #~ class TestWWWInterfaceTemplate(TestWWWInterface):
 #~
 	#~ def assertResponseOK(self, response, expectbody=True):
