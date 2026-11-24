@@ -161,7 +161,7 @@ class WWWInterface(object):
 			if auth:
 				scheme, data = auth.split(None, 1)
 				assert scheme.lower() == 'basic'
-				username, password = base64.b64decode(data).decode('UTF-8').split(':')
+				username, password = base64.b64decode(data).decode('UTF-8').split(':', 1)
 				if username != self.auth_creds[0] or password != self.auth_creds[1]:
 					return bad_auth()
 				environ['REMOTE_USER'] = username
